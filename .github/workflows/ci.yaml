@@ -37,16 +37,16 @@ jobs:
             target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Install trunk
+      - name: Install Dioxius
         if: steps.cache.outputs.cache-hit != 'true'
         uses: actions-rs/cargo@v1
         with:
           use-cross: true
           command: install
-          args: trunk
+          args: dioxus-cli
 
       - name: Build web pages
-        run: trunk build --release
+        run: dx build --release
 
       - name: Deploy to Vercel (prod)
         if: "github.event_name == 'push' && endsWith(github.ref, 'refs/heads/main')" # Deploy to prod if it is a push to `main`
@@ -56,7 +56,7 @@ jobs:
           vercel-args: '--prod'
           vercel-org-id: ${{ secrets.ORG_ID }}  # Required
           vercel-project-id: ${{ secrets.PROJECT_ID }} # Required 
-          working-directory: ./
+          working-directory: ./target/dx/web-dioxus/release/web/public
 
       - name: Deploy to Vercel (preview)
         if: "github.event_name != 'push' || !endsWith(github.ref, 'refs/heads/main')" # Deploy to preview otherwise
@@ -65,4 +65,4 @@ jobs:
           vercel-token: ${{ secrets.VERCEL_TOKEN }} # Required
           vercel-org-id: ${{ secrets.ORG_ID }}  # Required
           vercel-project-id: ${{ secrets.PROJECT_ID }} # Required 
-          working-directory: ./
+          working-directory: ./target/dx/web-dioxus/release/web/public
