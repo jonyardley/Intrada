@@ -1,12 +1,11 @@
 [application]
 
 # App (Project) Name
-name = "web-dioxus"
+name = "practice-app"
 
 [web.app]
-
 # HTML title tag content
-title = "web-dioxus"
+title = "Practice App"
 
 # include `assets` in web platform
 [web.resource]
@@ -22,3 +21,5 @@ script = []
 # Javascript code file
 # serve: [dev-server] only
 script = []
+
+[web]
