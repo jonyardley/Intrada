@@ -1,7 +1,7 @@
 name = "Practice App"
 description = "A practice app to demonstrate Crux"
 authors = ["Jon Yardley"]
-repository = "TBD"
+repository = "https://github.com/jonyardley/practice_app"
 
 [cores.shared]
 source = "shared"
