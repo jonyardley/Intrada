@@ -1,25 +1,18 @@
 [application]
-
-# App (Project) Name
 name = "practice-app"
 
 [web.app]
-# HTML title tag content
 title = "Practice App"
 
-# include `assets` in web platform
 [web.resource]
-
-# Additional CSS style files
 style = []
-
-# Additional JavaScript files
 script = []
 
 [web.resource.dev]
-
-# Javascript code file
-# serve: [dev-server] only
 script = []
 
 [web]
+
+[web.watcher]
+reload_html = true
+watch_path = ["src", "public"]
