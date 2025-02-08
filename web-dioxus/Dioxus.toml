@@ -15,4 +15,5 @@ script = []
 
 [web.watcher]
 reload_html = true
-watch_path = ["src", "public"]
+watch_path = ["src", "assets"]
+index_on_404 = true

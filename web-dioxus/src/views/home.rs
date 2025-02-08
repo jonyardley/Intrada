@@ -1,79 +1,32 @@
-// use crate::components::Hero;
 use dioxus::prelude::*;
+use shared::Event;
+
+use crate::AppContext; // Adjust the path according to your project structure
 
 #[component]
 pub fn Home() -> Element {
+    let context = use_context::<AppContext>();
+    let count = context.view.read().count.clone();
+
     rsx!(
-        div { class: "navbar bg-base-100",
-            div { class: "navbar-start",
-                div { class: "dropdown",
-                    div {
-                        tabindex: "0",
-                        role: "button",
-                        class: "btn btn-ghost lg:hidden",
-                        svg {
-                            xmlns: "http://www.w3.org/2000/svg",
-                            class: "h-5 w-5",
-                            fill: "none",
-                            view_box: "0 0 24 24",
-                            stroke: "currentColor",
-                            path {
-                                stroke_linecap: "round",
-                                stroke_linejoin: "round",
-                                stroke_width: "2",
-                                d: "M4 6h16M4 12h8m-8 6h16",
-                            }
-                        }
-                    }
-                    ul {
-                        tabindex: "0",
-                        class: "menu menu-sm dropdown-content bg-base-100 rounded-box z-[1] mt-3 w-52 p-2 shadow",
-                        li {
-                            a { "Item 1" }
-                        }
-                        li {
-                            a { "Parent" }
-                            ul { class: "p-2",
-                                li {
-                                    a { "Submenu 1" }
-                                }
-                                li {
-                                    a { "Submenu 2" }
-                                }
-                            }
-                        }
-                        li {
-                            a { "Item 3" }
-                        }
-                    }
+        h1 { "hello world" }
+        section { class: "section has-text-centered",
+            p { class: "is-size-5", "Count: {count}" }
+            div { class: "buttons section is-centered",
+                button {
+                    class: "button is-primary is-success",
+                    onclick: move |_| {
+                        context.core.send(Event::Increment);
+                    },
+                    "Increment"
                 }
-                a { class: "btn btn-ghost text-xl", "Practice App" }
-            }
-            div { class: "navbar-center hidden lg:flex",
-                ul { class: "menu menu-horizontal px-1",
-                    li {
-                        a { "Item 1" }
-                    }
-                    li {
-                        details {
-                            summary { "Parent" }
-                            ul { class: "p-2",
-                                li {
-                                    a { "Submenu 1" }
-                                }
-                                li {
-                                    a { "Submenu 2" }
-                                }
-                            }
-                        }
-                    }
-                    li {
-                        a { "Item 3" }
-                    }
+                button {
+                    class: "button is-primary is-warning",
+                    onclick: move |_| {
+                        context.core.send(Event::Decrement);
+                    },
+                    "Decrement"
                 }
-            }
-            div { class: "navbar-end",
-                a { class: "btn", "Login" }
             }
         }
     )

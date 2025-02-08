@@ -5,7 +5,7 @@ authors = ["jonyardley"]
 edition = "2021"
 
 [dependencies]
-dioxus = { version = "0.6.0", features = ["router"] }
+dioxus = { version = "0.6.3", features = ["router"] }
 console_error_panic_hook = "0.1.7"
 dioxus-logger = "0.6.2"
 futures-util = "0.3.31"

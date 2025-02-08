@@ -1,4 +1,5 @@
 mod crux_core;
+use components::NavBar;
 use dioxus::prelude::*;
 use tracing::Level;
 use views::Home;
@@ -13,6 +14,7 @@ mod views;
 #[derive(Debug, Clone, Routable, PartialEq)]
 #[rustfmt::skip]
 enum Route {
+    #[layout(NavBar)]
     #[route("/")]
     Home {},
 }
@@ -29,15 +31,26 @@ fn main() {
 
     dioxus::launch(App);
 }
+#[derive(Clone)]
+pub struct AppContext {
+    core: Coroutine<Event>,
+    view: Signal<ViewModel>,
+}
 
 #[component]
 fn App() -> Element {
     let view = use_signal(ViewModel::default);
-
     let crux_core = use_coroutine(move |mut rx| {
         let svc = CoreService::new(view);
         async move { svc.run(&mut rx).await }
     });
+
+    let context: AppContext = AppContext {
+        core: crux_core,
+        view: view,
+    };
+
+    use_context_provider(|| context);
 
     rsx! {
         document::Link { rel: "icon", href: FAVICON }
@@ -47,27 +60,8 @@ fn App() -> Element {
         document::Link { rel: "stylesheet", href: APP_CSS }
 
         main {
-            section {
-                div { "data-theme": "dark", Router::<Route> {} }
-            }
-            section { class: "section has-text-centered",
-                p { class: "is-size-5", "{view().count}" }
-                div { class: "buttons section is-centered",
-                    button {
-                        class: "button is-primary is-success",
-                        onclick: move |_| {
-                            crux_core.send(Event::Increment);
-                        },
-                        "Increment"
-                    }
-                    button {
-                        class: "button is-primary is-warning",
-                        onclick: move |_| {
-                            crux_core.send(Event::Decrement);
-                        },
-                        "Decrement"
-                    }
-                }
+            div { "data-theme": "lightark",
+                section { Router::<Route> {} }
             }
         }
     }

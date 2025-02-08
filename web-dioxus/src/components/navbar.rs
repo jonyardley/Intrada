@@ -1,25 +1,31 @@
 use crate::Route;
 use dioxus::prelude::*;
 
-const NAVBAR_CSS: Asset = asset!("/assets/styling/navbar.css");
-
 #[component]
-pub fn Navbar() -> Element {
-    rsx! {
-        document::Link { rel: "stylesheet", href: NAVBAR_CSS }
-
-        div {
-            id: "navbar",
-            Link {
-                to: Route::Home {},
-                "Home"
+pub fn NavBar() -> Element {
+    rsx!(
+        div { "data-theme": "dark", class: "navbar bg-base-100",
+            div { class: "navbar-start",
+                a { class: "btn btn-ghost text-xl", "Practice App" }
             }
-            Link {
-                to: Route::Blog { id: 1 },
-                "Blog"
+            div { class: "navbar-center hidden lg:flex",
+                ul { class: "menu menu-horizontal px-1",
+                    li {
+                        a { "Sessions" }
+                    }
+                    li {
+                        a { "Routines" }
+                    }
+                    li {
+                        a { "Exersizes" }
+                    }
+                    li {
+                        a { "Settings" }
+                    }
+                }
             }
+            div { class: "navbar-end" }
         }
-
         Outlet::<Route> {}
-    }
+    )
 }
