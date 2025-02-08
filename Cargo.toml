@@ -1,0 +1,31 @@
+[workspace]
+members = ["shared", "shared_types", "web-dioxus"]
+resolver = "1"
+
+[workspace.package]
+authors = ["Jon yardley"]
+edition = "2021"
+repository = "TBD"
+license = "Apache-2.0"
+keywords = ["crux", "crux_core", "cross-platform-ui", "ffi", "wasm"]
+rust-version = "1.66"
+
+[workspace.dependencies]
+anyhow = "1.0.95"
+crux_core = "0.11.3"
+serde = "1.0.217"
+
+[workspace.metadata.bin]
+cargo-xcode = { version = "=1.7.0" }
+
+[profile]
+
+[profile.wasm-dev]
+inherits = "dev"
+opt-level = 1
+
+[profile.server-dev]
+inherits = "dev"
+
+[profile.android-dev]
+inherits = "dev"

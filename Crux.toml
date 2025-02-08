@@ -1,0 +1,14 @@
+name = "Practice App"
+description = "A practice app to demonstrate Crux"
+authors = ["Jon Yardley"]
+repository = "TBD"
+
+[cores.shared]
+source = "shared"
+type_gen = "shared_types"
+crux_version = "0.6.3"
+
+[shells.web_dioxus]
+template = "web-dioxus"
+source = "web-dioxus"
+cores = ["shared"]

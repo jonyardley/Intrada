@@ -1,20 +1,21 @@
-mod core;
+mod crux_core;
 use dioxus::prelude::*;
 use tracing::Level;
+use views::Home;
 
 use shared::{Event, ViewModel};
 
-use core::CoreService;
+use crux_core::CoreService;
 
 mod components;
 mod views;
 
-// #[derive(Debug, Clone, Routable, PartialEq)]
-// #[rustfmt::skip]
-// enum Route {
-//     #[route("/")]
-//     Home {}
-// }
+#[derive(Debug, Clone, Routable, PartialEq)]
+#[rustfmt::skip]
+enum Route {
+    #[route("/")]
+    Home {},
+}
 
 const FAVICON: Asset = asset!("/assets/favicon.ico");
 const DAISY_CSS: &str = "https://cdn.jsdelivr.net/npm/daisyui@5.0.0-beta.7/daisyui.css";
@@ -33,7 +34,7 @@ fn main() {
 fn App() -> Element {
     let view = use_signal(ViewModel::default);
 
-    let core = use_coroutine(move |mut rx| {
+    let crux_core = use_coroutine(move |mut rx| {
         let svc = CoreService::new(view);
         async move { svc.run(&mut rx).await }
     });
@@ -46,23 +47,23 @@ fn App() -> Element {
         document::Link { rel: "stylesheet", href: APP_CSS }
 
         main {
-            // section {
-            //     div { "data-theme": "dark", Router::<Route> {} }
-            // }
+            section {
+                div { "data-theme": "dark", Router::<Route> {} }
+            }
             section { class: "section has-text-centered",
                 p { class: "is-size-5", "{view().count}" }
                 div { class: "buttons section is-centered",
                     button {
                         class: "button is-primary is-success",
                         onclick: move |_| {
-                            core.send(Event::Increment);
+                            crux_core.send(Event::Increment);
                         },
                         "Increment"
                     }
                     button {
                         class: "button is-primary is-warning",
                         onclick: move |_| {
-                            core.send(Event::Decrement);
+                            crux_core.send(Event::Decrement);
                         },
                         "Decrement"
                     }
