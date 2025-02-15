@@ -64,13 +64,25 @@ jobs:
         working-directory: ./web-leptos
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v1
+        uses: actions/upload-artifact@v3
         with:
+          name: build-artifact
           path: ./web-leptos/dist
 
   deploy:
     runs-on: ubuntu-latest
     needs: Github-Pages-Release
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: build-artifact
+          path: ./web-leptos/dist
+
       - name: Deploy to GitHub Pages
         uses: actions/deploy-pages@v3
+        with:
+          folder: ./web-leptos/dist
