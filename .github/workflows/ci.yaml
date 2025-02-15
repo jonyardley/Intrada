@@ -88,10 +88,10 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
-          name: build-artifact
+          name: build
           path: ./web-leptos/dist
 
       - name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@v3
+        uses: actions/deploy-pages@v4
         with:
-          artifact_name: build-artifact
+          artifact_name: build
