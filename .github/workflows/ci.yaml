@@ -1,9 +1,4 @@
-name: Build and Deploy Leptos Page
-
-defaults:
-  run:
-    working-directory: ./web-leptos
-
+name: CI
 
 on:
   push:
@@ -13,15 +8,29 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ./web-leptos
+
     steps:
-      - uses: actions/checkout@v3
-      - name: Set up Rust
-        uses: actions/setup-rust@v1
-        with:
-          rust-version: 'stable'
-      - name: Build with Trunk
-        run: trunk build --release --public-url "${GITHUB_REPOSITORY#*/}"
-      - name: Deploy to GitHub Pages
-        uses: JamesIves/github-pages-deploy-action@v4
-        with:
-          folder: dist
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        override: true
+
+    - name: Install Trunk
+      run: cargo install trunk
+
+    - name: Build Leptos app
+      run: trunk build --release
+
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./dist
