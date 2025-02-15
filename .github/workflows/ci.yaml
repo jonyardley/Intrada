@@ -1,9 +1,5 @@
 name: Release to GitHub Pages
 
-defaults:
-  run:
-    working-directory: ./web-leptos
-
 on:
   push:
     branches: [main]
@@ -32,8 +28,9 @@ jobs:
 
       - name: Build with Trunk
         run: trunk build --release --public-url "${GITHUB_REPOSITORY#*/}"
+        working-directory: ./web-leptos
 
       - name: Deploy to GitHub Pages
         uses: actions/deploy-pages@v3
         with:
-          folder: dist
+          folder: ./web-leptos/dist
