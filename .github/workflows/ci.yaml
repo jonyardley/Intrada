@@ -1,35 +1,39 @@
-name: CI
+name: Release to GitHub Pages
+
+defaults:
+  run:
+    working-directory: ./web-leptos
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
-  build:
+  Github-Pages-Release:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: Set up Rust
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: stable
-        override: true
-      working-directory: ./web-leptos
+      - name: Set up Rust
+        uses: actions/setup-rust@v1
+        with:
+          rust-version: stable
 
-    - name: Install Trunk
-      run: cargo install trunk
-      working-directory: ./web-leptos
+      - name: Build with Trunk
+        run: trunk build --release --public-url "${GITHUB_REPOSITORY#*/}"
 
-    - name: Build Leptos app
-      run: trunk build --release
-      working-directory: ./web-leptos
-
-    - name: Deploy to GitHub Pages
-      uses: peaceiris/actions-gh-pages@v3
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./web-leptos/dist
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v3
+        with:
+          folder: dist
