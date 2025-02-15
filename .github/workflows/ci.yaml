@@ -73,6 +73,9 @@ jobs:
         run: trunk build --release --public-url "${GITHUB_REPOSITORY#*/}"
         working-directory: ./web-leptos
 
+      - name: Verify dist directory
+        run: ls -la ./web-leptos/dist
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -91,6 +94,9 @@ jobs:
         with:
           name: build-artifact
           path: ./web-leptos/dist
+
+      - name: Verify downloaded artifact
+        run: ls -la ./web-leptos/dist
 
       - name: Deploy to GitHub Pages
         uses: actions/deploy-pages@v4
