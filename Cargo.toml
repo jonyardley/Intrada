@@ -1,5 +1,5 @@
 [workspace]
-members = ["shared", "shared_types", "web-dioxus"]
+members = ["shared", "shared_types", "web-dioxus", "web-leptos"]
 resolver = "1"
 
 [workspace.package]
@@ -8,7 +8,7 @@ edition = "2021"
 repository = "https://github.com/jonyardley/practice_app"
 license = "Apache-2.0"
 keywords = ["crux", "crux_core", "cross-platform-ui", "ffi", "wasm"]
-rust-version = "1.66"
+rust-version = "1.76"
 
 [workspace.dependencies]
 anyhow = "1.0.95"
