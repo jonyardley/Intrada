@@ -53,6 +53,12 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-build-
 
+      - name: Install Trunk
+        run: cargo install trunk
+
+      - name: Verify Trunk installation
+        run: trunk --version
+
       - name: Build with Trunk
         run: trunk build --release --public-url "${GITHUB_REPOSITORY#*/}"
         working-directory: ./web-leptos
