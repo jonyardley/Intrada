@@ -53,9 +53,18 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-build-
 
+      - name: Cache trunk installation
+        id: cache-trunk
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/bin
+          key: ${{ runner.os }}-cargo-bin-trunk-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-bin-trunk-
+
       - name: Install Trunk
         if: steps.cache-trunk.outputs.cache-hit != 'true'
-        run: cargo install trunk
+        run: cargo install trunk --force
 
       - name: Verify Trunk installation
         run: trunk --version
@@ -80,10 +89,10 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
-          name: build
+          name: build-artifact
           path: ./web-leptos/dist
 
       - name: Deploy to GitHub Pages
         uses: actions/deploy-pages@v4
         with:
-          artifact_name: build
+          artifact_name: build-artifact
