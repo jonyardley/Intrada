@@ -63,7 +63,14 @@ jobs:
         run: trunk build --release --public-url "${GITHUB_REPOSITORY#*/}"
         working-directory: ./web-leptos
 
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v1
+        with:
+          path: ./web-leptos/dist
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: Github-Pages-Release
+    steps:
       - name: Deploy to GitHub Pages
         uses: actions/deploy-pages@v3
-        with:
-          folder: ./web-leptos/dist
