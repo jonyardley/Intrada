@@ -79,7 +79,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: build-artifact
+          name: build
           path: ./web-leptos/dist
 
   deploy:
@@ -92,7 +92,7 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
-          name: build-artifact
+          name: build
           path: ./web-leptos/dist
 
       - name: Verify downloaded artifact
@@ -101,4 +101,4 @@ jobs:
       - name: Deploy to GitHub Pages
         uses: actions/deploy-pages@v4
         with:
-          artifact_name: build-artifact
+          artifact_name: build
