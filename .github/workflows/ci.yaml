@@ -86,7 +86,7 @@ jobs:
         run: ls -la ./web-leptos/dist
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-pages-artifact@v1
         with:
           name: build
           path: ./web-leptos/dist
