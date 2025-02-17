@@ -5902,6 +5902,7 @@ dependencies = [
  "console_error_panic_hook",
  "leptos",
  "leptos_router",
+ "shared",
  "wasm-bindgen",
  "wasm-bindgen-test",
  "web-sys",
