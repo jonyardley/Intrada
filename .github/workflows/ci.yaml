@@ -19,7 +19,7 @@ jobs:
     environment:
         name: github-pages
         url: ${{ steps.deployment.outputs.page_url }}
-        
+
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -83,7 +83,7 @@ jobs:
         run: trunk --version
 
       - name: Build with Trunk
-        run: trunk build --release --public-url "${GITHUB_REPOSITORY#*/}"
+        run: trunk build --release --public-url "/${GITHUB_REPOSITORY#*/}"
         working-directory: ./web-leptos
 
       - name: Verify dist directory
