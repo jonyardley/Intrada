@@ -3,4 +3,4 @@
 *.xcuserstate
 **/xcuserdata/*
 .bin
-/dist
+**/dist
