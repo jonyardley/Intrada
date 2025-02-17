@@ -96,13 +96,12 @@ jobs:
     needs: Github-Pages-Release
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
           name: build
-          path: ./web-leptos/dist
 
       - name: Verify downloaded artifact
         run: ls -la ./web-leptos/dist
