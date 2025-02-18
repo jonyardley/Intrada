@@ -28,7 +28,7 @@ pub fn App() -> impl IntoView {
             <Nav />
             <main>
                 <Routes fallback=|| "Not found.">
-                    <Route path=path!("home") view=Home />
+                    <Route path=path!("/") view=Home />
                 </Routes>
             </main>
         </Router>
