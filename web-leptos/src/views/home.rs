@@ -1,13 +1,14 @@
-use crate::core;
-use crate::GlobalState;
 use leptos::prelude::*;
 use reactive_stores::Store;
 
+use crate::core;
+use crate::GlobalState;
+
 #[component]
 pub fn Home() -> impl IntoView {
-    let state = expect_context::<Store<GlobalState>>();
+    let state = expect_context::<Store<GlobalState>>().get_untracked();
 
-    let core = state.get().core.clone();
+    let core = state.core;
     let (view, render) = signal(core.view());
     let (event, set_event) = signal(shared::Event::Reset);
 
@@ -18,7 +19,7 @@ pub fn Home() -> impl IntoView {
     view! {
         <section>
             <h1>"Home"</h1>
-                <p class="is-size-5">{move || view.get().count}</p>
+                <p >{move || view.get().count}</p>
             <div>
 
                 <button class="btn btn-error mr-4"

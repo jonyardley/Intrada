@@ -6,15 +6,13 @@ use components::*;
 mod core;
 mod views;
 use reactive_stores::Store;
-// use shared::Counter;
+
 use views::*;
 
 use leptos_router::{
     components::{Route, Router, Routes},
     path,
 };
-
-// mod core;
 
 #[derive(Clone, Default, Store)]
 struct GlobalState {
@@ -24,6 +22,7 @@ struct GlobalState {
 #[component]
 pub fn App() -> impl IntoView {
     provide_context(Store::new(GlobalState::default()));
+
     view! {
         <Router>
             <Nav />

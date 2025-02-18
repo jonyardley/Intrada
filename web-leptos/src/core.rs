@@ -5,10 +5,6 @@ use shared::{Counter, Effect, Event, ViewModel};
 
 pub type Core = Arc<shared::Core<Counter>>;
 
-pub fn new() -> Core {
-    Arc::new(shared::Core::new())
-}
-
 pub fn update(core: &Core, event: Event, render: WriteSignal<ViewModel>) {
     for effect in core.process_event(event) {
         process_effect(core, effect, render);
