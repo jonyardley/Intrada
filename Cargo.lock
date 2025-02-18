@@ -5902,6 +5902,8 @@ dependencies = [
  "console_error_panic_hook",
  "leptos",
  "leptos_router",
+ "reactive_stores",
+ "reactive_stores_macro",
  "shared",
  "wasm-bindgen",
  "wasm-bindgen-test",

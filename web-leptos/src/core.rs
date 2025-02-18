@@ -1,12 +1,12 @@
-use std::rc::Rc;
+use std::sync::Arc;
 
 use leptos::prelude::{Update as _, WriteSignal};
 use shared::{Counter, Effect, Event, ViewModel};
 
-pub type Core = Rc<shared::Core<Counter>>;
+pub type Core = Arc<shared::Core<Counter>>;
 
 pub fn new() -> Core {
-    Rc::new(shared::Core::new())
+    Arc::new(shared::Core::new())
 }
 
 pub fn update(core: &Core, event: Event, render: WriteSignal<ViewModel>) {
