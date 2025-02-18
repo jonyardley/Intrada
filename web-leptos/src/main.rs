@@ -11,10 +11,10 @@ use reactive_stores::Store;
 
 use views::*;
 
-use leptos_router::{
-    components::{Route, Router, Routes},
-    path,
-};
+// use leptos_router::{
+//     components::{Route, Router, Routes},
+//     path,
+// };
 
 #[derive(Clone, Default, Store)]
 struct GlobalState {
@@ -25,20 +25,17 @@ struct GlobalState {
 pub fn App() -> impl IntoView {
     provide_context(Store::new(GlobalState::default()));
 
-    let env_config = leptos_config::get_config_from_env();
-
     view! {
-        <Router>
+        // <Router>
             <Nav />
-            <h1>{format!("Site Address: {}", env_config.clone().unwrap().leptos_options.site_addr)}</h1>
-            <h1>{format!("Site Root: {}", env_config.unwrap().leptos_options.site_root)}</h1>
             <main>
-                <Routes fallback=|| "Not found.">
-                    <Route path=path!("/") view=Home />
-                    <Route path=path!("/practice_app") view=Home />
-                </Routes>
+                // <Routes fallback=|| "Not found.">
+                //     <Route path=path!("/") view=Home />
+                //     <Route path=path!("/practice_app") view=Home />
+                // </Routes>
+                <Home />
             </main>
-        </Router>
+        // </Router>
     }
 }
 
