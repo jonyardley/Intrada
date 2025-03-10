@@ -4,3 +4,4 @@
 **/xcuserdata/*
 .bin
 **/dist
+.vercel

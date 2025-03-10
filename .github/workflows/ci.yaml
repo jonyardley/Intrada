@@ -1,29 +1,28 @@
-name: Release to GitHub Pages
+name: Release to Vercel
 
 on:
   push:
-    branches: [main]
-  workflow_dispatch:
+    branches:
+      - main
 
-permissions:
-  contents: write
-  pages: write
-  id-token: write
-
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
+env:
+  CARGO_TERM_COLOR: always
+  VERCEL_ORG_ID: ${{ secrets.ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.PROJECT_ID }}
 
 jobs:
-  build:
-    environment:
-        name: github-pages
-        url: ${{ steps.deployment.outputs.page_url }}
-
+  Vercel-Production-Deployment:
     runs-on: ubuntu-latest
+    environment: production
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: git-checkout
+        uses: actions/checkout@v3
+
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: clippy, rustfmt
+
+      - uses: Swatinem/rust-cache@v2
 
       - name: Cache Rust toolchain
         uses: actions/cache@v3
@@ -33,16 +32,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-rust-toolchain-
 
-      - name: Set up Rust
-        if: steps.cache-rust-toolchain.outputs.cache-hit != 'true'
-        run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-          source $HOME/.cargo/env
-          rustup install stable
-          rustup default stable
-          rustup component add rustfmt clippy
-
-      - name: Cache cargo registry
+      - name: Cache Cargo registry
         uses: actions/cache@v3
         with:
           path: ~/.cargo/registry
@@ -50,7 +40,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-registry-
 
-      - name: Cache cargo index
+      - name: Cache Cargo index
         uses: actions/cache@v3
         with:
           path: ~/.cargo/git
@@ -58,56 +48,46 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-index-
 
-      - name: Cache cargo build
+      - name: Setup Rust
+        run: |
+          rustup target add wasm32-unknown-unknown
+          cargo clippy
+          cargo fmt --check
+
+      - name: Cache Trunk binary
         uses: actions/cache@v3
         with:
-          path: target
-          key: ${{ runner.os }}-cargo-build-${{ hashFiles('**/Cargo.lock') }}
+          path: ./trunk
+          key: ${{ runner.os }}-trunk-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
-            ${{ runner.os }}-cargo-build-
+            ${{ runner.os }}-trunk-
 
-      - name: Cache trunk installation
-        id: cache-trunk
-        uses: actions/cache@v3
-        with:
-          path: ~/.cargo/bin
-          key: ${{ runner.os }}-cargo-bin-trunk-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-bin-trunk-
-
-      - name: Install Trunk
+      - name: Download and install Trunk binary
         if: steps.cache-trunk.outputs.cache-hit != 'true'
-        run: cargo install trunk --force
-
-      - name: Verify Trunk installation
-        run: trunk --version
+        run: |
+          wget -qO- https://github.com/trunk-rs/trunk/releases/download/v0.18.2/trunk-x86_64-unknown-linux-gnu.tar.gz | tar -xzf- -C ./trunk
 
       - name: Build with Trunk
-        run: trunk build --release --public-url "/${GITHUB_REPOSITORY#*/}"
         working-directory: ./web-leptos
+        run: ./trunk/trunk build --release
 
-      - name: Verify dist directory
-        run: ls -la ./web-leptos/dist
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Cache Node modules
+        uses: actions/cache@v3
         with:
-          path: ./web-leptos/dist
+          path: ~/.npm
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-modules-
 
-  deploy:
-    needs: build
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
 
-    permissions:
-      pages: write      # to deploy to Pages
-      id-token: write   # to verify the deployment originates from an appropriate source
+      - name: Pull Vercel Environment Information
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
 
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-
-    runs-on: ubuntu-latest
-  
-    steps:
-      - name: Deploy to GitHub Pages
+      - name: Deploy to Vercel & Display URL
         id: deployment
-        uses: actions/deploy-pages@v4
+        working-directory: ./web-leptos/dist
+        run: |
+          vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }} >> $GITHUB_STEP_SUMMARY
+          echo $GITHUB_STEP_SUMMARY
