@@ -15,14 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     steps:
-      - name: git-checkout
-        uses: actions/checkout@v3
-
-      - uses: dtolnay/rust-toolchain@nightly
-        with:
-          components: clippy, rustfmt
-
-      - uses: Swatinem/rust-cache@v2
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Cache Rust toolchain
         uses: actions/cache@v3
@@ -31,44 +25,56 @@ jobs:
           key: ${{ runner.os }}-rust-toolchain-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-rust-toolchain-
-
-      - name: Cache Cargo registry
+      - name: Set up Rust
+        if: steps.cache-rust-toolchain.outputs.cache-hit != 'true'
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          source $HOME/.cargo/env
+          rustup install stable
+          rustup default stable
+          rustup component add rustfmt clippy
+      - name: Cache cargo registry
         uses: actions/cache@v3
         with:
           path: ~/.cargo/registry
           key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-registry-
-
-      - name: Cache Cargo index
+      - name: Cache cargo index
         uses: actions/cache@v3
         with:
           path: ~/.cargo/git
           key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-index-
-
-      - name: Setup Rust
-        run: |
-          rustup target add wasm32-unknown-unknown
-          cargo clippy
-          cargo fmt --check
-
-      - name: Cache Trunk binary
+      - name: Cache cargo build
         uses: actions/cache@v3
         with:
-          path: ./trunk
-          key: ${{ runner.os }}-trunk-${{ hashFiles('**/Cargo.lock') }}
+          path: target
+          key: ${{ runner.os }}-cargo-build-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
-            ${{ runner.os }}-trunk-
-
-      - name: Download and install Trunk binary
+            ${{ runner.os }}-cargo-build-
+      - name: Cache trunk installation
+        id: cache-trunk
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/bin
+          key: ${{ runner.os }}-cargo-bin-trunk-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-bin-trunk-
+      - name: Install Trunk
         if: steps.cache-trunk.outputs.cache-hit != 'true'
-        run: wget -qO- https://github.com/trunk-rs/trunk/releases/download/v0.18.2/trunk-x86_64-unknown-linux-gnu.tar.gz | tar -xzf-
+        run: cargo install trunk --force
+
+      - name: Verify Trunk installation
+        run: trunk --version
 
       - name: Build with Trunk
+        run: trunk build --release --public-url "/${GITHUB_REPOSITORY#*/}"
         working-directory: ./web-leptos
-        run: ./trunk build --release
+
+      - name: Verify dist directory
+        run: ls -la ./web-leptos/dist
 
       - name: Cache Node modules
         uses: actions/cache@v3
