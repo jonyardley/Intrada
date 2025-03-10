@@ -70,7 +70,7 @@ jobs:
         run: trunk --version
 
       - name: Build with Trunk
-        run: trunk build --release --public-url "/${GITHUB_REPOSITORY#*/}"
+        run: trunk build --release
         working-directory: ./web-leptos
 
       - name: Verify dist directory
