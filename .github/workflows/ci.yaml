@@ -68,7 +68,7 @@ jobs:
 
       - name: Build with Trunk
         working-directory: ./web-leptos
-        run: ./trunk/trunk build --release
+        run: ./trunk build --release
 
       - name: Cache Node modules
         uses: actions/cache@v3
