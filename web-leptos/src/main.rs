@@ -11,10 +11,9 @@ use reactive_stores::Store;
 
 use views::*;
 
-// use leptos_router::{
-//     components::{Route, Router, Routes},
-//     path,
-// };
+use leptos_router::{
+    components::{Route, Router, Routes}, path
+};
 
 #[derive(Clone, Default, Store)]
 struct GlobalState {
@@ -26,16 +25,17 @@ pub fn App() -> impl IntoView {
     provide_context(Store::new(GlobalState::default()));
 
     view! {
-        // <Router>
-            <Nav />
-            <main>
-                // <Routes fallback=|| "Not found.">
-                //     <Route path=path!("/") view=Home />
-                //     <Route path=path!("/practice_app") view=Home />
-                // </Routes>
-                <Home />
-            </main>
-        // </Router>
+        <div id="root">
+            <Router>
+                <Nav />
+                <main>
+                    <Routes fallback=|| "Not found.">
+                        <Route path=path!("/") view=Home />
+                        <Route path=path!("/exercises") view=Exercises />
+                    </Routes>
+                </main>
+            </Router>
+        </div>
     }
 }
 
