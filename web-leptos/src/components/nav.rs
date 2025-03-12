@@ -4,7 +4,7 @@ use leptos_router::components::A;
 #[component]
 pub fn Nav() -> impl IntoView {
     view! {
-        <div class="navbar bg-base-100">
+        <div class="navbar bg-base-200 px-1">
             <div class="navbar-start">
                 <div class="dropdown">
                     <div tabindex="0" role="button" class="btn btn-ghost lg:hidden">
