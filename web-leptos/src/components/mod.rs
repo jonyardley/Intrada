@@ -1,2 +1,2 @@
-mod nav;
-pub use nav::Nav;
+pub mod nav;
+pub mod typography;

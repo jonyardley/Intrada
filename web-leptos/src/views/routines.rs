@@ -1,10 +1,11 @@
+use crate::components::typography::Header1;
 use leptos::prelude::*;
 
 #[component]
 pub fn Routines() -> impl IntoView {
     view! {
         <section>
-            <h1>"Routines Page..."</h1>
+            <Header1 text="Routines" />
         </section>
     }
 }
