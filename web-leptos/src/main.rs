@@ -29,7 +29,7 @@ pub fn App() -> impl IntoView {
         <div id="root">
             <Router>
                 <Nav />
-                <main class="grid grid-cols-1 place-content-center mr-20 ml-20 mt-5">
+                <main class="grid grid-cols-1 place-content-center mr-8 ml-8 mt-4">
                     <Routes fallback=|| "Not found.">
                         <Route path=path!("/") view=Home />
                         <Route path=path!("/sessions") view=Sessions />
