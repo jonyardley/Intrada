@@ -8,7 +8,7 @@ source = "shared"
 type_gen = "shared_types"
 crux_version = "0.6.3"
 
-[shells.web_dioxus]
-template = "web-dioxus"
-source = "web-dioxus"
+[shells.web_leptos]
+template = "web-leptos"
+source = "web-leptos"
 cores = ["shared"]

@@ -1,5 +1,5 @@
 [workspace]
-members = ["shared", "shared_types", "web-dioxus", "web-leptos"]
+members = ["shared", "shared_types", "web-leptos"]
 resolver = "1"
 
 [workspace.package]
@@ -12,7 +12,7 @@ rust-version = "1.76"
 
 [workspace.dependencies]
 anyhow = "1.0.95"
-crux_core = "0.11.3"
+crux_core = "0.12.1"
 serde = "1.0.217"
 
 [workspace.metadata.bin]

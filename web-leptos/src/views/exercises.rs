@@ -10,10 +10,9 @@ pub fn Exercises() -> impl IntoView {
     let state = expect_context::<Store<GlobalState>>().get_untracked();
     let core = state.core;
     let (view, render) = signal(core.view());
+    let (event, set_event) = signal(shared::Event::Reset);
 
     let (exercise_name, set_exercise_name) = signal("".to_string());
-
-    let (event, set_event) = signal(shared::Event::Reset);
 
     Effect::new(move |_| {
         core::update(&core, event.get(), render);
