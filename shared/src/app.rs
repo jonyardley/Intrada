@@ -33,10 +33,10 @@ pub struct Capabilities {
 }
 
 #[derive(Default)]
-pub struct Counter;
+pub struct Chopin;
 
 // ANCHOR: impl_app
-impl App for Counter {
+impl App for Chopin {
     type Event = Event;
     type Model = Model;
     type ViewModel = ViewModel;

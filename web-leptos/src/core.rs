@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
 use leptos::prelude::{Update as _, WriteSignal};
-use shared::{Counter, Effect, Event, ViewModel};
+use shared::{Chopin, Effect, Event, ViewModel};
 
-pub type Core = Arc<shared::Core<Counter>>;
+pub type Core = Arc<shared::Core<Chopin>>;
 
 pub fn update(core: &Core, event: Event, render: WriteSignal<ViewModel>) {
     for effect in core.process_event(event) {
