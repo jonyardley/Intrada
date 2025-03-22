@@ -33,9 +33,7 @@ pub fn App() -> impl IntoView {
                     <Routes fallback=|| "Not found.">
                         <Route path=path!("/") view=Home />
                         <Route path=path!("/sessions") view=Sessions />
-                        <Route path=path!("/routines") view=Routines />
                         <Route path=path!("/exercises") view=Exercises />
-                        <Route path=path!("/settings") view=Settings />
                     </Routes>
                 </main>
             </Router>
