@@ -75,4 +75,15 @@ mod test {
         // Check update asked us to `Render`
         assert_effect!(update, Effect::Render(_));
     }
+
+    #[test]
+    fn adds_exercise() {
+        let app = AppTester::<Chopin>::default();
+        let mut model = Model::default();
+
+        let update = app.update(Event::AddExercise("Exercise".to_string()), &mut model);
+
+        // Check update asked us to `Render`
+        assert_effect!(update, Effect::Render(_));
+    }
 }
