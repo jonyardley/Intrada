@@ -34,7 +34,12 @@ jobs:
           rustup install stable
           rustup default stable
           rustup component add rustfmt clippy
-          cargo binstall cargo-nextest --secure
+
+      - name: Install cargo-nextest
+        uses: baptiste0928/cargo-install@v1
+        with:
+          crate: cargo-nextest
+          locked: true
 
       - name: Cache cargo registry
         uses: actions/cache@v3
@@ -82,6 +87,9 @@ jobs:
 
       - name: Verify dist directory
         run: ls -la ./web-leptos/dist
+
+      - name: Run Shared tests
+        run: cargo nextest run --release -p shared
 
       - name: Cache Node modules
         uses: actions/cache@v3
