@@ -33,6 +33,9 @@ pub fn Nav() -> impl IntoView {
 pub fn MenuItems() -> impl IntoView {
     view! {
         <li>
+            <A href="/goals">"Goals"</A>
+        </li>
+        <li>
             <A href="/sessions">"Sessions"</A>
         </li>
         <li>

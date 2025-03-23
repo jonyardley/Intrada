@@ -6,3 +6,6 @@ pub use exercises::Exercises;
 
 mod sessions;
 pub use sessions::Sessions;
+
+mod goals;
+pub use goals::Goals;
