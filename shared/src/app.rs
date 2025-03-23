@@ -1,4 +1,3 @@
-// ANCHOR: app
 use crux_core::{
     render::{render, Render},
     App, Command,
@@ -63,24 +62,21 @@ impl App for Chopin {
         }
     }
 }
-// ANCHOR_END: impl_app
-// ANCHOR_END: app
 
-// // ANCHOR: test
-// #[cfg(test)]
-// mod test {
-//     use super::*;
-//     use crux_core::{assert_effect, testing::AppTester};
+// TESTS
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crux_core::{assert_effect, testing::AppTester};
 
-//     #[test]
-//     fn renders() {
-//         let app = AppTester::<Counter>::default();
-//         let mut model = Model::default();
+    #[test]
+    fn renders() {
+        let app = AppTester::<Chopin>::default();
+        let mut model = Model::default();
 
-//         let update = app.update(Event::Reset, &mut model);
+        let update = app.update(Event::GetExercises, &mut model);
 
-//         // Check update asked us to `Render`
-//         assert_effect!(update, Effect::Render(_));
-//     }
-// }
-// // ANCHOR_END: test
+        // Check update asked us to `Render`
+        assert_effect!(update, Effect::Render(_));
+    }
+}
