@@ -1,4 +1,4 @@
-name: Release to Vercel
+name: Build, Test & Deploy to Vercel
 
 on:
   push:
@@ -25,6 +25,7 @@ jobs:
           key: ${{ runner.os }}-rust-toolchain-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-rust-toolchain-
+
       - name: Set up Rust
         if: steps.cache-rust-toolchain.outputs.cache-hit != 'true'
         run: |
@@ -33,6 +34,8 @@ jobs:
           rustup install stable
           rustup default stable
           rustup component add rustfmt clippy
+          cargo binstall cargo-nextest --secure
+
       - name: Cache cargo registry
         uses: actions/cache@v3
         with:
@@ -40,6 +43,7 @@ jobs:
           key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-registry-
+
       - name: Cache cargo index
         uses: actions/cache@v3
         with:
@@ -47,6 +51,7 @@ jobs:
           key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-index-
+
       - name: Cache cargo build
         uses: actions/cache@v3
         with:
@@ -54,6 +59,7 @@ jobs:
           key: ${{ runner.os }}-cargo-build-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-build-
+
       - name: Cache trunk installation
         id: cache-trunk
         uses: actions/cache@v3
@@ -62,6 +68,7 @@ jobs:
           key: ${{ runner.os }}-cargo-bin-trunk-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-bin-trunk-
+
       - name: Install Trunk
         if: steps.cache-trunk.outputs.cache-hit != 'true'
         run: cargo install trunk --force
