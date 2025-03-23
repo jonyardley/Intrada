@@ -45,11 +45,7 @@ impl App for Chopin {
         _caps: &Self::Capabilities,
     ) -> Command<Effect, Event> {
         match event {
-            Event::GetExercises => {
-                // Implement logic to fetch exercises from a data source
-                // For now, we'll just return an empty vector
-                model.exercises = Vec::new();
-            }
+            Event::GetExercises => (),
             Event::AddExercise(exercise) => model.exercises.push(exercise),
         };
 
