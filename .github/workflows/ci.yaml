@@ -35,7 +35,17 @@ jobs:
           rustup default stable
           rustup component add rustfmt clippy
 
+      - name: Cache cargo-nextest installation
+        uses: actions/cache@v3
+        id: cache-cargo-nextest
+        with:
+          path: ~/.cargo/bin/cargo-nextest
+          key: ${{ runner.os }}-cargo-nextest-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-nextest-
+
       - name: Install cargo-nextest
+        if: steps.cache-cargo-nextest.outputs.cache-hit != 'true'
         uses: baptiste0928/cargo-install@v1
         with:
           crate: cargo-nextest
