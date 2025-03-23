@@ -3,24 +3,29 @@ use crux_core::{
     App, Command,
 };
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub enum Event {
-    GetGoals,
-    AddGoal(String),
-    GetExercises,
-    AddExercise(String),
+#[derive(Serialize, Deserialize, Clone, Default)]
+pub struct PracticeGoal {
+    pub id: Uuid,
+    pub name: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Default)]
+pub struct Exercise {
+    pub id: u32,
+    pub name: String,
 }
 
 #[derive(Default)]
 pub struct Model {
-    goals: Vec<String>,
+    goals: Vec<PracticeGoal>,
     exercises: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Default)]
 pub struct ViewModel {
-    pub goals: Vec<String>,
+    pub goals: Vec<PracticeGoal>,
     pub exercises: Vec<String>,
 }
 
@@ -31,10 +36,16 @@ pub struct Capabilities {
     render: Render<Event>,
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub enum Event {
+    GetGoals,
+    AddGoal(String),
+    GetExercises,
+    AddExercise(String),
+}
+
 #[derive(Default)]
 pub struct Chopin;
-
-// ANCHOR: impl_app
 impl App for Chopin {
     type Event = Event;
     type Model = Model;
@@ -50,7 +61,13 @@ impl App for Chopin {
     ) -> Command<Effect, Event> {
         match event {
             Event::GetGoals => (),
-            Event::AddGoal(goal) => model.goals.push(goal),
+            Event::AddGoal(goal_name) => {
+                let new_goal = PracticeGoal {
+                    id: Uuid::new_v4(),
+                    name: goal_name,
+                };
+                model.goals.push(new_goal)
+            }
             Event::GetExercises => (),
             Event::AddExercise(exercise) => model.exercises.push(exercise),
         };
@@ -66,7 +83,9 @@ impl App for Chopin {
     }
 }
 
+// *************
 // TESTS
+// *************
 #[cfg(test)]
 mod test {
     use super::*;
