@@ -6,17 +6,21 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum Event {
+    GetGoals,
+    AddGoal(String),
     GetExercises,
     AddExercise(String),
 }
 
 #[derive(Default)]
 pub struct Model {
+    goals: Vec<String>,
     exercises: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Default)]
 pub struct ViewModel {
+    pub goals: Vec<String>,
     pub exercises: Vec<String>,
 }
 
@@ -45,6 +49,8 @@ impl App for Chopin {
         _caps: &Self::Capabilities,
     ) -> Command<Effect, Event> {
         match event {
+            Event::GetGoals => (),
+            Event::AddGoal(goal) => model.goals.push(goal),
             Event::GetExercises => (),
             Event::AddExercise(exercise) => model.exercises.push(exercise),
         };
@@ -54,6 +60,7 @@ impl App for Chopin {
 
     fn view(&self, model: &Self::Model) -> Self::ViewModel {
         ViewModel {
+            goals: model.goals.clone(),
             exercises: model.exercises.clone(),
         }
     }
@@ -82,6 +89,17 @@ mod test {
         let mut model = Model::default();
 
         let update = app.update(Event::AddExercise("Exercise".to_string()), &mut model);
+
+        // Check update asked us to `Render`
+        assert_effect!(update, Effect::Render(_));
+    }
+
+    #[test]
+    fn adds_goal() {
+        let app = AppTester::<Chopin>::default();
+        let mut model = Model::default();
+
+        let update = app.update(Event::AddGoal("Goal".to_string()), &mut model);
 
         // Check update asked us to `Render`
         assert_effect!(update, Effect::Render(_));
