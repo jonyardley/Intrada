@@ -31,7 +31,11 @@ pub fn App() -> impl IntoView {
                 <Nav />
                 <main class="grid grid-cols-1 place-content-center mr-8 ml-8 mt-4">
                     <Routes fallback=|| "Not found.">
-                        <Route path=path!("/") view=Home />
+
+                        // DEFAULT WHILST IN DEV
+                        <Route path=path!("/") view=Goals />
+
+                        // <Route path=path!("/") view=Home />
                         <Route path=path!("/goals") view=Goals />
                         <Route path=path!("/sessions") view=Sessions />
                         <Route path=path!("/exercises") view=Exercises />
