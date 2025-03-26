@@ -1147,9 +1147,9 @@ dependencies = [
 
 [[package]]
 name = "leptos_hot_reload"
-version = "0.7.7"
+version = "0.7.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "31f5c961e5d9b2aa6deab39d5d842272e8b1b165744b5caf674770d5cf0daa04"
+checksum = "e80219388501d99b246f43b6e7d08a28f327cdd34ba630a35654d917f3e1788e"
 dependencies = [
  "anyhow",
  "camino",
@@ -2643,6 +2643,7 @@ dependencies = [
  "console_log",
  "leptos",
  "leptos_config",
+ "leptos_hot_reload",
  "leptos_router",
  "log",
  "reactive_stores",

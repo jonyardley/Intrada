@@ -5,7 +5,7 @@ use leptos::prelude::*;
 pub fn Sessions() -> impl IntoView {
     view! {
         <section>
-            <Header1 text="Sessions" />
+            <Header1 text="Sessions".to_string() />
         </section>
     }
 }

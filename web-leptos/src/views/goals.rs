@@ -1,6 +1,6 @@
 use leptos::prelude::*;
 
-use crate::components::typography::{Header1, Header2};
+use crate::components::typography::{CardTitle, Header1, Header2};
 
 use crate::core;
 use crate::GlobalState;
@@ -19,14 +19,14 @@ pub fn Goals() -> impl IntoView {
 
     view! {
         <section>
-            <Header1 text="Goals" />
-            <Header2 text="What do you want to achieve?" />
+            <Header1 text="Goals".to_string() />
+            <Header2 text="What do you want to achieve?".to_string() />
             <AddGoalForm set_event=set_event />
         </section>
         <section>
-            <Header2 text="Your goals" />
-            <section class="bg-base-200 p-4">
-                <ul class="list">
+            <Header2 text="Your goals".to_string() />
+            <section>
+                <ul class="list grid grid-cols-3 grid-flow-row-dense">
                     {move || {
                         if view.get().goals.is_empty() {
                             view! { <p>"No goals - add one above."</p> }.into_any()
@@ -36,7 +36,15 @@ pub fn Goals() -> impl IntoView {
                                 .into_iter()
                                 .map(|e| {
                                     view! {
-                                        <li class="list-row">{e.name}" :: "{e.id.to_string()}</li>
+                                        <div class="card bg-base-100 card-sm shadow-sm col-span-1 m-2">
+                                            <div class="card-body">
+                                                <CardTitle text=e.name />
+                                                <p>"id:: "{e.id.to_string()}</p>
+                                                <div class="justify-end card-actions">
+                                                    <button class="btn btn-primary">Details</button>
+                                                </div>
+                                            </div>
+                                        </div>
                                     }
                                 })
                                 .collect_view()
@@ -53,6 +61,17 @@ pub fn Goals() -> impl IntoView {
 pub fn AddGoalForm(set_event: WriteSignal<shared::Event>) -> impl IntoView {
     let (goal_name, set_goal_name) = signal("".to_string());
 
+    let add_goal_handler = move |_| {
+        set_event.update(|value| {
+            *value = shared::Event::AddGoal(goal_name.get());
+            set_goal_name.set("".to_string());
+        });
+    };
+
+    let cancel_handler = move |_| {
+        set_goal_name.set("".to_string());
+    };
+
     view! {
         <fieldset class="fieldset w-xs bg-base-200 border border-base-300 p-4 mb-4">
             <legend class="fieldset-legend">"Add new goal"</legend>
@@ -65,28 +84,15 @@ pub fn AddGoalForm(set_event: WriteSignal<shared::Event>) -> impl IntoView {
             />
 
             <div class="join">
-                <label
-                    for="my-drawer"
-                    class="btn btn-primary drawer-button mr-2 btn-sm"
-                    on:click=move |_| {
-                        set_event
-                            .update(|value| {
-                                *value = shared::Event::AddGoal(goal_name.get());
-                            });
-                        set_goal_name.set("".to_string());
-                    }
-                >
+                <button class="btn btn-primary btn-sm" on:click=add_goal_handler>
                     "Add goal"
-                </label>
-                <label
-                    for="my-drawer"
-                    class="btn btn-error btn-accent btn-outline drawer-button btn-sm"
-                    on:click=move |_| {
-                        set_goal_name.set("".to_string());
-                    }
+                </button>
+                <button
+                    class="btn btn-error btn-accent btn-outline drawer-button btn-sm ml-2"
+                    on:click=cancel_handler
                 >
                     "Cancel"
-                </label>
+                </button>
             </div>
         </fieldset>
     }

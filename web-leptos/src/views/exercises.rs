@@ -23,7 +23,7 @@ pub fn Exercises() -> impl IntoView {
             <input id="my-drawer" type="checkbox" class="drawer-toggle" />
             <div class="drawer-content">
 
-                <Header1 text="Exercises" />
+                <Header1 text="Exercises".to_string() />
 
                 <label for="my-drawer" class="btn btn-primary btn-sm mb-4">
                     "Add new exercise"
