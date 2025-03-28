@@ -42,10 +42,12 @@ pub enum Event {
     AddGoal(String),
     GetExercises,
     AddExercise(String),
+    SetDevData(),
 }
 
 #[derive(Default)]
 pub struct Chopin;
+
 impl App for Chopin {
     type Event = Event;
     type Model = Model;
@@ -70,6 +72,19 @@ impl App for Chopin {
             }
             Event::GetExercises => (),
             Event::AddExercise(exercise) => model.exercises.push(exercise),
+            Event::SetDevData() => {
+                model.goals.push(PracticeGoal {
+                    id: Uuid::new_v4(),
+                    name: "Master Nocturnes".to_string(),
+                });
+                model.goals.push(PracticeGoal {
+                    id: Uuid::new_v4(),
+                    name: "Perfect Etudes".to_string(),
+                });
+
+                model.exercises.push("Scales and Arpeggios".to_string());
+                model.exercises.push("Chord Progressions".to_string());
+            }
         };
 
         render()

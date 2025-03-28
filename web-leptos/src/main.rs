@@ -5,6 +5,8 @@ use log::info;
 mod components;
 use components::nav::Nav;
 
+use shared::Event;
+
 mod core;
 mod views;
 use reactive_stores::Store;
@@ -23,7 +25,9 @@ struct GlobalState {
 
 #[component]
 pub fn App() -> impl IntoView {
-    provide_context(Store::new(GlobalState::default()));
+    let global_state = GlobalState::default();
+    global_state.core.process_event(Event::SetDevData());
+    provide_context(Store::new(global_state));
 
     view! {
         <div id="root">
