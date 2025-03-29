@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
 
 env:
   CARGO_TERM_COLOR: always
@@ -11,9 +14,8 @@ env:
   VERCEL_PROJECT_ID: ${{ secrets.PROJECT_ID }}
 
 jobs:
-  Vercel-Production-Deployment:
+  build-and-test:
     runs-on: ubuntu-latest
-    environment: production
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -101,6 +103,15 @@ jobs:
       - name: Run Shared tests
         run: cargo nextest run --release -p shared
 
+  Vercel-Production-Deployment:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    environment: production
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Cache Node modules
         uses: actions/cache@v3
         with:
@@ -120,4 +131,34 @@ jobs:
         working-directory: ./web-leptos/dist
         run: |
           vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }} >> $GITHUB_STEP_SUMMARY
+          echo $GITHUB_STEP_SUMMARY
+
+  Vercel-Preview-Deployment:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    environment: preview
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Cache Node modules
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-modules-
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Pull Vercel Environment Information
+        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy to Vercel Preview & Display URL
+        id: deployment
+        working-directory: ./web-leptos/dist
+        run: |
+          vercel deploy --token=${{ secrets.VERCEL_TOKEN }} >> $GITHUB_STEP_SUMMARY
           echo $GITHUB_STEP_SUMMARY

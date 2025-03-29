@@ -39,7 +39,6 @@ pub fn Goals() -> impl IntoView {
                                         <div class="card bg-base-100 card-sm shadow-sm col-span-1 m-2">
                                             <div class="card-body">
                                                 <CardTitle text=e.name />
-                                                <p>"id:: "{e.id.to_string()}</p>
                                                 <div class="justify-end card-actions">
                                                     <button class="btn btn-primary">Details</button>
                                                 </div>

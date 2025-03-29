@@ -3,11 +3,9 @@ use crux_core::{
     App, Command,
 };
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 #[derive(Serialize, Deserialize, Clone, Default)]
 pub struct PracticeGoal {
-    pub id: Uuid,
     pub name: String,
 }
 
@@ -64,21 +62,16 @@ impl App for Chopin {
         match event {
             Event::GetGoals => (),
             Event::AddGoal(goal_name) => {
-                let new_goal = PracticeGoal {
-                    id: Uuid::new_v4(),
-                    name: goal_name,
-                };
+                let new_goal = PracticeGoal { name: goal_name };
                 model.goals.push(new_goal)
             }
             Event::GetExercises => (),
             Event::AddExercise(exercise) => model.exercises.push(exercise),
             Event::SetDevData() => {
                 model.goals.push(PracticeGoal {
-                    id: Uuid::new_v4(),
                     name: "Master Nocturnes".to_string(),
                 });
                 model.goals.push(PracticeGoal {
-                    id: Uuid::new_v4(),
                     name: "Perfect Etudes".to_string(),
                 });
 
