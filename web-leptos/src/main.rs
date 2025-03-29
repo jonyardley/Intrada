@@ -5,6 +5,8 @@ use log::info;
 mod components;
 use components::nav::Nav;
 
+use shared::Event;
+
 mod core;
 mod views;
 use reactive_stores::Store;
@@ -23,7 +25,9 @@ struct GlobalState {
 
 #[component]
 pub fn App() -> impl IntoView {
-    provide_context(Store::new(GlobalState::default()));
+    let global_state = GlobalState::default();
+    global_state.core.process_event(Event::SetDevData());
+    provide_context(Store::new(global_state));
 
     view! {
         <div id="root">
@@ -31,7 +35,11 @@ pub fn App() -> impl IntoView {
                 <Nav />
                 <main class="grid grid-cols-1 place-content-center mr-8 ml-8 mt-4">
                     <Routes fallback=|| "Not found.">
-                        <Route path=path!("/") view=Home />
+
+                        // DEFAULT WHILST IN DEV
+                        <Route path=path!("/") view=Goals />
+
+                        // <Route path=path!("/") view=Home />
                         <Route path=path!("/goals") view=Goals />
                         <Route path=path!("/sessions") view=Sessions />
                         <Route path=path!("/exercises") view=Exercises />

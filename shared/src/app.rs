@@ -4,19 +4,26 @@ use crux_core::{
 };
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub enum Event {
-    GetExercises,
-    AddExercise(String),
+#[derive(Serialize, Deserialize, Clone, Default)]
+pub struct PracticeGoal {
+    pub name: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Default)]
+pub struct Exercise {
+    pub id: u32,
+    pub name: String,
 }
 
 #[derive(Default)]
 pub struct Model {
+    goals: Vec<PracticeGoal>,
     exercises: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Default)]
 pub struct ViewModel {
+    pub goals: Vec<PracticeGoal>,
     pub exercises: Vec<String>,
 }
 
@@ -27,10 +34,18 @@ pub struct Capabilities {
     render: Render<Event>,
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub enum Event {
+    GetGoals,
+    AddGoal(String),
+    GetExercises,
+    AddExercise(String),
+    SetDevData(),
+}
+
 #[derive(Default)]
 pub struct Chopin;
 
-// ANCHOR: impl_app
 impl App for Chopin {
     type Event = Event;
     type Model = Model;
@@ -45,8 +60,24 @@ impl App for Chopin {
         _caps: &Self::Capabilities,
     ) -> Command<Effect, Event> {
         match event {
+            Event::GetGoals => (),
+            Event::AddGoal(goal_name) => {
+                let new_goal = PracticeGoal { name: goal_name };
+                model.goals.push(new_goal)
+            }
             Event::GetExercises => (),
             Event::AddExercise(exercise) => model.exercises.push(exercise),
+            Event::SetDevData() => {
+                model.goals.push(PracticeGoal {
+                    name: "Master Nocturnes".to_string(),
+                });
+                model.goals.push(PracticeGoal {
+                    name: "Perfect Etudes".to_string(),
+                });
+
+                model.exercises.push("Scales and Arpeggios".to_string());
+                model.exercises.push("Chord Progressions".to_string());
+            }
         };
 
         render()
@@ -54,12 +85,15 @@ impl App for Chopin {
 
     fn view(&self, model: &Self::Model) -> Self::ViewModel {
         ViewModel {
+            goals: model.goals.clone(),
             exercises: model.exercises.clone(),
         }
     }
 }
 
+// *************
 // TESTS
+// *************
 #[cfg(test)]
 mod test {
     use super::*;
@@ -82,6 +116,17 @@ mod test {
         let mut model = Model::default();
 
         let update = app.update(Event::AddExercise("Exercise".to_string()), &mut model);
+
+        // Check update asked us to `Render`
+        assert_effect!(update, Effect::Render(_));
+    }
+
+    #[test]
+    fn adds_goal() {
+        let app = AppTester::<Chopin>::default();
+        let mut model = Model::default();
+
+        let update = app.update(Event::AddGoal("Goal".to_string()), &mut model);
 
         // Check update asked us to `Render`
         assert_effect!(update, Effect::Render(_));

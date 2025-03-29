@@ -6,7 +6,7 @@ use crate::components::typography::Header1;
 pub fn Home() -> impl IntoView {
     view! {
         <section>
-            <Header1 text="Home" />
+            <Header1 text="Home".to_string() />
         </section>
     }
 }
