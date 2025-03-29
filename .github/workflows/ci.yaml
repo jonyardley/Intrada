@@ -16,8 +16,6 @@ env:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-    outputs:
-      dist_path: web-leptos/dist
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -109,9 +107,8 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: dist
-          path: web-leptos/dist
+          path: ./web-leptos/dist
           retention-days: 1
-          if-no-files-found: error
 
   Vercel-Production-Deployment:
     needs: build-and-test
@@ -126,8 +123,7 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: dist
-          path: web-leptos/dist
-          if-no-files-found: error
+          path: ./web-leptos/dist
 
       - name: Cache Node modules
         uses: actions/cache@v3
@@ -163,8 +159,7 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: dist
-          path: web-leptos/dist
-          if-no-files-found: error
+          path: ./web-leptos/dist
 
       - name: Cache Node modules
         uses: actions/cache@v3
