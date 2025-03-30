@@ -51,7 +51,7 @@ jobs:
         uses: baptiste0928/cargo-install@v1
         with:
           crate: cargo-nextest
-          locked: true
+          args: "--locked"
 
       - name: Cache cargo registry
         uses: actions/cache@v3
