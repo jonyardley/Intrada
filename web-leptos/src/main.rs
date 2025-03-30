@@ -54,9 +54,7 @@ pub fn App() -> impl IntoView {
                         <Layout attr:style="padding: 20px;">
                             <Routes fallback=|| "[404] - Oops, page not found.">
                                 <Route path=path!("/") view=Home />
-                            // <Route path=path!("/goals") view=Goals />
-                            // <Route path=path!("/sessions") view=Sessions />
-                            // <Route path=path!("/exercises") view=Exercises />
+                                <Route path=path!("/goals") view=Goals />
                             </Routes>
                         </Layout>
                     </Layout>
