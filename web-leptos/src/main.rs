@@ -1,6 +1,8 @@
 use console_log;
 use leptos::prelude::*;
+use leptos_meta::*;
 use log::info;
+use thaw::*;
 
 mod components;
 use components::nav::Nav;
@@ -25,17 +27,26 @@ struct GlobalState {
 
 #[component]
 pub fn App() -> impl IntoView {
+    provide_meta_context();
     let global_state = GlobalState::default();
     global_state.core.process_event(Event::SetDevData());
     provide_context(Store::new(global_state));
 
     view! {
-        <div id="root">
+        <Html attr:lang="en" attr:dir="ltr" attr:data-theme="dark" />
+
+        // sets the document title
+        <Title text="Welcome to Leptos CSR" />
+
+        // injects metadata in the <head> of the page
+        <Meta charset="UTF-8" />
+        <Meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+        <ConfigProvider>
             <Router>
                 <Nav />
                 <main class="grid grid-cols-1 place-content-center mr-8 ml-8 mt-4">
                     <Routes fallback=|| "Not found.">
-
                         // DEFAULT WHILST IN DEV
                         <Route path=path!("/") view=Goals />
 
@@ -46,7 +57,7 @@ pub fn App() -> impl IntoView {
                     </Routes>
                 </main>
             </Router>
-        </div>
+        </ConfigProvider>
     }
 }
 
