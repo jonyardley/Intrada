@@ -17,7 +17,7 @@ pub fn nav() -> impl IntoView {
                     "Dashboard"
                 </NavItem>
                 <NavCategory value="goals">
-                    <NavCategoryItem slot icon=icondata::AiAreaChartOutlined>
+                    <NavCategoryItem slot icon=icondata::AiAimOutlined>
                         "Goals"
                     </NavCategoryItem>
 
@@ -27,7 +27,7 @@ pub fn nav() -> impl IntoView {
 
                 </NavCategory>
                 <NavCategory value="sessions">
-                    <NavCategoryItem slot icon=icondata::AiPieChartOutlined>
+                    <NavCategoryItem slot icon=icondata::AiClockCircleOutlined>
                         "Sessions"
                     </NavCategoryItem>
                     <NavSubItem value="start-session" href="/sessions/new">
@@ -38,7 +38,7 @@ pub fn nav() -> impl IntoView {
                     </NavSubItem>
                 </NavCategory>
                 <NavCategory value="exercises">
-                    <NavCategoryItem slot icon=icondata::AiAreaChartOutlined>
+                    <NavCategoryItem slot icon=icondata::FiMusic>
                         "Exercises"
                     </NavCategoryItem>
                     <NavSubItem value="manage-exercises" href="/exercises">
