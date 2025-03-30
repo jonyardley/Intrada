@@ -1,12 +1,10 @@
 use leptos::prelude::*;
 
-use crate::components::typography::Header1;
-
 #[component]
 pub fn Home() -> impl IntoView {
     view! {
         <section>
-            <Header1 text="Home".to_string() />
+            <h2>"Home"</h2>
         </section>
     }
 }
