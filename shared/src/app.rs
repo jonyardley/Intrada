@@ -4,9 +4,13 @@ use crux_core::{
 };
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Clone, Default)]
+#[derive(Serialize, Deserialize, Clone, Default, Debug)]
 pub struct PracticeGoal {
     pub name: String,
+    pub description: String,
+    pub status: String,
+    pub progress: f64,
+    pub tags: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Default)]
@@ -37,7 +41,7 @@ pub struct Capabilities {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum Event {
     GetGoals,
-    AddGoal(String),
+    AddGoal(PracticeGoal),
     GetExercises,
     AddExercise(String),
     SetDevData(),
@@ -61,8 +65,14 @@ impl App for Chopin {
     ) -> Command<Effect, Event> {
         match event {
             Event::GetGoals => (),
-            Event::AddGoal(goal_name) => {
-                let new_goal = PracticeGoal { name: goal_name };
+            Event::AddGoal(goal) => {
+                let new_goal = PracticeGoal {
+                    name: goal.name,
+                    description: goal.description,
+                    status: goal.status,
+                    progress: goal.progress,
+                    tags: goal.tags,
+                };
                 model.goals.push(new_goal)
             }
             Event::GetExercises => (),
@@ -70,9 +80,24 @@ impl App for Chopin {
             Event::SetDevData() => {
                 model.goals.push(PracticeGoal {
                     name: "Master Nocturnes".to_string(),
+                    description: "Play all nocturnes".to_string(),
+                    status: "active".to_string(),
+                    progress: 0.1,
+                    tags: vec!["practice".to_string(), "goal".to_string()],
                 });
                 model.goals.push(PracticeGoal {
-                    name: "Perfect Etudes".to_string(),
+                    name: "Perfect Rachmaninoff Etudes".to_string(),
+                    description: "Play all etudes".to_string(),
+                    status: "active".to_string(),
+                    progress: 0.8,
+                    tags: vec!["practice".to_string(), "goal".to_string()],
+                });
+                model.goals.push(PracticeGoal {
+                    name: "Perfect Chopin Etudes".to_string(),
+                    description: "Play all etudes".to_string(),
+                    status: "completed".to_string(),
+                    progress: 0.9,
+                    tags: vec!["practice".to_string(), "goal".to_string()],
                 });
 
                 model.exercises.push("Scales and Arpeggios".to_string());
@@ -126,7 +151,16 @@ mod test {
         let app = AppTester::<Chopin>::default();
         let mut model = Model::default();
 
-        let update = app.update(Event::AddGoal("Goal".to_string()), &mut model);
+        let update = app.update(
+            Event::AddGoal(PracticeGoal {
+                name: "Goal".to_string(),
+                description: "".to_string(),
+                status: "".to_string(),
+                progress: 0.0,
+                tags: vec![],
+            }),
+            &mut model,
+        );
 
         // Check update asked us to `Render`
         assert_effect!(update, Effect::Render(_));

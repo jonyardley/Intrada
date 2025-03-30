@@ -44,14 +44,14 @@ pub fn App() -> impl IntoView {
         <ConfigProvider>
             <Router>
                 <Layout has_sider=true>
-                    <LayoutSider attr:style="padding: 20px;">
+                    <LayoutSider>
                         <Nav />
                     </LayoutSider>
                     <Layout>
-                        <LayoutHeader attr:style="padding-right: 20px;">
+                        <LayoutHeader>
                             <Header />
                         </LayoutHeader>
-                        <Layout attr:style="padding: 20px;">
+                        <Layout>
                             <Routes fallback=|| "[404] - Oops, page not found.">
                                 <Route path=path!("/") view=Home />
                                 <Route path=path!("/goals") view=Goals />
