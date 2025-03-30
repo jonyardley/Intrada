@@ -1,21 +1,9 @@
 {
-    "cleanUrls": true,
-    "trailingSlash": false,
-    "headers": [
+    "routes": [
         {
-            "source": "/(.*)",
-            "headers": [
-                {
-                    "key": "Cache-Control",
-                    "value": "public, max-age=0, must-revalidate"
-                }
-            ]
-        }
-    ],
-    "rewrites": [
-        {
-            "source": "/(.*)",
-            "destination": "/index.html"
+            "src": "/[^.]+",
+            "dest": "/",
+            "status": 200
         }
     ]
 }
