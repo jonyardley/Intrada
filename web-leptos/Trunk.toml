@@ -1,0 +1,13 @@
+[build]
+# This command will run before trunk builds the project
+# It builds the CSS without the watch flag
+command = "npm run build"
+
+[watch]
+# Watch for changes in these directories and trigger rebuilds
+watch = ["src", "style"]
+
+[serve]
+# Address to serve on
+address = "127.0.0.1"
+port = 8080

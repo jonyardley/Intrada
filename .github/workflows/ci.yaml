@@ -20,11 +20,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # Rust toolchain caching
       - name: Cache Rust toolchain
+        id: cache-rust-toolchain
         uses: actions/cache@v3
         with:
-          path: ~/.rustup/toolchains
-          key: ${{ runner.os }}-rust-toolchain-${{ hashFiles('**/Cargo.lock') }}
+          path: |
+            ~/.rustup/toolchains
+            ~/.rustup/update-hashes
+            ~/.rustup/settings.toml
+          key: ${{ runner.os }}-rust-toolchain-${{ hashFiles('rust-toolchain.toml', 'Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-rust-toolchain-
 
@@ -37,14 +42,13 @@ jobs:
           rustup default stable
           rustup component add rustfmt clippy
 
+      # Cache cargo-nextest
       - name: Cache cargo-nextest installation
         uses: actions/cache@v3
         id: cache-cargo-nextest
         with:
           path: ~/.cargo/bin/cargo-nextest
           key: ${{ runner.os }}-cargo-nextest-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-nextest-
 
       - name: Install cargo-nextest
         if: steps.cache-cargo-nextest.outputs.cache-hit != 'true'
@@ -53,38 +57,36 @@ jobs:
           crate: cargo-nextest
           locked: true
 
-      - name: Cache cargo registry
+      # Cargo registry and index cache
+      - name: Cache cargo registry and index
         uses: actions/cache@v3
         with:
-          path: ~/.cargo/registry
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
           key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-registry-
 
-      - name: Cache cargo index
-        uses: actions/cache@v3
-        with:
-          path: ~/.cargo/git
-          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-index-
-
+      # Cache build artifacts with more precise keys
       - name: Cache cargo build
         uses: actions/cache@v3
         with:
-          path: target
-          key: ${{ runner.os }}-cargo-build-${{ hashFiles('**/Cargo.lock') }}
+          path: |
+            target
+            web-leptos/target
+          key: ${{ runner.os }}-cargo-build-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}-${{ github.sha }}
           restore-keys: |
+            ${{ runner.os }}-cargo-build-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}-
             ${{ runner.os }}-cargo-build-
 
+      # Cache trunk installation
       - name: Cache trunk installation
         id: cache-trunk
         uses: actions/cache@v3
         with:
-          path: ~/.cargo/bin
+          path: ~/.cargo/bin/trunk
           key: ${{ runner.os }}-cargo-bin-trunk-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-bin-trunk-
 
       - name: Install Trunk
         if: steps.cache-trunk.outputs.cache-hit != 'true'
@@ -93,6 +95,32 @@ jobs:
       - name: Verify Trunk installation
         run: trunk --version
 
+      # Node.js and NPM caching
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'web-leptos/package-lock.json'
+
+      - name: Install NPM dependencies
+        run: npm ci
+        working-directory: ./web-leptos
+
+      # Cache CSS output
+      - name: Cache CSS build
+        uses: actions/cache@v3
+        with:
+          path: web-leptos/style/output.css
+          key: ${{ runner.os }}-css-${{ hashFiles('web-leptos/style/main.css', 'web-leptos/tailwind.config.js', 'web-leptos/postcss.config.js') }}
+
+      # Generate CSS if not cached
+      - name: Build CSS if needed
+        if: steps.cache-css.outputs.cache-hit != 'true'
+        run: npm run build
+        working-directory: ./web-leptos
+
+      # Build with Trunk
       - name: Build with Trunk
         run: trunk build --release
         working-directory: ./web-leptos
@@ -100,9 +128,11 @@ jobs:
       - name: Verify dist directory
         run: ls -la ./web-leptos/dist
 
+      # Run tests
       - name: Run Shared tests
         run: cargo nextest run --release -p shared
 
+      # Upload build artifact
       - name: Upload dist artifact
         uses: actions/upload-artifact@v4
         with:
@@ -125,15 +155,18 @@ jobs:
           name: dist
           path: ./web-leptos/dist
 
-      - name: Cache Node modules
+      # Cache Vercel CLI
+      - name: Cache Vercel CLI
         uses: actions/cache@v3
+        id: cache-vercel-cli
         with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-modules-
+          path: |
+            ~/.npm/global/lib/node_modules/vercel
+            ~/.npm/global/bin/vercel
+          key: ${{ runner.os }}-vercel-cli-${{ hashFiles('**/package-lock.json') }}
 
       - name: Install Vercel CLI
+        if: steps.cache-vercel-cli.outputs.cache-hit != 'true'
         run: npm install --global vercel@latest
 
       - name: Pull Vercel Environment Information
@@ -161,15 +194,18 @@ jobs:
           name: dist
           path: ./web-leptos/dist
 
-      - name: Cache Node modules
+      # Cache Vercel CLI
+      - name: Cache Vercel CLI
         uses: actions/cache@v3
+        id: cache-vercel-cli
         with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-modules-
+          path: |
+            ~/.npm/global/lib/node_modules/vercel
+            ~/.npm/global/bin/vercel
+          key: ${{ runner.os }}-vercel-cli-${{ hashFiles('**/package-lock.json') }}
 
       - name: Install Vercel CLI
+        if: steps.cache-vercel-cli.outputs.cache-hit != 'true'
         run: npm install --global vercel@latest
 
       - name: Pull Vercel Environment Information
