@@ -55,7 +55,7 @@ jobs:
         uses: baptiste0928/cargo-install@v1
         with:
           crate: cargo-nextest
-          locked: true
+          args: --locked
 
       # Cargo registry and index cache
       - name: Cache cargo registry and index
@@ -99,9 +99,9 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: 'web-leptos/package-lock.json'
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: "web-leptos/package-lock.json"
 
       - name: Install NPM dependencies
         run: npm ci
@@ -141,7 +141,7 @@ jobs:
           # Make sure we're in the correct directory
           cd $(pwd)
           echo "Current directory: $(pwd)"
-          
+
           # Run build all script with error handling
           npm run build:all || {
             echo "::error::Build failed, trying direct commands..."
