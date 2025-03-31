@@ -106,6 +106,7 @@ pub fn MenuItem(#[prop(into)] href: String, #[prop(into)] label: String) -> impl
 pub fn MenuItems() -> impl IntoView {
     view! {
         <div class="flex flex-col gap-5 mt-5 sm:flex-row sm:items-center sm:justify-end sm:mt-0 sm:ps-5">
+            <MenuItem href="/" label="Dashboard" />
             <MenuItem href="/goals" label="Goals" />
             <MenuItem href="/sessions" label="Sessions" />
             <MenuItem href="/exercises" label="Exercises" />
