@@ -16,7 +16,7 @@ leptos = { version = "0.7.8", features = ["csr"] }
 leptos_config = "0.7.8"
 leptos_hot_reload = "0.7.8"
 leptos_meta = "0.7.8"
-leptos_router = "0.7.8"
+leptos_router = "0.7.7"
 log = "0.4.25"
 reactive_stores = "0.1.7"
 reactive_stores_macro = "0.1.7"
