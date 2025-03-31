@@ -1,7 +1,9 @@
 {
   "scripts": {
     "build:css": "tailwindcss -i ./style/main.css -o ./style/output.css --watch",
-    "build": "tailwindcss -i ./style/main.css -o ./style/output.css"
+    "build": "tailwindcss -i ./style/main.css -o ./style/output.css",
+    "build:all": "npm run build && trunk build --release",
+    "dev": "./dev.sh"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.17",

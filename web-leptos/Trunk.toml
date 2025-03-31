@@ -1,13 +1,23 @@
 [build]
-# This command will run before trunk builds the project
-# It builds the CSS without the watch flag
-command = "npm run build"
+# The command run before trunk builds the project
+command = "npx tailwindcss -i ./style/main.css -o ./style/output.css"
 
 [watch]
 # Watch for changes in these directories and trigger rebuilds
 watch = ["src", "style"]
+# Run the CSS build with watch flag during development
+command = "npm run build:css"
 
 [serve]
 # Address to serve on
 address = "127.0.0.1"
 port = 8080
+
+# Define hooks that run at specific points in the build process
+[[hooks]]
+stage = "pre_build"
+command = "npx tailwindcss -i ./style/main.css -o ./style/output.css"
+
+[[hooks]]
+stage = "build_error"
+command = "echo 'Build failed, but we still need to ensure CSS exists...' && npx tailwindcss -i ./style/main.css -o ./style/output.css"

@@ -4,20 +4,46 @@ _Working title_
 
 ## Running the leptos web app
 
-`trunk serve --open`
+### Development
 
-The build process now automatically builds CSS before building the app, thanks to the Trunk.toml configuration.
+The simplest way to start the development server is:
 
-## Building for production
+```bash
+cd web-leptos
+npm run dev
+```
+
+This script will:
+1. Build the CSS file
+2. Start the Tailwind CSS watcher in the background
+3. Start the Trunk development server
+
+Alternative methods:
+
+```bash
+# If you prefer using trunk directly:
+cd web-leptos
+trunk serve --open
+```
+
+The build process now automatically builds CSS before building the app, thanks to the Trunk.toml hooks configuration.
+
+### Building for production
 
 To build the application for production:
 
-```
+```bash
 cd web-leptos
-trunk build --release
+npm run build:all
 ```
 
-This will automatically build the CSS and then the Rust application.
+Or manually:
+
+```bash
+cd web-leptos
+npx tailwindcss -i ./style/main.css -o ./style/output.css
+trunk build --release
+```
 
 ## Running core tests
 
