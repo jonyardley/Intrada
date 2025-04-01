@@ -1,4 +1,5 @@
 use leptos::prelude::*;
+use leptos_router::components::A;
 
 #[component]
 pub fn Nav() -> impl IntoView {
@@ -6,12 +7,12 @@ pub fn Nav() -> impl IntoView {
         <nav class="max-w-[85rem] w-full mx-auto px-4 sm:flex sm:items-center sm:justify-between">
 
             <div class="flex items-center justify-between">
-                <a
-                    class="flex-none text-xl font-semibold text-white focus:outline-hidden focus:opacity-80 dark:text-neutral-800"
-                    href="#"
+                <A
+                    href="/"
+                    attr:class="flex-none text-xl font-semibold text-white focus:outline-hidden focus:opacity-80 dark:text-neutral-800"
                 >
                     "Practice App"
-                </a>
+                </A>
                 <div class="sm:hidden">
                     <button
                         type="button"
@@ -68,48 +69,50 @@ pub fn Nav() -> impl IntoView {
     }
 }
 
-#[component]
-pub fn MenuItem(#[prop(into)] href: String, #[prop(into)] label: String) -> impl IntoView {
-    let window = web_sys::window().expect("no global window exists");
-    let document = window.document().expect("no document exists");
-    let location = document.location().expect("no location exists");
-    let pathname = location.pathname().unwrap_or_default();
-
-    let href_clone = href.clone();
-    let is_active = move || {
-        let current_path = pathname.clone();
-        let target_path = if href_clone == "/" {
-            href_clone.clone()
-        } else {
-            href_clone.trim_end_matches('/').to_string()
-        };
-        current_path == target_path
-    };
-
-    let active_class = "font-medium text-white focus:outline-hidden dark:text-black";
-    let inactive_class = "font-medium text-gray-400 hover:text-gray-500 focus:outline-hidden focus:text-gray-500 dark:text-neutral-500 dark:hover:text-neutral-400 dark:focus:text-neutral-400";
-
-    let class = if is_active() {
-        active_class
-    } else {
-        inactive_class
-    };
-
-    view! {
-        <a class=class href=href.clone() aria-current=if is_active() { "page" } else { "false" }>
-            {label}
-        </a>
-    }
+// Simple struct to represent a navigation item
+struct MenuItem {
+    path: &'static str,
+    label: &'static str,
 }
 
 #[component]
 pub fn MenuItems() -> impl IntoView {
+    let active_class = "font-medium text-white focus:outline-hidden dark:text-black";
+    let inactive_class = "font-medium text-gray-400 hover:text-gray-500 focus:outline-hidden focus:text-gray-500 dark:text-neutral-500 dark:hover:text-neutral-400 dark:focus:text-neutral-400";
+
+    // Define all menu items in a central place
+    let menu_items = vec![
+        MenuItem {
+            path: "/",
+            label: "Dashboard",
+        },
+        MenuItem {
+            path: "/goals",
+            label: "Goals",
+        },
+        MenuItem {
+            path: "/sessions",
+            label: "Sessions",
+        },
+        MenuItem {
+            path: "/exercises",
+            label: "Exercises",
+        },
+    ];
+
     view! {
         <div class="flex flex-col gap-5 mt-5 sm:flex-row sm:items-center sm:justify-end sm:mt-0 sm:ps-5">
-            <MenuItem href="/" label="Dashboard" />
-            <MenuItem href="/goals" label="Goals" />
-            <MenuItem href="/sessions" label="Sessions" />
-            <MenuItem href="/exercises" label="Exercises" />
+            {menu_items
+                .into_iter()
+                .map(|item| {
+                    // TODO: Add active class to the active item
+                    view! {
+                        <A href=item.path attr:class=inactive_class attr:class:active=active_class>
+                            {item.label}
+                        </A>
+                    }
+                })
+                .collect::<Vec<_>>()}
         </div>
     }
 }

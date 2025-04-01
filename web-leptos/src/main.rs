@@ -56,12 +56,12 @@ pub fn App() -> impl IntoView {
         <Meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
         <div>
-            <header class="flex flex-wrap sm:justify-start sm:flex-nowrap w-full bg-gray-800 text-sm py-3 dark:bg-white">
-                <Nav />
-            </header>
 
             <main class="container mx-auto p-4">
                 <Router>
+                    <header class="flex flex-wrap sm:justify-start sm:flex-nowrap w-full bg-gray-800 text-sm py-3 dark:bg-white">
+                        <Nav />
+                    </header>
                     <Routes fallback=|| view! { <div>"[404] - Oops, page not found."</div> }>
                         <Route path=path!("/") view=|| view! { <Goals /> } />
                         <Route path=path!("/goals") view=|| view! { <Goals /> } />
