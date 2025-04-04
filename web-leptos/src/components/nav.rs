@@ -1,69 +1,141 @@
 use leptos::prelude::*;
 use leptos_router::components::A;
+use leptos_router::hooks::use_location;
 
 #[component]
 pub fn Nav() -> impl IntoView {
-    view! {
-        <nav class="max-w-[85rem] w-full mx-auto px-4 sm:flex sm:items-center sm:justify-between">
+    let (is_mobile_menu_open, set_mobile_menu_open) = signal(false);
 
-            <div class="flex items-center justify-between">
-                <A
-                    href="/"
-                    attr:class="flex-none text-xl font-semibold text-white focus:outline-hidden focus:opacity-80 dark:text-neutral-800"
-                >
-                    "Practice App"
-                </A>
-                <div class="sm:hidden">
-                    <button
-                        type="button"
-                        class="hs-collapse-toggle relative size-9 flex justify-center items-center gap-2 rounded-lg border border-gray-700 font-medium bg-gray-800 text-gray-400 shadow-2xs align-middle hover:bg-gray-700/20 focus:outline-hidden focus:bg-gray-700/20 text-sm dark:bg-white dark:hover:bg-gray-100 dark:border-gray-200 dark:text-gray-600 dark:focus:bg-gray-100"
-                        id="hs-navbar-dark-collapse"
-                        aria-expanded="false"
-                        aria-controls="hs-navbar-dark"
-                        aria-label="Toggle navigation"
-                        data-hs-collapse="#hs-navbar-dark"
-                    >
-                        <svg
-                            class="hs-collapse-open:hidden shrink-0 size-4"
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="24"
-                            height="24"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
+    view! {
+        <nav class="bg-gray-800">
+            <div class="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
+                <div class="relative flex h-16 items-center justify-between">
+                    <div class="absolute inset-y-0 left-0 flex items-center sm:hidden">
+                        <button
+                            type="button"
+                            class="relative inline-flex items-center justify-center rounded-md p-2 text-gray-400 hover:bg-gray-700 hover:text-white focus:ring-2 focus:ring-white focus:outline-hidden focus:ring-inset"
+                            on:click=move |_| set_mobile_menu_open.set(!is_mobile_menu_open.get())
+                            aria-controls="mobile-menu"
+                            aria-expanded=move || is_mobile_menu_open.get().to_string()
                         >
-                            <line x1="3" x2="21" y1="6" y2="6" />
-                            <line x1="3" x2="21" y1="12" y2="12" />
-                            <line x1="3" x2="21" y1="18" y2="18" />
-                        </svg>
-                        <svg
-                            class="hs-collapse-open:block hidden shrink-0 size-4"
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="24"
-                            height="24"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
+                            <span class="absolute -inset-0.5"></span>
+                            <span class="sr-only">"Open main menu"</span>
+
+                            <svg
+                                class=move || {
+                                    if is_mobile_menu_open.get() {
+                                        "hidden size-6"
+                                    } else {
+                                        "block size-6"
+                                    }
+                                }
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke-width="1.5"
+                                stroke="currentColor"
+                                aria-hidden="true"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
+                                />
+                            </svg>
+
+                            <svg
+                                class=move || {
+                                    if is_mobile_menu_open.get() {
+                                        "block size-6"
+                                    } else {
+                                        "hidden size-6"
+                                    }
+                                }
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke-width="1.5"
+                                stroke="currentColor"
+                                aria-hidden="true"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="M6 18 18 6M6 6l12 12"
+                                />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div class="flex flex-1 items-center justify-center sm:items-stretch sm:justify-start">
+                        <div class="flex shrink-0 items-center">
+                            <img
+                                class="h-8 w-auto"
+                                src="https://tailwindcss.com/plus-assets/img/logos/mark.svg?color=indigo&shade=500"
+                                alt="Your Company"
+                            />
+                        </div>
+
+                        <div class="hidden sm:ml-6 sm:block">
+                            <div class="flex space-x-4">
+                                <MenuItems mobile=false />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="absolute inset-y-0 right-0 flex items-center pr-2 sm:static sm:inset-auto sm:ml-6 sm:pr-0">
+                        <button
+                            type="button"
+                            class="relative rounded-full bg-gray-800 p-1 text-gray-400 hover:text-white focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800 focus:outline-hidden"
                         >
-                            <path d="M18 6 6 18" />
-                            <path d="m6 6 12 12" />
-                        </svg>
-                        <span class="sr-only">Toggle</span>
-                    </button>
+                            <span class="absolute -inset-1.5"></span>
+                            <span class="sr-only">"View notifications"</span>
+                            <svg
+                                class="size-6"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke-width="1.5"
+                                stroke="currentColor"
+                                aria-hidden="true"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0"
+                                />
+                            </svg>
+                        </button>
+
+                        <div class="relative ml-3">
+                            <div>
+                                <button
+                                    type="button"
+                                    class="relative flex rounded-full bg-gray-800 text-sm focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800 focus:outline-hidden"
+                                    id="user-menu-button"
+                                    aria-expanded="false"
+                                    aria-haspopup="true"
+                                >
+                                    <span class="absolute -inset-1.5"></span>
+                                    <span class="sr-only">"Open user menu"</span>
+                                    <img
+                                        class="size-8 rounded-full"
+                                        src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
+                                        alt=""
+                                    />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
+
             <div
-                id="hs-navbar-dark"
-                class="hidden hs-collapse overflow-hidden transition-all duration-300 basis-full grow sm:block"
-                aria-labelledby="hs-navbar-dark-collapse"
+                class=move || {
+                    if is_mobile_menu_open.get() { "sm:hidden" } else { "sm:hidden hidden" }
+                }
+                id="mobile-menu"
             >
-                <MenuItems />
+                <div class="space-y-1 px-2 pt-2 pb-3">
+                    <MenuItems mobile=true />
+                </div>
             </div>
         </nav>
     }
@@ -76,9 +148,19 @@ struct MenuItem {
 }
 
 #[component]
-pub fn MenuItems() -> impl IntoView {
-    let active_class = "font-medium text-white focus:outline-hidden dark:text-black";
-    let inactive_class = "font-medium text-gray-400 hover:text-gray-500 focus:outline-hidden focus:text-gray-500 dark:text-neutral-500 dark:hover:text-neutral-400 dark:focus:text-neutral-400";
+pub fn MenuItems(mobile: bool) -> impl IntoView {
+    // Define styles based on mobile prop
+    let (active_class, inactive_class) = if mobile {
+        (
+            "bg-gray-900 text-white block rounded-md px-3 py-2 text-base font-medium",
+            "text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium"
+        )
+    } else {
+        (
+            "bg-gray-900 text-white rounded-md px-3 py-2 text-sm font-medium",
+            "text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium"
+        )
+    };
 
     // Define all menu items in a central place
     let menu_items = vec![
@@ -100,19 +182,25 @@ pub fn MenuItems() -> impl IntoView {
         },
     ];
 
+    let location = use_location();
+
     view! {
-        <div class="flex flex-col gap-5 mt-5 sm:flex-row sm:items-center sm:justify-end sm:mt-0 sm:ps-5">
-            {menu_items
-                .into_iter()
-                .map(|item| {
-                    // TODO: Add active class to the active item
-                    view! {
-                        <A href=item.path attr:class=inactive_class attr:class:active=active_class>
-                            {item.label}
-                        </A>
-                    }
-                })
-                .collect::<Vec<_>>()}
-        </div>
+        {menu_items
+            .into_iter()
+            .map(|item| {
+                let is_active = move || location.pathname.get().eq(item.path);
+
+                view! {
+                    <A
+                        href=item.path
+                        attr:class=move || {
+                            if is_active() { active_class } else { inactive_class }
+                        }
+                    >
+                        {item.label}
+                    </A>
+                }
+            })
+            .collect::<Vec<_>>()}
     }
 }

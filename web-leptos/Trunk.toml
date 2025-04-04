@@ -13,4 +13,11 @@ command = "npx tailwindcss -i ./style/main.css -o ./style/output.css --watch"
 address = "127.0.0.1"
 port = 8080
 
-# No hooks, we'll rely on the build command
+# Run the CSS build command before serving
+hooks = ["pre-build"]
+
+# Copy the output.css file to the dist directory
+[[hooks]]
+stage = "pre_build"
+command = "cp"
+command_arguments = ["style/output.css", "dist/output.css"]
