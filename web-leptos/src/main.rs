@@ -15,8 +15,8 @@ use web_sys::HtmlElement;
 mod components;
 mod core;
 mod views;
-use components::nav::Nav;
-use views::{Exercises, Goals, Sessions};
+use components::Nav;
+use views::{Exercises, Goals, Home, Sessions};
 
 #[derive(Clone, Default, Store)]
 struct GlobalState {
@@ -34,22 +34,21 @@ pub fn App() -> impl IntoView {
 
     view! {
         <Html attr:lang="en" attr:dir="ltr" attr:data-theme="light" />
-        <Title text="Practice App" />
+        <Title text="Intrada" />
         <Meta charset="UTF-8" />
         <Meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-        <div>
-            <main>
-                <Router>
-                    <Nav />
-                    <Routes fallback=|| view! { <div>"[404] - Oops, page not found."</div> }>
-                        <Route path=path!("/") view=|| view! { <Goals /> } />
-                        <Route path=path!("/goals") view=|| view! { <Goals /> } />
-                        <Route path=path!("/sessions") view=|| view! { <Sessions /> } />
-                        <Route path=path!("/exercises") view=|| view! { <Exercises /> } />
-                    </Routes>
-                </Router>
-            </main>
+        <div class="min-h-full">
+
+            <Router>
+                <Nav />
+                <Routes fallback=|| view! { <div>"[404] - Oops, page not found."</div> }>
+                    <Route path=path!("/") view=|| view! { <Home /> } />
+                    <Route path=path!("/goals") view=|| view! { <Goals /> } />
+                    <Route path=path!("/sessions") view=|| view! { <Sessions /> } />
+                    <Route path=path!("/exercises") view=|| view! { <Exercises /> } />
+                </Routes>
+            </Router>
         </div>
     }
 }

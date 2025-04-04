@@ -1,6 +1,4 @@
-# [Practice App]
-
-_Working title_
+# [Intrada]
 
 ## Running the leptos web app
 
