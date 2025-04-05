@@ -5,7 +5,7 @@ resolver = "1"
 [workspace.package]
 authors = ["Jon yardley"]
 edition = "2021"
-repository = "https://github.com/jonyardley/practice_app"
+repository = "https://github.com/jonyardley/intrada"
 license = "Apache-2.0"
 keywords = ["crux", "crux_core", "cross-platform-ui", "ffi", "wasm"]
 rust-version = "1.76"

@@ -1,21 +1,21 @@
-<!doctype html>
-<html data-theme="default">
-	<head>
-		<meta charset="utf-8" />
-		<link data-trunk rel="rust" data-wasm-opt="z" />
-		<link
-			href="https://cdn.jsdelivr.net/npm/daisyui@5.0.0-beta.8/daisyui.css"
-			rel="stylesheet"
-			type="text/css"
-		/>
-		<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-		<link
-			href="https://cdn.jsdelivr.net/npm/daisyui@5.0.0-beta.8/themes.css"
-			rel="stylesheet"
-			type="text/css"
-		/>
-		<title>Practice App</title>
-	</head>
+<!DOCTYPE html>
+<html lang="en">
 
-	<body></body>
+<head>
+	<title>Intrada</title>
+	<meta name="description" content="Intrada - A modern web application" />
+
+	<link data-trunk rel="copy-file" href="style/output.css" />
+	<link rel="stylesheet" href="output.css" />
+	<link data-trunk rel="icon" href="public/favicon.png" type="image/x-icon" />
+	<link data-trunk rel="copy-file" href="./vercel.json" />
+
+	<link data-trunk rel="rust" data-wasm-opt="z" data-weak-refs />
+</head>
+
+<body>
+	<div id="root"></div>
+	<!-- Remove the manual script import - Trunk will inject the correct script -->
+</body>
+
 </html>

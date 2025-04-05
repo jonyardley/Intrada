@@ -5,3 +5,6 @@
 .bin
 **/dist
 .vercel
+**/style/output.css
+node_modules
+**/node_modules

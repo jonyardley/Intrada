@@ -1,11 +1,12 @@
-use crate::components::typography::Header1;
+use crate::components::{Header, Main};
 use leptos::prelude::*;
 
 #[component]
 pub fn Sessions() -> impl IntoView {
     view! {
-        <section>
-            <Header1 text="Sessions".to_string() />
-        </section>
+        <Header title="Sessions".to_string() />
+        <Main>
+            <p>"Here are your sessions"</p>
+        </Main>
     }
 }
