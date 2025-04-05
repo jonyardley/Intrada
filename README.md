@@ -1,4 +1,6 @@
-# [Intrada]
+# Intrada
+
+> Intrada empowers musicians to achieve mastery through structured, efficient, and deeply reflective practice. By providing intelligent tools for planning, focused execution, and insightful analysis, Intrada transforms practice from a routine into a deliberate pathway to virtuosity.
 
 ## Running the leptos web app
 
