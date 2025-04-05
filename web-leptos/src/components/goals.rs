@@ -1,5 +1,7 @@
 use leptos::prelude::*;
 
+use shared::PracticeGoal;
+
 #[component]
 pub fn GoalCard(title: String, description: String, progress: i32) -> impl IntoView {
     view! {
@@ -9,14 +11,11 @@ pub fn GoalCard(title: String, description: String, progress: i32) -> impl IntoV
                 <div>
                     <h3 class="font-medium sm:text-lg">
                         <a href="#" class="hover:underline">
-                            Question about Livewire Rendering-3 and Alpine JS
+                            {title}
                         </a>
                     </h3>
 
-                    <p class="line-clamp-2 text-sm text-gray-700">
-                        Lorem ipsum dolor, sit amet consectetur adipisicing elit. Accusamus, accusantium temporibus
-                        iure delectus ut totam natus nesciunt ex? Ducimus, enim.
-                    </p>
+                    <p class="line-clamp-2 text-sm text-gray-700">{description}</p>
 
                     <div class="mt-2 sm:flex sm:items-center sm:gap-2">
                         <div class="flex items-center gap-1 text-gray-500">
@@ -43,7 +42,7 @@ pub fn GoalCard(title: String, description: String, progress: i32) -> impl IntoV
                         </span>
 
                         <p class="hidden sm:block sm:text-xs sm:text-gray-500">
-                            Started 2 days ago
+                            {progress}% complete
                         </p>
                     </div>
                 </div>
@@ -70,5 +69,25 @@ pub fn GoalCard(title: String, description: String, progress: i32) -> impl IntoV
                 </strong>
             </div>
         </article>
+    }
+}
+
+#[component]
+pub fn GoalList(goals: Vec<PracticeGoal>) -> impl IntoView {
+    view! {
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {goals
+                .iter()
+                .map(|goal| {
+                    view! {
+                        <GoalCard
+                            title=goal.name.clone()
+                            description="description".to_string()
+                            progress=0
+                        />
+                    }
+                })
+                .collect_view()}
+        </div>
     }
 }

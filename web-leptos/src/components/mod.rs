@@ -1,11 +1,14 @@
 pub mod header;
-pub use header::Header;
+pub use header::*;
 
 pub mod nav;
-pub use nav::Nav;
+pub use nav::*;
 
 pub mod typography;
-pub use typography::{CardTitle, Header1, Header2};
+pub use typography::*;
 
-pub mod goal_card;
-pub use goal_card::GoalCard;
+pub mod goals;
+pub use goals::*;
+
+pub mod layout;
+pub use layout::*;
