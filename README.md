@@ -18,8 +18,6 @@ This script will:
 2. Start the Tailwind CSS watcher in the background
 3. Start the Trunk development server
 
-Alternative methods:
-
 ```bash
 # If you prefer using trunk directly:
 cd web-leptos
