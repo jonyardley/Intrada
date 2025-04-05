@@ -15,6 +15,7 @@ use web_sys::HtmlElement;
 
 mod components;
 mod core;
+mod hooks;
 mod views;
 use components::Nav;
 use views::{Exercises, Goals, Home, Sessions};

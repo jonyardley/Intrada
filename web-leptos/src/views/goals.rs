@@ -1,20 +1,12 @@
 use leptos::prelude::*;
 
 use crate::components::typography::{CardTitle, Header1, Header2};
-use crate::core;
-use crate::GlobalState;
-use reactive_stores::Store;
+use crate::hooks::use_core;
+use shared::Event;
 
 #[component]
 pub fn Goals() -> impl IntoView {
-    let state = expect_context::<Store<GlobalState>>().get_untracked();
-    let core = state.core;
-    let (view, render) = signal(core.view());
-    let (event, set_event) = signal(shared::Event::GetGoals);
-
-    Effect::new(move |_| {
-        core::update(&core, event.get(), render);
-    });
+    let (view, set_event) = use_core(Event::GetGoals);
 
     view! {
         <section>
@@ -56,12 +48,12 @@ pub fn Goals() -> impl IntoView {
 }
 
 #[component]
-pub fn AddGoalForm(set_event: WriteSignal<shared::Event>) -> impl IntoView {
+pub fn AddGoalForm(set_event: WriteSignal<Event>) -> impl IntoView {
     let (goal_name, set_goal_name) = signal("".to_string());
 
     let add_goal_handler = move |_| {
         set_event.update(|value| {
-            *value = shared::Event::AddGoal(goal_name.get());
+            *value = Event::AddGoal(goal_name.get());
             set_goal_name.set("".to_string());
         });
     };
