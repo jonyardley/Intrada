@@ -8,6 +8,16 @@ use serde::{Deserialize, Serialize};
 pub struct PracticeGoal {
     pub name: String,
     pub description: Option<String>,
+    pub status: Status,
+}
+
+#[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub enum Status {
+    #[default]
+    NotStarted,
+    InProgress,
+    Completed,
 }
 
 #[derive(Serialize, Deserialize, Clone, Default)]
@@ -73,10 +83,17 @@ impl App for Chopin {
                 model.goals.push(PracticeGoal {
                     name: "Master Nocturnes".to_string(),
                     description: Some("Op. 23 & 23".to_string()),
+                    status: Status::NotStarted,
                 });
                 model.goals.push(PracticeGoal {
                     name: "Perfect Etudes".to_string(),
                     description: Some("Op. 23. No. 1 & 101".to_string()),
+                    status: Status::InProgress,
+                });
+                model.goals.push(PracticeGoal {
+                    name: "More Etudes".to_string(),
+                    description: Some("Op. 25. No. 1".to_string()),
+                    status: Status::Completed,
                 });
                 //Exercises
                 model.exercises.push("Scales and Arpeggios".to_string());
