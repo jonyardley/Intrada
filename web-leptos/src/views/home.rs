@@ -11,7 +11,7 @@ pub fn Home() -> impl IntoView {
         <Header title="Home".to_string() />
         <Main>
             <H2 text="Here are your active goals".to_string() />
-            <GoalList goals=view.get().goals />
+            <GoalList goals=move || view.get().goals />
         </Main>
     }
 }

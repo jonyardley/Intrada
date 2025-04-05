@@ -73,21 +73,23 @@ pub fn GoalCard(title: String, description: String, progress: i32) -> impl IntoV
 }
 
 #[component]
-pub fn GoalList(goals: Vec<PracticeGoal>) -> impl IntoView {
+pub fn GoalList(goals: impl Fn() -> Vec<PracticeGoal> + Send + Sync + 'static) -> impl IntoView {
     view! {
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {goals
-                .iter()
-                .map(|goal| {
-                    view! {
-                        <GoalCard
-                            title=goal.name.clone()
-                            description="description".to_string()
-                            progress=0
-                        />
-                    }
-                })
-                .collect_view()}
+            {move || {
+                goals()
+                    .iter()
+                    .map(|goal| {
+                        view! {
+                            <GoalCard
+                                title=goal.name.clone()
+                                description=goal.description.clone().unwrap_or_default()
+                                progress=0
+                            />
+                        }
+                    })
+                    .collect_view()
+            }}
         </div>
     }
 }
