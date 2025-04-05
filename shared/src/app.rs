@@ -151,6 +151,7 @@ mod test {
             Event::AddGoal(PracticeGoal {
                 name: "Goal".to_string(),
                 description: Some("".to_string()),
+                status: Status::NotStarted,
             }),
             &mut model,
         );
