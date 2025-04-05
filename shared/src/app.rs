@@ -4,9 +4,20 @@ use crux_core::{
 };
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Clone, Default)]
+#[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
 pub struct PracticeGoal {
     pub name: String,
+    pub description: Option<String>,
+    pub status: Status,
+}
+
+#[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub enum Status {
+    #[default]
+    NotStarted,
+    InProgress,
+    Completed,
 }
 
 #[derive(Serialize, Deserialize, Clone, Default)]
@@ -37,7 +48,7 @@ pub struct Capabilities {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum Event {
     GetGoals,
-    AddGoal(String),
+    AddGoal(PracticeGoal),
     GetExercises,
     AddExercise(String),
     SetDevData(),
@@ -61,20 +72,30 @@ impl App for Chopin {
     ) -> Command<Effect, Event> {
         match event {
             Event::GetGoals => (),
-            Event::AddGoal(goal_name) => {
-                let new_goal = PracticeGoal { name: goal_name };
-                model.goals.push(new_goal)
+            Event::AddGoal(goal) => {
+                model.goals.push(goal);
             }
             Event::GetExercises => (),
             Event::AddExercise(exercise) => model.exercises.push(exercise),
+            //Dev
             Event::SetDevData() => {
+                //Goals
                 model.goals.push(PracticeGoal {
                     name: "Master Nocturnes".to_string(),
+                    description: Some("Op. 23 & 23".to_string()),
+                    status: Status::NotStarted,
                 });
                 model.goals.push(PracticeGoal {
                     name: "Perfect Etudes".to_string(),
+                    description: Some("Op. 23. No. 1 & 101".to_string()),
+                    status: Status::InProgress,
                 });
-
+                model.goals.push(PracticeGoal {
+                    name: "More Etudes".to_string(),
+                    description: Some("Op. 25. No. 1".to_string()),
+                    status: Status::Completed,
+                });
+                //Exercises
                 model.exercises.push("Scales and Arpeggios".to_string());
                 model.exercises.push("Chord Progressions".to_string());
             }
@@ -126,7 +147,14 @@ mod test {
         let app = AppTester::<Chopin>::default();
         let mut model = Model::default();
 
-        let update = app.update(Event::AddGoal("Goal".to_string()), &mut model);
+        let update = app.update(
+            Event::AddGoal(PracticeGoal {
+                name: "Goal".to_string(),
+                description: Some("".to_string()),
+                status: Status::NotStarted,
+            }),
+            &mut model,
+        );
 
         // Check update asked us to `Render`
         assert_effect!(update, Effect::Render(_));

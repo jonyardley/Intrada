@@ -1,12 +1,14 @@
+use leptos::prelude::Memo;
 use leptos::prelude::*;
 
 use crate::components::{GoalList, Header, Main, H2};
 use crate::hooks::use_core;
-use shared::Event;
+use shared::{Event, PracticeGoal, Status};
 
 #[component]
 pub fn Goals() -> impl IntoView {
     let (view, set_event) = use_core(Event::GetGoals);
+    let goals = Memo::new(move |_| view.get().goals);
 
     view! {
         <Header title="Goals".to_string() />
@@ -18,7 +20,7 @@ pub fn Goals() -> impl IntoView {
             <section>
                 <H2 text="Your goals".to_string() />
                 <section>
-                    <GoalList goals=view.get().goals />
+                    <GoalList goals=move || goals.get() />
                 </section>
             </section>
         </Main>
@@ -27,17 +29,24 @@ pub fn Goals() -> impl IntoView {
 
 #[component]
 pub fn AddGoalForm(set_event: WriteSignal<Event>) -> impl IntoView {
-    let (goal_name, set_goal_name) = signal("".to_string());
+    let (name, set_name) = signal("".to_string());
+    let (description, set_description) = signal("".to_string());
 
     let add_goal_handler = move |_| {
         set_event.update(|value| {
-            *value = Event::AddGoal(goal_name.get());
-            set_goal_name.set("".to_string());
+            *value = Event::AddGoal(PracticeGoal {
+                name: name.get(),
+                description: Some(description.get()),
+                status: Status::NotStarted,
+            });
+            set_name.set("".to_string());
+            set_description.set("".to_string());
         });
     };
 
     let cancel_handler = move |_| {
-        set_goal_name.set("".to_string());
+        set_name.set("".to_string());
+        set_description.set("".to_string());
     };
 
     view! {
@@ -48,7 +57,13 @@ pub fn AddGoalForm(set_event: WriteSignal<Event>) -> impl IntoView {
                 type="text"
                 class="input"
                 placeholder="New goal name"
-                bind:value=(goal_name, set_goal_name)
+                bind:value=(name, set_name)
+            />
+            <input
+                type="text"
+                class="input"
+                placeholder="New goal description"
+                bind:value=(description, set_description)
             />
 
             <div class="join">

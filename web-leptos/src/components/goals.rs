@@ -1,17 +1,21 @@
 use leptos::prelude::*;
 
-use shared::PracticeGoal;
+use shared::{PracticeGoal, Status};
 
 #[component]
-pub fn GoalCard(title: String, description: String, progress: i32) -> impl IntoView {
+pub fn GoalCard(#[prop(into)] goal: PracticeGoal) -> impl IntoView {
+    let PracticeGoal {
+        name,
+        description,
+        status,
+    } = goal;
     view! {
         <article class="rounded-xl border-2 border-gray-100 bg-white">
             <div class="flex items-start gap-4 p-4 sm:p-6 lg:p-8">
-
                 <div>
                     <h3 class="font-medium sm:text-lg">
                         <a href="#" class="hover:underline">
-                            {title}
+                            {name}
                         </a>
                     </h3>
 
@@ -36,58 +40,63 @@ pub fn GoalCard(title: String, description: String, progress: i32) -> impl IntoV
 
                             <p class="text-xs">Dec 31, 2024</p>
                         </div>
-
-                        <span class="hidden sm:block" aria-hidden="true">
-                            "·"
-                        </span>
-
-                        <p class="hidden sm:block sm:text-xs sm:text-gray-500">
-                            {progress}% complete
-                        </p>
                     </div>
                 </div>
             </div>
 
             <div class="flex justify-end">
-                <strong class="-me-[2px] -mb-[2px] inline-flex items-center gap-1 rounded-ss-xl rounded-ee-xl bg-blue-600 px-3 py-1.5 text-white">
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        class="size-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        stroke-width="2"
-                    >
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            d="M13 10V3L4 14h7v7l9-11h-7z"
-                        />
-                    </svg>
-
-                    <span class="text-[10px] font-medium sm:text-xs">In Progress</span>
-                </strong>
+                <StatusBadge status=status />
             </div>
         </article>
     }
 }
 
 #[component]
-pub fn GoalList(goals: Vec<PracticeGoal>) -> impl IntoView {
+fn StatusBadge(#[prop(into)] status: Status) -> impl IntoView {
+    let (bg_color, icon_path) = match status {
+        Status::NotStarted => (
+            "bg-gray-600",
+            "M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z",
+        ),
+        Status::InProgress => ("bg-blue-600", "M13 10V3L4 14h7v7l9-11h-7z"),
+        Status::Completed => ("bg-green-600", "M5 13l4 4L19 7"),
+    };
+
+    let status_text = move || format!("{:?}", status);
+
+    view! {
+        <strong class=format!(
+            "-me-[2px] -mb-[2px] inline-flex items-center gap-1 rounded-ss-xl rounded-ee-xl px-3 py-1.5 text-white {}",
+            bg_color,
+        )>
+            <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="size-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+            >
+                <path stroke-linecap="round" stroke-linejoin="round" d=icon_path />
+            </svg>
+
+            <span class="text-[10px] font-medium sm:text-xs">{status_text}</span>
+        </strong>
+    }
+}
+
+#[component]
+pub fn GoalList(goals: impl Fn() -> Vec<PracticeGoal> + Send + Sync + 'static) -> impl IntoView {
     view! {
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {goals
-                .iter()
-                .map(|goal| {
-                    view! {
-                        <GoalCard
-                            title=goal.name.clone()
-                            description="description".to_string()
-                            progress=0
-                        />
-                    }
-                })
-                .collect_view()}
+            {move || {
+                goals()
+                    .iter()
+                    .map(|goal| {
+                        view! { <GoalCard goal=goal.clone() /> }
+                    })
+                    .collect_view()
+            }}
         </div>
     }
 }
