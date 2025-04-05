@@ -3,10 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "trunk serve",
-    "build": "trunk build --release",
+    "dev": "npm run build:css && trunk serve",
+    "build": "npm run build:css && trunk build --release",
     "watch": "trunk watch",
-    "clean": "trunk clean"
+    "clean": "trunk clean",
+    "build:css": "tailwindcss -i ./style/input.css -o ./style/output.css",
+    "watch:css": "tailwindcss -i ./style/input.css -o ./style/output.css --watch"
   },
   "dependencies": {
     "tailwindcss": "^3.4.1"

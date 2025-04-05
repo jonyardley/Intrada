@@ -1,7 +1,6 @@
 use leptos::prelude::*;
 
 use crate::components::typography::{CardTitle, Header1, Header2};
-
 use crate::core;
 use crate::GlobalState;
 use reactive_stores::Store;

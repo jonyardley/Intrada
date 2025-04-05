@@ -39,7 +39,7 @@ Or manually:
 
 ```bash
 cd web-leptos
-npx tailwindcss -i ./style/main.css -o ./style/output.css
+npx tailwindcss -i ./style/input.css -o ./style/output.css
 trunk build --release
 ```
 

@@ -10,6 +10,7 @@ use log::info;
 use reactive_stores::Store;
 use shared::Event;
 use wasm_bindgen::JsCast;
+use web_leptos::GlobalState;
 use web_sys::HtmlElement;
 
 mod components;
@@ -17,11 +18,6 @@ mod core;
 mod views;
 use components::Nav;
 use views::{Exercises, Goals, Home, Sessions};
-
-#[derive(Clone, Default, Store)]
-struct GlobalState {
-    core: core::Core,
-}
 
 #[component]
 pub fn App() -> impl IntoView {

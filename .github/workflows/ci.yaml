@@ -113,7 +113,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: web-leptos/style/output.css
-          key: ${{ runner.os }}-css-${{ hashFiles('web-leptos/style/main.css', 'web-leptos/tailwind.config.js', 'web-leptos/postcss.config.js') }}
+          key: ${{ runner.os }}-css-${{ hashFiles('web-leptos/style/input.css', 'web-leptos/tailwind.config.js', 'web-leptos/postcss.config.js') }}
 
       # Ensure style directory exists
       - name: Ensure style directory exists
@@ -122,7 +122,7 @@ jobs:
 
       # Generate CSS if not cached
       - name: Build CSS if needed
-        run: npx tailwindcss -i ./style/main.css -o ./style/output.css
+        run: npx tailwindcss -i ./style/input.css -o ./style/output.css
         working-directory: ./web-leptos
 
       # Verify CSS exists
@@ -145,7 +145,7 @@ jobs:
           # Run build all script with error handling
           npm run build:all || {
             echo "::error::Build failed, trying direct commands..."
-            npx tailwindcss -i ./style/main.css -o ./style/output.css
+            npx tailwindcss -i ./style/input.css -o ./style/output.css
             trunk build --release
           }
         working-directory: ./web-leptos

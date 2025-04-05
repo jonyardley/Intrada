@@ -1,23 +1,31 @@
 [build]
-# The command run before trunk builds the project
-command = "npx tailwindcss -i ./style/main.css -o ./style/output.css"
+target = "index.html"
+dist = "dist"
 
 [watch]
-# Watch for changes in these directories and trigger rebuilds
 watch = ["src", "style"]
-# Run the CSS build with watch flag during development
-command = "npx tailwindcss -i ./style/main.css -o ./style/output.css --watch"
 
 [serve]
-# Address to serve on
-address = "127.0.0.1"
 port = 8080
 
-# Run the CSS build command before serving
-hooks = ["pre-build"]
-
-# Copy the output.css file to the dist directory
 [[hooks]]
 stage = "pre_build"
-command = "cp"
-command_arguments = ["style/output.css", "dist/output.css"]
+command = "npx"
+command_arguments = [
+    "tailwindcss",
+    "-i",
+    "./style/input.css",
+    "-o",
+    "./style/output.css",
+]
+
+[[hooks]]
+stage = "build"
+command = "npx"
+command_arguments = [
+    "tailwindcss",
+    "-i",
+    "./style/input.css",
+    "-o",
+    "./dist/output.css",
+]
