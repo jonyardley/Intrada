@@ -19,7 +19,7 @@ pub fn Exercises() -> impl IntoView {
                         view.get()
                             .exercises
                             .into_iter()
-                            .map(|e| view! { <li class="list-row">{e}</li> })
+                            .map(|e| view! { <li class="list-row">{e.name}</li> })
                             .collect_view()
                             .into_any()
                     }

@@ -4,6 +4,8 @@ use crux_core::{
 };
 use serde::{Deserialize, Serialize};
 
+use crate::dev;
+
 #[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
 pub struct PracticeGoal {
     pub name: String,
@@ -12,7 +14,6 @@ pub struct PracticeGoal {
 }
 
 #[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
-#[serde(rename_all = "camelCase")]
 pub enum Status {
     #[default]
     NotStarted,
@@ -20,22 +21,21 @@ pub enum Status {
     Completed,
 }
 
-#[derive(Serialize, Deserialize, Clone, Default)]
+#[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
 pub struct Exercise {
-    pub id: u32,
     pub name: String,
 }
 
 #[derive(Default)]
 pub struct Model {
-    goals: Vec<PracticeGoal>,
-    exercises: Vec<String>,
+    pub goals: Vec<PracticeGoal>,
+    pub exercises: Vec<Exercise>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Default)]
 pub struct ViewModel {
     pub goals: Vec<PracticeGoal>,
-    pub exercises: Vec<String>,
+    pub exercises: Vec<Exercise>,
 }
 
 #[cfg_attr(feature = "typegen", derive(crux_core::macros::Export))]
@@ -50,7 +50,7 @@ pub enum Event {
     GetGoals,
     AddGoal(PracticeGoal),
     GetExercises,
-    AddExercise(String),
+    AddExercise(Exercise),
     SetDevData(),
 }
 
@@ -77,28 +77,7 @@ impl App for Chopin {
             }
             Event::GetExercises => (),
             Event::AddExercise(exercise) => model.exercises.push(exercise),
-            //Dev
-            Event::SetDevData() => {
-                //Goals
-                model.goals.push(PracticeGoal {
-                    name: "Master Nocturnes".to_string(),
-                    description: Some("Op. 23 & 23".to_string()),
-                    status: Status::NotStarted,
-                });
-                model.goals.push(PracticeGoal {
-                    name: "Perfect Etudes".to_string(),
-                    description: Some("Op. 23. No. 1 & 101".to_string()),
-                    status: Status::InProgress,
-                });
-                model.goals.push(PracticeGoal {
-                    name: "More Etudes".to_string(),
-                    description: Some("Op. 25. No. 1".to_string()),
-                    status: Status::Completed,
-                });
-                //Exercises
-                model.exercises.push("Scales and Arpeggios".to_string());
-                model.exercises.push("Chord Progressions".to_string());
-            }
+            Event::SetDevData() => dev::set_dev_data(model),
         };
 
         render()
@@ -136,7 +115,12 @@ mod test {
         let app = AppTester::<Chopin>::default();
         let mut model = Model::default();
 
-        let update = app.update(Event::AddExercise("Exercise".to_string()), &mut model);
+        let update = app.update(
+            Event::AddExercise(Exercise {
+                name: "Exercise".to_string(),
+            }),
+            &mut model,
+        );
 
         // Check update asked us to `Render`
         assert_effect!(update, Effect::Render(_));
@@ -155,6 +139,17 @@ mod test {
             }),
             &mut model,
         );
+
+        // Check update asked us to `Render`
+        assert_effect!(update, Effect::Render(_));
+    }
+
+    #[test]
+    fn sets_dev_data() {
+        let app = AppTester::<Chopin>::default();
+        let mut model = Model::default();
+
+        let update = app.update(Event::SetDevData(), &mut model);
 
         // Check update asked us to `Render`
         assert_effect!(update, Effect::Render(_));
