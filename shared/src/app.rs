@@ -1,13 +1,15 @@
+use crate::dev;
 use crux_core::{
     render::{render, Render},
     App, Command,
 };
 use serde::{Deserialize, Serialize};
+use uuid;
 
-use crate::dev;
-
+// *************
 #[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
 pub struct PracticeGoal {
+    pub id: String,
     pub name: String,
     pub description: Option<String>,
     pub status: Status,
@@ -21,30 +23,28 @@ pub enum Status {
     Completed,
 }
 
+impl PracticeGoal {
+    pub fn new(name: String, description: Option<String>, status: Option<Status>) -> Self {
+        Self {
+            id: uuid::Uuid::new_v4().to_string(),
+            name,
+            description,
+            status: status.unwrap_or(Status::NotStarted),
+        }
+    }
+}
+
+// *************
+// EXERCISES
+// *************
 #[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
 pub struct Exercise {
     pub name: String,
 }
 
-#[derive(Default)]
-pub struct Model {
-    pub goals: Vec<PracticeGoal>,
-    pub exercises: Vec<Exercise>,
-}
-
-#[derive(Serialize, Deserialize, Clone, Default)]
-pub struct ViewModel {
-    pub goals: Vec<PracticeGoal>,
-    pub exercises: Vec<Exercise>,
-}
-
-#[cfg_attr(feature = "typegen", derive(crux_core::macros::Export))]
-#[derive(crux_core::macros::Effect)]
-#[allow(unused)]
-pub struct Capabilities {
-    render: Render<Event>,
-}
-
+// *************
+// EVENTS
+// *************
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum Event {
     GetGoals,
@@ -54,6 +54,9 @@ pub enum Event {
     SetDevData(),
 }
 
+// *************
+// APP
+// *************
 #[derive(Default)]
 pub struct Chopin;
 
@@ -91,9 +94,28 @@ impl App for Chopin {
     }
 }
 
-// *************
+#[derive(Default)]
+pub struct Model {
+    pub goals: Vec<PracticeGoal>,
+    pub exercises: Vec<Exercise>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Default)]
+pub struct ViewModel {
+    pub goals: Vec<PracticeGoal>,
+    pub exercises: Vec<Exercise>,
+}
+
+#[cfg_attr(feature = "typegen", derive(crux_core::macros::Export))]
+#[derive(crux_core::macros::Effect)]
+#[allow(unused)]
+pub struct Capabilities {
+    render: Render<Event>,
+}
+
+// ------------------------------------------------------------------
 // TESTS
-// *************
+//
 #[cfg(test)]
 mod test {
     use super::*;
@@ -132,11 +154,11 @@ mod test {
         let mut model = Model::default();
 
         let update = app.update(
-            Event::AddGoal(PracticeGoal {
-                name: "Goal".to_string(),
-                description: Some("".to_string()),
-                status: Status::NotStarted,
-            }),
+            Event::AddGoal(PracticeGoal::new(
+                "Goal".to_string(),
+                Some("".to_string()),
+                Some(Status::NotStarted),
+            )),
             &mut model,
         );
 

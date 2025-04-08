@@ -5,6 +5,7 @@ use shared::{PracticeGoal, Status};
 #[component]
 pub fn GoalCard(#[prop(into)] goal: PracticeGoal) -> impl IntoView {
     let PracticeGoal {
+        id,
         name,
         description,
         status,
@@ -39,8 +40,10 @@ pub fn GoalCard(#[prop(into)] goal: PracticeGoal) -> impl IntoView {
                             </svg>
 
                             <p class="text-xs">Dec 31, 2024</p>
+
                         </div>
                     </div>
+                    <p class="text-xs text-gray-500 mt-2">ID: {id}</p>
                 </div>
             </div>
 

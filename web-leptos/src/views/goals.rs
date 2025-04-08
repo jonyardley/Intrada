@@ -3,7 +3,7 @@ use leptos::prelude::*;
 
 use crate::components::{GoalList, Header, Main, H2};
 use crate::hooks::use_core;
-use shared::{Event, PracticeGoal, Status};
+use shared::{Event, PracticeGoal};
 
 #[component]
 pub fn Goals() -> impl IntoView {
@@ -34,11 +34,8 @@ pub fn AddGoalForm(set_event: WriteSignal<Event>) -> impl IntoView {
 
     let add_goal_handler = move |_| {
         set_event.update(|value| {
-            *value = Event::AddGoal(PracticeGoal {
-                name: name.get(),
-                description: Some(description.get()),
-                status: Status::NotStarted,
-            });
+            *value = Event::AddGoal(PracticeGoal::new(name.get(), Some(description.get()), None));
+
             set_name.set("".to_string());
             set_description.set("".to_string());
         });
