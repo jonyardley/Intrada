@@ -25,6 +25,7 @@ pub struct PracticeGoal {
     pub status: Status,
     pub start_date: Option<String>,
     pub end_date: Option<String>,
+    pub exercise_ids: Vec<String>,
 }
 
 impl PracticeGoal {
@@ -36,6 +37,7 @@ impl PracticeGoal {
             status: status.unwrap_or(Status::NotStarted),
             start_date: None,
             end_date: None,
+            exercise_ids: Vec::new(),
         }
     }
 }
@@ -66,6 +68,10 @@ impl Exercise {
 pub enum Event {
     AddGoal(PracticeGoal),
     AddExercise(Exercise),
+    AddExerciseToGoal {
+        goal_id: String,
+        exercise_id: String,
+    },
     SetDevData(),
 
     Nothing,
@@ -95,7 +101,25 @@ impl App for Chopin {
                 model.goals.push(goal);
             }
             Event::AddExercise(exercise) => model.exercises.push(exercise),
-            Event::SetDevData() => dev::set_dev_data(model),
+            Event::AddExerciseToGoal {
+                goal_id,
+                exercise_id,
+            } => {
+                if let Some(goal) = model.goals.iter_mut().find(|g| g.id == goal_id) {
+                    if !goal.exercise_ids.contains(&exercise_id) {
+                        goal.exercise_ids.push(exercise_id);
+                    }
+                }
+            }
+            Event::SetDevData() => {
+                for event in dev::set_dev_data() {
+                    match event {
+                        Event::AddGoal(goal) => model.goals.push(goal),
+                        Event::AddExercise(exercise) => model.exercises.push(exercise),
+                        _ => (),
+                    }
+                }
+            }
             Event::Nothing => (),
         };
 
@@ -154,9 +178,7 @@ mod test {
         let mut model = Model::default();
 
         let update = app.update(
-            Event::AddExercise(Exercise {
-                name: "Exercise".to_string(),
-            }),
+            Event::AddExercise(Exercise::new("Exercise".to_string(), Some("".to_string()))),
             &mut model,
         );
 
@@ -188,6 +210,23 @@ mod test {
         let mut model = Model::default();
 
         let update = app.update(Event::SetDevData(), &mut model);
+
+        // Check update asked us to `Render`
+        assert_effect!(update, Effect::Render(_));
+    }
+
+    #[test]
+    fn adds_exercise_to_goal() {
+        let app = AppTester::<Chopin>::default();
+        let mut model = Model::default();
+
+        let update = app.update(
+            Event::AddExerciseToGoal {
+                goal_id: model.goals[0].id.clone(),
+                exercise_id: model.exercises[0].id.clone(),
+            },
+            &mut model,
+        );
 
         // Check update asked us to `Render`
         assert_effect!(update, Effect::Render(_));

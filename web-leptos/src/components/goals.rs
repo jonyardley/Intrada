@@ -11,6 +11,7 @@ pub fn GoalCard(#[prop(into)] goal: PracticeGoal) -> impl IntoView {
         status,
         start_date,
         end_date,
+        exercise_ids: _,
     } = goal;
     view! {
         <article class="rounded-xl border-2 border-gray-100 bg-white">
