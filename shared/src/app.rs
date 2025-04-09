@@ -7,6 +7,8 @@ use serde::{Deserialize, Serialize};
 use uuid;
 
 // *************
+// GOALS
+// *************
 #[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
 pub struct PracticeGoal {
     pub id: String,
@@ -129,7 +131,7 @@ mod test {
         let app = AppTester::<Chopin>::default();
         let mut model = Model::default();
 
-        let update = app.update(Event::GetExercises, &mut model);
+        let update = app.update(Event::Nothing, &mut model);
 
         // Check update asked us to `Render`
         assert_effect!(update, Effect::Render(_));
