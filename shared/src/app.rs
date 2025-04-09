@@ -13,6 +13,8 @@ pub struct PracticeGoal {
     pub name: String,
     pub description: Option<String>,
     pub status: Status,
+    pub start_date: Option<String>,
+    pub end_date: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
@@ -30,6 +32,8 @@ impl PracticeGoal {
             name,
             description,
             status: status.unwrap_or(Status::NotStarted),
+            start_date: None,
+            end_date: None,
         }
     }
 }
