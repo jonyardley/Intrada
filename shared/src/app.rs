@@ -147,6 +147,17 @@ mod test {
         let app = AppTester::<Chopin>::default();
         let mut model = Model::default();
 
+        // First add a goal
+        let goal = PracticeGoal::new("Test Goal".to_string(), None, None);
+        let update = app.update(Event::AddGoal(goal), &mut model);
+        assert_effect!(update, Effect::Render(_));
+
+        // Then add an exercise
+        let exercise = Exercise::new("Test Exercise".to_string(), None);
+        let update = app.update(Event::AddExercise(exercise), &mut model);
+        assert_effect!(update, Effect::Render(_));
+
+        // Now we can safely add the exercise to the goal
         let update = app.update(
             Event::AddExerciseToGoal {
                 goal_id: model.goals[0].id.clone(),

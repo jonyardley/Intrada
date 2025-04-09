@@ -46,4 +46,5 @@ trunk build --release
 ## Running core tests
 
 Install cargo-nextest: `cargo binstall cargo-nextest --secure`
+
 Run: `cargo nextest run --release -p shared`

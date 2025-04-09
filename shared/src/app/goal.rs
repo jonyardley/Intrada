@@ -48,3 +48,23 @@ pub fn add_exercise_to_goal(goal_id: String, exercise_id: String, model: &mut Mo
         }
     }
 }
+
+// *************
+// TESTS
+// *************
+
+#[test]
+fn test_add_goal() {
+    let mut model = Model::default();
+    let goal = PracticeGoal::new("Goal 1".to_string(), None, None);
+    add_goal(goal, &mut model);
+    assert_eq!(model.goals.len(), 1);
+}
+
+#[test]
+fn test_add_exercise_to_goal() {
+    let mut model = Model::default();
+    let goal = PracticeGoal::new("Goal 1".to_string(), None, None);
+    add_goal(goal, &mut model);
+    add_exercise_to_goal("Goal 1".to_string(), "Exercise 1".to_string(), &mut model);
+}

@@ -24,3 +24,15 @@ impl Exercise {
 pub fn add_exercise(exercise: Exercise, model: &mut Model) {
     model.exercises.push(exercise);
 }
+
+// *************
+// TESTS
+// *************
+
+#[test]
+fn test_add_exercise() {
+    let mut model = Model::default();
+    let exercise = Exercise::new("Exercise 1".to_string(), None);
+    add_exercise(exercise, &mut model);
+    assert_eq!(model.exercises.len(), 1);
+}
