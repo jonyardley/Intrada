@@ -7,7 +7,7 @@ use shared::{Event, PracticeGoal};
 
 #[component]
 pub fn Goals() -> impl IntoView {
-    let (view, set_event) = use_core(Event::GetGoals);
+    let (view, set_event) = use_core(Event::Nothing);
     let goals = Memo::new(move |_| view.get().goals);
 
     view! {

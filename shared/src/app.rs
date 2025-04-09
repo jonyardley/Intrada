@@ -51,11 +51,11 @@ pub struct Exercise {
 // *************
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum Event {
-    GetGoals,
     AddGoal(PracticeGoal),
-    GetExercises,
     AddExercise(Exercise),
     SetDevData(),
+
+    Nothing,
 }
 
 // *************
@@ -78,13 +78,12 @@ impl App for Chopin {
         _caps: &Self::Capabilities,
     ) -> Command<Effect, Event> {
         match event {
-            Event::GetGoals => (),
             Event::AddGoal(goal) => {
                 model.goals.push(goal);
             }
-            Event::GetExercises => (),
             Event::AddExercise(exercise) => model.exercises.push(exercise),
             Event::SetDevData() => dev::set_dev_data(model),
+            Event::Nothing => (),
         };
 
         render()

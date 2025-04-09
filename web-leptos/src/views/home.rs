@@ -6,7 +6,7 @@ use shared::{Event, Status};
 
 #[component]
 pub fn Home() -> impl IntoView {
-    let (view, _) = use_core(Event::GetGoals);
+    let (view, _) = use_core(Event::Nothing);
     view! {
         <Header title="Welcome to Intrada".to_string() />
         <Main>
