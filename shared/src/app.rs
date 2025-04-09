@@ -4,63 +4,16 @@ use crux_core::{
     App, Command,
 };
 use serde::{Deserialize, Serialize};
-use uuid;
 
-// *************
-// GOALS
-// *************
-#[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
-pub enum Status {
-    #[default]
-    NotStarted,
-    InProgress,
-    Completed,
-}
+pub mod goal;
+pub use goal::*;
 
-#[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
-pub struct PracticeGoal {
-    pub id: String,
-    pub name: String,
-    pub description: Option<String>,
-    pub status: Status,
-    pub start_date: Option<String>,
-    pub end_date: Option<String>,
-    pub exercise_ids: Vec<String>,
-}
+pub mod exercise;
+pub use exercise::*;
 
-impl PracticeGoal {
-    pub fn new(name: String, description: Option<String>, status: Option<Status>) -> Self {
-        Self {
-            id: uuid::Uuid::new_v4().to_string(),
-            name,
-            description,
-            status: status.unwrap_or(Status::NotStarted),
-            start_date: None,
-            end_date: None,
-            exercise_ids: Vec::new(),
-        }
-    }
-}
+pub mod model;
+pub use model::*;
 
-// *************
-// EXERCISES
-// *************
-#[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
-pub struct Exercise {
-    pub id: String,
-    pub name: String,
-    pub description: Option<String>,
-}
-
-impl Exercise {
-    pub fn new(name: String, description: Option<String>) -> Self {
-        Self {
-            id: uuid::Uuid::new_v4().to_string(),
-            name,
-            description,
-        }
-    }
-}
 // *************
 // EVENTS
 // *************
@@ -97,29 +50,15 @@ impl App for Chopin {
         _caps: &Self::Capabilities,
     ) -> Command<Effect, Event> {
         match event {
-            Event::AddGoal(goal) => {
-                model.goals.push(goal);
-            }
-            Event::AddExercise(exercise) => model.exercises.push(exercise),
+            Event::AddGoal(goal) => add_goal(goal, model),
+            Event::AddExercise(exercise) => add_exercise(exercise, model),
             Event::AddExerciseToGoal {
                 goal_id,
                 exercise_id,
-            } => {
-                if let Some(goal) = model.goals.iter_mut().find(|g| g.id == goal_id) {
-                    if !goal.exercise_ids.contains(&exercise_id) {
-                        goal.exercise_ids.push(exercise_id);
-                    }
-                }
-            }
-            Event::SetDevData() => {
-                for event in dev::set_dev_data() {
-                    match event {
-                        Event::AddGoal(goal) => model.goals.push(goal),
-                        Event::AddExercise(exercise) => model.exercises.push(exercise),
-                        _ => (),
-                    }
-                }
-            }
+            } => add_exercise_to_goal(goal_id, exercise_id, model),
+            Event::SetDevData() => dev::set_dev_data(model),
+
+            //No Nothing
             Event::Nothing => (),
         };
 
@@ -132,18 +71,6 @@ impl App for Chopin {
             exercises: model.exercises.clone(),
         }
     }
-}
-
-#[derive(Default)]
-pub struct Model {
-    pub goals: Vec<PracticeGoal>,
-    pub exercises: Vec<Exercise>,
-}
-
-#[derive(Serialize, Deserialize, Clone, Default)]
-pub struct ViewModel {
-    pub goals: Vec<PracticeGoal>,
-    pub exercises: Vec<Exercise>,
 }
 
 #[cfg_attr(feature = "typegen", derive(crux_core::macros::Export))]
