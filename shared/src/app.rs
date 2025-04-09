@@ -10,6 +10,14 @@ use uuid;
 // GOALS
 // *************
 #[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
+pub enum Status {
+    #[default]
+    NotStarted,
+    InProgress,
+    Completed,
+}
+
+#[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
 pub struct PracticeGoal {
     pub id: String,
     pub name: String,
@@ -17,14 +25,6 @@ pub struct PracticeGoal {
     pub status: Status,
     pub start_date: Option<String>,
     pub end_date: Option<String>,
-}
-
-#[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
-pub enum Status {
-    #[default]
-    NotStarted,
-    InProgress,
-    Completed,
 }
 
 impl PracticeGoal {
@@ -45,9 +45,20 @@ impl PracticeGoal {
 // *************
 #[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
 pub struct Exercise {
+    pub id: String,
     pub name: String,
+    pub description: Option<String>,
 }
 
+impl Exercise {
+    pub fn new(name: String, description: Option<String>) -> Self {
+        Self {
+            id: uuid::Uuid::new_v4().to_string(),
+            name,
+            description,
+        }
+    }
+}
 // *************
 // EVENTS
 // *************
