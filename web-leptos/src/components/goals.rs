@@ -43,8 +43,8 @@ pub fn GoalCard(#[prop(into)] goal: PracticeGoal) -> impl IntoView {
                                 />
                             </svg>
 
-                            <p class="text-xs">{start_date}</p>
-                            <p class="text-xs">{target_date}</p>
+                            <p class="text-xs">{start_date.map(|date| date.to_string()).unwrap_or("Not set".to_string())}</p>
+                            <p class="text-xs">{target_date.map(|date| date.to_string()).unwrap_or("Not set".to_string())}</p>
 
                         </div>
                     </div>
