@@ -22,7 +22,7 @@ pub fn set_dev_data(model: &mut Model) {
         PracticeGoal::new(
             "Master Nocturnes".to_string(),
             Some("Op. 23 & 23".to_string()),
-            Some(Status::NotStarted),
+            Some("2025-05-01".to_string()),
         ),
         model,
     );
@@ -30,7 +30,7 @@ pub fn set_dev_data(model: &mut Model) {
         PracticeGoal::new(
             "Perfect Etudes".to_string(),
             Some("Op. 23. No. 1 & 101".to_string()),
-            Some(Status::InProgress),
+            Some("2025-05-01".to_string()),
         ),
         model,
     );
@@ -38,7 +38,7 @@ pub fn set_dev_data(model: &mut Model) {
         PracticeGoal::new(
             "More Etudes".to_string(),
             Some("Op. 25. No. 1".to_string()),
-            Some(Status::Completed),
+            Some("2025-05-01".to_string()),
         ),
         model,
     );

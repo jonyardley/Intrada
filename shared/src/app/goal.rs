@@ -25,14 +25,14 @@ pub struct PracticeGoal {
 }
 
 impl PracticeGoal {
-    pub fn new(name: String, description: Option<String>, status: Option<Status>) -> Self {
+    pub fn new(name: String, description: Option<String>, target_date: Option<String>) -> Self {
         Self {
             id: uuid::Uuid::new_v4().to_string(),
             name,
             description,
-            status: status.unwrap_or(Status::NotStarted),
+            status: Status::NotStarted,
             start_date: None,
-            target_date: None,
+            target_date: target_date,
             exercise_ids: Vec::new(),
             tempo_target: None,
         }

@@ -122,7 +122,7 @@ mod test {
             Event::AddGoal(PracticeGoal::new(
                 "Goal".to_string(),
                 Some("".to_string()),
-                Some(Status::NotStarted),
+                Some("2025-05-01".to_string()),
             )),
             &mut model,
         );
