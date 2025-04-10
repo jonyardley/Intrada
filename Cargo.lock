@@ -417,9 +417,9 @@ dependencies = [
 
 [[package]]
 name = "crossbeam-channel"
-version = "0.5.14"
+version = "0.5.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "06ba6d68e24814cb8de6bb986db8222d3a027d15872cabc0d18817bc3c0e4471"
+checksum = "82b8f8f868b36967f9606790d1903570de9ceaf870a7bf9fbbd3016d636a2cb2"
 dependencies = [
  "crossbeam-utils",
 ]
@@ -432,9 +432,9 @@ checksum = "d0a5c400df2834b80a4c3327b3aad3a4c4cd4de0629063962b03235697506a28"
 
 [[package]]
 name = "crux_core"
-version = "0.13.1"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "399f3d95c83e02c098523da350dedf1ccce0253d4ea13402f4a41b642a5bfce7"
+checksum = "11947b1345c8326218f20713ea1610087e885196efa3098361b8eb729fb89e8f"
 dependencies = [
  "anyhow",
  "bincode",
@@ -452,9 +452,9 @@ dependencies = [
 
 [[package]]
 name = "crux_macros"
-version = "0.5.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ade8dbc66d03a14d29d4181c0c328944da0dbfb062cc8351e606e8dae9bae6a7"
+checksum = "db73187832796313ada15f7534f7d9cbaa85aab8ac460022c55264ce4b7dd1cd"
 dependencies = [
  "darling",
  "heck 0.5.0",
