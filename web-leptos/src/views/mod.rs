@@ -9,3 +9,6 @@ pub use sessions::Sessions;
 
 mod goals;
 pub use goals::Goals;
+
+mod create_goal;
+pub use create_goal::CreateGoal;

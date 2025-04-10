@@ -18,7 +18,7 @@ mod core;
 mod hooks;
 mod views;
 use components::Nav;
-use views::{Exercises, Goals, Home, Sessions};
+use views::{CreateGoal, Exercises, Goals, Home, Sessions};
 
 #[component]
 pub fn App() -> impl IntoView {
@@ -42,6 +42,7 @@ pub fn App() -> impl IntoView {
                 <Routes fallback=|| view! { <div>"[404] - Oops, page not found."</div> }>
                     <Route path=path!("/") view=|| view! { <Home /> } />
                     <Route path=path!("/goals") view=|| view! { <Goals /> } />
+                    <Route path=path!("/goals/new") view=|| view! { <CreateGoal /> } />
                     <Route path=path!("/sessions") view=|| view! { <Sessions /> } />
                     <Route path=path!("/exercises") view=|| view! { <Exercises /> } />
                 </Routes>

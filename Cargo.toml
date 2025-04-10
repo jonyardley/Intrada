@@ -29,12 +29,3 @@ inherits = "dev"
 
 [profile.android-dev]
 inherits = "dev"
-
-[workspace.lints.rust]
-unsafe_code = "forbid"
-
-[workspace.lints.clippy]
-pedantic = "warn"
-
-[profile.dev]
-split-debuginfo = "unpacked"

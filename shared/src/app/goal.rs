@@ -19,7 +19,7 @@ pub struct PracticeGoal {
     pub description: Option<String>,
     pub status: Status,
     pub start_date: Option<String>,
-    pub end_date: Option<String>,
+    pub target_date: Option<String>,
     pub exercise_ids: Vec<String>,
     pub tempo_target: Option<u32>, // This might want to be abstracted and maybe a range?
 }
@@ -32,7 +32,7 @@ impl PracticeGoal {
             description,
             status: status.unwrap_or(Status::NotStarted),
             start_date: None,
-            end_date: None,
+            target_date: None,
             exercise_ids: Vec::new(),
             tempo_target: None,
         }

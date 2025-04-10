@@ -10,7 +10,7 @@ pub fn GoalCard(#[prop(into)] goal: PracticeGoal) -> impl IntoView {
         description,
         status,
         start_date,
-        end_date,
+        target_date,
         exercise_ids: _,
         tempo_target: _,
     } = goal;
@@ -44,7 +44,7 @@ pub fn GoalCard(#[prop(into)] goal: PracticeGoal) -> impl IntoView {
                             </svg>
 
                             <p class="text-xs">{start_date}</p>
-                            <p class="text-xs">{end_date}</p>
+                            <p class="text-xs">{target_date}</p>
 
                         </div>
                     </div>
