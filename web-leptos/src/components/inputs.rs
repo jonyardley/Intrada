@@ -14,7 +14,6 @@ pub fn TextInput(
 
             <input
                 type="text"
-                value=default_value
                 id=id.clone()
                 class="mt-0.5 w-full rounded border-gray-300 shadow-sm sm:text-sm"
                 bind:value=(value, set_value)
