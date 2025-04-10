@@ -1,6 +1,8 @@
 use crate::components::{DatePicker, Header, Main, TempoInput, TextInput};
 use crate::hooks::use_core;
 use leptos::prelude::*;
+use leptos_router::hooks::use_navigate;
+use leptos_router::*;
 use shared::{Event, PracticeGoal};
 
 #[component]
@@ -11,6 +13,7 @@ pub fn CreateGoal() -> impl IntoView {
     let (tempo_target, set_tempo_target) = signal(String::new());
 
     let (_, set_event) = use_core(Event::Nothing);
+    let navigate = use_navigate();
 
     view! {
         <Header title="Create a new goal".to_string() />
@@ -76,6 +79,13 @@ pub fn CreateGoal() -> impl IntoView {
                                         ),
                                     );
                                 });
+                            navigate(
+                                "/goals",
+                                NavigateOptions {
+                                    replace: true,
+                                    ..Default::default()
+                                },
+                            );
                         }
                     >
                         "Create goal"

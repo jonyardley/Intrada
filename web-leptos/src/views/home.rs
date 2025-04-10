@@ -1,13 +1,10 @@
 use leptos::prelude::*;
 use leptos_router::components::A;
 
-use crate::components::{GoalList, Header, Main, H2};
-use crate::hooks::use_core;
-use shared::{Event, Status};
+use crate::components::{Header, Main};
 
 #[component]
 pub fn Home() -> impl IntoView {
-    let (view, _) = use_core(Event::Nothing);
     view! {
         <Header title="Welcome to Intrada".to_string() />
         <Main>
@@ -38,16 +35,6 @@ pub fn Home() -> impl IntoView {
                         </div>
                     </div>
                 </div>
-            </section>
-            <section>
-                <H2 text="Here are your active goals".to_string() />
-                <GoalList goals=move || {
-                    view.get()
-                        .goals
-                        .into_iter()
-                        .filter(|goal| goal.status == Status::InProgress)
-                        .collect()
-                } />
             </section>
         </Main>
     }
