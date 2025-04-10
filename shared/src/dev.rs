@@ -1,4 +1,4 @@
-use crate::app::{add_exercise, add_goal, Exercise, Model, PracticeGoal, Status};
+use crate::app::{add_exercise, add_goal, Exercise, Model, PracticeGoal};
 
 pub fn set_dev_data(model: &mut Model) {
     //Exercises
