@@ -20,7 +20,7 @@ pub fn GoalCard(#[prop(into)] goal: PracticeGoal) -> impl IntoView {
             <div class="flex items-start gap-4 p-4 sm:p-6 lg:p-8">
                 <div>
                     <h3 class="font-medium sm:text-lg">
-                        <A href=format!("/goal/{}", id) attr:class="hover:underline">
+                        <A href=format!("/goals/{}", id) attr:class="hover:underline">
                             {name}
                         </A>
                     </h3>
