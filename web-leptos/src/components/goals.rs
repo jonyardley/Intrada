@@ -1,5 +1,6 @@
 use leptos::prelude::*;
 
+use leptos_router::components::A;
 use shared::{PracticeGoal, Status};
 
 #[component]
@@ -19,9 +20,9 @@ pub fn GoalCard(#[prop(into)] goal: PracticeGoal) -> impl IntoView {
             <div class="flex items-start gap-4 p-4 sm:p-6 lg:p-8">
                 <div>
                     <h3 class="font-medium sm:text-lg">
-                        <a href="#" class="hover:underline">
+                        <A href=format!("/goal/{}", id) attr:class="hover:underline">
                             {name}
-                        </a>
+                        </A>
                     </h3>
 
                     <p class="line-clamp-2 text-sm text-gray-700">{description}</p>
@@ -43,12 +44,20 @@ pub fn GoalCard(#[prop(into)] goal: PracticeGoal) -> impl IntoView {
                                 />
                             </svg>
 
-                            <p class="text-xs">{start_date.map(|date| date.to_string()).unwrap_or("Not set".to_string())}</p>
-                            <p class="text-xs">{target_date.map(|date| date.to_string()).unwrap_or("Not set".to_string())}</p>
+                            <p class="text-xs">
+                                {start_date
+                                    .map(|date| date.to_string())
+                                    .unwrap_or("Not set".to_string())}
+                            </p>
+                            <span class="text-xs text-gray-500">"·"</span>
+                            <p class="text-xs">
+                                {target_date
+                                    .map(|date| date.to_string())
+                                    .unwrap_or("Not set".to_string())}
+                            </p>
 
                         </div>
                     </div>
-                    <p class="text-xs text-gray-500 mt-2">ID: {id}</p>
                 </div>
             </div>
 

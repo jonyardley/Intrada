@@ -3,7 +3,6 @@ use leptos::prelude::*;
 #[component]
 pub fn TextInput(
     label: String,
-    default_value: Option<String>,
     id: String,
     value: ReadSignal<String>,
     set_value: WriteSignal<String>,

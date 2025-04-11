@@ -32,14 +32,13 @@ pub fn CreateGoal() -> impl IntoView {
                                     id="name".to_string()
                                     value=name
                                     set_value=set_name
-                                    default_value=None
                                 />
+
                                 <TextInput
                                     label="Goal Description".to_string()
                                     value=description
                                     id="description".to_string()
                                     set_value=set_description
-                                    default_value=None
                                 />
 
                                 <DatePicker
