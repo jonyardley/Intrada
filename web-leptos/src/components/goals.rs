@@ -1,22 +1,28 @@
 use leptos::prelude::*;
 
+use leptos_router::components::A;
 use shared::{PracticeGoal, Status};
 
 #[component]
 pub fn GoalCard(#[prop(into)] goal: PracticeGoal) -> impl IntoView {
     let PracticeGoal {
+        id,
         name,
         description,
         status,
+        start_date,
+        target_date,
+        exercise_ids: _,
+        tempo_target: _,
     } = goal;
     view! {
         <article class="rounded-xl border-2 border-gray-100 bg-white">
             <div class="flex items-start gap-4 p-4 sm:p-6 lg:p-8">
                 <div>
                     <h3 class="font-medium sm:text-lg">
-                        <a href="#" class="hover:underline">
+                        <A href=format!("/goals/{}", id) attr:class="hover:underline">
                             {name}
-                        </a>
+                        </A>
                     </h3>
 
                     <p class="line-clamp-2 text-sm text-gray-700">{description}</p>
@@ -38,7 +44,18 @@ pub fn GoalCard(#[prop(into)] goal: PracticeGoal) -> impl IntoView {
                                 />
                             </svg>
 
-                            <p class="text-xs">Dec 31, 2024</p>
+                            <p class="text-xs">
+                                {start_date
+                                    .map(|date| date.to_string())
+                                    .unwrap_or("Not set".to_string())}
+                            </p>
+                            <span class="text-xs text-gray-500">"·"</span>
+                            <p class="text-xs">
+                                {target_date
+                                    .map(|date| date.to_string())
+                                    .unwrap_or("Not set".to_string())}
+                            </p>
+
                         </div>
                     </div>
                 </div>
