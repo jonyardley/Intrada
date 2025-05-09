@@ -12,3 +12,6 @@ pub use goals::*;
 
 pub mod layout;
 pub use layout::*;
+
+pub mod inputs;
+pub use inputs::*;

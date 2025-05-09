@@ -5,7 +5,6 @@ use leptos_router::{
     components::{Route, Router, Routes},
     path,
 };
-
 use log::info;
 use reactive_stores::Store;
 use shared::Event;
@@ -18,7 +17,7 @@ mod core;
 mod hooks;
 mod views;
 use components::Nav;
-use views::{Exercises, Goals, Home, Sessions};
+use views::{CreateGoal, Exercises, Goal, Goals, Home, Sessions};
 
 #[component]
 pub fn App() -> impl IntoView {
@@ -41,8 +40,16 @@ pub fn App() -> impl IntoView {
                 <Nav />
                 <Routes fallback=|| view! { <div>"[404] - Oops, page not found."</div> }>
                     <Route path=path!("/") view=|| view! { <Home /> } />
+
+                    // Goals
                     <Route path=path!("/goals") view=|| view! { <Goals /> } />
+                    <Route path=path!("/goals/new") view=|| view! { <CreateGoal /> } />
+                    <Route path=path!("/goals/:id") view=|| view! { <Goal /> } />
+
+                    // Sessions
                     <Route path=path!("/sessions") view=|| view! { <Sessions /> } />
+
+                    // Exercises
                     <Route path=path!("/exercises") view=|| view! { <Exercises /> } />
                 </Routes>
             </Router>
