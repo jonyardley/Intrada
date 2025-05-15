@@ -25,7 +25,13 @@ pub struct PracticeGoal {
 }
 
 impl PracticeGoal {
-    pub fn new(name: String, description: Option<String>, target_date: Option<String>) -> Self {
+    pub fn new(
+        name: String,
+        description: Option<String>,
+        target_date: Option<String>,
+        exercise_ids: Vec<String>,
+        tempo_target: Option<u32>,
+    ) -> Self {
         Self {
             id: uuid::Uuid::new_v4().to_string(),
             name,
@@ -33,8 +39,8 @@ impl PracticeGoal {
             status: Status::NotStarted,
             start_date: None,
             target_date: target_date,
-            exercise_ids: Vec::new(),
-            tempo_target: None,
+            exercise_ids,
+            tempo_target,
         }
     }
 }
@@ -58,7 +64,13 @@ pub fn add_exercise_to_goal(goal_id: String, exercise_id: String, model: &mut Mo
 #[test]
 fn test_add_goal() {
     let mut model = Model::default();
-    let goal = PracticeGoal::new("Goal 1".to_string(), None, None);
+    let goal = PracticeGoal::new(
+        "Goal 1".to_string(),
+        None,
+        None,
+        vec!["Exercise 1".to_string()],
+        None,
+    );
     add_goal(goal, &mut model);
     assert_eq!(model.goals.len(), 1);
 }
@@ -66,7 +78,13 @@ fn test_add_goal() {
 #[test]
 fn test_add_exercise_to_goal() {
     let mut model = Model::default();
-    let goal = PracticeGoal::new("Goal 1".to_string(), None, None);
+    let goal = PracticeGoal::new(
+        "Goal 1".to_string(),
+        None,
+        None,
+        vec!["Exercise 1".to_string()],
+        None,
+    );
     add_goal(goal, &mut model);
     add_exercise_to_goal("Goal 1".to_string(), "Exercise 1".to_string(), &mut model);
 }

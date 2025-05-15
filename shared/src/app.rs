@@ -123,6 +123,8 @@ mod test {
                 "Goal".to_string(),
                 Some("".to_string()),
                 Some("2025-05-01".to_string()),
+                vec![],
+                None,
             )),
             &mut model,
         );
@@ -148,7 +150,13 @@ mod test {
         let mut model = Model::default();
 
         // First add a goal
-        let goal = PracticeGoal::new("Test Goal".to_string(), None, None);
+        let goal = PracticeGoal::new(
+            "Test Goal".to_string(),
+            None,
+            None,
+            vec!["Exercise 1".to_string()],
+            None,
+        );
         let update = app.update(Event::AddGoal(goal), &mut model);
         assert_effect!(update, Effect::Render(_));
 

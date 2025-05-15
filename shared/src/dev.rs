@@ -23,6 +23,8 @@ pub fn set_dev_data(model: &mut Model) {
             "Master Nocturnes".to_string(),
             Some("Op. 23 & 23".to_string()),
             Some("2025-05-01".to_string()),
+            vec![],
+            None,
         ),
         model,
     );
@@ -31,6 +33,8 @@ pub fn set_dev_data(model: &mut Model) {
             "Perfect Etudes".to_string(),
             Some("Op. 23. No. 1 & 101".to_string()),
             Some("2025-05-01".to_string()),
+            vec![],
+            None,
         ),
         model,
     );
@@ -39,6 +43,8 @@ pub fn set_dev_data(model: &mut Model) {
             "More Etudes".to_string(),
             Some("Op. 25. No. 1".to_string()),
             Some("2025-05-01".to_string()),
+            vec![],
+            None,
         ),
         model,
     );

@@ -29,7 +29,7 @@ pub fn Goal() -> impl IntoView {
                                 <p class="text-gray-700">
                                     {goal
                                         .description
-                                        .unwrap_or_else(|| "No description provided".to_string())}
+                                        .unwrap_or_else(|| "No description".to_string())}
                                 </p>
                             </div>
 
@@ -75,7 +75,36 @@ pub fn Goal() -> impl IntoView {
 
                             <div>
                                 <H2 text="Associated Exercises".to_string() />
-                                <p>TODO</p>
+                                <div class="mt-4 space-y-4">
+                                    {move || {
+                                        view.get()
+                                            .exercises
+                                            .into_iter()
+                                            .filter(|exercise| goal.exercise_ids.contains(&exercise.id))
+                                            .map(|exercise| {
+                                                view! {
+                                                    <div class="flex items-center gap-2">
+                                                        <svg
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                            class="size-5 text-gray-400"
+                                                            fill="none"
+                                                            viewBox="0 0 24 24"
+                                                            stroke="currentColor"
+                                                            stroke-width="2"
+                                                        >
+                                                            <path
+                                                                stroke-linecap="round"
+                                                                stroke-linejoin="round"
+                                                                d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                                                            />
+                                                        </svg>
+                                                        <span class="text-gray-700">{exercise.name}</span>
+                                                    </div>
+                                                }
+                                            })
+                                            .collect::<Vec<_>>()
+                                    }}
+                                </div>
                             </div>
                         </div>
                     </Main>
@@ -85,7 +114,7 @@ pub fn Goal() -> impl IntoView {
                 view! {
                     <Header title="Goal Not Found".to_string() />
                     <Main>
-                        <p class="text-gray-700">The requested goal could not be found.</p>
+                        <p class="text-gray-700">"We couldn't find that goal"</p>
                     </Main>
                 }
                     .into_view()
