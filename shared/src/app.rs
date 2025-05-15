@@ -1,59 +1,38 @@
+use crate::dev;
 use crux_core::{
     render::{render, Render},
     App, Command,
 };
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
-pub struct PracticeGoal {
-    pub name: String,
-    pub description: Option<String>,
-    pub status: Status,
-}
+pub mod goal;
+pub use goal::*;
 
-#[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
-#[serde(rename_all = "camelCase")]
-pub enum Status {
-    #[default]
-    NotStarted,
-    InProgress,
-    Completed,
-}
+pub mod exercise;
+pub use exercise::*;
 
-#[derive(Serialize, Deserialize, Clone, Default)]
-pub struct Exercise {
-    pub id: u32,
-    pub name: String,
-}
+pub mod model;
+pub use model::*;
 
-#[derive(Default)]
-pub struct Model {
-    goals: Vec<PracticeGoal>,
-    exercises: Vec<String>,
-}
-
-#[derive(Serialize, Deserialize, Clone, Default)]
-pub struct ViewModel {
-    pub goals: Vec<PracticeGoal>,
-    pub exercises: Vec<String>,
-}
-
-#[cfg_attr(feature = "typegen", derive(crux_core::macros::Export))]
-#[derive(crux_core::macros::Effect)]
-#[allow(unused)]
-pub struct Capabilities {
-    render: Render<Event>,
-}
-
+// *************
+// EVENTS
+// *************
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum Event {
-    GetGoals,
     AddGoal(PracticeGoal),
-    GetExercises,
-    AddExercise(String),
+    AddExercise(Exercise),
+    AddExerciseToGoal {
+        goal_id: String,
+        exercise_id: String,
+    },
     SetDevData(),
+
+    Nothing,
 }
 
+// *************
+// APP
+// *************
 #[derive(Default)]
 pub struct Chopin;
 
@@ -71,34 +50,16 @@ impl App for Chopin {
         _caps: &Self::Capabilities,
     ) -> Command<Effect, Event> {
         match event {
-            Event::GetGoals => (),
-            Event::AddGoal(goal) => {
-                model.goals.push(goal);
-            }
-            Event::GetExercises => (),
-            Event::AddExercise(exercise) => model.exercises.push(exercise),
-            //Dev
-            Event::SetDevData() => {
-                //Goals
-                model.goals.push(PracticeGoal {
-                    name: "Master Nocturnes".to_string(),
-                    description: Some("Op. 23 & 23".to_string()),
-                    status: Status::NotStarted,
-                });
-                model.goals.push(PracticeGoal {
-                    name: "Perfect Etudes".to_string(),
-                    description: Some("Op. 23. No. 1 & 101".to_string()),
-                    status: Status::InProgress,
-                });
-                model.goals.push(PracticeGoal {
-                    name: "More Etudes".to_string(),
-                    description: Some("Op. 25. No. 1".to_string()),
-                    status: Status::Completed,
-                });
-                //Exercises
-                model.exercises.push("Scales and Arpeggios".to_string());
-                model.exercises.push("Chord Progressions".to_string());
-            }
+            Event::AddGoal(goal) => add_goal(goal, model),
+            Event::AddExercise(exercise) => add_exercise(exercise, model),
+            Event::AddExerciseToGoal {
+                goal_id,
+                exercise_id,
+            } => add_exercise_to_goal(goal_id, exercise_id, model),
+            Event::SetDevData() => dev::set_dev_data(model),
+
+            //No Nothing
+            Event::Nothing => (),
         };
 
         render()
@@ -112,9 +73,16 @@ impl App for Chopin {
     }
 }
 
-// *************
+#[cfg_attr(feature = "typegen", derive(crux_core::macros::Export))]
+#[derive(crux_core::macros::Effect)]
+#[allow(unused)]
+pub struct Capabilities {
+    render: Render<Event>,
+}
+
+// ------------------------------------------------------------------
 // TESTS
-// *************
+//
 #[cfg(test)]
 mod test {
     use super::*;
@@ -125,7 +93,7 @@ mod test {
         let app = AppTester::<Chopin>::default();
         let mut model = Model::default();
 
-        let update = app.update(Event::GetExercises, &mut model);
+        let update = app.update(Event::Nothing, &mut model);
 
         // Check update asked us to `Render`
         assert_effect!(update, Effect::Render(_));
@@ -136,7 +104,10 @@ mod test {
         let app = AppTester::<Chopin>::default();
         let mut model = Model::default();
 
-        let update = app.update(Event::AddExercise("Exercise".to_string()), &mut model);
+        let update = app.update(
+            Event::AddExercise(Exercise::new("Exercise".to_string(), Some("".to_string()))),
+            &mut model,
+        );
 
         // Check update asked us to `Render`
         assert_effect!(update, Effect::Render(_));
@@ -148,11 +119,58 @@ mod test {
         let mut model = Model::default();
 
         let update = app.update(
-            Event::AddGoal(PracticeGoal {
-                name: "Goal".to_string(),
-                description: Some("".to_string()),
-                status: Status::NotStarted,
-            }),
+            Event::AddGoal(PracticeGoal::new(
+                "Goal".to_string(),
+                Some("".to_string()),
+                Some("2025-05-01".to_string()),
+                vec![],
+                None,
+            )),
+            &mut model,
+        );
+
+        // Check update asked us to `Render`
+        assert_effect!(update, Effect::Render(_));
+    }
+
+    #[test]
+    fn sets_dev_data() {
+        let app = AppTester::<Chopin>::default();
+        let mut model = Model::default();
+
+        let update = app.update(Event::SetDevData(), &mut model);
+
+        // Check update asked us to `Render`
+        assert_effect!(update, Effect::Render(_));
+    }
+
+    #[test]
+    fn adds_exercise_to_goal() {
+        let app = AppTester::<Chopin>::default();
+        let mut model = Model::default();
+
+        // First add a goal
+        let goal = PracticeGoal::new(
+            "Test Goal".to_string(),
+            None,
+            None,
+            vec!["Exercise 1".to_string()],
+            None,
+        );
+        let update = app.update(Event::AddGoal(goal), &mut model);
+        assert_effect!(update, Effect::Render(_));
+
+        // Then add an exercise
+        let exercise = Exercise::new("Test Exercise".to_string(), None);
+        let update = app.update(Event::AddExercise(exercise), &mut model);
+        assert_effect!(update, Effect::Render(_));
+
+        // Now we can safely add the exercise to the goal
+        let update = app.update(
+            Event::AddExerciseToGoal {
+                goal_id: model.goals[0].id.clone(),
+                exercise_id: model.exercises[0].id.clone(),
+            },
             &mut model,
         );
 

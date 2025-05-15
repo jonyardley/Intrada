@@ -6,7 +6,7 @@ use shared::Event;
 
 #[component]
 pub fn Exercises() -> impl IntoView {
-    let (view, _) = use_core(Event::GetExercises);
+    let (view, _) = use_core(Event::Nothing);
 
     view! {
         <Header title="Home".to_string() />
@@ -19,7 +19,7 @@ pub fn Exercises() -> impl IntoView {
                         view.get()
                             .exercises
                             .into_iter()
-                            .map(|e| view! { <li class="list-row">{e}</li> })
+                            .map(|e| view! { <li class="list-row">{e.name}</li> })
                             .collect_view()
                             .into_any()
                     }
