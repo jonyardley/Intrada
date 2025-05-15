@@ -85,6 +85,7 @@ fn test_add_exercise_to_goal() {
         vec!["Exercise 1".to_string()],
         None,
     );
+    let goal_id = goal.id.clone();
     add_goal(goal, &mut model);
-    add_exercise_to_goal("Goal 1".to_string(), "Exercise 1".to_string(), &mut model);
+    add_exercise_to_goal(goal_id, "Exercise 1".to_string(), &mut model);
 }
