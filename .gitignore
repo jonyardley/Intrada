@@ -8,3 +8,9 @@
 **/style/output.css
 node_modules
 **/node_modules
+**/build
+**/target
+**/dist
+**/public/build
+**/public/dist
+**/public/target

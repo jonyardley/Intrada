@@ -7,6 +7,7 @@ class Core: ObservableObject {
     
     init() {
         self.view = try! .bincodeDeserialize(input: [UInt8](Intrada.view()))
+        self.update(.setDevData)
     }
     
     func update(_ event: Event) {
