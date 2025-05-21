@@ -11,26 +11,28 @@ import SharedTypes
 struct ContentView: View {
     @ObservedObject var core: Core
   
-  var body: some View {
-    TabView {
-      HomeView(core: core)
-        .tabItem {
-          Label("Home", systemImage: "house")
-        }
+    var body: some View {
+        NavigationStack {
+            TabView {
+                HomeView(core: core)
+                    .tabItem {
+                        Label("Home", systemImage: "house")
+                    }
 
-      SearchView()
-        .tabItem {
-          Label("Search", systemImage: "magnifyingglass")
-        }
+                SearchView()
+                    .tabItem {
+                        Label("Search", systemImage: "magnifyingglass")
+                    }
 
-      ProfileView()
-        .tabItem {
-          Label("Profile", systemImage: "person")
+                ProfileView()
+                    .tabItem {
+                        Label("Profile", systemImage: "person")
+                    }
+            }
         }
     }
-  }
 }
 
 #Preview {
-  ContentView(core: Core())
+    ContentView(core: Core())
 }

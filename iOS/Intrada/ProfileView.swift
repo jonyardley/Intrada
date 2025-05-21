@@ -2,61 +2,60 @@ import SwiftUI
 
 struct ProfileView: View {
     var body: some View {
-        NavigationView {
-            ScrollView {
-                VStack(spacing: 20) {
-                    // Profile header
-                    VStack {
-                        Circle()
-                            .fill(Color.gray.opacity(0.2))
-                            .frame(width: 100, height: 100)
-                            .overlay(
-                                Image(systemName: "person.fill")
-                                    .resizable()
-                                    .scaledToFit()
-                                    .padding(25)
-                                    .foregroundColor(.gray)
-                            )
-                        
-                        Text("User Name")
-                            .font(.title2)
-                            .fontWeight(.semibold)
-                        
-                        Text("user@example.com")
-                            .font(.subheadline)
-                            .foregroundColor(.gray)
-                    }
-                    .padding()
+        ScrollView {
+            VStack(spacing: 20) {
+                // Profile header
+                VStack {
+                    Circle()
+                        .fill(Color.gray.opacity(0.2))
+                        .frame(width: 100, height: 100)
+                        .overlay(
+                            Image(systemName: "person.fill")
+                                .resizable()
+                                .scaledToFit()
+                                .padding(25)
+                                .foregroundColor(.gray)
+                        )
                     
-                    // Settings sections
-                    VStack(spacing: 0) {
-                        SettingsRow(icon: "person.fill", title: "Edit Profile")
-                        SettingsRow(icon: "bell.fill", title: "Notifications")
-                        SettingsRow(icon: "lock.fill", title: "Privacy")
-                        SettingsRow(icon: "questionmark.circle.fill", title: "Help & Support")
-                        SettingsRow(icon: "gear", title: "Settings")
-                    }
-                    .background(Color.gray.opacity(0.1))
-                    .cornerRadius(10)
-                    .padding(.horizontal)
+                    Text("User Name")
+                        .font(.title2)
+                        .fontWeight(.semibold)
                     
-                    // Sign out button
-                    Button(action: {
-                        // Add sign out action here
-                    }) {
-                        Text("Sign Out")
-                            .foregroundColor(.red)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.gray.opacity(0.1))
-                            .cornerRadius(10)
-                    }
-                    .padding(.horizontal)
+                    Text("user@example.com")
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
                 }
-                .padding(.vertical)
+                .padding()
+                
+                // Settings sections
+                VStack(spacing: 0) {
+                    SettingsRow(icon: "person.fill", title: "Edit Profile")
+                    SettingsRow(icon: "bell.fill", title: "Notifications")
+                    SettingsRow(icon: "lock.fill", title: "Privacy")
+                    SettingsRow(icon: "questionmark.circle.fill", title: "Help & Support")
+                    SettingsRow(icon: "gear", title: "Settings")
+                }
+                .background(Color.gray.opacity(0.1))
+                .cornerRadius(10)
+                .padding(.horizontal)
+                
+                // Sign out button
+                Button(action: {
+                    // Add sign out action here
+                }) {
+                    Text("Sign Out")
+                        .foregroundColor(.red)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.gray.opacity(0.1))
+                        .cornerRadius(10)
+                }
+                .padding(.horizontal)
             }
-            .navigationTitle("Profile")
+            .padding(.vertical)
         }
+        .navigationTitle("Profile")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 

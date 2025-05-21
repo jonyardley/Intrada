@@ -6,45 +6,44 @@ struct HomeView: View {
   @State private var showingGoalForm = false
 
   var body: some View {
-    NavigationView {
-      ScrollView {
-        VStack(alignment: .leading, spacing: 20) {
-          HStack {
-            Text("Welcome")
-              .font(.largeTitle)
-              .fontWeight(.bold)
+    ScrollView {
+      VStack(alignment: .leading, spacing: 20) {
+        HStack {
+          Text("Welcome")
+            .font(.largeTitle)
+            .fontWeight(.bold)
 
-            Spacer()
+          Spacer()
 
-            Button(action: {
-              showingGoalForm = true
-            }) {
-              Image(systemName: "plus.circle.fill")
-                .font(.title)
-                .foregroundColor(.blue)
-            }
-          }
-          .padding(.horizontal)
-
-          // Goals section
-          VStack(alignment: .leading, spacing: 10) {
-            Text("Your Goals")
-              .font(.title2)
-              .fontWeight(.semibold)
-              .padding(.horizontal)
-
-            ForEach(core.view.goals, id: \.id) { goal in
-              GoalCard(goal: goal)
-                .padding(.horizontal)
-            }
+          Button(action: {
+            showingGoalForm = true
+          }) {
+            Image(systemName: "plus.circle.fill")
+              .font(.title)
+              .foregroundColor(.blue)
           }
         }
-        .padding(.vertical)
+        .padding(.horizontal)
+
+        // Goals section
+        VStack(alignment: .leading, spacing: 10) {
+          Text("Your Goals")
+            .font(.title2)
+            .fontWeight(.semibold)
+            .padding(.horizontal)
+
+          ForEach(core.view.goals, id: \.id) { goal in
+            GoalCard(goal: goal)
+              .padding(.horizontal)
+          }
+        }
       }
-      .navigationBarTitleDisplayMode(.inline)
-      .sheet(isPresented: $showingGoalForm) {
-        GoalFormView(core: core)
-      }
+      .padding(.vertical)
+    }
+    .navigationTitle("Home")
+    .navigationBarTitleDisplayMode(.inline)
+    .sheet(isPresented: $showingGoalForm) {
+      GoalFormView(core: core)
     }
   }
 }
