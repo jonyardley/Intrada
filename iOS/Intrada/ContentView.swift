@@ -6,19 +6,31 @@
 //
 
 import SwiftUI
+import SharedTypes
 
 struct ContentView: View {
-    var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+    @ObservedObject var core: Core
+  
+  var body: some View {
+    TabView {
+      HomeView(core: core)
+        .tabItem {
+          Label("Home", systemImage: "house")
         }
-        .padding()
+
+      SearchView()
+        .tabItem {
+          Label("Search", systemImage: "magnifyingglass")
+        }
+
+      ProfileView()
+        .tabItem {
+          Label("Profile", systemImage: "person")
+        }
     }
+  }
 }
 
 #Preview {
-    ContentView()
+  ContentView(core: Core())
 }

@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 // GOALS
 // *************
 #[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
-pub enum Status {
+pub enum GoalStatus {
     #[default]
     NotStarted,
     InProgress,
@@ -17,7 +17,7 @@ pub struct PracticeGoal {
     pub id: String,
     pub name: String,
     pub description: Option<String>,
-    pub status: Status,
+    pub status: GoalStatus,
     pub start_date: Option<String>,
     pub target_date: Option<String>,
     pub exercise_ids: Vec<String>,
@@ -36,7 +36,7 @@ impl PracticeGoal {
             id: uuid::Uuid::new_v4().to_string(),
             name,
             description,
-            status: Status::NotStarted,
+            status: GoalStatus::NotStarted,
             start_date: None,
             target_date: target_date,
             exercise_ids,
