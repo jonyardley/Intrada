@@ -18,7 +18,7 @@ struct ContentView: View {
                     .tabItem {
                         Label("Goals", systemImage: "target")
                     }
-                SessionsView()
+                SessionsView(core: core)
                     .tabItem {
                         Label("Sessions", systemImage: "pianokeys")
                     }

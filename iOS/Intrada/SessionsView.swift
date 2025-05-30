@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SharedTypes
 
 struct Session: Identifiable {
     let id = UUID()
@@ -15,27 +16,49 @@ struct Session: Identifiable {
 }
 
 struct SessionsView: View {
-    @State private var sessions: [Session] = []
-    @State private var showingNewSessionSheet = false
+    @ObservedObject var core: Core
+    @State private var showingAddForm = false
     
     var body: some View {
-        NavigationView {
-            List {
-                ForEach(sessions) { session in
-                    SessionRow(session: session)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                HStack {
+                    Text("Your sessions")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                    
+                    Spacer()
+                    
+                    Button(action: {
+                        showingAddForm = true
+                    }) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.title)
+                            .foregroundColor(.blue)
+                    }
+                }
+                .padding(.horizontal)
+                
+                // Sessions section
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Recent Sessions")
+                        .font(.title2)
+                        .fontWeight(.semibold)
+                        .padding(.horizontal)
+                    
+                    // TODO: Add session cards when session model is implemented
+                    Text("No sessions yet")
+                        .foregroundColor(.gray)
+                        .padding(.horizontal)
                 }
             }
-            .navigationTitle("Sessions")
-            .toolbar {
-                Button(action: {
-                    showingNewSessionSheet = true
-                }) {
-                    Image(systemName: "plus")
-                }
-            }
-            .sheet(isPresented: $showingNewSessionSheet) {
-                NewSessionView(sessions: $sessions)
-            }
+            .padding(.vertical)
+        }
+        .navigationTitle("Sessions")
+        .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showingAddForm) {
+            // TODO: Add SessionFormView when implemented
+            Text("Session Form Coming Soon")
         }
     }
 }
@@ -105,6 +128,6 @@ struct NewSessionView: View {
 }
 
 #Preview {
-    SessionsView()
+    SessionsView(core: Core())
 }
 

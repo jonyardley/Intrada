@@ -14,6 +14,7 @@
 		1934FB0812327BF0CFF659C0 /* GoalsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A5FEEB7DA63497B385FA9D2 /* GoalsView.swift */; };
 		4AD6B3C47FD286A9E7309B9B /* GoalFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B381280AFCB3C07B17A22A31 /* GoalFormView.swift */; };
 		4D7E32992DE9E48C00B78EEF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4D7E32982DE9E48C00B78EEF /* Assets.xcassets */; };
+		4D7E329C2DE9E6AC00B78EEF /* ExerciseFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D7E329B2DE9E6AC00B78EEF /* ExerciseFormView.swift */; };
 		60EA876202FF0ABF6CB4F574 /* core.swift in Sources */ = {isa = PBXBuildFile; fileRef = 104D2C969AAB822EE589C8D3 /* core.swift */; };
 		78A3E0A846F4A94D0628C035 /* libshared_static.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A679AB199823FFA8B07B76C0 /* libshared_static.a */; };
 		97B476E6DA9042619A9D4CED /* ExercisesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C55AEC76F77F9F353C198F6 /* ExercisesView.swift */; };
@@ -100,6 +101,7 @@
 		3B36F261B1F57456079044C9 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		3C55AEC76F77F9F353C198F6 /* ExercisesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExercisesView.swift; sourceTree = "<group>"; };
 		4D7E32982DE9E48C00B78EEF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		4D7E329B2DE9E6AC00B78EEF /* ExerciseFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseFormView.swift; sourceTree = "<group>"; };
 		62D62157D21A3F186B1A1AFB /* shared.udl */ = {isa = PBXFileReference; lastKnownFileType = text; path = shared.udl; sourceTree = "<group>"; };
 		683ADA17CC2C8555D48DBD50 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		B00E1ECBA4E0EB5DA54C56F2 /* IntradaApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntradaApp.swift; sourceTree = "<group>"; };
@@ -169,6 +171,7 @@
 		EBD5321FFD2231E569F49476 /* Intrada */ = {
 			isa = PBXGroup;
 			children = (
+				4D7E329B2DE9E6AC00B78EEF /* ExerciseFormView.swift */,
 				3B36F261B1F57456079044C9 /* ContentView.swift */,
 				104D2C969AAB822EE589C8D3 /* core.swift */,
 				3C55AEC76F77F9F353C198F6 /* ExercisesView.swift */,
@@ -293,6 +296,7 @@
 				97B476E6DA9042619A9D4CED /* ExercisesView.swift in Sources */,
 				E5F54D4DA07846C19D93B5EF /* GoalDetailView.swift in Sources */,
 				4AD6B3C47FD286A9E7309B9B /* GoalFormView.swift in Sources */,
+				4D7E329C2DE9E6AC00B78EEF /* ExerciseFormView.swift in Sources */,
 				1934FB0812327BF0CFF659C0 /* GoalsView.swift in Sources */,
 				A7CF84A2E46DA1B4959B6F6F /* IntradaApp.swift in Sources */,
 				0EA832D6EC736A0E1F242D7A /* ProfileView.swift in Sources */,
