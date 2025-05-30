@@ -25,6 +25,7 @@ pub enum Event {
         goal_id: String,
         exercise_id: String,
     },
+    EditGoal(PracticeGoal),
     SetDevData(),
 
     Nothing,
@@ -56,6 +57,7 @@ impl App for Chopin {
                 goal_id,
                 exercise_id,
             } => add_exercise_to_goal(goal_id, exercise_id, model),
+            Event::EditGoal(goal) => edit_goal(goal, model),
             Event::SetDevData() => dev::set_dev_data(model),
 
             //No Nothing

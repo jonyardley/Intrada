@@ -1,7 +1,7 @@
 use leptos::prelude::*;
 
 use leptos_router::components::A;
-use shared::{PracticeGoal, Status};
+use shared::{GoalStatus, PracticeGoal};
 
 #[component]
 pub fn GoalCard(#[prop(into)] goal: PracticeGoal) -> impl IntoView {
@@ -87,14 +87,14 @@ pub fn GoalCard(#[prop(into)] goal: PracticeGoal) -> impl IntoView {
 }
 
 #[component]
-fn StatusBadge(#[prop(into)] status: Status) -> impl IntoView {
+fn StatusBadge(#[prop(into)] status: GoalStatus) -> impl IntoView {
     let (bg_color, icon_path) = match status {
-        Status::NotStarted => (
+        GoalStatus::NotStarted => (
             "bg-gray-600",
             "M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z",
         ),
-        Status::InProgress => ("bg-blue-600", "M13 10V3L4 14h7v7l9-11h-7z"),
-        Status::Completed => ("bg-green-600", "M5 13l4 4L19 7"),
+        GoalStatus::InProgress => ("bg-blue-600", "M13 10V3L4 14h7v7l9-11h-7z"),
+        GoalStatus::Completed => ("bg-green-600", "M5 13l4 4L19 7"),
     };
 
     let status_text = move || format!("{:?}", status);

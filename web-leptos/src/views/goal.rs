@@ -1,6 +1,6 @@
 use leptos::prelude::*;
 use leptos_router::{hooks::use_params, params::Params};
-use shared::Status;
+use shared::GoalStatus;
 
 use crate::components::{Header, Main, H2};
 use crate::hooks::use_core;
@@ -37,9 +37,9 @@ pub fn Goal() -> impl IntoView {
                                 <H2 text="Status".to_string() />
                                 <p class="text-gray-700">
                                     {match goal.status {
-                                        Status::NotStarted => "Not Started",
-                                        Status::InProgress => "In Progress",
-                                        Status::Completed => "Completed",
+                                        GoalStatus::NotStarted => "Not Started",
+                                        GoalStatus::InProgress => "In Progress",
+                                        GoalStatus::Completed => "Completed",
                                     }}
                                 </p>
                             </div>
