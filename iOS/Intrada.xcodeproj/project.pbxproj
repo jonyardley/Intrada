@@ -3,20 +3,19 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 63;
+	objectVersion = 54;
 	objects = {
 
 /* Begin PBXBuildFile section */
-		06DDD35F6C0BB25FBEDB7654 /* uniffi-bindgen in Resources */ = {isa = PBXBuildFile; fileRef = F3E1B07E6F7A2E66C077A7AC /* uniffi-bindgen */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		06DDD35F6C0BB25FBEDB7654 /* (null) in Resources */ = {isa = PBXBuildFile; fileRef = F3E1B07E6F7A2E66C077A7AC; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		0EA832D6EC736A0E1F242D7A /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 683ADA17CC2C8555D48DBD50 /* ProfileView.swift */; };
 		120D8E2430821FB91073B058 /* SharedTypes in Embed Frameworks */ = {isa = PBXBuildFile; productRef = 917447E964A6FFF42F7753F9 /* SharedTypes */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		12E965758B075383CC4794F1 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B36F261B1F57456079044C9 /* ContentView.swift */; };
 		1934FB0812327BF0CFF659C0 /* GoalsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A5FEEB7DA63497B385FA9D2 /* GoalsView.swift */; };
 		4AD6B3C47FD286A9E7309B9B /* GoalFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B381280AFCB3C07B17A22A31 /* GoalFormView.swift */; };
-		4D7E32992DE9E48C00B78EEF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4D7E32982DE9E48C00B78EEF /* Assets.xcassets */; };
-		4D7E329C2DE9E6AC00B78EEF /* ExerciseFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D7E329B2DE9E6AC00B78EEF /* ExerciseFormView.swift */; };
 		60EA876202FF0ABF6CB4F574 /* core.swift in Sources */ = {isa = PBXBuildFile; fileRef = 104D2C969AAB822EE589C8D3 /* core.swift */; };
-		78A3E0A846F4A94D0628C035 /* libshared_static.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A679AB199823FFA8B07B76C0 /* libshared_static.a */; };
+		78A3E0A846F4A94D0628C035 /* libshared_static.a.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A679AB199823FFA8B07B76C0 /* libshared_static.a.a */; };
+		81986ABF35C0A90B82E417E2 /* ExerciseFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDF794DB4A958047D84F1073 /* ExerciseFormView.swift */; };
 		97B476E6DA9042619A9D4CED /* ExercisesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C55AEC76F77F9F353C198F6 /* ExercisesView.swift */; };
 		A7CF84A2E46DA1B4959B6F6F /* IntradaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00E1ECBA4E0EB5DA54C56F2 /* IntradaApp.swift */; };
 		CFDD798472DEF95B4D93FCFE /* SessionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94701DFE2FFE563F1206215 /* SessionsView.swift */; };
@@ -31,8 +30,6 @@
 			compilerSpec = com.apple.compilers.proxy.script;
 			filePatterns = "*.udl";
 			fileType = pattern.proxy;
-			inputFiles = (
-			);
 			isEditable = 1;
 			name = "Generate FFI";
 			outputFiles = (
@@ -95,19 +92,18 @@
 		085DE01748EDA39FB010C0A8 /* SharedTypes */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SharedTypes; path = ../shared_types/generated/swift/SharedTypes; sourceTree = SOURCE_ROOT; };
 		0A5FEEB7DA63497B385FA9D2 /* GoalsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalsView.swift; sourceTree = "<group>"; };
 		104D2C969AAB822EE589C8D3 /* core.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = core.swift; sourceTree = "<group>"; };
-		13E8B6BF7B3E02B04268499D /* Intrada.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Intrada.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		13E8B6BF7B3E02B04268499D /* Intrada.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Intrada.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		193296C58A583AB40733912E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		1BED0CBEE6B56D3CFA528F73 /* GoalDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalDetailView.swift; sourceTree = "<group>"; };
 		3B36F261B1F57456079044C9 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		3C55AEC76F77F9F353C198F6 /* ExercisesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExercisesView.swift; sourceTree = "<group>"; };
-		4D7E32982DE9E48C00B78EEF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		4D7E329B2DE9E6AC00B78EEF /* ExerciseFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseFormView.swift; sourceTree = "<group>"; };
-		62D62157D21A3F186B1A1AFB /* shared.udl */ = {isa = PBXFileReference; lastKnownFileType = text; path = shared.udl; sourceTree = "<group>"; };
+		62D62157D21A3F186B1A1AFB /* shared.udl */ = {isa = PBXFileReference; path = shared.udl; sourceTree = "<group>"; };
 		683ADA17CC2C8555D48DBD50 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		B00E1ECBA4E0EB5DA54C56F2 /* IntradaApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntradaApp.swift; sourceTree = "<group>"; };
 		B381280AFCB3C07B17A22A31 /* GoalFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalFormView.swift; sourceTree = "<group>"; };
 		B94701DFE2FFE563F1206215 /* SessionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionsView.swift; sourceTree = "<group>"; };
 		C954E3C848291FCBD4F10A81 /* Shared */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = Shared; path = ../shared/shared.xcodeproj; sourceTree = "<group>"; };
+		EDF794DB4A958047D84F1073 /* ExerciseFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseFormView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -115,7 +111,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				78A3E0A846F4A94D0628C035 /* libshared_static.a in Frameworks */,
+				78A3E0A846F4A94D0628C035 /* libshared_static.a.a in Frameworks */,
 				F5E87B5B23FF53E9F7471A8E /* SharedTypes in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -142,7 +138,6 @@
 		945BC5C2DFF502B4D21E2E21 = {
 			isa = PBXGroup;
 			children = (
-				4D7E32982DE9E48C00B78EEF /* Assets.xcassets */,
 				EBD5321FFD2231E569F49476 /* Intrada */,
 				05A2FC557EA90F4856D536E1 /* Packages */,
 				F28D6D5BA246A27DA69517C6 /* src */,
@@ -154,8 +149,8 @@
 		AA379CEAD0F2D7D792E2D4D4 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				A679AB199823FFA8B07B76C0 /* libshared_static.a */,
-				F3E1B07E6F7A2E66C077A7AC /* uniffi-bindgen */,
+				F3E1B07E6F7A2E66C077A7AC,
+				A679AB199823FFA8B07B76C0 /* libshared_static.a.a */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -171,9 +166,9 @@
 		EBD5321FFD2231E569F49476 /* Intrada */ = {
 			isa = PBXGroup;
 			children = (
-				4D7E329B2DE9E6AC00B78EEF /* ExerciseFormView.swift */,
 				3B36F261B1F57456079044C9 /* ContentView.swift */,
 				104D2C969AAB822EE589C8D3 /* core.swift */,
+				EDF794DB4A958047D84F1073 /* ExerciseFormView.swift */,
 				3C55AEC76F77F9F353C198F6 /* ExercisesView.swift */,
 				1BED0CBEE6B56D3CFA528F73 /* GoalDetailView.swift */,
 				B381280AFCB3C07B17A22A31 /* GoalFormView.swift */,
@@ -230,6 +225,8 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+				};
 			};
 			buildConfigurationList = 34F172DC0048392454F1AD35 /* Build configuration list for PBXProject "Intrada" */;
 			compatibilityVersion = "Xcode 14.0";
@@ -244,6 +241,7 @@
 			packageReferences = (
 				37F1BCD307168686DD456EF8 /* XCLocalSwiftPackageReference "../shared_types/generated/swift/SharedTypes" */,
 			);
+			preferredProjectObjectVersion = 54;
 			projectDirPath = "";
 			projectReferences = (
 				{
@@ -259,17 +257,15 @@
 /* End PBXProject section */
 
 /* Begin PBXReferenceProxy section */
-		A679AB199823FFA8B07B76C0 /* libshared_static.a */ = {
+		A679AB199823FFA8B07B76C0 /* libshared_static.a.a */ = {
 			isa = PBXReferenceProxy;
 			fileType = archive.ar;
-			path = libshared_static.a;
+			path = libshared_static.a.a;
 			remoteRef = 69021D997062D049B1411F89 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
-		F3E1B07E6F7A2E66C077A7AC /* uniffi-bindgen */ = {
+		F3E1B07E6F7A2E66C077A7AC = {
 			isa = PBXReferenceProxy;
-			fileType = "compiled.mach-o.executable";
-			path = "uniffi-bindgen";
 			remoteRef = 29B2CBE143540E30CCB697E2 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
@@ -280,8 +276,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				4D7E32992DE9E48C00B78EEF /* Assets.xcassets in Resources */,
-				06DDD35F6C0BB25FBEDB7654 /* uniffi-bindgen in Resources */,
+				06DDD35F6C0BB25FBEDB7654 /* (null) in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -293,10 +288,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				12E965758B075383CC4794F1 /* ContentView.swift in Sources */,
+				81986ABF35C0A90B82E417E2 /* ExerciseFormView.swift in Sources */,
 				97B476E6DA9042619A9D4CED /* ExercisesView.swift in Sources */,
 				E5F54D4DA07846C19D93B5EF /* GoalDetailView.swift in Sources */,
 				4AD6B3C47FD286A9E7309B9B /* GoalFormView.swift in Sources */,
-				4D7E329C2DE9E6AC00B78EEF /* ExerciseFormView.swift in Sources */,
 				1934FB0812327BF0CFF659C0 /* GoalsView.swift in Sources */,
 				A7CF84A2E46DA1B4959B6F6F /* IntradaApp.swift in Sources */,
 				0EA832D6EC736A0E1F242D7A /* ProfileView.swift in Sources */,
@@ -382,31 +377,24 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGNING_REQUIRED = NO;
-				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 9S5FG4LQAF;
+				CODE_SIGN_IDENTITY = "";
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/../shared_types/generated/swift/SharedTypes/.build/release",
 				);
 				INFOPLIST_FILE = Intrada/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = Intrada;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1;
 				OTHER_LDFLAGS = (
 					"-w",
 					"-ObjC",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.jonyardley.intrada.Intrada;
-				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = iphoneos;
 				SWIFT_OBJC_BRIDGING_HEADER = generated/sharedFFI.h;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -417,31 +405,24 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGNING_REQUIRED = NO;
-				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 9S5FG4LQAF;
+				CODE_SIGN_IDENTITY = "";
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/../shared_types/generated/swift/SharedTypes/.build/release",
 				);
 				INFOPLIST_FILE = Intrada/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = Intrada;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1;
 				OTHER_LDFLAGS = (
 					"-w",
 					"-ObjC",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.jonyardley.intrada.Intrada;
-				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = iphoneos;
 				SWIFT_OBJC_BRIDGING_HEADER = generated/sharedFFI.h;
 				TARGETED_DEVICE_FAMILY = "1,2";

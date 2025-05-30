@@ -1,6 +1,6 @@
 [workspace]
-members = ["shared", "shared_types", "web-leptos"]
-resolver = "1"
+members = ["shared", "web-leptos"]
+resolver = "2"
 
 [workspace.package]
 authors = ["Jon yardley"]

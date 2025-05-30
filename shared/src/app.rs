@@ -1,6 +1,6 @@
-use crate::dev;
 use crux_core::{
-    render::{render, Render},
+    macros::effect,
+    render::{render, RenderOperation},
     App, Command,
 };
 use serde::{Deserialize, Serialize};
@@ -13,6 +13,9 @@ pub use exercise::*;
 
 pub mod model;
 pub use model::*;
+
+pub mod dev;
+pub use dev::*;
 
 // *************
 // EVENTS
@@ -31,6 +34,13 @@ pub enum Event {
     Nothing,
 }
 
+#[effect]
+pub enum Effect {
+    Render(RenderOperation),
+    // Http(HttpRequest),
+    // ServerSentEvents(SseRequest),
+}
+
 // *************
 // APP
 // *************
@@ -41,7 +51,7 @@ impl App for Chopin {
     type Event = Event;
     type Model = Model;
     type ViewModel = ViewModel;
-    type Capabilities = Capabilities;
+    type Capabilities = ();
     type Effect = Effect;
 
     fn update(
@@ -73,13 +83,6 @@ impl App for Chopin {
             exercises: model.exercises.clone(),
         }
     }
-}
-
-#[cfg_attr(feature = "typegen", derive(crux_core::macros::Export))]
-#[derive(crux_core::macros::Effect)]
-#[allow(unused)]
-pub struct Capabilities {
-    render: Render<Event>,
 }
 
 // ------------------------------------------------------------------
