@@ -5,15 +5,20 @@ projectReferences:
 packages:
   SharedTypes:
     path: ../shared_types/generated/swift/SharedTypes
+    products:
+      - SharedTypes
+    type: dynamic
 options:
   bundleIdPrefix: com.jonyardley.intrada
+  deploymentTarget:
+    iOS: 18.0
 attributes:
   BuildIndependentTargetsInParallel: true
 targets:
   Intrada:
     type: application
     platform: iOS
-    deploymentTarget: "15.0"
+    deploymentTarget: "18.0"
     sources:
       - Intrada
       - path: ../shared/src/shared.udl
@@ -22,6 +27,7 @@ targets:
       - target: Shared/uniffi-bindgen-bin
       - target: Shared/shared-staticlib
       - package: SharedTypes
+        embed: true
     info:
       path: Intrada/Info.plist
       properties:
@@ -36,6 +42,7 @@ targets:
       ENABLE_USER_SCRIPT_SANDBOXING: NO
       CODE_SIGN_IDENTITY: ""
       CODE_SIGNING_REQUIRED: NO
+      FRAMEWORK_SEARCH_PATHS: ["$(inherited)", "$(PROJECT_DIR)/../shared_types/generated/swift/SharedTypes/.build/release"]
     buildRules:
       - name: Generate FFI
         filePattern: "*.udl"

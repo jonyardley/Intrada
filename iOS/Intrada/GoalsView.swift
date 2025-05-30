@@ -1,7 +1,7 @@
 import SharedTypes
 import SwiftUI
 
-struct HomeView: View {
+struct GoalsView: View {
   @ObservedObject var core: Core
   @State private var showingGoalForm = false
 
@@ -9,7 +9,7 @@ struct HomeView: View {
     ScrollView {
       VStack(alignment: .leading, spacing: 20) {
         HStack {
-          Text("Welcome")
+          Text("Let's Rachmaninov")
             .font(.largeTitle)
             .fontWeight(.bold)
 
@@ -111,5 +111,5 @@ struct StatusBadge: View {
 }
 
 #Preview {
-  HomeView(core: Core())
+  GoalsView(core: Core())
 }

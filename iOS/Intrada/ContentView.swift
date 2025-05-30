@@ -14,16 +14,19 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             TabView {
-                HomeView(core: core)
+                GoalsView(core: core)
                     .tabItem {
-                        Label("Home", systemImage: "house")
+                        Label("Goals", systemImage: "target")
                     }
-
-                SearchView()
+                SessionsView()
                     .tabItem {
-                        Label("Search", systemImage: "magnifyingglass")
+                        Label("Sessions", systemImage: "pianokeys")
                     }
-
+                ExercisesView(core: core)
+                    .tabItem {
+                        Label("Exercises", systemImage: "music.quarternote.3")
+                    }
+                
                 ProfileView()
                     .tabItem {
                         Label("Profile", systemImage: "person")
