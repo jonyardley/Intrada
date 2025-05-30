@@ -4,44 +4,18 @@ import SharedTypes
 struct GoalDetailView: View {
     @ObservedObject var core: Core
     let goal: PracticeGoal
-    @Environment(\.dismiss) private var dismiss
-    @State private var isEditing = false
-    @State private var editedName: String
-    @State private var editedDescription: String
-    @State private var editedTargetDate: Date
-    
-    init(core: Core, goal: PracticeGoal) {
-        self.core = core
-        self.goal = goal
-        _editedName = State(initialValue: goal.name)
-        _editedDescription = State(initialValue: goal.description ?? "")
-        
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd"
-        let date = dateFormatter.date(from: goal.target_date ?? "") ?? Date()
-        _editedTargetDate = State(initialValue: date)
-    }
+    @State private var showingEditForm = false
     
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 // Goal Header
                 VStack(alignment: .leading, spacing: 8) {
-                    if isEditing {
-                        TextField("Goal Name", text: $editedName)
-                            .font(.title)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                    } else {
-                        Text(goal.name)
-                            .font(.title)
-                            .fontWeight(.bold)
-                    }
+                    Text(goal.name)
+                        .font(.title)
+                        .fontWeight(.bold)
                     
-                    if isEditing {
-                        TextField("Description", text: $editedDescription, axis: .vertical)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .lineLimit(3...6)
-                    } else if let description = goal.description {
+                    if let description = goal.description {
                         Text(description)
                             .font(.subheadline)
                             .foregroundColor(.gray)
@@ -54,9 +28,7 @@ struct GoalDetailView: View {
                     Text("Target Date")
                         .font(.headline)
                     
-                    if isEditing {
-                        DatePicker("Select Date", selection: $editedTargetDate, displayedComponents: [.date])
-                    } else if let targetDate = goal.target_date {
+                    if let targetDate = goal.target_date {
                         Text(targetDate)
                             .font(.subheadline)
                     }
@@ -100,32 +72,13 @@ struct GoalDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                if isEditing {
-                    Button("Save") {
-                        let dateFormatter = DateFormatter()
-                        dateFormatter.dateFormat = "yyyy-MM-dd"
-                        let targetDateString = dateFormatter.string(from: editedTargetDate)
-                        
-                        let updatedGoal = PracticeGoal(
-                            id: goal.id,
-                            name: editedName,
-                            description: editedDescription.isEmpty ? nil : editedDescription,
-                            status: goal.status,
-                            start_date: goal.start_date,
-                            target_date: targetDateString,
-                            exercise_ids: goal.exercise_ids,
-                            tempo_target: goal.tempo_target
-                        )
-                        
-                        core.update(.addGoal(updatedGoal))
-                        isEditing = false
-                    }
-                } else {
-                    Button("Edit") {
-                        isEditing = true
-                    }
+                Button("Edit") {
+                    showingEditForm = true
                 }
             }
+        }
+        .sheet(isPresented: $showingEditForm) {
+            GoalFormView(core: core, existingGoal: goal)
         }
     }
 }

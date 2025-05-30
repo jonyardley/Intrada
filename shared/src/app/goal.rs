@@ -49,6 +49,12 @@ pub fn add_goal(goal: PracticeGoal, model: &mut Model) {
     model.goals.push(goal);
 }
 
+pub fn edit_goal(updated_goal: PracticeGoal, model: &mut Model) {
+    if let Some(goal) = model.goals.iter_mut().find(|g| g.id == updated_goal.id) {
+        *goal = updated_goal;
+    }
+}
+
 pub fn add_exercise_to_goal(goal_id: String, exercise_id: String, model: &mut Model) {
     if let Some(goal) = model.goals.iter_mut().find(|g| g.id == goal_id) {
         if !goal.exercise_ids.contains(&exercise_id) {
@@ -73,6 +79,42 @@ fn test_add_goal() {
     );
     add_goal(goal, &mut model);
     assert_eq!(model.goals.len(), 1);
+}
+
+#[test]
+fn test_edit_goal() {
+    let mut model = Model::default();
+    let goal = PracticeGoal::new(
+        "Goal 1".to_string(),
+        None,
+        None,
+        vec!["Exercise 1".to_string()],
+        None,
+    );
+    let goal_id = goal.id.clone();
+    add_goal(goal, &mut model);
+
+    let updated_goal = PracticeGoal {
+        id: goal_id.clone(),
+        name: "Updated Goal".to_string(),
+        description: Some("Updated description".to_string()),
+        status: GoalStatus::InProgress,
+        start_date: Some("2024-03-20".to_string()),
+        target_date: Some("2024-04-20".to_string()),
+        exercise_ids: vec!["Exercise 2".to_string()],
+        tempo_target: Some(120),
+    };
+
+    edit_goal(updated_goal, &mut model);
+
+    let edited_goal = model.goals.iter().find(|g| g.id == goal_id).unwrap();
+    assert_eq!(edited_goal.name, "Updated Goal");
+    assert_eq!(
+        edited_goal.description,
+        Some("Updated description".to_string())
+    );
+    assert_eq!(edited_goal.status, GoalStatus::InProgress);
+    assert_eq!(edited_goal.exercise_ids, vec!["Exercise 2".to_string()]);
 }
 
 #[test]

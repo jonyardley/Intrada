@@ -4,12 +4,30 @@ import SwiftUI
 struct GoalFormView: View {
   @Environment(\.dismiss) private var dismiss
   @ObservedObject var core: Core
+  let existingGoal: PracticeGoal?
 
-  @State private var name = ""
-  @State private var description = ""
-  @State private var targetDate = Date()
-  @State private var tempoTarget = ""
-  @State private var selectedExercises: Set<String> = []
+  @State private var name: String
+  @State private var description: String
+  @State private var targetDate: Date
+  @State private var tempoTarget: String
+  @State private var selectedExercises: Set<String>
+
+  init(core: Core, existingGoal: PracticeGoal? = nil) {
+    self.core = core
+    self.existingGoal = existingGoal
+    
+    // Initialize state variables with existing goal data if available
+    _name = State(initialValue: existingGoal?.name ?? "")
+    _description = State(initialValue: existingGoal?.description ?? "")
+    
+    let dateFormatter = DateFormatter()
+    dateFormatter.dateFormat = "yyyy-MM-dd"
+    let date = existingGoal?.target_date.flatMap { dateFormatter.date(from: $0) } ?? Date()
+    _targetDate = State(initialValue: date)
+    
+    _tempoTarget = State(initialValue: existingGoal?.tempo_target.map(String.init) ?? "")
+    _selectedExercises = State(initialValue: Set(existingGoal?.exercise_ids ?? []))
+  }
 
   var body: some View {
     NavigationView {
@@ -38,26 +56,33 @@ struct GoalFormView: View {
           }
         }
       }
-      .navigationTitle("New Goal")
+      .navigationTitle(existingGoal == nil ? "New Goal" : "Edit Goal")
       .navigationBarTitleDisplayMode(.inline)
-      .navigationBarItems(trailing: 
-        Button("Save") {
+      .navigationBarItems(
+        leading: Button("Cancel") {
+          dismiss()
+        },
+        trailing: Button("Save") {
           let dateFormatter = DateFormatter()
           dateFormatter.dateFormat = "yyyy-MM-dd"
           let targetDateString = dateFormatter.string(from: targetDate)
 
           let goal = PracticeGoal(
-            id: UUID().uuidString,
+            id: existingGoal?.id ?? UUID().uuidString,
             name: name,
             description: description.isEmpty ? nil : description,
-            status: .notStarted,
-            start_date: nil,
+            status: existingGoal?.status ?? .notStarted,
+            start_date: existingGoal?.start_date,
             target_date: targetDateString,
             exercise_ids: Array(selectedExercises),
             tempo_target: tempoTarget.isEmpty ? nil : UInt32(tempoTarget)
           )
 
-          core.update(.addGoal(goal))
+          if existingGoal != nil {
+            core.update(.editGoal(goal))
+          } else {
+            core.update(.addGoal(goal))
+          }
           dismiss()
         }
       )
