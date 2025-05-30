@@ -10,7 +10,7 @@ class Core: ObservableObject {
             self.view = try .bincodeDeserialize(input: [UInt8](Intrada.view()))
         } catch {
             print("Error during deserialization: \(error)")
-            self.view = ViewModel() // Provide a fallback value
+            self.view = ViewModel(goals: [], exercises: []) // Provide a fallback value
         }
         self.update(.setDevData)
     }
