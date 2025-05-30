@@ -20,7 +20,6 @@ struct GoalsView: View {
           }) {
             Image(systemName: "plus.circle.fill")
               .font(.title)
-              .foregroundColor(.blue)
           }
         }
         .padding(.horizontal)

@@ -9,7 +9,7 @@ struct ExercisesView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 HStack {
-                    Text("Your exercises")
+                    Text("Your Exercises")
                         .font(.largeTitle)
                         .fontWeight(.bold)
                     
@@ -20,7 +20,6 @@ struct ExercisesView: View {
                     }) {
                         Image(systemName: "plus.circle.fill")
                             .font(.title)
-                            .foregroundColor(.blue)
                     }
                 }
                 .padding(.horizontal)

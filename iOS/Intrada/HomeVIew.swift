@@ -20,7 +20,7 @@ struct HomeView: View {
 
                 Text("Let's Rachmaninov")
                     .font(.system(size: 34, weight: .bold))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(Color(red: 79/255, green: 70/255, blue: 229/255))
                     .multilineTextAlignment(.center)
                 
                 Spacer()

@@ -23,7 +23,7 @@ struct SessionsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 HStack {
-                    Text("Your sessions")
+                    Text("Your Sessions")
                         .font(.largeTitle)
                         .fontWeight(.bold)
                     
@@ -34,7 +34,6 @@ struct SessionsView: View {
                     }) {
                         Image(systemName: "plus.circle.fill")
                             .font(.title)
-                            .foregroundColor(.blue)
                     }
                 }
                 .padding(.horizontal)

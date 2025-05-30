@@ -3,36 +3,44 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 70;
+	objectVersion = 63;
 	objects = {
 
 /* Begin PBXBuildFile section */
 		0EA832D6EC736A0E1F242D7A /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 683ADA17CC2C8555D48DBD50 /* ProfileView.swift */; };
 		12E965758B075383CC4794F1 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B36F261B1F57456079044C9 /* ContentView.swift */; };
-		4D77F39C2DEA160400B5D15A /* HomeVIew.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D77F39B2DEA160000B5D15A /* HomeVIew.swift */; };
+		1A4B87EA8297F8B860FBBB60 /* GoalFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 158AB46FE2EFCCA1A1B6FEB1 /* GoalFormView.swift */; };
+		30F514114D44187730655438 /* GoalsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FD08F85D2983946C780A40B /* GoalsView.swift */; };
+		4F7786829742CFAD6080A6A6 /* ExercisesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6E10A204BB64B1554741E54 /* ExercisesView.swift */; };
 		60EA876202FF0ABF6CB4F574 /* core.swift in Sources */ = {isa = PBXBuildFile; fileRef = 104D2C969AAB822EE589C8D3 /* core.swift */; };
+		7336455A863CC14299B2B9AF /* HomeVIew.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAAF63990A427F10CDE80895 /* HomeVIew.swift */; };
 		8AE5DA6CECC886C8E65A884F /* SharedTypes in Frameworks */ = {isa = PBXBuildFile; productRef = 917447E964A6FFF42F7753F9 /* SharedTypes */; };
+		8C9C3799281B2075E8CFA0F0 /* SessionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E9EBF7F20DE9609419F2B4B /* SessionsView.swift */; };
 		A7CF84A2E46DA1B4959B6F6F /* IntradaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00E1ECBA4E0EB5DA54C56F2 /* IntradaApp.swift */; };
+		C9C8B87967C932AF26CBEFD8 /* ExerciseFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C17E91F3A56E7F20016E5921 /* ExerciseFormView.swift */; };
+		EEC3A3FA9D55DC193CCFCCBE /* GoalDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EA74F0CEF1045787E9E0EA8 /* GoalDetailView.swift */; };
 		F5E87B5B23FF53E9F7471A8E /* Shared in Frameworks */ = {isa = PBXBuildFile; productRef = 9AF3999A1F62BECE7AD4D98A /* Shared */; };
+		F645C88CCA940EA7FD7E922F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 83A37A40ED4819A50BFE69F4 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		085DE01748EDA39FB010C0A8 /* SharedTypes */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SharedTypes; path = ../shared/generated/swift/SharedTypes; sourceTree = SOURCE_ROOT; };
 		104D2C969AAB822EE589C8D3 /* core.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = core.swift; sourceTree = "<group>"; };
 		13E8B6BF7B3E02B04268499D /* Intrada.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Intrada.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		158AB46FE2EFCCA1A1B6FEB1 /* GoalFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalFormView.swift; sourceTree = "<group>"; };
 		193296C58A583AB40733912E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		1E9EBF7F20DE9609419F2B4B /* SessionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionsView.swift; sourceTree = "<group>"; };
 		3B36F261B1F57456079044C9 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-		4D77F39B2DEA160000B5D15A /* HomeVIew.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeVIew.swift; sourceTree = "<group>"; };
+		4FD08F85D2983946C780A40B /* GoalsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalsView.swift; sourceTree = "<group>"; };
 		683ADA17CC2C8555D48DBD50 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
+		6EA74F0CEF1045787E9E0EA8 /* GoalDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalDetailView.swift; sourceTree = "<group>"; };
+		83A37A40ED4819A50BFE69F4 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B00E1ECBA4E0EB5DA54C56F2 /* IntradaApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntradaApp.swift; sourceTree = "<group>"; };
+		C17E91F3A56E7F20016E5921 /* ExerciseFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseFormView.swift; sourceTree = "<group>"; };
+		DAAF63990A427F10CDE80895 /* HomeVIew.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeVIew.swift; sourceTree = "<group>"; };
+		E6E10A204BB64B1554741E54 /* ExercisesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExercisesView.swift; sourceTree = "<group>"; };
 		EFD4E4A887C5186F83E986D3 /* Shared */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Shared; path = ../shared/Shared; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
-
-/* Begin PBXFileSystemSynchronizedRootGroup section */
-		4D77F3972DEA156700B5D15A /* Goal */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Goal; sourceTree = "<group>"; };
-		4D77F3982DEA158200B5D15A /* Excercise */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Excercise; sourceTree = "<group>"; };
-		4D77F39A2DEA159700B5D15A /* Session */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Session; sourceTree = "<group>"; };
-/* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		21F1DE0070182524F6555F13 /* Frameworks */ = {
@@ -65,6 +73,33 @@
 			);
 			sourceTree = "<group>";
 		};
+		A88789A635B5B1C83BC114A7 /* Goal */ = {
+			isa = PBXGroup;
+			children = (
+				6EA74F0CEF1045787E9E0EA8 /* GoalDetailView.swift */,
+				158AB46FE2EFCCA1A1B6FEB1 /* GoalFormView.swift */,
+				4FD08F85D2983946C780A40B /* GoalsView.swift */,
+			);
+			path = Goal;
+			sourceTree = "<group>";
+		};
+		C12DCCE15A6C13D38C625F96 /* Excercise */ = {
+			isa = PBXGroup;
+			children = (
+				C17E91F3A56E7F20016E5921 /* ExerciseFormView.swift */,
+				E6E10A204BB64B1554741E54 /* ExercisesView.swift */,
+			);
+			path = Excercise;
+			sourceTree = "<group>";
+		};
+		E5A7F62A3A0E4D902216AE60 /* Session */ = {
+			isa = PBXGroup;
+			children = (
+				1E9EBF7F20DE9609419F2B4B /* SessionsView.swift */,
+			);
+			path = Session;
+			sourceTree = "<group>";
+		};
 		E8AB3586A088A232568A1B05 /* Products */ = {
 			isa = PBXGroup;
 			children = (
@@ -76,15 +111,16 @@
 		EBD5321FFD2231E569F49476 /* Intrada */ = {
 			isa = PBXGroup;
 			children = (
-				4D77F39B2DEA160000B5D15A /* HomeVIew.swift */,
-				4D77F39A2DEA159700B5D15A /* Session */,
-				4D77F3982DEA158200B5D15A /* Excercise */,
-				4D77F3972DEA156700B5D15A /* Goal */,
+				83A37A40ED4819A50BFE69F4 /* Assets.xcassets */,
 				3B36F261B1F57456079044C9 /* ContentView.swift */,
 				104D2C969AAB822EE589C8D3 /* core.swift */,
+				DAAF63990A427F10CDE80895 /* HomeVIew.swift */,
 				193296C58A583AB40733912E /* Info.plist */,
 				B00E1ECBA4E0EB5DA54C56F2 /* IntradaApp.swift */,
 				683ADA17CC2C8555D48DBD50 /* ProfileView.swift */,
+				C12DCCE15A6C13D38C625F96 /* Excercise */,
+				A88789A635B5B1C83BC114A7 /* Goal */,
+				E5A7F62A3A0E4D902216AE60 /* Session */,
 			);
 			path = Intrada;
 			sourceTree = "<group>";
@@ -97,16 +133,12 @@
 			buildConfigurationList = C083CB817CC0F52FEFCA0643 /* Build configuration list for PBXNativeTarget "Intrada" */;
 			buildPhases = (
 				C7223FEBD18AC4FD2D44CAEB /* Sources */,
+				E2EDAAA68F0BD1B296A0FD20 /* Resources */,
 				21F1DE0070182524F6555F13 /* Frameworks */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				4D77F3972DEA156700B5D15A /* Goal */,
-				4D77F3982DEA158200B5D15A /* Excercise */,
-				4D77F39A2DEA159700B5D15A /* Session */,
 			);
 			name = Intrada;
 			packageProductDependencies = (
@@ -148,15 +180,32 @@
 		};
 /* End PBXProject section */
 
+/* Begin PBXResourcesBuildPhase section */
+		E2EDAAA68F0BD1B296A0FD20 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F645C88CCA940EA7FD7E922F /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		C7223FEBD18AC4FD2D44CAEB /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				12E965758B075383CC4794F1 /* ContentView.swift in Sources */,
-				4D77F39C2DEA160400B5D15A /* HomeVIew.swift in Sources */,
+				C9C8B87967C932AF26CBEFD8 /* ExerciseFormView.swift in Sources */,
+				4F7786829742CFAD6080A6A6 /* ExercisesView.swift in Sources */,
+				EEC3A3FA9D55DC193CCFCCBE /* GoalDetailView.swift in Sources */,
+				1A4B87EA8297F8B860FBBB60 /* GoalFormView.swift in Sources */,
+				30F514114D44187730655438 /* GoalsView.swift in Sources */,
+				7336455A863CC14299B2B9AF /* HomeVIew.swift in Sources */,
 				A7CF84A2E46DA1B4959B6F6F /* IntradaApp.swift in Sources */,
 				0EA832D6EC736A0E1F242D7A /* ProfileView.swift in Sources */,
+				8C9C3799281B2075E8CFA0F0 /* SessionsView.swift in Sources */,
 				60EA876202FF0ABF6CB4F574 /* core.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
