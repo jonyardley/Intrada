@@ -28,7 +28,7 @@ struct GoalDetailView: View {
                     Text("Target Date")
                         .font(.headline)
                     
-                    if let targetDate = goal.target_date {
+                    if let targetDate = goal.targetDate {
                         Text(targetDate)
                             .font(.subheadline)
                     }
@@ -50,7 +50,7 @@ struct GoalDetailView: View {
                         .font(.headline)
                     
                     let exercises = core.view.exercises.filter { exercise in
-                        goal.exercise_ids.contains(exercise.id)
+                        goal.exerciseIds.contains(exercise.id)
                     }
                     
                     if exercises.isEmpty {
@@ -102,10 +102,10 @@ struct GoalDetailView: View {
             name: "Sample Goal",
             description: "This is a sample goal",
             status: .inProgress,
-            start_date: nil,
-            target_date: "2025-05-01",
-            exercise_ids: [],
-            tempo_target: nil
+            startDate: nil,
+            targetDate: "2025-05-01",
+            exerciseIds: [],
+            tempoTarget: nil
         )
     )
 } 

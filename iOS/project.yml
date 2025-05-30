@@ -1,33 +1,20 @@
 name: Intrada
-projectReferences:
-  Shared:
-    path: ../shared/shared.xcodeproj
 packages:
+  Shared:
+    path: ../shared/Shared
   SharedTypes:
-    path: ../shared_types/generated/swift/SharedTypes
-    products:
-      - SharedTypes
-    type: dynamic
+    path: ../shared/generated/swift/SharedTypes
 options:
   bundleIdPrefix: com.jonyardley.intrada
-  deploymentTarget:
-    iOS: 18.0
-attributes:
-  BuildIndependentTargetsInParallel: true
 targets:
   Intrada:
     type: application
     platform: iOS
-    deploymentTarget: "18.0"
-    sources:
-      - Intrada
-      - path: ../shared/src/shared.udl
-        buildPhase: sources
+    deploymentTarget: 18.0
+    sources: [Intrada]
     dependencies:
-      - target: Shared/uniffi-bindgen-bin
-      - target: Shared/shared-staticlib
+      - package: Shared
       - package: SharedTypes
-        embed: true
     info:
       path: Intrada/Info.plist
       properties:
@@ -36,35 +23,3 @@ targets:
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
         UILaunchScreen: {}
-    settings:
-      OTHER_LDFLAGS: [-w]
-      SWIFT_OBJC_BRIDGING_HEADER: generated/sharedFFI.h
-      ENABLE_USER_SCRIPT_SANDBOXING: NO
-      CODE_SIGN_IDENTITY: ""
-      CODE_SIGNING_REQUIRED: NO
-      FRAMEWORK_SEARCH_PATHS: ["$(inherited)", "$(PROJECT_DIR)/../shared_types/generated/swift/SharedTypes/.build/release"]
-    buildRules:
-      - name: Generate FFI
-        filePattern: "*.udl"
-        script: |
-          #!/bin/bash
-          set -e
-
-          # Skip during indexing phase in XCode 13+
-          if [ "$ACTION" == "indexbuild" ]; then
-            echo "Not building *.udl files during indexing."
-            exit 0
-          fi
-
-          # Skip for preview builds
-          if [ "$ENABLE_PREVIEWS" = "YES" ]; then
-            echo "Not building *.udl files during preview builds."
-            exit 0
-          fi
-
-          cd "${INPUT_FILE_DIR}/.."
-          "${BUILD_DIR}/${CONFIGURATION}/uniffi-bindgen" generate "src/${INPUT_FILE_NAME}" --language swift --out-dir "${PROJECT_DIR}/generated"
-        outputFiles:
-          - $(PROJECT_DIR)/generated/$(INPUT_FILE_BASE).swift
-          - $(PROJECT_DIR)/generated/$(INPUT_FILE_BASE)FFI.h
-        runOncePerArchitecture: false

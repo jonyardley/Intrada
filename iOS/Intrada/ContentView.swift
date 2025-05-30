@@ -5,8 +5,8 @@
 //  Created by Jon Yardley on 15/05/2025.
 //
 
-import SwiftUI
 import SharedTypes
+import SwiftUI
 
 struct ContentView: View {
     @ObservedObject var core: Core

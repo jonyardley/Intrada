@@ -22,15 +22,15 @@ struct GoalFormView: View {
     
     let dateFormatter = DateFormatter()
     dateFormatter.dateFormat = "yyyy-MM-dd"
-    let date = existingGoal?.target_date.flatMap { dateFormatter.date(from: $0) } ?? Date()
+    let date = existingGoal?.targetDate.flatMap { dateFormatter.date(from: $0) } ?? Date()
     _targetDate = State(initialValue: date)
     
-    _tempoTarget = State(initialValue: existingGoal?.tempo_target.map(String.init) ?? "")
-    _selectedExercises = State(initialValue: Set(existingGoal?.exercise_ids ?? []))
+    _tempoTarget = State(initialValue: existingGoal?.tempoTarget.map(String.init) ?? "")
+    _selectedExercises = State(initialValue: Set(existingGoal?.exerciseIds ?? []))
   }
 
   var body: some View {
-    NavigationView {
+    NavigationStack {
       Form {
         Section(header: Text("Goal Details")) {
           TextField("Name", text: $name)
@@ -57,14 +57,13 @@ struct GoalFormView: View {
         }
       }
       .navigationTitle(existingGoal == nil ? "New Goal" : "Edit Goal")
-      .navigationBarTitleDisplayMode(.inline)
       .toolbar {
-        ToolbarItem(placement: .navigationBarLeading) {
+        ToolbarItem(placement: .topBarLeading) {
           Button("Cancel") {
             dismiss()
           }
         }
-        ToolbarItem(placement: .navigationBarTrailing) {
+        ToolbarItem(placement: .topBarTrailing) {
           Button("Save") {
             let dateFormatter = DateFormatter()
             dateFormatter.dateFormat = "yyyy-MM-dd"
@@ -75,10 +74,10 @@ struct GoalFormView: View {
               name: name,
               description: description.isEmpty ? nil : description,
               status: existingGoal?.status ?? .notStarted,
-              start_date: existingGoal?.start_date,
-              target_date: targetDateString,
-              exercise_ids: Array(selectedExercises),
-              tempo_target: tempoTarget.isEmpty ? nil : UInt32(tempoTarget)
+              startDate: existingGoal?.startDate,
+              targetDate: targetDateString,
+              exerciseIds: Array(selectedExercises),
+              tempoTarget: tempoTarget.isEmpty ? nil : UInt32(tempoTarget)
             )
 
             if existingGoal != nil {

@@ -14,3 +14,14 @@ node_modules
 **/public/build
 **/public/dist
 **/public/target
+/target
+.DS_Store
+*.xcuserstate
+**/xcuserdata/*
+.bin
+.build
+.swiftpm
+generated/
+/target
+generated
+.idea

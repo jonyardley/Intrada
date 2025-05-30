@@ -66,7 +66,7 @@ struct GoalCard: View {
       }
 
       HStack {
-        if let targetDate = goal.target_date {
+        if let targetDate = goal.targetDate {
           Label(targetDate, systemImage: "calendar")
             .font(.caption)
             .foregroundColor(.gray)
