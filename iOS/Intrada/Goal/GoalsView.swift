@@ -9,7 +9,7 @@ struct GoalsView: View {
     ScrollView {
       VStack(alignment: .leading, spacing: 20) {
         HStack {
-          Text("Let's Rachmaninov")
+          Text("Your Goals")
             .font(.largeTitle)
             .fontWeight(.bold)
 

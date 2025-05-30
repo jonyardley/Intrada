@@ -14,6 +14,10 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             TabView {
+                HomeView()
+                    .tabItem {
+                        Label("Home", systemImage: "house")
+                    }
                 GoalsView(core: core)
                     .tabItem {
                         Label("Goals", systemImage: "chart.bar.xaxis.ascending.badge.clock")
