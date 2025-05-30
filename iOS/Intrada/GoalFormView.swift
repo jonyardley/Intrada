@@ -58,34 +58,38 @@ struct GoalFormView: View {
       }
       .navigationTitle(existingGoal == nil ? "New Goal" : "Edit Goal")
       .navigationBarTitleDisplayMode(.inline)
-      .navigationBarItems(
-        leading: Button("Cancel") {
-          dismiss()
-        },
-        trailing: Button("Save") {
-          let dateFormatter = DateFormatter()
-          dateFormatter.dateFormat = "yyyy-MM-dd"
-          let targetDateString = dateFormatter.string(from: targetDate)
-
-          let goal = PracticeGoal(
-            id: existingGoal?.id ?? UUID().uuidString,
-            name: name,
-            description: description.isEmpty ? nil : description,
-            status: existingGoal?.status ?? .notStarted,
-            start_date: existingGoal?.start_date,
-            target_date: targetDateString,
-            exercise_ids: Array(selectedExercises),
-            tempo_target: tempoTarget.isEmpty ? nil : UInt32(tempoTarget)
-          )
-
-          if existingGoal != nil {
-            core.update(.editGoal(goal))
-          } else {
-            core.update(.addGoal(goal))
+      .toolbar {
+        ToolbarItem(placement: .navigationBarLeading) {
+          Button("Cancel") {
+            dismiss()
           }
-          dismiss()
         }
-      )
+        ToolbarItem(placement: .navigationBarTrailing) {
+          Button("Save") {
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateFormat = "yyyy-MM-dd"
+            let targetDateString = dateFormatter.string(from: targetDate)
+
+            let goal = PracticeGoal(
+              id: existingGoal?.id ?? UUID().uuidString,
+              name: name,
+              description: description.isEmpty ? nil : description,
+              status: existingGoal?.status ?? .notStarted,
+              start_date: existingGoal?.start_date,
+              target_date: targetDateString,
+              exercise_ids: Array(selectedExercises),
+              tempo_target: tempoTarget.isEmpty ? nil : UInt32(tempoTarget)
+            )
+
+            if existingGoal != nil {
+              core.update(.editGoal(goal))
+            } else {
+              core.update(.addGoal(goal))
+            }
+            dismiss()
+          }
+        }
+      }
     }
   }
 
