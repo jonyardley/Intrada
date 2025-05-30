@@ -67,9 +67,7 @@ struct GoalCard: View {
 
       HStack {
         if let targetDate = goal.targetDate {
-          Label(targetDate, systemImage: "calendar")
-            .font(.caption)
-            .foregroundColor(.gray)
+          dateStatusView(targetDate: targetDate)
         }
 
         Spacer()
@@ -81,31 +79,65 @@ struct GoalCard: View {
     .background(Color.gray.opacity(0.1))
     .cornerRadius(10)
   }
+
+  private func dateStatusView(targetDate: String) -> some View {
+    let calendar = Calendar.current
+    let today = Date()
+    let dateFormatter = DateFormatter()
+    dateFormatter.dateFormat = "yyyy-MM-dd"
+    
+    if let targetDateObj = dateFormatter.date(from: targetDate) {
+      let components = calendar.dateComponents([.day], from: today, to: targetDateObj)
+      if let days = components.day {
+        if days < 0 {
+          return Text("\(targetDate) - \(abs(days)) days ago")
+            .font(.caption)
+            .foregroundColor(.red)
+        } else {
+          return Text("\(targetDate) - \(days) days to go")
+            .font(.caption)
+            .foregroundColor(.gray)
+        }
+      }
+    }
+    return Text("Invalid date")
+      .font(.caption)
+      .foregroundColor(.gray)
+  }
 }
 
 struct StatusBadge: View {
   let status: GoalStatus
 
   var body: some View {
-    let (color, text) = statusInfo
-
-    Text(text)
+    Text(statusText)
       .font(.caption)
       .padding(.horizontal, 8)
       .padding(.vertical, 4)
-      .background(color)
+      .background(statusColor)
       .foregroundColor(.white)
       .cornerRadius(8)
   }
 
-  private var statusInfo: (Color, String) {
+  private var statusColor: Color {
     switch status {
     case .notStarted:
-      return (.gray, "Not Started")
+      return .gray
     case .inProgress:
-      return (.blue, "In Progress")
+      return .blue
     case .completed:
-      return (.green, "Completed")
+      return .green
+    }
+  }
+
+  private var statusText: String {
+    switch status {
+    case .notStarted:
+      return "Not Started"
+    case .inProgress:
+      return "In Progress"
+    case .completed:
+      return "Completed"
     }
   }
 }

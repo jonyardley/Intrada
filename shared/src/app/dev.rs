@@ -42,7 +42,7 @@ pub fn set_dev_data(model: &mut Model) {
         PracticeGoal::new(
             "More Etudes".to_string(),
             Some("Op. 25. No. 1".to_string()),
-            Some("2025-05-01".to_string()),
+            Some("2026-05-01".to_string()),
             vec![],
             None,
         ),
