@@ -49,20 +49,31 @@ struct GoalDetailView: View {
                     Text("Exercises")
                         .font(.headline)
                     
-                    ForEach(core.view.exercises.filter { exercise in
+                    let exercises = core.view.exercises.filter { exercise in
                         goal.exercise_ids.contains(exercise.id)
-                    }, id: \.id) { exercise in
-                        HStack {
-                            Text(exercise.name)
-                            Spacer()
-                            if let description = exercise.description {
-                                Text(description)
-                                    .foregroundColor(.gray)
+                    }
+                    
+                    if exercises.isEmpty {
+                        Text("No exercises added")
+                            .foregroundColor(.gray)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding()
+                            .background(Color.gray.opacity(0.1))
+                            .cornerRadius(8)
+                    } else {
+                        ForEach(exercises, id: \.id) { exercise in
+                            HStack {
+                                Text(exercise.name)
+                                Spacer()
+                                if let description = exercise.description {
+                                    Text(description)
+                                        .foregroundColor(.gray)
+                                }
                             }
+                            .padding()
+                            .background(Color.gray.opacity(0.1))
+                            .cornerRadius(8)
                         }
-                        .padding()
-                        .background(Color.gray.opacity(0.1))
-                        .cornerRadius(8)
                     }
                 }
                 .padding(.horizontal)
