@@ -201,7 +201,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 1430;
+				LastUpgradeCheck = 1640;
 			};
 			buildConfigurationList = 34F172DC0048392454F1AD35 /* Build configuration list for PBXProject "Intrada" */;
 			compatibilityVersion = "Xcode 14.0";
@@ -350,19 +350,26 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = 9S5FG4LQAF;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = Intrada/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Intrada;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MARKETING_VERSION = 0.1;
 				OTHER_LDFLAGS = (
 					"-w",
 					"-ObjC",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.jonyardley.intrada.Intrada;
 				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_OBJC_BRIDGING_HEADER = generated/sharedFFI.h;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -373,19 +380,26 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = 9S5FG4LQAF;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = Intrada/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Intrada;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MARKETING_VERSION = 0.1;
 				OTHER_LDFLAGS = (
 					"-w",
 					"-ObjC",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.jonyardley.intrada.Intrada;
 				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_OBJC_BRIDGING_HEADER = generated/sharedFFI.h;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};

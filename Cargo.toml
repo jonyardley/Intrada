@@ -11,8 +11,8 @@ keywords = ["crux", "crux_core", "cross-platform-ui", "ffi", "wasm"]
 rust-version = "1.80"
 
 [workspace.dependencies]
-crux_core = "0.14.0"
-anyhow = "1.0.97"
+crux_core = "0.15.0"
+anyhow = "1.0.98"
 serde = "1.0.219"
 
 [workspace.metadata.bin]

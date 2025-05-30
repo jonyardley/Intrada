@@ -281,7 +281,7 @@ private func makeRustCall<T, E: Swift.Error>(
     _ callback: (UnsafeMutablePointer<RustCallStatus>) -> T,
     errorHandler: ((RustBuffer) throws -> E)?
 ) throws -> T {
-    uniffiEnsureInitialized()
+    uniffiEnsureSharedInitialized()
     var callStatus = RustCallStatus.init()
     let returnedVal = callback(&callStatus)
     try uniffiCheckCallStatus(callStatus: callStatus, errorHandler: errorHandler)
@@ -352,9 +352,10 @@ private func uniffiTraitInterfaceCallWithError<T, E>(
         callStatus.pointee.errorBuf = FfiConverterString.lower(String(describing: error))
     }
 }
-fileprivate class UniffiHandleMap<T> {
-    private var map: [UInt64: T] = [:]
+fileprivate final class UniffiHandleMap<T>: @unchecked Sendable {
+    // All mutation happens with this lock held, which is why we implement @unchecked Sendable.
     private let lock = NSLock()
+    private var map: [UInt64: T] = [:]
     private var currentHandle: UInt64 = 1
 
     func insert(obj: T) -> UInt64 {
@@ -470,7 +471,7 @@ fileprivate struct FfiConverterData: FfiConverterRustBuffer {
         writeBytes(&buf, value)
     }
 }
-public func handleResponse(_ id: UInt32, _ res: Data) -> Data {
+public func handleResponse(_ id: UInt32, _ res: Data) -> Data  {
     return try!  FfiConverterData.lift(try! rustCall() {
     uniffi_shared_fn_func_handle_response(
         FfiConverterUInt32.lower(id),
@@ -478,14 +479,14 @@ public func handleResponse(_ id: UInt32, _ res: Data) -> Data {
     )
 })
 }
-public func processEvent(_ msg: Data) -> Data {
+public func processEvent(_ msg: Data) -> Data  {
     return try!  FfiConverterData.lift(try! rustCall() {
     uniffi_shared_fn_func_process_event(
         FfiConverterData.lower(msg),$0
     )
 })
 }
-public func view() -> Data {
+public func view() -> Data  {
     return try!  FfiConverterData.lift(try! rustCall() {
     uniffi_shared_fn_func_view($0
     )
@@ -499,9 +500,9 @@ private enum InitializationResult {
 }
 // Use a global variable to perform the versioning checks. Swift ensures that
 // the code inside is only computed once.
-private var initializationResult: InitializationResult = {
+private let initializationResult: InitializationResult = {
     // Get the bindings contract version from our ComponentInterface
-    let bindings_contract_version = 26
+    let bindings_contract_version = 29
     // Get the scaffolding contract version by calling the into the dylib
     let scaffolding_contract_version = ffi_shared_uniffi_contract_version()
     if bindings_contract_version != scaffolding_contract_version {
@@ -520,7 +521,9 @@ private var initializationResult: InitializationResult = {
     return InitializationResult.ok
 }()
 
-private func uniffiEnsureInitialized() {
+// Make the ensure init function public so that other modules which have external type references to
+// our types can call it.
+public func uniffiEnsureSharedInitialized() {
     switch initializationResult {
     case .ok:
         break
