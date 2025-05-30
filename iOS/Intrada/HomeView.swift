@@ -33,8 +33,11 @@ struct HomeView: View {
             .padding(.horizontal)
 
           ForEach(core.view.goals, id: \.id) { goal in
-            GoalCard(goal: goal)
-              .padding(.horizontal)
+            NavigationLink(destination: GoalDetailView(core: core, goal: goal)) {
+              GoalCard(goal: goal)
+                .padding(.horizontal)
+            }
+            .buttonStyle(PlainButtonStyle())
           }
         }
       }

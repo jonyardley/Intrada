@@ -13,6 +13,7 @@
 		4D23B8402DD661E30070C8BF /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D23B83D2DD661E30070C8BF /* ProfileView.swift */; };
 		4D23B8412DD661E30070C8BF /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D23B83C2DD661E30070C8BF /* HomeView.swift */; };
 		4D23B8462DD6643D0070C8BF /* GoalFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D23B8452DD6643D0070C8BF /* GoalFormView.swift */; };
+		4DD1BB5D2DE9C5DB00681391 /* GoalDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DD1BB5C2DE9C5DB00681391 /* GoalDetailView.swift */; };
 		60EA876202FF0ABF6CB4F574 /* core.swift in Sources */ = {isa = PBXBuildFile; fileRef = 104D2C969AAB822EE589C8D3 /* core.swift */; };
 		78A3E0A846F4A94D0628C035 /* libshared_static.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A679AB199823FFA8B07B76C0 /* libshared_static.a */; };
 		A7CF84A2E46DA1B4959B6F6F /* IntradaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00E1ECBA4E0EB5DA54C56F2 /* IntradaApp.swift */; };
@@ -82,6 +83,7 @@
 		4D23B83D2DD661E30070C8BF /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		4D23B83E2DD661E30070C8BF /* SearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchView.swift; sourceTree = "<group>"; };
 		4D23B8452DD6643D0070C8BF /* GoalFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalFormView.swift; sourceTree = "<group>"; };
+		4DD1BB5C2DE9C5DB00681391 /* GoalDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalDetailView.swift; sourceTree = "<group>"; };
 		62D62157D21A3F186B1A1AFB /* shared.udl */ = {isa = PBXFileReference; lastKnownFileType = text; path = shared.udl; sourceTree = "<group>"; };
 		B00E1ECBA4E0EB5DA54C56F2 /* IntradaApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntradaApp.swift; sourceTree = "<group>"; };
 		C954E3C848291FCBD4F10A81 /* Shared */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = Shared; path = ../shared/shared.xcodeproj; sourceTree = "<group>"; };
@@ -147,6 +149,7 @@
 		EBD5321FFD2231E569F49476 /* Intrada */ = {
 			isa = PBXGroup;
 			children = (
+				4DD1BB5C2DE9C5DB00681391 /* GoalDetailView.swift */,
 				4D23B8452DD6643D0070C8BF /* GoalFormView.swift */,
 				4D23B83C2DD661E30070C8BF /* HomeView.swift */,
 				4D23B83D2DD661E30070C8BF /* ProfileView.swift */,
@@ -269,6 +272,7 @@
 				F3E30FE555820C9E10DA4740 /* shared.udl in Sources */,
 				4D23B83F2DD661E30070C8BF /* SearchView.swift in Sources */,
 				4D23B8402DD661E30070C8BF /* ProfileView.swift in Sources */,
+				4DD1BB5D2DE9C5DB00681391 /* GoalDetailView.swift in Sources */,
 				4D23B8412DD661E30070C8BF /* HomeView.swift in Sources */,
 				4D23B8462DD6643D0070C8BF /* GoalFormView.swift in Sources */,
 			);
