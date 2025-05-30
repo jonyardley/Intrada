@@ -16,7 +16,7 @@ struct ContentView: View {
             TabView {
                 GoalsView(core: core)
                     .tabItem {
-                        Label("Goals", systemImage: "florinsign.gauge.chart.leftthird.topthird.rightthird")
+                        Label("Goals", systemImage: "chart.bar.xaxis.ascending.badge.clock")
                     }
                 SessionsView(core: core)
                     .tabItem {
