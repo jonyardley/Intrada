@@ -84,14 +84,17 @@ struct SessionFormView: View {
                 },
                 trailing: Button("Save") {
                     let sessionId = existingSessionId ?? UUID().uuidString
+                    let existingSession = existingSessionId.flatMap { id in
+                        core.view.sessions.first { $0.id == id }
+                    }
                     let session = PracticeSession(
                         id: sessionId,
                         goalIds: Array(selectedGoals),
                         intention: intention,
-                        startTime: nil,
-                        endTime: nil,
+                        startTime: existingSession?.startTime,
+                        endTime: existingSession?.endTime,
                         notes: notes.isEmpty ? nil : notes,
-                        duration: nil
+                        duration: existingSession?.duration
                     )
                     
                     if existingSessionId != nil {
