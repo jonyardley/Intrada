@@ -1,4 +1,7 @@
-use crate::app::{add_exercise, add_goal, Exercise, Model, PracticeGoal};
+use crate::app::{
+    add_exercise, add_goal, add_session, end_session, start_session, Exercise, Model, PracticeGoal,
+    PracticeSession,
+};
 
 pub fn set_dev_data(model: &mut Model) {
     //Exercises
@@ -16,6 +19,20 @@ pub fn set_dev_data(model: &mut Model) {
         ),
         model,
     );
+    add_exercise(
+        Exercise::new(
+            "Octaves over 2 octaves".to_string(),
+            Some("In all keys".to_string()),
+        ),
+        model,
+    );
+    add_exercise(
+        Exercise::new(
+            "II-V-I progressions".to_string(),
+            Some("In all keys".to_string()),
+        ),
+        model,
+    );
 
     //Goals
     add_goal(
@@ -23,7 +40,12 @@ pub fn set_dev_data(model: &mut Model) {
             "Master Nocturnes".to_string(),
             Some("Op. 23 & 23".to_string()),
             Some("2025-05-01".to_string()),
-            vec![],
+            model
+                .exercises
+                .iter()
+                .take(1)
+                .map(|e| e.id.clone())
+                .collect(),
             None,
         ),
         model,
@@ -33,7 +55,12 @@ pub fn set_dev_data(model: &mut Model) {
             "Perfect Etudes".to_string(),
             Some("Op. 23. No. 1 & 101".to_string()),
             Some("2025-05-01".to_string()),
-            vec![],
+            model
+                .exercises
+                .iter()
+                .take(2)
+                .map(|e| e.id.clone())
+                .collect(),
             None,
         ),
         model,
@@ -43,9 +70,30 @@ pub fn set_dev_data(model: &mut Model) {
             "More Etudes".to_string(),
             Some("Op. 25. No. 1".to_string()),
             Some("2026-05-01".to_string()),
-            vec![],
+            model
+                .exercises
+                .iter()
+                .rev()
+                .take(3)
+                .map(|e| e.id.clone())
+                .collect(),
             None,
         ),
         model,
     );
+
+    //Sessions
+    let session = PracticeSession::new(
+        model.goals.iter().take(1).map(|g| g.id.clone()).collect(),
+        "Do good practice!".to_string(),
+    );
+    let session_id = session.id.clone();
+    add_session(session, model);
+
+    start_session(
+        session_id.clone(),
+        "2025-05-01T12:00:00Z".to_string(),
+        model,
+    );
+    end_session(session_id, "2025-05-01T12:30:00Z".to_string(), model);
 }

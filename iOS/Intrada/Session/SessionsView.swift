@@ -8,16 +8,13 @@
 import SwiftUI
 import SharedTypes
 
-struct Session: Identifiable {
-    let id = UUID()
-    let date: Date
-    let duration: TimeInterval
-    let notes: String
-}
-
 struct SessionsView: View {
     @ObservedObject var core: Core
     @State private var showingAddForm = false
+    
+    private var activeSession: PracticeSession? {
+        core.view.sessions.first { $0.startTime != nil && $0.endTime == nil }
+    }
     
     var body: some View {
         ScrollView {
@@ -29,26 +26,37 @@ struct SessionsView: View {
                     
                     Spacer()
                     
-                    Button(action: {
-                        showingAddForm = true
-                    }) {
+                    Button(action: { showingAddForm = true }) {
                         Image(systemName: "plus.circle.fill")
                             .font(.title)
                     }
                 }
                 .padding(.horizontal)
                 
-                // Sessions section
+                if let activeSession = activeSession {
+                    ActiveSessionView(session: activeSession, core: core)
+                        .padding(.horizontal)
+                }
+                
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("Recent Sessions")
+                    Text("Recent practice sessions")
                         .font(.title2)
                         .fontWeight(.semibold)
                         .padding(.horizontal)
                     
-                    // TODO: Add session cards when session model is implemented
-                    Text("No sessions yet")
-                        .foregroundColor(.gray)
-                        .padding(.horizontal)
+                    if core.view.sessions.isEmpty {
+                        Text("No sessions yet")
+                            .foregroundColor(.gray)
+                            .padding(.horizontal)
+                    } else {
+                        ForEach(core.view.sessions.filter { $0.endTime != nil }, id: \.id) { session in
+                            NavigationLink(destination: SessionDetailView(core: core, session: session)) {
+                                SessionRow(session: session)
+                                    .padding(.horizontal)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                        }
+                    }
                 }
             }
             .padding(.vertical)
@@ -56,73 +64,145 @@ struct SessionsView: View {
         .navigationTitle("Sessions")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showingAddForm) {
-            // TODO: Add SessionFormView when implemented
-            Text("Session Form Coming Soon")
+            SessionFormView(core: core, isPresented: $showingAddForm)
         }
+    }
+}
+
+struct ActiveSessionView: View {
+    let session: PracticeSession
+    @ObservedObject var core: Core
+    @State private var elapsedTime: TimeInterval = 0
+    @State private var timer: Timer?
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Active Session")
+                .font(.title2)
+                .fontWeight(.semibold)
+            
+            VStack(alignment: .leading, spacing: 8) {
+                Text(session.intention)
+                    .font(.headline)
+                
+                if let notes = session.notes, !notes.isEmpty {
+                    Text(notes)
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
+                }
+                
+                HStack {
+                    Text(formatElapsedTime(elapsedTime))
+                        .font(.title3)
+                        .monospacedDigit()
+                        .foregroundColor(.blue)
+                    
+                    Spacer()
+                    
+                    Button(action: stopSession) {
+                        Text("Stop Session")
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .background(Color.red)
+                            .cornerRadius(8)
+                    }
+                }
+            }
+            .padding()
+            .background(Color.blue.opacity(0.1))
+            .cornerRadius(10)
+        }
+        .onAppear {
+            startTimer()
+        }
+        .onDisappear {
+            timer?.invalidate()
+        }
+    }
+    
+    private func startTimer() {
+        guard let startTime = session.startTime,
+              let startDate = ISO8601DateFormatter().date(from: startTime) else { return }
+        
+        elapsedTime = Date().timeIntervalSince(startDate)
+        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
+            elapsedTime = Date().timeIntervalSince(startDate)
+        }
+    }
+    
+    private func stopSession() {
+        timer?.invalidate()
+        core.update(.endSession(session.id, Date().ISO8601Format()))
+    }
+    
+    private func formatElapsedTime(_ timeInterval: TimeInterval) -> String {
+        let hours = Int(timeInterval) / 3600
+        let minutes = Int(timeInterval) / 60 % 60
+        let seconds = Int(timeInterval) % 60
+        return String(format: "%02d:%02d:%02d", hours, minutes, seconds)
     }
 }
 
 struct SessionRow: View {
-    let session: Session
+    let session: PracticeSession
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(session.date, style: .date)
+            Text(session.intention)
                 .font(.headline)
-            Text("Duration: \(formatDuration(session.duration))")
-                .font(.subheadline)
-            if !session.notes.isEmpty {
-                Text(session.notes)
-                    .font(.body)
-                    .foregroundColor(.secondary)
+            
+            if let notes = session.notes, !notes.isEmpty {
+                Text(notes)
+                    .font(.subheadline)
+                    .foregroundColor(.gray)
             }
-        }
-        .padding(.vertical, 4)
-    }
-    
-    private func formatDuration(_ duration: TimeInterval) -> String {
-        let hours = Int(duration) / 3600
-        let minutes = Int(duration) / 60 % 60
-        return "\(hours)h \(minutes)m"
-    }
-}
-
-struct NewSessionView: View {
-    @Environment(\.dismiss) var dismiss
-    @Binding var sessions: [Session]
-    @State private var notes = ""
-    @State private var duration: TimeInterval = 3600 // Default 1 hour
-    
-    var body: some View {
-        NavigationView {
-            Form {
-                Section(header: Text("Session Details")) {
-                    TextField("Notes", text: $notes)
-                    Stepper("Duration: \(formatDuration(duration))", value: $duration, in: 300...7200, step: 300)
-                }
-            }
-            .navigationTitle("New Session")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        dismiss()
+            
+            HStack {
+                if let startTime = session.startTime {
+                    HStack(spacing: 4) {
+                        Image(systemName: "calendar")
+                            .foregroundColor(.blue)
+                        Text(formatDateAndTime(startTime))
+                            .font(.caption)
+                            .foregroundColor(.gray)
                     }
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        let newSession = Session(date: Date(), duration: duration, notes: notes)
-                        sessions.append(newSession)
-                        dismiss()
-                    }
+                
+                Spacer()
+                
+                if let duration = session.duration {
+                    Text(duration)
+                        .font(.caption)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.gray.opacity(0.2))
+                        .cornerRadius(8)
                 }
             }
         }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.gray.opacity(0.1))
+        .cornerRadius(10)
     }
     
-    private func formatDuration(_ duration: TimeInterval) -> String {
-        let hours = Int(duration) / 3600
-        let minutes = Int(duration) / 60 % 60
-        return "\(hours)h \(minutes)m"
+    private func formatDateAndTime(_ dateString: String) -> String {
+        let formatter = ISO8601DateFormatter()
+        if let date = formatter.date(from: dateString) {
+            let calendar = Calendar.current
+            let displayFormatter = DateFormatter()
+            
+            if calendar.isDateInToday(date) {
+                displayFormatter.dateFormat = "'Today at' h:mm a"
+            } else if calendar.isDateInYesterday(date) {
+                displayFormatter.dateFormat = "'Yesterday at' h:mm a"
+            } else {
+                displayFormatter.dateFormat = "MMM d, yyyy 'at' h:mm a"
+            }
+            return displayFormatter.string(from: date)
+        }
+        return dateString
     }
 }
 
