@@ -13,7 +13,6 @@ struct SessionsView: View {
     @State private var showingAddForm = false
     @State private var showingReflectionForm = false
     @State private var sessionToReflect: PracticeSession?
-    @State private var selectedSessionId: String?
     
     private var activeSession: PracticeSession? {
         core.view.sessions.first { $0.startTime != nil && $0.endTime == nil }
@@ -24,46 +23,45 @@ struct SessionsView: View {
     }
     
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                headerView
-                
-                if let activeSession = activeSession {
-                    ActiveSessionView(
-                        session: activeSession,
-                        core: core,
-                        onSessionEnd: handleSessionEnd
-                    )
-                    .padding(.horizontal)
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    headerView
+                    
+                    if let activeSession = activeSession {
+                        ActiveSessionView(
+                            session: activeSession,
+                            core: core,
+                            onSessionEnd: handleSessionEnd
+                        )
+                        .padding(.horizontal)
+                    }
+                    
+                    sessionsListView
                 }
-                
-                sessionsListView
+                .padding(.vertical)
             }
-            .padding(.vertical)
-        }
-        .navigationTitle("Sessions")
-        .navigationBarTitleDisplayMode(.inline)
-        .sheet(isPresented: $showingAddForm) {
-            SessionFormView(
-                core: core,
-                isPresented: $showingAddForm,
-                onSessionCreated: { selectedSessionId = $0 }
-            )
-        }
-        .sheet(isPresented: $showingReflectionForm) {
-            if let session = sessionToReflect {
-                SessionReflectionForm(
-                    sessionId: session.id,
+            .navigationTitle("Sessions")
+            .navigationBarTitleDisplayMode(.inline)
+            .sheet(isPresented: $showingAddForm) {
+                SessionFormView(
                     core: core,
-                    isPresented: $showingReflectionForm
+                    isPresented: $showingAddForm,
+                    onSessionCreated: { sessionId in
+                        core.update(.startSession(sessionId, Date().ISO8601Format()))
+                    }
                 )
             }
-        }
-        .navigationDestination(isPresented: Binding(
-            get: { selectedSessionId != nil },
-            set: { if !$0 { selectedSessionId = nil } }
-        )) {
-            if let sessionId = selectedSessionId {
+            .sheet(isPresented: $showingReflectionForm) {
+                if let session = sessionToReflect {
+                    SessionReflectionForm(
+                        sessionId: session.id,
+                        core: core,
+                        isPresented: $showingReflectionForm
+                    )
+                }
+            }
+            .navigationDestination(for: String.self) { sessionId in
                 SessionDetailView(core: core, sessionId: sessionId)
             }
         }
@@ -87,10 +85,33 @@ struct SessionsView: View {
     
     private var sessionsListView: some View {
         VStack(alignment: .leading, spacing: 10) {
+            Text("Active Sessions")
+                .font(.title2)
+                .fontWeight(.semibold)
+                .padding(.horizontal)
+            
+            let activeSessions = core.view.sessions.filter { $0.startTime == nil }
+            if activeSessions.isEmpty {
+                Text("No active sessions")
+                    .foregroundColor(.gray)
+                    .padding(.horizontal)
+            } else {
+                ForEach(activeSessions, id: \.id) { session in
+                    NavigationLink {
+                        SessionDetailView(core: core, sessionId: session.id)
+                    } label: {
+                        SessionRow(session: session)
+                            .padding(.horizontal)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                }
+            }
+            
             Text("Recent practice sessions")
                 .font(.title2)
                 .fontWeight(.semibold)
                 .padding(.horizontal)
+                .padding(.top)
             
             if completedSessions.isEmpty {
                 Text("No sessions yet")
@@ -98,7 +119,9 @@ struct SessionsView: View {
                     .padding(.horizontal)
             } else {
                 ForEach(completedSessions, id: \.id) { session in
-                    NavigationLink(destination: SessionDetailView(core: core, sessionId: session.id)) {
+                    NavigationLink {
+                        SessionDetailView(core: core, sessionId: session.id)
+                    } label: {
                         SessionRow(session: session)
                             .padding(.horizontal)
                     }
@@ -120,7 +143,8 @@ struct ActiveSessionView: View {
     let onSessionEnd: (PracticeSession) -> Void
     @State private var elapsedTime: TimeInterval = 0
     @State private var timer: Timer?
-    @State private var navigateToDetail = false
+    @State private var hasStarted: Bool = false
+    @State private var navigateToDetail: Bool = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -139,22 +163,46 @@ struct ActiveSessionView: View {
                 }
                 
                 HStack {
-                    Text(formatElapsedTime(elapsedTime))
-                        .font(.title3)
-                        .monospacedDigit()
-                        .foregroundColor(.blue)
+                    if hasStarted {
+                        Text(formatElapsedTime(elapsedTime))
+                            .font(.title3)
+                            .monospacedDigit()
+                            .foregroundColor(.blue)
+                        
+                        NavigationLink(destination: SessionDetailView(core: core, sessionId: session.id)) {
+                            Text("View Session")
+                                .font(.subheadline)
+                                .foregroundColor(.blue)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(Color.blue.opacity(0.1))
+                                .cornerRadius(6)
+                        }
+                    } else {
+                        Text("Ready?")
+                            .font(.title3)
+                            .foregroundColor(.gray)
+                    }
                     
                     Spacer()
                     
-                    NavigationLink(destination: SessionDetailView(core: core, sessionId: session.id), isActive: $navigateToDetail) {
-                        Button(action: goToDetails) {
-                            Text("View details")
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 8)
-                                .background(Color.accentColor)
-                                .cornerRadius(8)
+                    if !hasStarted {
+                        NavigationLink(destination: SessionDetailView(core: core, sessionId: session.id)) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "play.fill")
+                                Text("Start Session")
+                            }
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .background(Color.accentColor)
+                            .cornerRadius(8)
                         }
+                        .simultaneousGesture(TapGesture().onEnded {
+                            core.update(.startSession(session.id, Date().ISO8601Format()))
+                            hasStarted = true
+                            startTimer()
+                        })
                     }
                 }
             }
@@ -162,16 +210,9 @@ struct ActiveSessionView: View {
             .background(Color.blue.opacity(0.1))
             .cornerRadius(10)
         }
-        .onAppear {
-            startTimer()
-        }
         .onDisappear {
             timer?.invalidate()
         }
-    }
-    
-    private func goToDetails() {
-        navigateToDetail = true
     }
     
     private func startTimer() {

@@ -75,13 +75,13 @@ struct SessionFormView: View {
                 leading: Button("Cancel") {
                     isPresented = false
                 },
-                trailing: Button(existingSessionId == nil ? "Start" : "Save") {
+                trailing: Button("Save") {
                     let sessionId = existingSessionId ?? UUID().uuidString
                     let session = PracticeSession(
                         id: sessionId,
                         goalIds: Array(selectedGoals),
                         intention: intention,
-                        startTime: existingSessionId == nil ? Date().ISO8601Format() : nil,
+                        startTime: nil,
                         endTime: nil,
                         notes: notes.isEmpty ? nil : notes,
                         duration: nil
