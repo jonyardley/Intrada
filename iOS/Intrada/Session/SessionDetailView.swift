@@ -37,7 +37,10 @@ struct SessionDetailView: View {
                     durationView
                 }
                 
-                notesView
+                if session.endTime != nil {
+                    notesView
+                }
+                
                 sessionTimesView
                 relatedGoalsView
             }
@@ -92,7 +95,7 @@ struct SessionDetailView: View {
     
     private var notesView: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Notes")
+            Text("Reflection notes")
                 .font(.headline)
             
             if let notes = session.notes {
