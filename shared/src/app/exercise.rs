@@ -44,8 +44,13 @@ fn test_add_exercise() {
 #[test]
 fn test_edit_exercise() {
     let mut model = Model::default();
-    let exercise = Exercise::new("Exercise 2".to_string(), None);
-    edit_exercise(exercise, &mut model);
+    let exercise = Exercise::new("Exercise 1".to_string(), None);
+    add_exercise(exercise.clone(), &mut model);
+
+    let mut edited_exercise = exercise;
+    edited_exercise.name = "Exercise 2".to_string();
+    edit_exercise(edited_exercise, &mut model);
+
     assert_eq!(model.exercises.len(), 1);
     assert_eq!(model.exercises[0].name, "Exercise 2");
 }
