@@ -28,6 +28,18 @@ impl PracticeSession {
             exercise_records: Vec::new(),
         }
     }
+
+    fn calculate_duration(&self) -> Option<String> {
+        let start_time = self.start_time.as_ref()?;
+        let end_time = self.end_time.as_ref()?;
+
+        let start = DateTime::parse_from_rfc3339(start_time).ok()?;
+        let end = DateTime::parse_from_rfc3339(end_time).ok()?;
+
+        let duration = end - start;
+        let minutes = (duration.num_seconds() as f64 / 60.0).round() as i64;
+        Some(format!("{}m", minutes))
+    }
 }
 
 pub fn add_session(session: PracticeSession, model: &mut Model) {
@@ -52,21 +64,7 @@ pub fn end_session(session_id: String, timestamp: String, model: &mut Model) {
     let index = model.sessions.iter().position(|s| s.id == session_id);
     if let Some(index) = index {
         model.sessions[index].end_time = Some(timestamp);
-
-        // Calculate duration if both start and end times exist
-        if let (Some(start_time), Some(end_time)) = (
-            &model.sessions[index].start_time,
-            &model.sessions[index].end_time,
-        ) {
-            if let (Ok(start), Ok(end)) = (
-                DateTime::parse_from_rfc3339(start_time),
-                DateTime::parse_from_rfc3339(end_time),
-            ) {
-                let duration = end - start;
-                let minutes = (duration.num_seconds() as f64 / 60.0).round() as i64;
-                model.sessions[index].duration = Some(format!("{}m", minutes));
-            }
-        }
+        model.sessions[index].duration = model.sessions[index].calculate_duration();
     }
 }
 
@@ -75,6 +73,18 @@ pub fn edit_session_notes(session_id: String, notes: String, model: &mut Model) 
     if let Some(index) = index {
         model.sessions[index].notes = Some(notes);
     }
+}
+
+pub fn get_exercise_records_for_session<'a>(
+    model: &'a Model,
+    session_id: &str,
+) -> Vec<&'a ExerciseRecord> {
+    model
+        .sessions
+        .iter()
+        .find(|session| session.id == session_id)
+        .map(|session| session.exercise_records.iter().collect())
+        .unwrap_or_default()
 }
 
 // *************
