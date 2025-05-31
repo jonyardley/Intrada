@@ -8,9 +8,7 @@ class Core: ObservableObject {
     
     init() {
         self.view = try! .bincodeDeserialize(input: [UInt8](Shared.view()))
-        print("Initial view: \(self.view)")
         self.update(Event.setDevData)
-        print("After setDevData: \(self.view)")
     }
 
     func update(_ event: Event) {
@@ -26,7 +24,6 @@ class Core: ObservableObject {
         switch request.effect {
         case .render:
             view = try! .bincodeDeserialize(input: [UInt8](Shared.view()))
-            print("View after render: \(view)")
         }
     }
 }
