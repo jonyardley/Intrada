@@ -41,8 +41,6 @@ struct SessionFormView: View {
             Form {
                 Section(header: Text("Session Details")) {
                     TextField("What's your intention for this session?", text: $intention)
-                    TextEditor(text: $notes)
-                        .frame(height: 100)
                 }
                 
                 Section(header: Text("Related Goals")) {
