@@ -22,6 +22,13 @@ pub fn add_exercise(exercise: Exercise, model: &mut Model) {
     model.exercises.push(exercise);
 }
 
+pub fn edit_exercise(exercise: Exercise, model: &mut Model) {
+    let index = model.exercises.iter().position(|e| e.id == exercise.id);
+    if let Some(index) = index {
+        model.exercises[index] = exercise;
+    }
+}
+
 // *************
 // TESTS
 // *************
@@ -32,4 +39,13 @@ fn test_add_exercise() {
     let exercise = Exercise::new("Exercise 1".to_string(), None);
     add_exercise(exercise, &mut model);
     assert_eq!(model.exercises.len(), 1);
+}
+
+#[test]
+fn test_edit_exercise() {
+    let mut model = Model::default();
+    let exercise = Exercise::new("Exercise 2".to_string(), None);
+    edit_exercise(exercise, &mut model);
+    assert_eq!(model.exercises.len(), 1);
+    assert_eq!(model.exercises[0].name, "Exercise 2");
 }

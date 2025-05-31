@@ -41,7 +41,7 @@ struct ExerciseFormView: View {
                     )
                     
                     if existingExercise != nil {
-                        core.update(.addExercise(exercise))
+                        core.update(.editExercise(exercise))
                     } else {
                         core.update(.addExercise(exercise))
                     }
