@@ -1,9 +1,6 @@
 use crate::app::model::Model;
 use serde::{Deserialize, Serialize};
 
-// *************
-// GOALS
-// *************
 #[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
 pub enum GoalStatus {
     #[default]
@@ -21,7 +18,7 @@ pub struct PracticeGoal {
     pub start_date: Option<String>,
     pub target_date: Option<String>,
     pub exercise_ids: Vec<String>,
-    pub tempo_target: Option<u32>, // This might want to be abstracted and maybe a range?
+    pub tempo_target: Option<u32>,
 }
 
 impl PracticeGoal {

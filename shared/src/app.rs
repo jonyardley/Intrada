@@ -11,6 +11,9 @@ pub use goal::*;
 pub mod exercise;
 pub use exercise::*;
 
+pub mod session;
+pub use session::*;
+
 pub mod model;
 pub use model::*;
 
@@ -23,14 +26,20 @@ pub use dev::*;
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum Event {
     AddGoal(PracticeGoal),
+    EditGoal(PracticeGoal),
+
     AddExercise(Exercise),
     AddExerciseToGoal {
         goal_id: String,
         exercise_id: String,
     },
-    EditGoal(PracticeGoal),
-    SetDevData(),
 
+    AddSession(PracticeSession),
+    EditSession(PracticeSession),
+    StartSession(PracticeSession, String),
+    EndSession(PracticeSession, String),
+
+    SetDevData(),
     Nothing,
 }
 
@@ -62,12 +71,19 @@ impl App for Chopin {
     ) -> Command<Effect, Event> {
         match event {
             Event::AddGoal(goal) => add_goal(goal, model),
+            Event::EditGoal(goal) => edit_goal(goal, model),
+
             Event::AddExercise(exercise) => add_exercise(exercise, model),
             Event::AddExerciseToGoal {
                 goal_id,
                 exercise_id,
             } => add_exercise_to_goal(goal_id, exercise_id, model),
-            Event::EditGoal(goal) => edit_goal(goal, model),
+
+            Event::AddSession(session) => add_session(session, model),
+            Event::EditSession(session) => edit_session(session, model),
+            Event::StartSession(session, timestamp) => start_session(session, timestamp, model),
+            Event::EndSession(session, timestamp) => end_session(session, timestamp, model),
+
             Event::SetDevData() => dev::set_dev_data(model),
 
             //No Nothing
@@ -81,6 +97,7 @@ impl App for Chopin {
         ViewModel {
             goals: model.goals.clone(),
             exercises: model.exercises.clone(),
+            sessions: model.sessions.clone(),
         }
     }
 }
@@ -180,6 +197,66 @@ mod test {
         );
 
         // Check update asked us to `Render`
+        assert_effect!(update, Effect::Render(_));
+    }
+
+    #[test]
+    fn adds_session() {
+        let app = AppTester::<Chopin>::default();
+        let mut model = Model::default();
+
+        let update = app.update(
+            Event::AddSession(PracticeSession::new(
+                vec!["Goal 1".to_string()],
+                "Intention 1".to_string(),
+            )),
+            &mut model,
+        );
+        assert_effect!(update, Effect::Render(_));
+    }
+
+    #[test]
+    fn edits_session() {
+        let app = AppTester::<Chopin>::default();
+        let mut model = Model::default();
+
+        let update = app.update(
+            Event::EditSession(PracticeSession::new(
+                vec!["Goal 1".to_string()],
+                "Intention 1".to_string(),
+            )),
+            &mut model,
+        );
+        assert_effect!(update, Effect::Render(_));
+    }
+
+    #[test]
+    fn start_session() {
+        let app = AppTester::<Chopin>::default();
+        let mut model = Model::default();
+
+        let update = app.update(
+            Event::StartSession(
+                PracticeSession::new(vec!["Goal 1".to_string()], "Intention 1".to_string()),
+                "2025-05-01".to_string(),
+            ),
+            &mut model,
+        );
+        assert_effect!(update, Effect::Render(_));
+    }
+
+    #[test]
+    fn end_session() {
+        let app = AppTester::<Chopin>::default();
+        let mut model = Model::default();
+
+        let update = app.update(
+            Event::EndSession(
+                PracticeSession::new(vec!["Goal 1".to_string()], "Intention 1".to_string()),
+                "2025-05-01".to_string(),
+            ),
+            &mut model,
+        );
         assert_effect!(update, Effect::Render(_));
     }
 }

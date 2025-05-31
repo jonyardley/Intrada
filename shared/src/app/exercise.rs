@@ -1,9 +1,6 @@
 use crate::app::model::Model;
 use serde::{Deserialize, Serialize};
 
-// *************
-// EXERCISES
-// *************
 #[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
 pub struct Exercise {
     pub id: String,

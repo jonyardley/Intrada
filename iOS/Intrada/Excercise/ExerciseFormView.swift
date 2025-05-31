@@ -41,7 +41,6 @@ struct ExerciseFormView: View {
                     )
                     
                     if existingExercise != nil {
-                        // TODO: Add edit exercise functionality to core
                         core.update(.addExercise(exercise))
                     } else {
                         core.update(.addExercise(exercise))

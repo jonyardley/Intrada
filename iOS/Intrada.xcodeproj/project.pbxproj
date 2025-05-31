@@ -112,15 +112,15 @@
 			isa = PBXGroup;
 			children = (
 				83A37A40ED4819A50BFE69F4 /* Assets.xcassets */,
-				3B36F261B1F57456079044C9 /* ContentView.swift */,
 				104D2C969AAB822EE589C8D3 /* core.swift */,
-				DAAF63990A427F10CDE80895 /* HomeVIew.swift */,
 				193296C58A583AB40733912E /* Info.plist */,
 				B00E1ECBA4E0EB5DA54C56F2 /* IntradaApp.swift */,
-				683ADA17CC2C8555D48DBD50 /* ProfileView.swift */,
 				C12DCCE15A6C13D38C625F96 /* Excercise */,
 				A88789A635B5B1C83BC114A7 /* Goal */,
 				E5A7F62A3A0E4D902216AE60 /* Session */,
+				3B36F261B1F57456079044C9 /* ContentView.swift */,
+				DAAF63990A427F10CDE80895 /* HomeVIew.swift */,
+				683ADA17CC2C8555D48DBD50 /* ProfileView.swift */,
 			);
 			path = Intrada;
 			sourceTree = "<group>";

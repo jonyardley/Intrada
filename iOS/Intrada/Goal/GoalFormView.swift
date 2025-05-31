@@ -11,6 +11,8 @@ struct GoalFormView: View {
   @State private var targetDate: Date
   @State private var tempoTarget: String
   @State private var selectedExercises: Set<String>
+  @State private var showExerciseForm = false
+  @State private var exerciseFilter = ""
 
   init(core: Core, existingGoal: PracticeGoal? = nil) {
     self.core = core
@@ -48,6 +50,22 @@ struct GoalFormView: View {
         }
 
         Section(header: Text("Exercises")) {
+  
+          Button(action: {
+            // Present exercise form sheet
+            showExerciseForm = true
+          }) {
+            HStack {
+              Image(systemName: "plus.circle.fill")
+                .foregroundColor(Color(red: 79/255, green: 70/255, blue: 229/255))
+              Text("Add New Exercise")
+                .foregroundColor(Color(red: 79/255, green: 70/255, blue: 229/255))
+            }
+          }
+          .sheet(isPresented: $showExerciseForm) {
+            ExerciseFormView(core: core)
+          }
+          
           ForEach(core.view.exercises, id: \.id) { exercise in
             Toggle(
               exercise.name,
