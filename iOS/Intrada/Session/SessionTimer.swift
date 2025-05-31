@@ -6,40 +6,26 @@ class SessionTimer: ObservableObject {
     @Published var elapsedTime: TimeInterval = 0
     private var timer: Timer?
     private var startDate: Date?
-    private var isRunning: Bool = false
     
     private init() {}
     
     func startTimer(startTime: String) {
-        // Only start if not already running
-        guard !isRunning else { return }
-        
         guard let startDate = ISO8601DateFormatter().date(from: startTime) else { return }
         self.startDate = startDate
         elapsedTime = Date().timeIntervalSince(startDate)
-        isRunning = true
         
-        DispatchQueue.main.async { [weak self] in
-            guard let self = self else { return }
-            self.timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
-                guard let self = self, let startDate = self.startDate else { return }
-                self.elapsedTime = Date().timeIntervalSince(startDate)
-            }
-            RunLoop.current.add(self.timer!, forMode: .common)
+        timer?.invalidate()
+        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+            guard let self = self, let startDate = self.startDate else { return }
+            self.elapsedTime = Date().timeIntervalSince(startDate)
         }
     }
     
     func stopTimer() {
-        // Only stop if actually running
-        guard isRunning else { return }
-        
-        DispatchQueue.main.async { [weak self] in
-            self?.timer?.invalidate()
-            self?.timer = nil
-            self?.startDate = nil
-            self?.elapsedTime = 0
-            self?.isRunning = false
-        }
+        timer?.invalidate()
+        timer = nil
+        startDate = nil
+        elapsedTime = 0
     }
     
     func formatElapsedTime(_ timeInterval: TimeInterval) -> String {
