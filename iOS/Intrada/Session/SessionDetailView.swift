@@ -111,7 +111,7 @@ struct SessionDetailView: View {
             }
         }
         .sheet(isPresented: $showingEditForm) {
-            SessionFormView(core: core, isPresented: $showingEditForm)
+            SessionFormView(core: core, isPresented: $showingEditForm, existingSession: session)
         }
     }
     
