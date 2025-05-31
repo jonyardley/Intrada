@@ -1,0 +1,15 @@
+{
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "sweetpad",
+    "[swift]": {
+        "editor.defaultFormatter": "sweetpad",
+        "editor.formatOnSave": true
+    },
+    "sweetpad.enable": true,
+    "sweetpad.swiftui.enable": true,
+    "sweetpad.swiftui.iosVersion": "18.0",
+    "sweetpad.swiftui.previewEnabled": true,
+    "sweetpad.swiftui.livePreview": true,
+    "sweetpad.swiftui.autoComplete": true,
+    "sweetpad.swiftui.snippets": true
+}

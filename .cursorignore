@@ -1,0 +1,24 @@
+# Build directories
+build/
+target/
+generated/
+
+# Dependencies
+Pods/
+Carthage/
+
+# Xcode
+*.xcodeproj/*
+!*.xcodeproj/project.pbxproj
+*.xcworkspace/*
+!*.xcworkspace/contents.xcworkspacedata
+
+# macOS
+.DS_Store
+
+# Swift Package Manager
+.build/
+Package.resolved
+
+# Other
+*.lock 

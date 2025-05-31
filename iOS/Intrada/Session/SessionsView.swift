@@ -8,13 +8,6 @@
 import SwiftUI
 import SharedTypes
 
-struct Session: Identifiable {
-    let id = UUID()
-    let date: Date
-    let duration: TimeInterval
-    let notes: String
-}
-
 struct SessionsView: View {
     @ObservedObject var core: Core
     @State private var showingAddForm = false
@@ -40,15 +33,23 @@ struct SessionsView: View {
                 
                 // Sessions section
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("Recent Sessions")
+                    Text("Recent practice sessions")
                         .font(.title2)
                         .fontWeight(.semibold)
                         .padding(.horizontal)
+
+                    let sessions = core.view.sessions;
                     
-                    // TODO: Add session cards when session model is implemented
-                    Text("No sessions yet")
-                        .foregroundColor(.gray)
-                        .padding(.horizontal)
+                    if sessions.isEmpty {
+                        Text("No sessions yet")
+                            .foregroundColor(.gray)
+                            .padding(.horizontal)
+                    } else {
+                        ForEach(sessions, id: \.id) { session in
+                            SessionRow(session: session)
+                                .padding(.horizontal)
+                        }
+                    }
                 }
             }
             .padding(.vertical)
@@ -63,66 +64,98 @@ struct SessionsView: View {
 }
 
 struct SessionRow: View {
-    let session: Session
+    let session: PracticeSession
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(session.date, style: .date)
+            // Intention
+            Text(session.intention)
                 .font(.headline)
-            Text("Duration: \(formatDuration(session.duration))")
-                .font(.subheadline)
-            if !session.notes.isEmpty {
-                Text(session.notes)
-                    .font(.body)
-                    .foregroundColor(.secondary)
+            
+            // Notes
+            if let notes = session.notes, !notes.isEmpty {
+                Text(notes)
+                    .font(.subheadline)
+                    .foregroundColor(.gray)
             }
-        }
-        .padding(.vertical, 4)
-    }
-    
-    private func formatDuration(_ duration: TimeInterval) -> String {
-        let hours = Int(duration) / 3600
-        let minutes = Int(duration) / 60 % 60
-        return "\(hours)h \(minutes)m"
-    }
-}
-
-struct NewSessionView: View {
-    @Environment(\.dismiss) var dismiss
-    @Binding var sessions: [Session]
-    @State private var notes = ""
-    @State private var duration: TimeInterval = 3600 // Default 1 hour
-    
-    var body: some View {
-        NavigationView {
-            Form {
-                Section(header: Text("Session Details")) {
-                    TextField("Notes", text: $notes)
-                    Stepper("Duration: \(formatDuration(duration))", value: $duration, in: 300...7200, step: 300)
-                }
-            }
-            .navigationTitle("New Session")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        dismiss()
+            
+            // Date, Time and Duration
+            HStack {
+                if let startTime = session.startTime {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(formatDate(startTime))
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                        Text(formatTime(startTime))
+                            .font(.caption)
+                            .foregroundColor(.gray)
                     }
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        let newSession = Session(date: Date(), duration: duration, notes: notes)
-                        sessions.append(newSession)
-                        dismiss()
-                    }
+                
+                Spacer()
+                
+                if let duration = calculateDuration(start: session.startTime, end: session.endTime) {
+                    Text(duration)
+                        .font(.caption)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.gray.opacity(0.2))
+                        .cornerRadius(8)
                 }
             }
         }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.gray.opacity(0.1))
+        .cornerRadius(10)
     }
     
-    private func formatDuration(_ duration: TimeInterval) -> String {
-        let hours = Int(duration) / 3600
-        let minutes = Int(duration) / 60 % 60
-        return "\(hours)h \(minutes)m"
+    private func formatDate(_ dateString: String) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        if let date = formatter.date(from: dateString) {
+            let displayFormatter = DateFormatter()
+            displayFormatter.dateStyle = .medium
+            displayFormatter.timeStyle = .none
+            return displayFormatter.string(from: date)
+        }
+        return dateString
+    }
+    
+    private func formatTime(_ dateString: String) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        if let date = formatter.date(from: dateString) {
+            let displayFormatter = DateFormatter()
+            displayFormatter.dateStyle = .none
+            displayFormatter.timeStyle = .short
+            return displayFormatter.string(from: date)
+        }
+        return dateString
+    }
+    
+    private func calculateDuration(start: String?, end: String?) -> String? {
+        guard let startTime = start, let endTime = end else {
+            return nil
+        }
+        
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        
+        guard let startDate = formatter.date(from: startTime),
+              let endDate = formatter.date(from: endTime) else {
+            return nil
+        }
+        
+        let components = Calendar.current.dateComponents([.hour, .minute], from: startDate, to: endDate)
+        if let hours = components.hour, let minutes = components.minute {
+            if hours > 0 {
+                return "\(hours)h \(minutes)m"
+            } else {
+                return "\(minutes)m"
+            }
+        }
+        return nil
     }
 }
 
