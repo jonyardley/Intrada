@@ -15,7 +15,7 @@ struct SessionsView: View {
     @State private var sessionToReflect: PracticeSession?
     
     private var activeSession: PracticeSession? {
-        core.view.sessions.first { $0.startTime != nil && $0.endTime == nil }
+        core.view.sessions.first { $0.endTime == nil }
     }
     
     private var completedSessions: [PracticeSession] {
@@ -46,10 +46,7 @@ struct SessionsView: View {
             .sheet(isPresented: $showingAddForm) {
                 SessionFormView(
                     core: core,
-                    isPresented: $showingAddForm,
-                    onSessionCreated: { sessionId in
-                        core.update(.startSession(sessionId, Date().ISO8601Format()))
-                    }
+                    isPresented: $showingAddForm
                 )
             }
             .sheet(isPresented: $showingReflectionForm) {
@@ -144,7 +141,15 @@ struct ActiveSessionView: View {
                             .font(.title3)
                             .monospacedDigit()
                             .foregroundColor(.blue)
-                        
+                    } else {
+                        Text("Ready?")
+                            .font(.title3)
+                            .foregroundColor(.gray)
+                    }
+                    
+                    Spacer()
+                    
+                    if session.startTime != nil {
                         NavigationLink(destination: SessionDetailView(core: core, sessionId: session.id)) {
                             Text("View Session")
                                 .font(.subheadline)
@@ -155,14 +160,6 @@ struct ActiveSessionView: View {
                                 .cornerRadius(6)
                         }
                     } else {
-                        Text("Ready?")
-                            .font(.title3)
-                            .foregroundColor(.gray)
-                    }
-                    
-                    Spacer()
-                    
-                    if session.startTime == nil {
                         NavigationLink(destination: SessionDetailView(core: core, sessionId: session.id)) {
                             HStack(spacing: 4) {
                                 Image(systemName: "play.fill")
