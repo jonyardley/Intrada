@@ -6,8 +6,7 @@ struct SessionDetailView: View {
     let sessionId: String
     @State private var showingEditForm = false
     @State private var showingReflectionForm = false
-    @State private var elapsedTime: TimeInterval = 0
-    @State private var timer: Timer?
+    @StateObject private var sessionTimer = SessionTimer.shared
     @State private var isEndingSession = false
     
     private var session: PracticeSession {
@@ -58,7 +57,7 @@ struct SessionDetailView: View {
             SessionFormView(
                 core: core,
                 isPresented: $showingEditForm,
-				existingSessionId: sessionId
+                existingSessionId: sessionId
             )
         }
         .sheet(isPresented: $showingReflectionForm) {
@@ -69,17 +68,13 @@ struct SessionDetailView: View {
             )
         }
         .onAppear {
-            if isActive {
-                startTimer()
+            if isActive, let startTime = session.startTime {
+                sessionTimer.startTimer(startTime: startTime)
             }
-        }
-        .onDisappear {
-            timer?.invalidate()
         }
         .onChange(of: core.view.sessions) { _ in
             if !isActive {
-                timer?.invalidate()
-                timer = nil
+                sessionTimer.stopTimer()
             }
         }
     }
@@ -127,7 +122,7 @@ struct SessionDetailView: View {
             
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    Text(formatElapsedTime(elapsedTime))
+                    Text(sessionTimer.formatElapsedTime(sessionTimer.elapsedTime))
                         .font(.title3)
                         .monospacedDigit()
                         .foregroundColor(.blue)
@@ -149,12 +144,6 @@ struct SessionDetailView: View {
             .cornerRadius(10)
         }
         .padding(.horizontal)
-        .onChange(of: isEndingSession) { newValue in
-            if newValue {
-                showingReflectionForm = true
-                isEndingSession = false
-            }
-        }
     }
     
     private var durationView: some View {
@@ -234,21 +223,9 @@ struct SessionDetailView: View {
     }
     
     private func endSession() {
-        timer?.invalidate()
-        timer = nil
-        elapsedTime = 0
+        sessionTimer.stopTimer()
         core.update(.endSession(session.id, Date().ISO8601Format()))
         showingReflectionForm = true
-    }
-    
-    private func startTimer() {
-        guard let startTime = session.startTime,
-              let startDate = ISO8601DateFormatter().date(from: startTime) else { return }
-        
-        elapsedTime = Date().timeIntervalSince(startDate)
-        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
-            elapsedTime = Date().timeIntervalSince(startDate)
-        }
     }
     
     private func formatElapsedTime(_ timeInterval: TimeInterval) -> String {

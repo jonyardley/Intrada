@@ -85,27 +85,6 @@ struct SessionsView: View {
     
     private var sessionsListView: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Active Sessions")
-                .font(.title2)
-                .fontWeight(.semibold)
-                .padding(.horizontal)
-            
-            let activeSessions = core.view.sessions.filter { $0.startTime == nil }
-            if activeSessions.isEmpty {
-                Text("No active sessions")
-                    .foregroundColor(.gray)
-                    .padding(.horizontal)
-            } else {
-                ForEach(activeSessions, id: \.id) { session in
-                    NavigationLink {
-                        SessionDetailView(core: core, sessionId: session.id)
-                    } label: {
-                        SessionRow(session: session)
-                            .padding(.horizontal)
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                }
-            }
             
             Text("Recent practice sessions")
                 .font(.title2)
@@ -141,10 +120,7 @@ struct ActiveSessionView: View {
     let session: PracticeSession
     @ObservedObject var core: Core
     let onSessionEnd: (PracticeSession) -> Void
-    @State private var elapsedTime: TimeInterval = 0
-    @State private var timer: Timer?
-    @State private var hasStarted: Bool = false
-    @State private var navigateToDetail: Bool = false
+    @StateObject private var sessionTimer = SessionTimer.shared
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -163,8 +139,8 @@ struct ActiveSessionView: View {
                 }
                 
                 HStack {
-                    if hasStarted {
-                        Text(formatElapsedTime(elapsedTime))
+                    if session.startTime != nil {
+                        Text(sessionTimer.formatElapsedTime(sessionTimer.elapsedTime))
                             .font(.title3)
                             .monospacedDigit()
                             .foregroundColor(.blue)
@@ -186,7 +162,7 @@ struct ActiveSessionView: View {
                     
                     Spacer()
                     
-                    if !hasStarted {
+                    if session.startTime == nil {
                         NavigationLink(destination: SessionDetailView(core: core, sessionId: session.id)) {
                             HStack(spacing: 4) {
                                 Image(systemName: "play.fill")
@@ -199,9 +175,9 @@ struct ActiveSessionView: View {
                             .cornerRadius(8)
                         }
                         .simultaneousGesture(TapGesture().onEnded {
-                            core.update(.startSession(session.id, Date().ISO8601Format()))
-                            hasStarted = true
-                            startTimer()
+                            let startTime = Date().ISO8601Format()
+                            core.update(.startSession(session.id, startTime))
+                            sessionTimer.startTimer(startTime: startTime)
                         })
                     }
                 }
@@ -210,26 +186,11 @@ struct ActiveSessionView: View {
             .background(Color.blue.opacity(0.1))
             .cornerRadius(10)
         }
-        .onDisappear {
-            timer?.invalidate()
+        .onAppear {
+            if let startTime = session.startTime {
+                sessionTimer.startTimer(startTime: startTime)
+            }
         }
-    }
-    
-    private func startTimer() {
-        guard let startTime = session.startTime,
-              let startDate = ISO8601DateFormatter().date(from: startTime) else { return }
-        
-        elapsedTime = Date().timeIntervalSince(startDate)
-        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
-            elapsedTime = Date().timeIntervalSince(startDate)
-        }
-    }
-    
-    private func formatElapsedTime(_ timeInterval: TimeInterval) -> String {
-        let hours = Int(timeInterval) / 3600
-        let minutes = Int(timeInterval) / 60 % 60
-        let seconds = Int(timeInterval) % 60
-        return String(format: "%02d:%02d:%02d", hours, minutes, seconds)
     }
 }
 
