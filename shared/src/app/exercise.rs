@@ -1,3 +1,4 @@
+use crate::app::exercise_record::ExerciseRecord;
 use crate::app::model::Model;
 use serde::{Deserialize, Serialize};
 
@@ -16,6 +17,15 @@ impl Exercise {
             description,
         }
     }
+
+    pub fn get_session_records<'a>(&self, model: &'a Model) -> Vec<&'a ExerciseRecord> {
+        model
+            .sessions
+            .iter()
+            .flat_map(|session| &session.exercise_records)
+            .filter(|record| record.exercise_id == self.id)
+            .collect()
+    }
 }
 
 pub fn add_exercise(exercise: Exercise, model: &mut Model) {
@@ -27,6 +37,15 @@ pub fn edit_exercise(exercise: Exercise, model: &mut Model) {
     if let Some(index) = index {
         model.exercises[index] = exercise;
     }
+}
+
+pub fn get_exercise_records<'a>(model: &'a Model, exercise_id: &str) -> Vec<&'a ExerciseRecord> {
+    model
+        .sessions
+        .iter()
+        .flat_map(|session| &session.exercise_records)
+        .filter(|record| record.exercise_id == exercise_id)
+        .collect()
 }
 
 // *************
@@ -53,4 +72,34 @@ fn test_edit_exercise() {
 
     assert_eq!(model.exercises.len(), 1);
     assert_eq!(model.exercises[0].name, "Exercise 2");
+}
+
+#[test]
+fn test_exercise_records() {
+    let mut model = Model::default();
+
+    // Create an exercise
+    let exercise = Exercise::new("Test Exercise".to_string(), None);
+    let exercise_id = exercise.id.clone();
+    add_exercise(exercise.clone(), &mut model);
+
+    // Create a session
+    let session = crate::app::session::PracticeSession::new(
+        vec!["Goal 1".to_string()],
+        "Test Session".to_string(),
+    );
+    let session_id = session.id.clone();
+    crate::app::session::add_session(session, &mut model);
+
+    // Add exercise records
+    let record1 =
+        crate::app::exercise_record::ExerciseRecord::new(exercise_id.clone(), session_id.clone());
+    let record2 =
+        crate::app::exercise_record::ExerciseRecord::new(exercise_id.clone(), session_id.clone());
+    crate::app::exercise_record::add_exercise_record(record1, &mut model);
+    crate::app::exercise_record::add_exercise_record(record2, &mut model);
+
+    // Test get_session_records
+    let records = exercise.get_session_records(&model);
+    assert_eq!(records.len(), 2);
 }

@@ -1,11 +1,11 @@
 import SwiftUI
 import SharedTypes
 
-struct SessionDetailView: View {
+struct ActiveSessionDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject var core: Core
     let sessionId: String
-    @State private var showingEditForm = false
+    @StateObject private var sessionTimer = SessionTimer.shared
     @State private var showingReflectionForm = false
     @State private var showingError = false
     
@@ -19,27 +19,19 @@ struct SessionDetailView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
                         sessionHeaderView(session: session)
-                        sessionSummaryView(session: session)
-                        notesView(session: session)
-                        sessionTimesView(session: session)
-                        relatedGoalsView(session: session)
+                        activeSessionControls(session: session)
+                        sessionGoalsView(session: session)
                     }
                     .padding(.vertical)
                 }
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .navigationBarTrailing) {
-                        Button("Edit") {
-                            showingEditForm = true
+                        Button("End Session") {
+                            endSession()
                         }
+                        .foregroundColor(.red)
                     }
-                }
-                .sheet(isPresented: $showingEditForm) {
-                    SessionFormView(
-                        core: core,
-                        isPresented: $showingEditForm,
-                        existingSessionId: sessionId
-                    )
                 }
                 .sheet(isPresented: $showingReflectionForm) {
                     SessionReflectionForm(
@@ -47,6 +39,11 @@ struct SessionDetailView: View {
                         core: core,
                         isPresented: $showingReflectionForm
                     )
+                }
+                .onAppear {
+                    if let startTime = session.startTime {
+                        sessionTimer.startTimer(startTime: startTime)
+                    }
                 }
             } else {
                 Color.clear
@@ -73,84 +70,31 @@ struct SessionDetailView: View {
         .padding(.horizontal)
     }
     
-    private func sessionSummaryView(session: PracticeSession) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Session Summary")
-                .font(.headline)
+    private func activeSessionControls(session: PracticeSession) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Session Timer")
+                .font(.title2)
+                .fontWeight(.semibold)
             
-            if let duration = session.duration {
+            VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    Image(systemName: "clock")
+                    Text(sessionTimer.formatElapsedTime(sessionTimer.elapsedTime))
+                        .font(.system(size: 48, weight: .bold, design: .monospaced))
                         .foregroundColor(.blue)
-                    Text(duration)
-                        .font(.subheadline)
+                    
+                    Spacer()
                 }
             }
+            .padding()
+            .background(Color.blue.opacity(0.1))
+            .cornerRadius(10)
         }
         .padding(.horizontal)
     }
     
-    private func notesView(session: PracticeSession) -> some View {
+    private func sessionGoalsView(session: PracticeSession) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Reflection notes")
-                .font(.headline)
-            
-            if let notes = session.notes {
-                Text(notes)
-                    .font(.body)
-                    .foregroundColor(.primary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding()
-                    .background(Color.gray.opacity(0.1))
-                    .cornerRadius(8)
-            } else {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("No reflection yet")
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-                    Text("Take a moment to reflect on your practice - it helps deepen your learning!")
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                        .italic()
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding()
-                .background(Color.blue.opacity(0.05))
-                .cornerRadius(8)
-            }
-        }
-        .padding(.horizontal)
-    }
-    
-    private func sessionTimesView(session: PracticeSession) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Session Times")
-                .font(.headline)
-            
-            if let startTime = session.startTime {
-                HStack {
-                    Image(systemName: "play.circle.fill")
-                        .foregroundColor(.green)
-                    Text(formatDateAndTime(startTime))
-                        .font(.subheadline)
-                }
-            }
-            
-            if let endTime = session.endTime {
-                HStack {
-                    Image(systemName: "stop.circle.fill")
-                        .foregroundColor(.red)
-                    Text(formatDateAndTime(endTime))
-                        .font(.subheadline)
-                }
-            }
-        }
-        .padding(.horizontal)
-    }
-    
-    private func relatedGoalsView(session: PracticeSession) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Related Goals")
+            Text("Practice Goals")
                 .font(.headline)
             
             let goals = core.view.goals.filter { goal in
@@ -217,28 +161,19 @@ struct SessionDetailView: View {
         .padding(.horizontal)
     }
     
-    private func formatDateAndTime(_ dateString: String) -> String {
-        let formatter = ISO8601DateFormatter()
-        if let date = formatter.date(from: dateString) {
-            let calendar = Calendar.current
-            let displayFormatter = DateFormatter()
-            
-            if calendar.isDateInToday(date) {
-                displayFormatter.dateFormat = "'Today at' h:mm a"
-            } else if calendar.isDateInYesterday(date) {
-                displayFormatter.dateFormat = "'Yesterday at' h:mm a"
-            } else {
-                displayFormatter.dateFormat = "MMM d, yyyy 'at' h:mm a"
-            }
-            return displayFormatter.string(from: date)
+    private func endSession() {
+        sessionTimer.stopTimer()
+        if let session = session {
+            core.update(.endSession(session.id, Date().ISO8601Format()))
+            showingReflectionForm = true
         }
-        return dateString
     }
 }
 
 #Preview {
-    SessionDetailView(
+	let core = Core();
+    ActiveSessionDetailView(
         core: Core(),
-        sessionId: "1"
+		sessionId: core.view.sessions.first!.id
     )
 } 

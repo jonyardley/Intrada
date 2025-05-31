@@ -1,6 +1,6 @@
 use crate::app::{
-    add_exercise, add_goal, add_session, end_session, start_session, Exercise, Model, PracticeGoal,
-    PracticeSession,
+    add_exercise, add_exercise_record, add_goal, add_session, end_session, start_session, Exercise,
+    ExerciseRecord, Model, PracticeGoal, PracticeSession,
 };
 
 pub fn set_dev_data(model: &mut Model) {
@@ -95,5 +95,10 @@ pub fn set_dev_data(model: &mut Model) {
         "2025-05-01T12:00:00Z".to_string(),
         model,
     );
+
+    // Add exercise records
+    let exercise_record = ExerciseRecord::new(model.exercises[0].id.clone(), session_id.clone());
+    add_exercise_record(exercise_record, model);
+
     end_session(session_id, "2025-05-01T12:30:00Z".to_string(), model);
 }
