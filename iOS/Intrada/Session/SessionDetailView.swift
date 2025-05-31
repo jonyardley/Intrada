@@ -219,18 +219,50 @@ struct SessionDetailView: View {
                     .cornerRadius(8)
             } else {
                 ForEach(goals, id: \.id) { goal in
-                    NavigationLink(destination: GoalDetailView(core: core, goal: goal)) {
+                    Section {
+                        let exercises = core.view.exercises.filter { exercise in
+                            goal.exerciseIds.contains(exercise.id)
+                        }
+                        
+                        if exercises.isEmpty {
+                            Text("No exercises added")
+                                .foregroundColor(.gray)
+                                .padding(.vertical, 8)
+                        } else {
+                            ForEach(exercises, id: \.id) { exercise in
+                                NavigationLink(destination: ExerciseDetailView(core: core, exercise: exercise)) {
+                                    HStack {
+                                        Image(systemName: "music.note")
+                                            .foregroundColor(.blue)
+                                            .frame(width: 24)
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text(exercise.name)
+                                                .font(.subheadline)
+                                            if let description = exercise.description {
+                                                Text(description)
+                                                    .font(.caption)
+                                                    .foregroundColor(.gray)
+                                            }
+                                        }
+                                        Spacer()
+                                        Image(systemName: "chevron.right")
+                                            .font(.caption)
+                                            .foregroundColor(.gray)
+                                    }
+                                    .padding(.vertical, 8)
+                                }
+                            }
+                        }
+                    } header: {
                         HStack {
                             Text(goal.name)
+                                .font(.headline)
                             Spacer()
                             if let description = goal.description {
                                 Text(description)
                                     .foregroundColor(.gray)
                             }
                         }
-                        .padding()
-                        .background(Color.gray.opacity(0.1))
-                        .cornerRadius(8)
                     }
                 }
             }

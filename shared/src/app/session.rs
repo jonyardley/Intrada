@@ -1,3 +1,4 @@
+use crate::app::exercise_record::ExerciseRecord;
 use crate::app::model::Model;
 use chrono::DateTime;
 use serde::{Deserialize, Serialize};
@@ -11,6 +12,7 @@ pub struct PracticeSession {
     pub end_time: Option<String>,
     pub notes: Option<String>,
     pub duration: Option<String>,
+    pub exercise_records: Vec<ExerciseRecord>,
 }
 
 impl PracticeSession {
@@ -23,6 +25,7 @@ impl PracticeSession {
             end_time: None,
             notes: None,
             duration: None,
+            exercise_records: Vec::new(),
         }
     }
 }
