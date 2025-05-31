@@ -50,8 +50,11 @@ struct SessionsView: View {
                             .padding(.horizontal)
                     } else {
                         ForEach(core.view.sessions.filter { $0.endTime != nil }, id: \.id) { session in
-                            SessionRow(session: session)
-                                .padding(.horizontal)
+                            NavigationLink(destination: SessionDetailView(core: core, session: session)) {
+                                SessionRow(session: session)
+                                    .padding(.horizontal)
+                            }
+                            .buttonStyle(PlainButtonStyle())
                         }
                     }
                 }
