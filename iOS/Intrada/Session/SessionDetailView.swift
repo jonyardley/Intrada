@@ -2,84 +2,94 @@ import SwiftUI
 import SharedTypes
 
 struct SessionDetailView: View {
+    @Environment(\.dismiss) private var dismiss
     @ObservedObject var core: Core
     let sessionId: String
     @State private var showingEditForm = false
     @State private var showingReflectionForm = false
     @StateObject private var sessionTimer = SessionTimer.shared
     @State private var isEndingSession = false
+    @State private var showingError = false
     
-    private var session: PracticeSession {
-        core.view.sessions.first(where: { $0.id == sessionId }) ?? PracticeSession(
-            id: sessionId,
-            goalIds: [],
-            intention: "",
-            startTime: nil,
-            endTime: nil,
-            notes: nil,
-            duration: nil
-        )
+    private var session: PracticeSession? {
+        core.view.sessions.first(where: { $0.id == sessionId })
     }
     
     var isActive: Bool {
-        session.startTime != nil && session.endTime == nil
+        session?.startTime != nil && session?.endTime == nil
     }
     
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                sessionHeaderView
-                
-                if isActive {
-                    activeSessionView
-                } else {
-                    durationView
+        Group {
+            if let session = session {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 20) {
+                        sessionHeaderView(session: session)
+                        
+                        if isActive {
+                            activeSessionView(session: session)
+                        } else {
+                            durationView(session: session)
+                        }
+                        
+                        if session.endTime != nil {
+                            notesView(session: session)
+                        }
+                        
+                        sessionTimesView(session: session)
+                        relatedGoalsView(session: session)
+                    }
+                    .padding(.vertical)
                 }
-                
-                if session.endTime != nil {
-                    notesView
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button("Edit") {
+                            showingEditForm = true
+                        }
+                    }
                 }
-                
-                sessionTimesView
-                relatedGoalsView
-            }
-            .padding(.vertical)
-        }
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button("Edit") {
-                    showingEditForm = true
+                .sheet(isPresented: $showingEditForm) {
+                    SessionFormView(
+                        core: core,
+                        isPresented: $showingEditForm,
+                        existingSessionId: sessionId
+                    )
                 }
+                .sheet(isPresented: $showingReflectionForm) {
+                    SessionReflectionForm(
+                        sessionId: session.id,
+                        core: core,
+                        isPresented: $showingReflectionForm
+                    )
+                }
+                .onAppear {
+                    if isActive, let startTime = session.startTime {
+                        sessionTimer.startTimer(startTime: startTime)
+                    }
+                }
+                .onChange(of: core.view.sessions) { oldValue, newValue in
+                    if !isActive {
+                        sessionTimer.stopTimer()
+                    }
+                }
+            } else {
+                Color.clear
+                    .onAppear {
+                        showingError = true
+                    }
             }
         }
-        .sheet(isPresented: $showingEditForm) {
-            SessionFormView(
-                core: core,
-                isPresented: $showingEditForm,
-                existingSessionId: sessionId
-            )
-        }
-        .sheet(isPresented: $showingReflectionForm) {
-            SessionReflectionForm(
-                sessionId: session.id,
-                core: core,
-                isPresented: $showingReflectionForm
-            )
-        }
-        .onAppear {
-            if isActive, let startTime = session.startTime {
-                sessionTimer.startTimer(startTime: startTime)
+        .alert("Session Not Found", isPresented: $showingError) {
+            Button("OK") {
+                dismiss()
             }
-        }
-        .onChange(of: core.view.sessions) { _ in
-            if !isActive {
-                sessionTimer.stopTimer()
-            }
+        } message: {
+            Text("The session you're looking for doesn't exist or has been deleted.")
         }
     }
     
-    private var sessionHeaderView: some View {
+    private func sessionHeaderView(session: PracticeSession) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(session.intention)
                 .font(.title)
@@ -88,7 +98,7 @@ struct SessionDetailView: View {
         .padding(.horizontal)
     }
     
-    private var notesView: some View {
+    private func notesView(session: PracticeSession) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Reflection notes")
                 .font(.headline)
@@ -120,7 +130,7 @@ struct SessionDetailView: View {
         .padding(.horizontal)
     }
     
-    private var activeSessionView: some View {
+    private func activeSessionView(session: PracticeSession) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Active Session")
                 .font(.title2)
@@ -152,7 +162,7 @@ struct SessionDetailView: View {
         .padding(.horizontal)
     }
     
-    private var durationView: some View {
+    private func durationView(session: PracticeSession) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Duration")
                 .font(.headline)
@@ -165,7 +175,7 @@ struct SessionDetailView: View {
         .padding(.horizontal)
     }
     
-    private var sessionTimesView: some View {
+    private func sessionTimesView(session: PracticeSession) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Session Times")
                 .font(.headline)
@@ -191,7 +201,7 @@ struct SessionDetailView: View {
         .padding(.horizontal)
     }
     
-    private var relatedGoalsView: some View {
+    private func relatedGoalsView(session: PracticeSession) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Related Goals")
                 .font(.headline)
@@ -230,15 +240,10 @@ struct SessionDetailView: View {
     
     private func endSession() {
         sessionTimer.stopTimer()
-        core.update(.endSession(session.id, Date().ISO8601Format()))
-        showingReflectionForm = true
-    }
-    
-    private func formatElapsedTime(_ timeInterval: TimeInterval) -> String {
-        let hours = Int(timeInterval) / 3600
-        let minutes = Int(timeInterval) / 60 % 60
-        let seconds = Int(timeInterval) % 60
-        return String(format: "%02d:%02d:%02d", hours, minutes, seconds)
+        if let session = session {
+            core.update(.endSession(session.id, Date().ISO8601Format()))
+            showingReflectionForm = true
+        }
     }
     
     private func formatDateAndTime(_ dateString: String) -> String {
