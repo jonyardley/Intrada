@@ -36,8 +36,8 @@ pub enum Event {
 
     AddSession(PracticeSession),
     EditSession(PracticeSession),
-    StartSession(PracticeSession, String),
-    EndSession(PracticeSession, String),
+    StartSession(String, String),
+    EndSession(String, String),
 
     SetDevData(),
     Nothing,
@@ -81,8 +81,10 @@ impl App for Chopin {
 
             Event::AddSession(session) => add_session(session, model),
             Event::EditSession(session) => edit_session(session, model),
-            Event::StartSession(session, timestamp) => start_session(session, timestamp, model),
-            Event::EndSession(session, timestamp) => end_session(session, timestamp, model),
+            Event::StartSession(session_id, timestamp) => {
+                start_session(session_id, timestamp, model)
+            }
+            Event::EndSession(session_id, timestamp) => end_session(session_id, timestamp, model),
 
             Event::SetDevData() => dev::set_dev_data(model),
 
@@ -237,7 +239,9 @@ mod test {
 
         let update = app.update(
             Event::StartSession(
-                PracticeSession::new(vec!["Goal 1".to_string()], "Intention 1".to_string()),
+                PracticeSession::new(vec!["Goal 1".to_string()], "Intention 1".to_string())
+                    .id
+                    .clone(),
                 "2025-05-01".to_string(),
             ),
             &mut model,
@@ -252,7 +256,9 @@ mod test {
 
         let update = app.update(
             Event::EndSession(
-                PracticeSession::new(vec!["Goal 1".to_string()], "Intention 1".to_string()),
+                PracticeSession::new(vec!["Goal 1".to_string()], "Intention 1".to_string())
+                    .id
+                    .clone(),
                 "2025-05-01".to_string(),
             ),
             &mut model,

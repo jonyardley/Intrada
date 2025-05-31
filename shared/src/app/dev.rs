@@ -90,19 +90,10 @@ pub fn set_dev_data(model: &mut Model) {
     let session_id = session.id.clone();
     add_session(session, model);
 
-    let session_to_update = PracticeSession {
-        id: session_id.clone(),
-        goal_ids: vec![],
-        intention: "".to_string(),
-        start_time: None,
-        end_time: None,
-        notes: None,
-    };
-
     start_session(
-        session_to_update.clone(),
-        "2025-05-01 12:00:00".to_string(),
+        session_id.clone(),
+        "2025-05-01T12:00:00Z".to_string(),
         model,
     );
-    end_session(session_to_update, "2025-05-01 12:30:00".to_string(), model);
+    end_session(session_id, "2025-05-01T12:30:00Z".to_string(), model);
 }
