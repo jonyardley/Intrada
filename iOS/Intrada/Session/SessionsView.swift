@@ -209,7 +209,7 @@ struct SessionRow: View {
                 if let startTime = session.startTime {
                     HStack(spacing: 4) {
                         Image(systemName: "calendar")
-                            .foregroundColor(.blue)
+                            .foregroundColor(.accentColor)
                         Text(formatDateAndTime(startTime))
                             .font(.caption)
                             .foregroundColor(.gray)

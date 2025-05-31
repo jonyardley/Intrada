@@ -89,19 +89,31 @@ struct GoalCard: View {
       let components = calendar.dateComponents([.day], from: today, to: targetDateObj)
       if let days = components.day {
         if days < 0 {
-          return Text("\(targetDate) - \(abs(days)) days ago")
-            .font(.caption)
-            .foregroundColor(.red)
+          return HStack(spacing: 4) {
+            Image(systemName: "calendar")
+              .foregroundColor(.red)
+            Text("\(targetDate) - \(abs(days)) days ago")
+              .font(.caption)
+              .foregroundColor(.red)
+          }
         } else {
-          return Text("\(targetDate) - \(days) days to go")
-            .font(.caption)
-            .foregroundColor(.gray)
+          return HStack(spacing: 4) {
+            Image(systemName: "calendar")
+              .foregroundColor(.accentColor)
+            Text("\(targetDate) - \(days) days to go")
+              .font(.caption)
+              .foregroundColor(.gray)
+          }
         }
       }
     }
-    return Text("Invalid date")
-      .font(.caption)
-      .foregroundColor(.gray)
+    return HStack(spacing: 4) {
+      Image(systemName: "calendar")
+        .foregroundColor(.gray)
+      Text("Invalid date")
+        .font(.caption)
+        .foregroundColor(.gray)
+    }
   }
 }
 
