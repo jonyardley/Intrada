@@ -32,8 +32,11 @@ struct ExercisesView: View {
                         .padding(.horizontal)
                     
                     ForEach(core.view.exercises, id: \.id) { exercise in
-                        ExerciseCard(exercise: exercise)
-                            .padding(.horizontal)
+                        NavigationLink(destination: ExerciseDetailView(core: core, exercise: exercise)) {
+                            ExerciseCard(exercise: exercise)
+                                .padding(.horizontal)
+                        }
+                        .buttonStyle(PlainButtonStyle())
                     }
                 }
             }

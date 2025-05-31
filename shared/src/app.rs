@@ -29,6 +29,7 @@ pub enum Event {
     EditGoal(PracticeGoal),
 
     AddExercise(Exercise),
+    EditExercise(Exercise),
     AddExerciseToGoal {
         goal_id: String,
         exercise_id: String,
@@ -74,6 +75,7 @@ impl App for Chopin {
             Event::EditGoal(goal) => edit_goal(goal, model),
 
             Event::AddExercise(exercise) => add_exercise(exercise, model),
+            Event::EditExercise(exercise) => edit_exercise(exercise, model),
             Event::AddExerciseToGoal {
                 goal_id,
                 exercise_id,
