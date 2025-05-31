@@ -11,8 +11,6 @@ import SharedTypes
 struct SessionsView: View {
     @ObservedObject var core: Core
     @State private var showingAddForm = false
-    @State private var elapsedTime: TimeInterval = 0
-    @State private var timer: Timer?
     
     private var activeSession: PracticeSession? {
         core.view.sessions.first { $0.startTime != nil && $0.endTime == nil }
