@@ -1,9 +1,8 @@
 use crate::app::model::Model;
 use chrono::DateTime;
 use serde::{Deserialize, Serialize};
-use uniffi::Record;
 
-#[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq, Record)]
+#[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
 pub struct PracticeSession {
     pub id: String,
     pub goal_ids: Vec<String>,
