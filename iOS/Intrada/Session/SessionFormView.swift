@@ -43,6 +43,15 @@ struct SessionFormView: View {
                     TextField("What's your intention for this session?", text: $intention)
                 }
                 
+                if let existingSession = existingSessionId.flatMap({ id in
+                    core.view.sessions.first { $0.id == id }
+                }), existingSession.endTime != nil {
+                    Section(header: Text("Reflection Notes")) {
+                        TextEditor(text: $notes)
+                            .frame(minHeight: 100)
+                    }
+                }
+                
                 Section(header: Text("Related Goals")) {
                     Button(action: {
                         showingGoalForm = true

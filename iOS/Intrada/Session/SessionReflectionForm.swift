@@ -25,7 +25,9 @@ struct SessionReflectionForm: View {
                     isPresented = false
                 },
                 trailing: Button("Save") {
-                    core.update(.editSessionNotes(sessionId, notes))
+                    if !notes.isEmpty {
+                        core.update(.editSessionNotes(sessionId, notes))
+                    }
                     isPresented = false
                 }
             )

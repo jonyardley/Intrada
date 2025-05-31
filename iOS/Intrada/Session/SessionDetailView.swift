@@ -102,13 +102,19 @@ struct SessionDetailView: View {
                     .background(Color.gray.opacity(0.1))
                     .cornerRadius(8)
             } else {
-                Text("No notes")
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding()
-                    .background(Color.gray.opacity(0.1))
-                    .cornerRadius(8)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("No reflection yet")
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
+                    Text("Take a moment to reflect on your practice - it helps deepen your learning!")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                        .italic()
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding()
+                .background(Color.blue.opacity(0.05))
+                .cornerRadius(8)
             }
         }
         .padding(.horizontal)
