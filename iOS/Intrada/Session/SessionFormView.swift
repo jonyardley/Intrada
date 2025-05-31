@@ -9,21 +9,28 @@ import SwiftUI
 import SharedTypes
 
 struct SessionFormView: View {
+    @Environment(\.dismiss) private var dismiss
     @ObservedObject var core: Core
     @Binding var isPresented: Bool
-    let existingSession: PracticeSession?
+    let existingSessionId: String?
+    let onSessionCreated: ((String) -> Void)?
     
     @State private var intention: String
     @State private var notes: String
     @State private var selectedGoals: Set<String>
     @State private var showingGoalForm = false
     
-    init(core: Core, isPresented: Binding<Bool>, existingSession: PracticeSession? = nil) {
+    init(core: Core, isPresented: Binding<Bool>, existingSessionId: String? = nil, onSessionCreated: ((String) -> Void)? = nil) {
         self.core = core
         self._isPresented = isPresented
-        self.existingSession = existingSession
+        self.existingSessionId = existingSessionId
+        self.onSessionCreated = onSessionCreated
         
         // Initialize state variables with existing session data if available
+        let existingSession = existingSessionId.flatMap { id in
+            core.view.sessions.first { $0.id == id }
+        }
+        
         _intention = State(initialValue: existingSession?.intention ?? "")
         _notes = State(initialValue: existingSession?.notes ?? "")
         _selectedGoals = State(initialValue: Set(existingSession?.goalIds ?? []))
@@ -63,28 +70,31 @@ struct SessionFormView: View {
                     }
                 }
             }
-            .navigationTitle(existingSession == nil ? "New Session" : "Edit Session")
+            .navigationTitle(existingSessionId == nil ? "New Session" : "Edit Session")
             .navigationBarItems(
                 leading: Button("Cancel") {
                     isPresented = false
                 },
-                trailing: Button(existingSession == nil ? "Start" : "Save") {
+                trailing: Button(existingSessionId == nil ? "Start" : "Save") {
+                    let sessionId = existingSessionId ?? UUID().uuidString
                     let session = PracticeSession(
-                        id: existingSession?.id ?? UUID().uuidString,
+                        id: sessionId,
                         goalIds: Array(selectedGoals),
                         intention: intention,
-                        startTime: existingSession?.startTime ?? Date().ISO8601Format(),
-                        endTime: existingSession?.endTime,
+                        startTime: existingSessionId == nil ? Date().ISO8601Format() : nil,
+                        endTime: nil,
                         notes: notes.isEmpty ? nil : notes,
-                        duration: existingSession?.duration
+                        duration: nil
                     )
                     
-                    if existingSession != nil {
+                    if existingSessionId != nil {
                         core.update(.editSession(session))
+                        isPresented = false
                     } else {
                         core.update(.addSession(session))
+                        isPresented = false
+                        onSessionCreated?(sessionId)
                     }
-                    isPresented = false
                 }
                     .disabled(intention.isEmpty)
             )

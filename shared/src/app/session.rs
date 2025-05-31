@@ -67,6 +67,13 @@ pub fn end_session(session_id: String, timestamp: String, model: &mut Model) {
     }
 }
 
+pub fn edit_session_notes(session_id: String, notes: String, model: &mut Model) {
+    let index = model.sessions.iter().position(|s| s.id == session_id);
+    if let Some(index) = index {
+        model.sessions[index].notes = Some(notes);
+    }
+}
+
 // *************
 // TESTS
 // *************
@@ -115,4 +122,14 @@ fn test_end_session() {
     // Verify session exists and duration is set
     assert_eq!(model.sessions.len(), 1);
     assert_eq!(model.sessions[0].duration, Some("30m".to_string())); // 30 minutes = 30 minutes
+}
+
+#[test]
+fn test_update_session_notes() {
+    let mut model = Model::default();
+    let session = PracticeSession::new(vec!["Goal 1".to_string()], "Intention 1".to_string());
+    add_session(session.clone(), &mut model);
+    assert_eq!(model.sessions.len(), 1);
+    edit_session_notes(session.id, "Notes 1".to_string(), &mut model); // TODO: fix this
+    assert_eq!(model.sessions[0].notes, Some("Notes 1".to_string()));
 }

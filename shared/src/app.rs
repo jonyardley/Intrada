@@ -39,6 +39,7 @@ pub enum Event {
     EditSession(PracticeSession),
     StartSession(String, String),
     EndSession(String, String),
+    EditSessionNotes(String, String),
 
     SetDevData(),
     Nothing,
@@ -87,6 +88,9 @@ impl App for Chopin {
                 start_session(session_id, timestamp, model)
             }
             Event::EndSession(session_id, timestamp) => end_session(session_id, timestamp, model),
+            Event::EditSessionNotes(session_id, notes) => {
+                edit_session_notes(session_id, notes, model)
+            }
 
             Event::SetDevData() => dev::set_dev_data(model),
 
