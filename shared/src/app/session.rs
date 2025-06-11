@@ -15,6 +15,20 @@ pub struct PracticeSession {
     pub exercise_records: Vec<ExerciseRecord>,
 }
 
+#[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
+pub enum ActiveSessionState {
+    #[default]
+    NotStarted,
+    Started,
+    Paused,
+}
+
+#[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
+pub struct ActiveSession {
+    pub id: String,
+    pub state: ActiveSessionState,
+}
+
 impl PracticeSession {
     pub fn new(goal_ids: Vec<String>, intention: String) -> Self {
         Self {
@@ -46,6 +60,14 @@ pub fn add_session(session: PracticeSession, model: &mut Model) {
     model.sessions.push(session);
 }
 
+pub fn set_active_session(session_id: String, model: &mut Model) {
+    model.app_state.active_session = Some(ActiveSession { id: session_id, state: ActiveSessionState::NotStarted });
+}
+
+pub fn remove_active_session(model: &mut Model) {
+    model.app_state.active_session = None;
+}
+
 pub fn edit_session(session: PracticeSession, model: &mut Model) {
     let index = model.sessions.iter().position(|s| s.id == session.id);
     if let Some(index) = index {
@@ -73,18 +95,6 @@ pub fn edit_session_notes(session_id: String, notes: String, model: &mut Model) 
     if let Some(index) = index {
         model.sessions[index].notes = Some(notes);
     }
-}
-
-pub fn get_exercise_records_for_session<'a>(
-    model: &'a Model,
-    session_id: &str,
-) -> Vec<&'a ExerciseRecord> {
-    model
-        .sessions
-        .iter()
-        .find(|session| session.id == session_id)
-        .map(|session| session.exercise_records.iter().collect())
-        .unwrap_or_default()
 }
 
 // *************
