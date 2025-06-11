@@ -14,6 +14,7 @@ struct SessionDetailView: View {
             id: sessionId,
             goalIds: [],
             intention: "",
+            state: .notStarted,
             startTime: nil,
             endTime: nil,
             notes: nil,
