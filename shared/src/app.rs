@@ -11,6 +11,9 @@ pub use goal::*;
 pub mod exercise;
 pub use exercise::*;
 
+pub mod exercise_record;
+pub use exercise_record::*;
+
 pub mod session;
 pub use session::*;
 
@@ -40,6 +43,9 @@ pub enum Event {
     StartSession(String, String),
     EndSession(String, String),
     EditSessionNotes(String, String),
+
+    AddExerciseRecord(ExerciseRecord),
+    UpdateExerciseRecord(ExerciseRecord),
 
     SetDevData(),
     Nothing,
@@ -91,6 +97,9 @@ impl App for Chopin {
             Event::EditSessionNotes(session_id, notes) => {
                 edit_session_notes(session_id, notes, model)
             }
+
+            Event::AddExerciseRecord(record) => add_exercise_record(record, model),
+            Event::UpdateExerciseRecord(record) => update_exercise_record(record, model),
 
             Event::SetDevData() => dev::set_dev_data(model),
 

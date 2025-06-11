@@ -13,6 +13,7 @@ struct SessionsView: View {
     @State private var showingAddForm = false
     @State private var showingReflectionForm = false
     @State private var sessionToReflect: PracticeSession?
+    @State private var navigationPath = NavigationPath()
     
     private var activeSession: PracticeSession? {
         core.view.sessions.first { $0.endTime == nil }
@@ -23,7 +24,7 @@ struct SessionsView: View {
     }
     
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navigationPath) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     headerView
@@ -35,6 +36,9 @@ struct SessionsView: View {
                             onSessionEnd: handleSessionEnd
                         )
                         .padding(.horizontal)
+                        .onTapGesture {
+                            navigationPath.append(activeSession.id)
+                        }
                     }
                     
                     sessionsListView
@@ -59,7 +63,12 @@ struct SessionsView: View {
                 }
             }
             .navigationDestination(for: String.self) { sessionId in
-                SessionDetailView(core: core, sessionId: sessionId)
+                if let session = core.view.sessions.first(where: { $0.id == sessionId }),
+                   session.startTime != nil && session.endTime == nil {
+                    ActiveSessionDetailView(core: core, sessionId: sessionId)
+                } else {
+                    SessionDetailView(core: core, sessionId: sessionId)
+                }
             }
         }
     }
@@ -150,7 +159,7 @@ struct ActiveSessionView: View {
                     Spacer()
                     
                     if session.startTime != nil {
-                        NavigationLink(destination: SessionDetailView(core: core, sessionId: session.id)) {
+                        NavigationLink(destination: ActiveSessionDetailView(core: core, sessionId: session.id)) {
                             Text("View Session")
                                 .font(.subheadline)
                                 .foregroundColor(.blue)
@@ -160,7 +169,7 @@ struct ActiveSessionView: View {
                                 .cornerRadius(6)
                         }
                     } else {
-                        NavigationLink(destination: SessionDetailView(core: core, sessionId: session.id)) {
+                        NavigationLink(destination: ActiveSessionDetailView(core: core, sessionId: session.id)) {
                             HStack(spacing: 4) {
                                 Image(systemName: "play.fill")
                                 Text("Start Session")
