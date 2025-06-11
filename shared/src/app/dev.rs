@@ -1,6 +1,6 @@
 use crate::app::{
-    add_exercise, add_goal, add_session, end_session, start_session, Exercise, Model, PracticeGoal,
-    PracticeSession,
+    add_exercise, add_goal, add_session, end_session, set_active_session, start_session, Exercise,
+    Model, PracticeGoal, PracticeSession,
 };
 
 pub fn set_dev_data(model: &mut Model) {
@@ -83,17 +83,25 @@ pub fn set_dev_data(model: &mut Model) {
     );
 
     //Sessions
-    let session = PracticeSession::new(
+    let session_1 = PracticeSession::new(
         model.goals.iter().take(1).map(|g| g.id.clone()).collect(),
         "Do good practice!".to_string(),
     );
-    let session_id = session.id.clone();
-    add_session(session, model);
+    let session_1_id = session_1.id.clone();
+    add_session(session_1, model);
 
     start_session(
-        session_id.clone(),
+        session_1_id.clone(),
         "2025-05-01T12:00:00Z".to_string(),
         model,
     );
-    end_session(session_id, "2025-05-01T12:30:00Z".to_string(), model);
+    end_session(session_1_id, "2025-05-01T12:30:00Z".to_string(), model);
+
+    let session_2 = PracticeSession::new(
+        model.goals.iter().take(1).map(|g| g.id.clone()).collect(),
+        "Do good practice!".to_string(),
+    );
+    let session_2_id = session_2.id.clone();
+    add_session(session_2, model);
+    set_active_session(session_2_id.clone(), model);
 }
