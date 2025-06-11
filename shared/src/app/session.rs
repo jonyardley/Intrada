@@ -13,6 +13,20 @@ pub struct PracticeSession {
     pub duration: Option<String>,
 }
 
+#[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
+pub enum ActiveSessionState {
+    #[default]
+    NotStarted,
+    Started,
+    Paused,
+}
+
+#[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
+pub struct ActiveSession {
+    pub id: String,
+    pub state: ActiveSessionState,
+}
+
 impl PracticeSession {
     pub fn new(goal_ids: Vec<String>, intention: String) -> Self {
         Self {
@@ -29,6 +43,14 @@ impl PracticeSession {
 
 pub fn add_session(session: PracticeSession, model: &mut Model) {
     model.sessions.push(session);
+}
+
+pub fn set_active_session(session_id: String, model: &mut Model) {
+    model.app_state.active_session = Some(ActiveSession { id: session_id, state: ActiveSessionState::NotStarted });
+}
+
+pub fn remove_active_session(model: &mut Model) {
+    model.app_state.active_session = None;
 }
 
 pub fn edit_session(session: PracticeSession, model: &mut Model) {
