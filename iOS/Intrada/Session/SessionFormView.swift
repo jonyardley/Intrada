@@ -91,6 +91,7 @@ struct SessionFormView: View {
                         id: sessionId,
                         goalIds: Array(selectedGoals),
                         intention: intention,
+                        state: .notStarted,
                         startTime: existingSession?.startTime,
                         endTime: existingSession?.endTime,
                         notes: notes.isEmpty ? nil : notes,

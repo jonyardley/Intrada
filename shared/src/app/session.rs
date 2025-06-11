@@ -8,6 +8,7 @@ pub struct PracticeSession {
     pub id: String,
     pub goal_ids: Vec<String>,
     pub intention: String,
+    pub state: ActiveSessionState,
     pub start_time: Option<String>,
     pub end_time: Option<String>,
     pub notes: Option<String>,
@@ -21,12 +22,12 @@ pub enum ActiveSessionState {
     NotStarted,
     Started,
     Paused,
+    Ended,
 }
 
 #[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
 pub struct ActiveSession {
     pub id: String,
-    pub state: ActiveSessionState,
 }
 
 impl PracticeSession {
@@ -35,6 +36,7 @@ impl PracticeSession {
             id: uuid::Uuid::new_v4().to_string(),
             goal_ids,
             intention,
+            state: ActiveSessionState::NotStarted,
             start_time: None,
             end_time: None,
             notes: None,
@@ -56,12 +58,24 @@ impl PracticeSession {
     }
 }
 
+fn get_session_by_id(session_id: String, model: &mut Model) -> Option<&mut PracticeSession> {
+    model.sessions.iter_mut().find(|s| s.id == session_id)
+}
+
 pub fn add_session(session: PracticeSession, model: &mut Model) {
+    let session_id = session.id.clone();
     model.sessions.push(session);
+    if let Some(active_session) = model.app_state.active_session.as_ref() {
+        if let Some(active_session) = get_session_by_id(active_session.id.clone(), model) {
+            active_session.state = ActiveSessionState::Ended;
+            remove_active_session(model);
+        }
+    }
+    set_active_session(session_id, model);
 }
 
 pub fn set_active_session(session_id: String, model: &mut Model) {
-    model.app_state.active_session = Some(ActiveSession { id: session_id, state: ActiveSessionState::NotStarted });
+    model.app_state.active_session = Some(ActiveSession { id: session_id });
 }
 
 pub fn remove_active_session(model: &mut Model) {
@@ -79,6 +93,8 @@ pub fn start_session(session_id: String, timestamp: String, model: &mut Model) {
     let index = model.sessions.iter().position(|s| s.id == session_id);
     if let Some(index) = index {
         model.sessions[index].start_time = Some(timestamp);
+        model.sessions[index].state = ActiveSessionState::Started;
+        set_active_session(session_id, model);
     }
 }
 
@@ -86,7 +102,27 @@ pub fn end_session(session_id: String, timestamp: String, model: &mut Model) {
     let index = model.sessions.iter().position(|s| s.id == session_id);
     if let Some(index) = index {
         model.sessions[index].end_time = Some(timestamp);
+<<<<<<< HEAD
         model.sessions[index].duration = model.sessions[index].calculate_duration();
+=======
+
+        // Calculate duration if both start and end times exist
+        if let (Some(start_time), Some(end_time)) = (
+            &model.sessions[index].start_time,
+            &model.sessions[index].end_time,
+        ) {
+            if let (Ok(start), Ok(end)) = (
+                DateTime::parse_from_rfc3339(start_time),
+                DateTime::parse_from_rfc3339(end_time),
+            ) {
+                let duration = end - start;
+                let minutes = (duration.num_seconds() as f64 / 60.0).round() as i64;
+                model.sessions[index].duration = Some(format!("{}m", minutes));
+                model.sessions[index].state = ActiveSessionState::Ended;
+                remove_active_session(model);
+            }
+        }
+>>>>>>> a39c263 (Move some session stuff to core and refactor ios)
     }
 }
 

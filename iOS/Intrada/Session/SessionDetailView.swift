@@ -9,8 +9,26 @@ struct SessionDetailView: View {
     @State private var showingReflectionForm = false
     @State private var showingError = false
     
+<<<<<<< HEAD
     private var session: PracticeSession? {
         core.view.sessions.first(where: { $0.id == sessionId })
+=======
+    private var session: PracticeSession {
+        core.view.sessions.first(where: { $0.id == sessionId }) ?? PracticeSession(
+            id: sessionId,
+            goalIds: [],
+            intention: "",
+            state: .notStarted,
+            startTime: nil,
+            endTime: nil,
+            notes: nil,
+            duration: nil
+        )
+    }
+    
+    var isActive: Bool {
+        session.startTime != nil && session.endTime == nil
+>>>>>>> a39c263 (Move some session stuff to core and refactor ios)
     }
     
     var body: some View {

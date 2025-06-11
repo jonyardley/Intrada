@@ -16,11 +16,15 @@ struct SessionsView: View {
     @State private var navigationPath = NavigationPath()
     
     private var activeSession: PracticeSession? {
-        core.view.sessions.first { $0.endTime == nil }
+        if let activeSession = core.view.appState.activeSession {
+            core.view.sessions.first { $0.id == activeSession.id }
+        } else {
+            nil
+        }
     }
     
     private var completedSessions: [PracticeSession] {
-        core.view.sessions.filter { $0.endTime != nil }
+        core.view.sessions.filter { $0.state == .ended }
     }
     
     var body: some View {
