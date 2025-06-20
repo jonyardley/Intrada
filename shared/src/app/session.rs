@@ -58,7 +58,7 @@ impl PracticeSession {
     }
 }
 
-fn get_session_by_id(session_id: String, model: &mut Model) -> Option<&mut PracticeSession> {
+fn get_session_by_id(session_id: &str, model: &mut Model) -> Option<&mut PracticeSession> {
     model.sessions.iter_mut().find(|s| s.id == session_id)
 }
 
