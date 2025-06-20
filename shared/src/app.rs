@@ -40,7 +40,9 @@ pub enum Event {
 
     AddSession(PracticeSession),
     EditSession(PracticeSession),
+    SetActiveSession(String),
     StartSession(String, String),
+    UnsetActiveSession(),
     EndSession(String, String),
     EditSessionNotes(String, String),
 
@@ -90,10 +92,12 @@ impl App for Chopin {
 
             Event::AddSession(session) => add_session(session, model),
             Event::EditSession(session) => edit_session(session, model),
-            Event::StartSession(session_id, timestamp) => {
+            Event::SetActiveSession(session_id) => set_active_session(session_id, model),
+            Event::StartSession(session_id, timestamp) => { //Make this start Active Session
                 start_session(session_id, timestamp, model)
             }
-            Event::EndSession(session_id, timestamp) => end_session(session_id, timestamp, model),
+            Event::EndSession(session_id, timestamp) => end_session(session_id, timestamp, model), // End Active Session
+            Event::UnsetActiveSession() => remove_active_session(model),
             Event::EditSessionNotes(session_id, notes) => {
                 edit_session_notes(session_id, notes, model)
             }
@@ -103,7 +107,7 @@ impl App for Chopin {
 
             Event::SetDevData() => dev::set_dev_data(model),
 
-            //No Nothing
+            //Do Nothing
             Event::Nothing => (),
         };
 
@@ -115,6 +119,7 @@ impl App for Chopin {
             goals: model.goals.clone(),
             exercises: model.exercises.clone(),
             sessions: model.sessions.clone(),
+            app_state: model.app_state.clone(),
         }
     }
 }

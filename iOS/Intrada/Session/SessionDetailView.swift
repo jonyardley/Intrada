@@ -9,8 +9,10 @@ struct SessionDetailView: View {
     @State private var showingReflectionForm = false
     @State private var showingError = false
     
+
     private var session: PracticeSession? {
         core.view.sessions.first(where: { $0.id == sessionId })
+
     }
     
     var body: some View {

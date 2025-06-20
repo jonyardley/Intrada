@@ -1,4 +1,8 @@
+use crate::app::model::Model;
 use serde::{Deserialize, Serialize};
+
+#[cfg(test)]
+use crate::app::session::{add_session, PracticeSession};
 
 #[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
 pub struct ExerciseRecord {
@@ -19,7 +23,7 @@ impl ExerciseRecord {
     }
 }
 
-pub fn add_exercise_record(record: ExerciseRecord, model: &mut crate::app::model::Model) {
+pub fn add_exercise_record(record: ExerciseRecord, model: &mut Model) {
     if let Some(session) = model
         .sessions
         .iter_mut()
@@ -29,7 +33,7 @@ pub fn add_exercise_record(record: ExerciseRecord, model: &mut crate::app::model
     }
 }
 
-pub fn update_exercise_record(record: ExerciseRecord, model: &mut crate::app::model::Model) {
+pub fn update_exercise_record(record: ExerciseRecord, model: &mut Model) {
     if let Some(session) = model
         .sessions
         .iter_mut()
@@ -45,19 +49,37 @@ pub fn update_exercise_record(record: ExerciseRecord, model: &mut crate::app::mo
     }
 }
 
+pub fn get_exercise_records<'a>(model: &'a Model, exercise_id: &str) -> Vec<&'a ExerciseRecord> {
+    model
+        .sessions
+        .iter()
+        .flat_map(|session| session.exercise_records.iter())
+        .filter(|record| record.exercise_id == exercise_id)
+        .collect()
+}
+
+pub fn get_exercise_records_for_session<'a>(
+    model: &'a Model,
+    session_id: &str,
+) -> Vec<&'a ExerciseRecord> {
+    model
+        .sessions
+        .iter()
+        .find(|session| session.id == session_id)
+        .map(|session| session.exercise_records.iter().collect())
+        .unwrap_or_default()
+}
+
 // *************
 // TESTS
 // *************
 
 #[test]
 fn test_add_exercise_record() {
-    let mut model = crate::app::model::Model::default();
-    let session = crate::app::session::PracticeSession::new(
-        vec!["Goal 1".to_string()],
-        "Intention 1".to_string(),
-    );
+    let mut model = Model::default();
+    let session = PracticeSession::new(vec!["Goal 1".to_string()], "Intention 1".to_string());
     let session_id = session.id.clone();
-    crate::app::session::add_session(session, &mut model);
+    add_session(session, &mut model);
 
     let record = ExerciseRecord::new("Exercise 1".to_string(), session_id);
     add_exercise_record(record, &mut model);
@@ -68,13 +90,10 @@ fn test_add_exercise_record() {
 
 #[test]
 fn test_update_exercise_record() {
-    let mut model = crate::app::model::Model::default();
-    let session = crate::app::session::PracticeSession::new(
-        vec!["Goal 1".to_string()],
-        "Intention 1".to_string(),
-    );
+    let mut model = Model::default();
+    let session = PracticeSession::new(vec!["Goal 1".to_string()], "Intention 1".to_string());
     let session_id = session.id.clone();
-    crate::app::session::add_session(session, &mut model);
+    add_session(session, &mut model);
 
     let record = ExerciseRecord::new("Exercise 1".to_string(), session_id.clone());
     let record_id = record.id.clone();

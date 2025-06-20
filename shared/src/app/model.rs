@@ -1,41 +1,32 @@
-use crate::app::{Exercise, ExerciseRecord, PracticeGoal, PracticeSession};
+use crate::app::{ActiveSession, Exercise, PracticeGoal, PracticeSession};
 use serde::{Deserialize, Serialize};
+
+#[cfg(test)]
+use crate::app::exercise_record::{
+    get_exercise_records, get_exercise_records_for_session, ExerciseRecord,
+};
+
+#[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
+pub struct AppState {
+    pub active_session: Option<ActiveSession>,
+}
 
 #[derive(Default)]
 pub struct Model {
     pub goals: Vec<PracticeGoal>,
     pub exercises: Vec<Exercise>,
     pub sessions: Vec<PracticeSession>,
+    pub app_state: AppState,
 }
 
 impl Model {}
-
-pub fn get_exercise_records<'a>(model: &'a Model, exercise_id: &str) -> Vec<&'a ExerciseRecord> {
-    model
-        .sessions
-        .iter()
-        .flat_map(|session| session.exercise_records.iter())
-        .filter(|record| record.exercise_id == exercise_id)
-        .collect()
-}
-
-pub fn get_exercise_records_for_session<'a>(
-    model: &'a Model,
-    session_id: &str,
-) -> Vec<&'a ExerciseRecord> {
-    model
-        .sessions
-        .iter()
-        .find(|session| session.id == session_id)
-        .map(|session| session.exercise_records.iter().collect())
-        .unwrap_or_default()
-}
 
 #[derive(Serialize, Deserialize, Clone, Default)]
 pub struct ViewModel {
     pub goals: Vec<PracticeGoal>,
     pub exercises: Vec<Exercise>,
     pub sessions: Vec<PracticeSession>,
+    pub app_state: AppState,
 }
 
 // *************
