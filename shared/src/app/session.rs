@@ -58,19 +58,23 @@ impl PracticeSession {
     }
 }
 
-fn get_session_by_id(session_id: &str, model: &mut Model) -> Option<&mut PracticeSession> {
+fn get_session_by_id<'a>(session_id: &str, model: &'a mut Model) -> Option<&'a mut PracticeSession> {
     model.sessions.iter_mut().find(|s| s.id == session_id)
 }
 
 pub fn add_session(session: PracticeSession, model: &mut Model) {
     let session_id = session.id.clone();
-    model.sessions.push(session);
-    if let Some(active_session) = model.app_state.active_session.as_ref() {
-        if let Some(active_session) = get_session_by_id(active_session.id.clone(), model) {
+    
+    // Check if there's an active session and end it if needed
+    if let Some(active_session) = &model.app_state.active_session {
+        let active_session_id = active_session.id.clone();
+        if let Some(active_session) = get_session_by_id(&active_session_id, model) {
             active_session.state = ActiveSessionState::Ended;
-            remove_active_session(model);
         }
+        remove_active_session(model);
     }
+    
+    model.sessions.push(session);
     set_active_session(session_id, model);
 }
 
