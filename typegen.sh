@@ -13,7 +13,7 @@ cargo run --package shared --bin crux_cli --features cli -- \
     codegen --out-dir ./shared/generated \
         --java com.crux.example.counter.shared \
         --swift SharedTypes
-        #--typescript shared_types
+        #--typescript shared_types  # TODO: TypeScript generation is currently disabled. Enable this line if TypeScript bindings are required in the future.
 
 cargo run --package shared --bin crux_cli --features cli -- \
     bindgen --out-dir ./shared/generated
