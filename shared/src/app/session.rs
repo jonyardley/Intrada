@@ -102,27 +102,15 @@ pub fn end_session(session_id: String, timestamp: String, model: &mut Model) {
     let index = model.sessions.iter().position(|s| s.id == session_id);
     if let Some(index) = index {
         model.sessions[index].end_time = Some(timestamp);
-<<<<<<< HEAD
         model.sessions[index].duration = model.sessions[index].calculate_duration();
-=======
+        model.sessions[index].state = ActiveSessionState::Ended;
 
-        // Calculate duration if both start and end times exist
-        if let (Some(start_time), Some(end_time)) = (
-            &model.sessions[index].start_time,
-            &model.sessions[index].end_time,
-        ) {
-            if let (Ok(start), Ok(end)) = (
-                DateTime::parse_from_rfc3339(start_time),
-                DateTime::parse_from_rfc3339(end_time),
-            ) {
-                let duration = end - start;
-                let minutes = (duration.num_seconds() as f64 / 60.0).round() as i64;
-                model.sessions[index].duration = Some(format!("{}m", minutes));
-                model.sessions[index].state = ActiveSessionState::Ended;
+        // Remove from active session if this was the active session
+        if let Some(active_session) = &model.app_state.active_session {
+            if active_session.id == session_id {
                 remove_active_session(model);
             }
         }
->>>>>>> a39c263 (Move some session stuff to core and refactor ios)
     }
 }
 
@@ -175,12 +163,22 @@ fn test_end_session() {
         &mut model,
     );
 
+    // Verify session is active
+    assert_eq!(model.sessions[0].state, ActiveSessionState::Started);
+    assert!(model.app_state.active_session.is_some());
+    assert_eq!(
+        model.app_state.active_session.as_ref().unwrap().id,
+        session_id
+    );
+
     // End the session 30 minutes later
     end_session(session_id, "2025-05-01T12:30:00Z".to_string(), &mut model);
 
     // Verify session exists and duration is set
     assert_eq!(model.sessions.len(), 1);
     assert_eq!(model.sessions[0].duration, Some("30m".to_string())); // 30 minutes = 30 minutes
+    assert_eq!(model.sessions[0].state, ActiveSessionState::Ended);
+    assert!(model.app_state.active_session.is_none());
 }
 
 #[test]

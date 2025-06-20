@@ -95,7 +95,8 @@ struct SessionFormView: View {
                         startTime: existingSession?.startTime,
                         endTime: existingSession?.endTime,
                         notes: notes.isEmpty ? nil : notes,
-                        duration: existingSession?.duration, exerciseRecords: ExerciseRecord
+                        duration: existingSession?.duration,
+                        exerciseRecords: existingSession?.exerciseRecords ?? []
                     )
                     
                     if existingSessionId != nil {

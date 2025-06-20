@@ -39,15 +39,6 @@ pub fn edit_exercise(exercise: Exercise, model: &mut Model) {
     }
 }
 
-pub fn get_exercise_records<'a>(model: &'a Model, exercise_id: &str) -> Vec<&'a ExerciseRecord> {
-    model
-        .sessions
-        .iter()
-        .flat_map(|session| &session.exercise_records)
-        .filter(|record| record.exercise_id == exercise_id)
-        .collect()
-}
-
 // *************
 // TESTS
 // *************

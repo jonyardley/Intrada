@@ -1,5 +1,8 @@
+use crate::app::model::Model;
 use serde::{Deserialize, Serialize};
-use crate::app::{model::Model, session::{add_session, PracticeSession}};
+
+#[cfg(test)]
+use crate::app::session::{add_session, PracticeSession};
 
 #[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
 pub struct ExerciseRecord {
@@ -74,10 +77,7 @@ pub fn get_exercise_records_for_session<'a>(
 #[test]
 fn test_add_exercise_record() {
     let mut model = Model::default();
-    let session = PracticeSession::new(
-        vec!["Goal 1".to_string()],
-        "Intention 1".to_string(),
-    );
+    let session = PracticeSession::new(vec!["Goal 1".to_string()], "Intention 1".to_string());
     let session_id = session.id.clone();
     add_session(session, &mut model);
 
@@ -91,10 +91,7 @@ fn test_add_exercise_record() {
 #[test]
 fn test_update_exercise_record() {
     let mut model = Model::default();
-    let session = PracticeSession::new(
-        vec!["Goal 1".to_string()],
-        "Intention 1".to_string(),
-    );
+    let session = PracticeSession::new(vec!["Goal 1".to_string()], "Intention 1".to_string());
     let session_id = session.id.clone();
     add_session(session, &mut model);
 

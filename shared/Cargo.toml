@@ -19,13 +19,13 @@ cli = ["crux_core/cli"]
 crux_core.workspace = true
 serde = { workspace = true, features = ["derive"] }
 lazy_static = "1.5.0"
-uniffi = "0.29.2"
+uniffi = "0.29.3"
 wasm-bindgen = "0.2.100"
 uuid = { version = "1.7.0", features = ["v4", "serde", "js"] }
 chrono = "0.4.41"
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
-uniffi = "0.29.2"
+uniffi = "0.29.3"
 
 [target.'cfg(target_family = "wasm")'.dependencies]
 wasm-bindgen = "0.2.100"

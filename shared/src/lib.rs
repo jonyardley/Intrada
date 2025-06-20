@@ -12,8 +12,8 @@ static CORE: LazyLock<Bridge<Chopin>> = LazyLock::new(|| Bridge::new(Core::new()
 
 #[cfg(not(target_family = "wasm"))]
 const _: () = assert!(
-    uniffi::check_compatible_version("0.29.2"),
-    "please use uniffi v0.29.2"
+    uniffi::check_compatible_version("0.29.3"),
+    "please use uniffi v0.29.3"
 );
 
 #[cfg(not(target_family = "wasm"))]

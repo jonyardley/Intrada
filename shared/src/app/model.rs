@@ -1,7 +1,10 @@
-use crate::app::{
-    ActiveSession, Exercise, ExerciseRecord, PracticeGoal, PracticeSession,
-};
+use crate::app::{ActiveSession, Exercise, PracticeGoal, PracticeSession};
 use serde::{Deserialize, Serialize};
+
+#[cfg(test)]
+use crate::app::exercise_record::{
+    get_exercise_records, get_exercise_records_for_session, ExerciseRecord,
+};
 
 #[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
 pub struct AppState {

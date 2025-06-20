@@ -16,24 +16,27 @@ struct ActiveSessionDetailView: View {
     var body: some View {
         Group {
             if let session = session {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 20) {
-                        sessionHeaderView(session: session)
-                        activeSessionControls(session: session)
-                        sessionGoalsView(session: session)
-                    }
-                    .padding(.vertical)
-                }
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
+                VStack(alignment: .leading, spacing: 20) {
+                    HStack {
+                        Spacer()
                         Button("End Session") {
                             endSession()
                         }
                         .foregroundColor(.red)
                     }
+                    .padding(.horizontal)
+                    
+                    sessionHeaderView(session: session)
+                    activeSessionControls(session: session)
+                    sessionGoalsView(session: session)
                 }
-                .sheet(isPresented: $showingReflectionForm) {
+                .padding(.vertical)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .navigationBarTitleDisplayMode(.inline)
+                .sheet(isPresented: $showingReflectionForm, onDismiss: {
+                    // Dismiss this view since the session is no longer active
+                    dismiss()
+                }) {
                     SessionReflectionForm(
                         sessionId: session.id,
                         core: core,
