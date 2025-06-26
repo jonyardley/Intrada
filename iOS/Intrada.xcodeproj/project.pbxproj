@@ -193,7 +193,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				4AEAE67A9ED6F0D48F6F61B2 /* XCLocalSwiftPackageReference "../shared/Shared" */,
-				AC2CE8210B9C38E01B856752 /* XCLocalSwiftPackageReference "../shared/generated/swift/SharedTypes" */,
+				AC2CE8210B9C38E01B856752 /* XCLocalSwiftPackageReference "/Users/jonyardley/Dev/Intrada/shared/generated/swift/SharedTypes" */,
 			);
 			preferredProjectObjectVersion = 54;
 			projectDirPath = "";
@@ -423,9 +423,9 @@
 			isa = XCLocalSwiftPackageReference;
 			relativePath = ../shared/Shared;
 		};
-		AC2CE8210B9C38E01B856752 /* XCLocalSwiftPackageReference "../shared/generated/swift/SharedTypes" */ = {
+		AC2CE8210B9C38E01B856752 /* XCLocalSwiftPackageReference "/Users/jonyardley/Dev/Intrada/shared/generated/swift/SharedTypes" */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = ../shared/generated/swift/SharedTypes;
+			relativePath = "/Users/jonyardley/Dev/Intrada/shared/generated/swift/SharedTypes";
 		};
 /* End XCLocalSwiftPackageReference section */
 

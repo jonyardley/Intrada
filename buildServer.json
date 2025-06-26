@@ -15,5 +15,8 @@
 	"workspace": "${WORKSPACE_PATH}",
 	"build_root": "${BUILD_ROOT_PATH}",
 	"scheme": "Intrada",
-	"kind": "xcode"
+	"kind": "xcode",
+	"env": {
+		"SWIFT_PACKAGE_PATH": "${WORKSPACE_PATH}/shared/generated/swift/SharedTypes:${WORKSPACE_PATH}/shared/Shared"
+	}
 }

@@ -8,5 +8,10 @@
         "leptosfmt",
         "--stdin",
         "--rustfmt"
+    ],
+    "swift.buildPath": "${workspaceFolder}/iOS",
+    "swift.packagePath": [
+        "${workspaceFolder}/shared/Shared",
+        "${workspaceFolder}/shared/generated/swift/SharedTypes"
     ]
 }
