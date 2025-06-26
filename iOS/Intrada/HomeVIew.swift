@@ -5,9 +5,12 @@
 //  Created by Jon Yardley on 30/05/2025.
 //
 
+import SharedTypes
 import SwiftUI
 
 struct HomeView: View {
+    @ObservedObject var core: Core
+    
     var body: some View {
         NavigationView {
             VStack(spacing: 20) {
@@ -24,6 +27,11 @@ struct HomeView: View {
                     .multilineTextAlignment(.center)
                 
                 Spacer()
+
+                Text(core.view.message)
+                    .font(.system(size: 16))
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
@@ -31,6 +39,6 @@ struct HomeView: View {
 }
 
 #Preview {
-    HomeView()
+    HomeView(core: Core())
 }
 

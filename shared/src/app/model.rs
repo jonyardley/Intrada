@@ -17,6 +17,7 @@ pub struct Model {
     pub exercises: Vec<Exercise>,
     pub sessions: Vec<PracticeSession>,
     pub app_state: AppState,
+    pub message: String,
 }
 
 impl Model {}
@@ -27,6 +28,7 @@ pub struct ViewModel {
     pub exercises: Vec<Exercise>,
     pub sessions: Vec<PracticeSession>,
     pub app_state: AppState,
+    pub message: String,
 }
 
 // *************
