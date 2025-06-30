@@ -16,5 +16,8 @@ pub fn process_effect(core: &Core, effect: Effect, render: WriteSignal<ViewModel
         Effect::Render(_) => {
             render.update(|view| *view = core.view());
         }
+        Effect::Http(_) => {
+            // Do nothing
+        }
     };
 }
