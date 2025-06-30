@@ -4,6 +4,9 @@ use crux_core::{
     App, Command,
 };
 use serde::{Deserialize, Serialize};
+use crux_http::{command::Http, protocol::HttpRequest};
+
+const API_URL: &str = "https://crux-counter.fly.dev";
 
 pub mod goal;
 pub use goal::*;
@@ -51,12 +54,19 @@ pub enum Event {
 
     SetDevData(),
     Nothing,
+    #[serde(skip)]
+    Set(crux_http::Result<crux_http::Response<String>>),
+
+    Get,
+
+
+    
 }
 
 #[effect]
 pub enum Effect {
     Render(RenderOperation),
-    // Http(HttpRequest),
+    Http(HttpRequest),
     // ServerSentEvents(SseRequest),
 }
 
@@ -107,6 +117,18 @@ impl App for Chopin {
 
             Event::SetDevData() => dev::set_dev_data(model),
 
+            Event::Get => return Http::get(API_URL)
+                .expect_string()
+                .build()
+                .then_send(Event::Set),
+            Event::Set(Ok(mut response)) => {
+                let message = response.take_body().unwrap();
+                model.message = message;
+            }
+            Event::Set(Err(e)) => {
+                panic!("Oh no something went wrong: {e:?}");
+            }
+            
             //Do Nothing
             Event::Nothing => (),
         };
@@ -120,6 +142,7 @@ impl App for Chopin {
             exercises: model.exercises.clone(),
             sessions: model.sessions.clone(),
             app_state: model.app_state.clone(),
+            message: model.message.clone(),
         }
     }
 }
