@@ -18,13 +18,14 @@ class Core: ObservableObject {
 
     private var handler: EffectHandler
     private var core: CoreFfi
+    public let appwriteService = AppwriteService()
 
     init() {
         self.handler = EffectHandler()
         self.core = CoreFfi(handler)
         self.view = try! .bincodeDeserialize(input: [UInt8](core.view()))
         self.update(Event.setDevData)
-        self.update(Event.get)
+        self.update(Event.loadGoals)
 
         // the handler assignment needs to be deferred, otherwise we create a circular
         // reference between handler and self, before self is done initializing
@@ -85,35 +86,33 @@ class Core: ObservableObject {
     func handleAppwriteOperation(_ operation: AppwriteOperation) async -> AppwriteResult {
         switch operation {
         case .getGoals:
-            let goals = await loadGoalsFromAppwrite()
-            return AppwriteResult.goals(goals)
+            do {
+                let goals = try await appwriteService.fetchGoals()
+                return AppwriteResult.goals(goals)
+            } catch {
+                return AppwriteResult.error(error.localizedDescription)
+            }
+        case let .createGoal(goal):
+            do {
+                let createdGoal = try await appwriteService.createGoal(goal)
+                return AppwriteResult.goal(createdGoal)
+            } catch {
+                return AppwriteResult.error(error.localizedDescription)
+            }
+        case let .updateGoal(goal):
+            do {
+                let updatedGoal = try await appwriteService.updateGoal(goal)
+                return AppwriteResult.goal(updatedGoal)
+            } catch {
+                return AppwriteResult.error(error.localizedDescription)
+            }
+        case let .deleteGoal(goalId):
+            do {
+                try await appwriteService.deleteGoal(goalId)
+                return AppwriteResult.success
+            } catch {
+                return AppwriteResult.error(error.localizedDescription)
+            }
         }
-    }
-    
-    func loadGoalsFromAppwrite() async -> [PracticeGoal] {
-        // For now, return some dummy data
-        // In a real implementation, this would make an HTTP request to Appwrite
-        return [
-            PracticeGoal(
-                id: "1",
-                name: "Learn Piano",
-                description: Optional.some("Master the basics of piano playing"),
-                status: .notStarted,
-                startDate: Optional.none,
-                targetDate: Optional.some("2024-12-31"),
-                exerciseIds: [],
-                tempoTarget: Optional.some(120)
-            ),
-            PracticeGoal(
-                id: "2", 
-                name: "Practice Scales",
-                description: Optional.some("Daily scale practice"),
-                status: .inProgress,
-                startDate: Optional.some("2024-01-01"),
-                targetDate: Optional.none,
-                exerciseIds: [],
-                tempoTarget: Optional.none
-            )
-        ]
     }
 }

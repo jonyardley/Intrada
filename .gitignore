@@ -25,3 +25,5 @@ generated/
 /target
 generated
 .idea
+# iOS Configuration files with secrets
+iOS/Intrada/Config.plist
