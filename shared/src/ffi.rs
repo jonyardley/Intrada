@@ -11,19 +11,21 @@ pub mod uniffi_ffi {
     };
     use crux_http::protocol::HttpRequest;
 
-    use crate::Chopin;
+    use crate::{Chopin, app::AppwriteOperation};
 
     #[effect]
     pub enum Effect {
         Render(RenderOperation),
-        Http(HttpRequest)
+        Http(HttpRequest),
+        Appwrite(AppwriteOperation)
     }
 
     impl From<crate::app::Effect> for Effect {
         fn from(effect: crate::app::Effect) -> Self {
             match effect {
                 crate::Effect::Render(request) => Effect::Render(request),
-                crate::Effect::Http(request) => Effect::Http(request)
+                crate::Effect::Http(request) => Effect::Http(request),
+                crate::Effect::Appwrite(operation) => Effect::Appwrite(operation)
             }
         }
     }

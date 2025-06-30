@@ -65,6 +65,55 @@ class Core: ObservableObject {
                     processEffect(request)
                 }
             }
+        case let .appwrite(operation):
+            Task {
+                let result = await handleAppwriteOperation(operation)
+                
+                let effects = [UInt8](core.resolve(
+                    request.id,
+                    Data(try! result.bincodeSerialize()))
+                )
+                
+                let requests: [Request] = try! .bincodeDeserialize(input: effects)
+                for request in requests {
+                    processEffect(request)
+                }
+            }
         }
+    }
+    
+    func handleAppwriteOperation(_ operation: AppwriteOperation) async -> AppwriteResult {
+        switch operation {
+        case .getGoals:
+            let goals = await loadGoalsFromAppwrite()
+            return AppwriteResult.goals(goals)
+        }
+    }
+    
+    func loadGoalsFromAppwrite() async -> [PracticeGoal] {
+        // For now, return some dummy data
+        // In a real implementation, this would make an HTTP request to Appwrite
+        return [
+            PracticeGoal(
+                id: "1",
+                name: "Learn Piano",
+                description: Optional.some("Master the basics of piano playing"),
+                status: .notStarted,
+                startDate: Optional.none,
+                targetDate: Optional.some("2024-12-31"),
+                exerciseIds: [],
+                tempoTarget: Optional.some(120)
+            ),
+            PracticeGoal(
+                id: "2", 
+                name: "Practice Scales",
+                description: Optional.some("Daily scale practice"),
+                status: .inProgress,
+                startDate: Optional.some("2024-01-01"),
+                targetDate: Optional.none,
+                exerciseIds: [],
+                tempoTarget: Optional.none
+            )
+        ]
     }
 }

@@ -1,12 +1,17 @@
 use crux_core::{
     macros::effect,
     render::{render, RenderOperation},
-    App, Command,
+    App, Command, capability::Operation,
 };
 use serde::{Deserialize, Serialize};
 use crux_http::{command::Http, protocol::HttpRequest};
 
 const API_URL: &str = "https://crux-counter.fly.dev";
+
+// Appwrite configuration
+const APPWRITE_ENDPOINT: &str = "https://cloud.appwrite.io/v1";
+const APPWRITE_PROJECT_ID: &str = "your-project-id"; // You'll need to replace this
+const APPWRITE_DATABASE_ID: &str = "your-database-id"; // You'll need to replace this
 
 pub mod goal;
 pub use goal::*;
@@ -59,15 +64,33 @@ pub enum Event {
 
     Get,
 
+    // Simple Appwrite Events - just for loading goals
+    LoadGoals,
+    #[serde(skip)]
+    GoalsLoaded(AppwriteResult),
+}
 
-    
+// Simple Appwrite Operation - just for getting goals
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub enum AppwriteOperation {
+    GetGoals,
+}
+
+impl Operation for AppwriteOperation {
+    type Output = AppwriteResult;
+}
+
+// Appwrite Result - wrapper for different response types
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub enum AppwriteResult {
+    Goals(Vec<PracticeGoal>),
 }
 
 #[effect]
 pub enum Effect {
     Render(RenderOperation),
     Http(HttpRequest),
-    // ServerSentEvents(SseRequest),
+    Appwrite(AppwriteOperation),
 }
 
 // *************
@@ -131,6 +154,21 @@ impl App for Chopin {
             
             //Do Nothing
             Event::Nothing => (),
+
+            // Simple Appwrite Events - just for loading goals
+            Event::LoadGoals => {
+                // Request goals from the shell (iOS app)
+                return Command::request_from_shell(AppwriteOperation::GetGoals)
+                    .then_send(Event::GoalsLoaded);
+            }
+            Event::GoalsLoaded(result) => {
+                // Update the model with the loaded goals
+                match result {
+                    AppwriteResult::Goals(goals) => {
+                        model.goals = goals;
+                    }
+                }
+            }
         };
 
         render()
