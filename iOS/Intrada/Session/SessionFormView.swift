@@ -45,7 +45,7 @@ struct SessionFormView: View {
                 
                 if let existingSession = existingSessionId.flatMap({ id in
                     core.view.sessions.first { $0.id == id }
-                }), existingSession.endTime != nil {
+                }), case .ended(_, _, _) = existingSession.state {
                     Section(header: Text("Reflection Notes")) {
                         TextEditor(text: $notes)
                             .frame(minHeight: 100)
@@ -92,10 +92,7 @@ struct SessionFormView: View {
                         goalIds: Array(selectedGoals),
                         intention: intention,
                         state: .notStarted,
-                        startTime: existingSession?.startTime,
-                        endTime: existingSession?.endTime,
                         notes: notes.isEmpty ? nil : notes,
-                        duration: existingSession?.duration,
                         exerciseRecords: existingSession?.exerciseRecords ?? []
                     )
                     

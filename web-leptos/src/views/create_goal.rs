@@ -122,7 +122,7 @@ pub fn CreateGoal() -> impl IntoView {
                             ev.prevent_default();
                             set_event
                                 .update(|event| {
-                                    *event = Event::AddGoal(
+                                    *event = Event::CreateGoal(
                                         PracticeGoal::new(
                                             name.get(),
                                             Some(description.get()),

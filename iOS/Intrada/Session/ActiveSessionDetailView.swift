@@ -43,11 +43,11 @@ struct ActiveSessionDetailView: View {
                         isPresented: $showingReflectionForm
                     )
                 }
-                .onAppear {
-                    if let startTime = session.startTime {
-                        sessionTimer.startTimer(startTime: startTime)
-                    }
-                }
+                        .onAppear {
+            if case .started(let startTime) = session.state {
+                sessionTimer.startTimer(startTime: startTime)
+            }
+        }
             } else {
                 Color.clear
                     .onAppear {
@@ -174,9 +174,10 @@ struct ActiveSessionDetailView: View {
 }
 
 #Preview {
-	let core = Core();
+    let core = Core()
+    let sessionId = core.view.sessions.first?.id ?? "preview-session-id"
     ActiveSessionDetailView(
-        core: Core(),
-		sessionId: core.view.sessions.first!.id
+        core: core,
+        sessionId: sessionId
     )
 } 

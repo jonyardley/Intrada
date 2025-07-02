@@ -24,7 +24,12 @@ struct SessionsView: View {
     }
     
     private var completedSessions: [PracticeSession] {
-        core.view.sessions.filter { $0.state == .ended }
+        core.view.sessions.filter { 
+            if case .ended(_, _, _) = $0.state {
+                return true
+            }
+            return false
+        }
     }
     
     var body: some View {
@@ -68,7 +73,7 @@ struct SessionsView: View {
             }
             .navigationDestination(for: String.self) { sessionId in
                 if let session = core.view.sessions.first(where: { $0.id == sessionId }),
-                   session.startTime != nil && session.endTime == nil {
+                   case .started(_) = session.state {
                     ActiveSessionDetailView(core: core, sessionId: sessionId)
                 } else {
                     SessionDetailView(core: core, sessionId: sessionId)
@@ -149,7 +154,7 @@ struct ActiveSessionView: View {
                 }
                 
                 HStack {
-                    if session.startTime != nil {
+                    if case .started(_) = session.state {
                         Text(sessionTimer.formatElapsedTime(sessionTimer.elapsedTime))
                             .font(.title3)
                             .monospacedDigit()
@@ -162,7 +167,7 @@ struct ActiveSessionView: View {
                     
                     Spacer()
                     
-                    if session.startTime != nil {
+                    if case .started(_) = session.state {
                         NavigationLink(destination: ActiveSessionDetailView(core: core, sessionId: session.id)) {
                             Text("View Session")
                                 .font(.subheadline)
@@ -197,7 +202,7 @@ struct ActiveSessionView: View {
             .cornerRadius(10)
         }
         .onAppear {
-            if let startTime = session.startTime {
+            if case .started(let startTime) = session.state {
                 sessionTimer.startTimer(startTime: startTime)
             }
         }
@@ -219,7 +224,8 @@ struct SessionRow: View {
             }
             
             HStack {
-                if let startTime = session.startTime {
+                switch session.state {
+                case .started(let startTime), .paused(let startTime, _), .ended(let startTime, _, _):
                     HStack(spacing: 4) {
                         Image(systemName: "calendar")
                             .foregroundColor(.accentColor)
@@ -227,11 +233,13 @@ struct SessionRow: View {
                             .font(.caption)
                             .foregroundColor(.gray)
                     }
+                default:
+                    EmptyView()
                 }
                 
                 Spacer()
                 
-                if let duration = session.duration {
+                if case .ended(_, _, let duration) = session.state {
                     Text(duration)
                         .font(.caption)
                         .padding(.horizontal, 8)

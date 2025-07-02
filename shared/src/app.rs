@@ -120,9 +120,17 @@ impl App for Chopin {
             Event::EditSession(session) => edit_session(session, model),
             Event::SetActiveSession(session_id) => set_active_session(session_id, model),
             Event::StartSession(session_id, timestamp) => {
-                start_session(session_id, timestamp, model)
+                if let Err(e) = start_session(session_id, timestamp, model) {
+                    // You might want to handle this error in your UI
+                    println!("Failed to start session: {}", e);
+                }
             }
-            Event::EndSession(session_id, timestamp) => end_session(session_id, timestamp, model), // End Active Session
+            Event::EndSession(session_id, timestamp) => {
+                if let Err(e) = end_session(session_id, timestamp, model) {
+                    // You might want to handle this error in your UI
+                    println!("Failed to end session: {}", e);
+                }
+            }
             Event::UnsetActiveSession() => remove_active_session(model),
             Event::EditSessionNotes(session_id, notes) => {
                 edit_session_notes(session_id, notes, model)

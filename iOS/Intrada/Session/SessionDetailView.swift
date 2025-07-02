@@ -80,13 +80,16 @@ struct SessionDetailView: View {
             Text("Session Summary")
                 .font(.headline)
             
-            if let duration = session.duration {
+            switch session.state {
+            case .ended(_, _, let duration):
                 HStack {
                     Image(systemName: "clock")
                         .foregroundColor(.blue)
                     Text(duration)
                         .font(.subheadline)
                 }
+            default:
+                EmptyView()
             }
         }
         .padding(.horizontal)
@@ -129,22 +132,35 @@ struct SessionDetailView: View {
             Text("Session Times")
                 .font(.headline)
             
-            if let startTime = session.startTime {
+            switch session.state {
+            case .started(let startTime), .paused(let startTime, _), .ended(let startTime, _, _):
                 HStack {
                     Image(systemName: "play.circle.fill")
                         .foregroundColor(.green)
                     Text(formatDateAndTime(startTime))
                         .font(.subheadline)
                 }
+            default:
+                EmptyView()
             }
             
-            if let endTime = session.endTime {
+            switch session.state {
+            case .paused(_, let pauseTime):
+                HStack {
+                    Image(systemName: "pause.circle.fill")
+                        .foregroundColor(.orange)
+                    Text("Paused at \(formatDateAndTime(pauseTime))")
+                        .font(.subheadline)
+                }
+            case .ended(_, let endTime, _):
                 HStack {
                     Image(systemName: "stop.circle.fill")
                         .foregroundColor(.red)
                     Text(formatDateAndTime(endTime))
                         .font(.subheadline)
                 }
+            default:
+                EmptyView()
             }
         }
         .padding(.horizontal)

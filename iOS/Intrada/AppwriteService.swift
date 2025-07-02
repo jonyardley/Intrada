@@ -202,6 +202,7 @@ struct EmptyResponse: Codable {}
 enum AppwriteError: Error, LocalizedError {
     case invalidURL
     case invalidResponse
+    case invalidResponseType
     case httpError(Int)
     
     var errorDescription: String? {
@@ -210,6 +211,8 @@ enum AppwriteError: Error, LocalizedError {
             return "Invalid URL"
         case .invalidResponse:
             return "Invalid response"
+        case .invalidResponseType:
+            return "Invalid response type"
         case .httpError(let code):
             return "HTTP error: \(code)"
         }
