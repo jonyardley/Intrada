@@ -214,6 +214,8 @@ private struct SessionStateView: View {
 // MARK: - Session Timer View (Simplified)
 private struct SessionTimerView: View {
     @ObservedObject var core: Core
+    @State private var currentTime = Date()
+    @State private var timer: Timer?
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -241,6 +243,25 @@ private struct SessionTimerView: View {
             .cornerRadius(10)
         }
         .padding(.horizontal)
+        .onAppear {
+            startTimer()
+        }
+        .onDisappear {
+            stopTimer()
+        }
+    }
+    
+    private func startTimer() {
+        // Update every second to refresh the elapsed time
+        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+            currentTime = Date()
+            // Force a view refresh by updating the current time
+        }
+    }
+    
+    private func stopTimer() {
+        timer?.invalidate()
+        timer = nil
     }
 }
 

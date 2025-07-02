@@ -167,17 +167,14 @@ fn get_session_by_id<'a>(session_id: &str, model: &'a mut Model) -> Option<&'a m
 pub fn add_session(session: PracticeSession, model: &mut Model) {
     let session_id = session.id.clone();
     
-    // Check if there's an active session and end it if needed
-    if let Some(active_session) = &model.app_state.active_session {
-        let active_session_id = active_session.id.clone();
-        if let Some(active_session) = get_session_by_id(&active_session_id, model) {
-            active_session.end(chrono::Utc::now().to_rfc3339()).unwrap_or_default();
-        }
-        remove_active_session(model);
-    }
-    
+    // Add the session to the model
     model.sessions.push(session);
-    set_active_session(session_id, model);
+    
+    // Set as active if there's no current active session
+    // This ensures new sessions become active when no session is currently active
+    if model.app_state.active_session.is_none() {
+        set_active_session(session_id, model);
+    }
 }
 
 pub fn set_active_session(session_id: String, model: &mut Model) {

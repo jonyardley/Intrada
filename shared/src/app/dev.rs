@@ -83,9 +83,10 @@ pub fn set_dev_data(model: &mut Model) {
     );
 
     //Sessions
+    // Create a completed session
     let session_1 = PracticeSession::new(
         model.goals.iter().take(1).map(|g| g.id.clone()).collect(),
-        "Do good practice!".to_string(),
+        "Completed practice session".to_string(),
     );
     let session_1_id = session_1.id.clone();
     add_session(session_1, model);
@@ -101,4 +102,11 @@ pub fn set_dev_data(model: &mut Model) {
     add_exercise_record(exercise_record, model);
 
     let _ = end_session(session_1_id, "2025-05-01T12:30:00Z".to_string(), model);
+
+    // Create a session that's ready to start (not active yet)
+    let ready_session = PracticeSession::new(
+        model.goals.iter().skip(1).take(1).map(|g| g.id.clone()).collect(),
+        "Ready to practice - etudes session".to_string(),
+    );
+    add_session(ready_session, model);
 }
