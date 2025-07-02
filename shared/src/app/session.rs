@@ -18,7 +18,7 @@ pub enum SessionState {
     NotStarted,
     Started { start_time: String },
     Paused { start_time: String, pause_time: String },
-    Ended { start_time: String, end_time: String, duration: String },
+    Ended { start_time: String, end_time: String },
 }
 
 impl Default for SessionState {
@@ -27,7 +27,20 @@ impl Default for SessionState {
     }
 }
 
-
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct PracticeSessionView {
+    pub id: String,
+    pub goal_ids: Vec<String>,
+    pub intention: String,
+    pub state: SessionState,
+    pub notes: Option<String>,
+    pub exercise_records: Vec<ExerciseRecord>,
+    pub duration: Option<String>,
+    pub start_time: Option<String>,
+    pub pause_time: Option<String>,
+    pub end_time: Option<String>,
+    pub is_ended: bool,
+}
 
 #[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
 pub struct ActiveSession {
@@ -85,11 +98,9 @@ impl PracticeSession {
     pub fn end(&mut self, timestamp: String) -> Result<(), &'static str> {
         match &self.state {
             SessionState::Started { start_time } | SessionState::Paused { start_time, .. } => {
-                let duration = self.calculate_duration(start_time, &timestamp);
                 self.state = SessionState::Ended {
                     start_time: start_time.clone(),
                     end_time: timestamp,
-                    duration,
                 };
                 Ok(())
             }
@@ -123,23 +134,30 @@ impl PracticeSession {
         }
     }
 
-    pub fn duration(&self) -> Option<&str> {
+    pub fn pause_time(&self) -> Option<&str> {
         match &self.state {
-            SessionState::Ended { duration, .. } => Some(duration),
+            SessionState::Paused { pause_time, .. } => Some(pause_time),
             _ => None,
         }
     }
 
-    // Backward compatibility state enum for iOS
-
-
-    fn calculate_duration(&self, start_time: &str, end_time: &str) -> String {
-        let start = DateTime::parse_from_rfc3339(start_time).unwrap_or_default();
-        let end = DateTime::parse_from_rfc3339(end_time).unwrap_or_default();
-        let duration = end - start;
-        let minutes = (duration.num_seconds() as f64 / 60.0).round() as i64;
-        format!("{}m", minutes)
+    pub fn duration(&self) -> Option<String> {
+        match &self.state {
+            SessionState::Ended { start_time, end_time } => {
+                Some(calculate_duration(start_time, end_time))
+            }
+            _ => None,
+        }
     }
+}
+
+// Public duration calculation function for use by viewmodel
+pub fn calculate_duration(start_time: &str, end_time: &str) -> String {
+    let start = DateTime::parse_from_rfc3339(start_time).unwrap_or_default();
+    let end = DateTime::parse_from_rfc3339(end_time).unwrap_or_default();
+    let duration = end - start;
+    let minutes = (duration.num_seconds() as f64 / 60.0).round() as i64;
+    format!("{}m", minutes)
 }
 
 fn get_session_by_id<'a>(session_id: &str, model: &'a mut Model) -> Option<&'a mut PracticeSession> {
@@ -263,9 +281,9 @@ fn test_end_session() {
     // End the session 30 minutes later
     end_session(session_id, "2025-05-01T12:30:00Z".to_string(), &mut model).unwrap();
 
-    // Verify session exists and duration is set
+    // Verify session exists and duration is calculated on-demand
     assert_eq!(model.sessions.len(), 1);
-    assert_eq!(model.sessions[0].duration(), Some("30m")); // 30 minutes = 30 minutes
+    assert_eq!(model.sessions[0].duration(), Some("30m".to_string())); // Now returns Option<String>
     assert!(model.sessions[0].is_ended());
     assert!(model.app_state.active_session.is_none());
 }
@@ -293,7 +311,7 @@ fn test_session_state_transitions() {
     assert!(session.end("2025-05-01T12:30:00Z".to_string()).is_ok());
     assert!(session.is_ended());
     assert_eq!(session.end_time(), Some("2025-05-01T12:30:00Z"));
-    assert_eq!(session.duration(), Some("30m"));
+    assert_eq!(session.duration(), Some("30m".to_string()));
     
     // Test invalid transitions
     assert!(session.start("2025-05-01T13:00:00Z".to_string()).is_err());
@@ -320,5 +338,41 @@ fn test_backward_compatibility() {
     assert!(matches!(session.state, SessionState::Ended { .. }));
     assert_eq!(session.start_time(), Some("2025-05-01T12:00:00Z"));
     assert_eq!(session.end_time(), Some("2025-05-01T12:30:00Z"));
-    assert_eq!(session.duration(), Some("30m"));
+    assert_eq!(session.duration(), Some("30m".to_string()));
+}
+
+#[test]
+fn test_calculate_duration_function() {
+    let duration = calculate_duration("2025-05-01T12:00:00Z", "2025-05-01T12:30:00Z");
+    assert_eq!(duration, "30m");
+    
+    let duration = calculate_duration("2025-05-01T12:00:00Z", "2025-05-01T12:00:00Z");
+    assert_eq!(duration, "0m");
+    
+    let duration = calculate_duration("2025-05-01T12:00:00Z", "2025-05-01T13:15:00Z");
+    assert_eq!(duration, "75m");
+}
+
+#[test]
+fn test_pause_time_method() {
+    let mut session = PracticeSession::new(vec!["Goal 1".to_string()], "Intention 1".to_string());
+    
+    // Test initial state
+    assert_eq!(session.pause_time(), None);
+    
+    // Test after starting
+    session.start("2025-05-01T12:00:00Z".to_string()).unwrap();
+    assert_eq!(session.pause_time(), None);
+    
+    // Test after pausing
+    session.pause("2025-05-01T12:15:00Z".to_string()).unwrap();
+    assert_eq!(session.pause_time(), Some("2025-05-01T12:15:00Z"));
+    
+    // Test after resuming
+    session.resume("2025-05-01T12:20:00Z".to_string()).unwrap();
+    assert_eq!(session.pause_time(), None);
+    
+    // Test after ending
+    session.end("2025-05-01T12:30:00Z".to_string()).unwrap();
+    assert_eq!(session.pause_time(), None);
 }

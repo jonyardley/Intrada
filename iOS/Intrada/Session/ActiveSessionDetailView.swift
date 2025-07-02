@@ -9,7 +9,7 @@ struct ActiveSessionDetailView: View {
     @State private var showingReflectionForm = false
     @State private var showingError = false
     
-    private var session: PracticeSession? {
+    private var session: PracticeSessionView? {
         core.view.sessions.first(where: { $0.id == sessionId })
     }
     
@@ -64,7 +64,7 @@ struct ActiveSessionDetailView: View {
         }
     }
     
-    private func sessionHeaderView(session: PracticeSession) -> some View {
+    private func sessionHeaderView(session: PracticeSessionView) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(session.intention)
                 .font(.title)
@@ -73,7 +73,7 @@ struct ActiveSessionDetailView: View {
         .padding(.horizontal)
     }
     
-    private func activeSessionControls(session: PracticeSession) -> some View {
+    private func activeSessionControls(session: PracticeSessionView) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Session Timer")
                 .font(.title2)
@@ -95,7 +95,7 @@ struct ActiveSessionDetailView: View {
         .padding(.horizontal)
     }
     
-    private func sessionGoalsView(session: PracticeSession) -> some View {
+    private func sessionGoalsView(session: PracticeSessionView) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Practice Goals")
                 .font(.headline)

@@ -45,7 +45,7 @@ struct SessionFormView: View {
                 
                 if let existingSession = existingSessionId.flatMap({ id in
                     core.view.sessions.first { $0.id == id }
-                }), case .ended(_, _, _) = existingSession.state {
+                }), existingSession.isEnded {
                     Section(header: Text("Reflection Notes")) {
                         TextEditor(text: $notes)
                             .frame(minHeight: 100)

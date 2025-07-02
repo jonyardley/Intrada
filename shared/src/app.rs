@@ -200,151 +200,22 @@ impl App for Chopin {
         ViewModel {
             goals: model.goals.clone(),
             exercises: model.exercises.clone(),
-            sessions: model.sessions.clone(),
+            sessions: model.sessions.iter().map(|s| {
+                crate::app::session::PracticeSessionView {
+                    id: s.id.clone(),
+                    goal_ids: s.goal_ids.clone(),
+                    intention: s.intention.clone(),
+                    state: s.state.clone(),
+                    notes: s.notes.clone(),
+                    exercise_records: s.exercise_records.clone(),
+                    duration: s.duration(),
+                    start_time: s.start_time().map(|t| t.to_string()),
+                    pause_time: s.pause_time().map(|t| t.to_string()),
+                    end_time: s.end_time().map(|t| t.to_string()),
+                    is_ended: s.is_ended(),
+                }
+            }).collect(),
             app_state: model.app_state.clone(),
         }
     }
 }
-
-// // ------------------------------------------------------------------
-// // TESTS
-// //
-// #[cfg(test)]
-// mod test {
-//     use super::*;
-//     use crux_core::{assert_effect, testing::AppTester};
-
-//     #[test]
-//     fn renders() {
-//         let app = AppTester::<Chopin>::default();
-//         let mut model = Model::default();
-
-//         let update = app.update(Event::Nothing, &mut model);
-
-//         // Check update asked us to `Render`
-//         assert_effect!(update, Effect::Render(_));
-//     }
-
-//     #[test]
-//     fn adds_exercise() {
-//         let app = AppTester::<Chopin>::default();
-//         let mut model = Model::default();
-
-//         let update = app.update(
-//             Event::AddExercise(Exercise::new("Exercise".to_string(), Some("".to_string()))),
-//             &mut model,
-//         );
-
-//         // Check update asked us to `Render`
-//         assert_effect!(update, Effect::Render(_));
-//     }
-
-//     #[test]
-//     fn sets_dev_data() {
-//         let app = AppTester::<Chopin>::default();
-//         let mut model = Model::default();
-
-//         let update = app.update(Event::SetDevData(), &mut model);
-
-//         // Check update asked us to `Render`
-//         assert_effect!(update, Effect::Render(_));
-//     }
-
-//     #[test]
-//     fn adds_exercise_to_goal() {
-//         let app = AppTester::<Chopin>::default();
-//         let mut model = Model::default();
-
-//         // First add a goal
-//         let goal = PracticeGoal::new(
-//             "Test Goal".to_string(),
-//             None,
-//             None,
-//             vec!["Exercise 1".to_string()],
-//             None,
-//         );
-//         let update = app.update(Event::AddGoal(goal), &mut model);
-//         assert_effect!(update, Effect::Render(_));
-
-//         // Then add an exercise
-//         let exercise = Exercise::new("Test Exercise".to_string(), None);
-//         let update = app.update(Event::AddExercise(exercise), &mut model);
-//         assert_effect!(update, Effect::Render(_));
-
-//         // Now we can safely add the exercise to the goal
-//         let update = app.update(
-//             Event::AddExerciseToGoal {
-//                 goal_id: model.goals[0].id.clone(),
-//                 exercise_id: model.exercises[0].id.clone(),
-//             },
-//             &mut model,
-//         );
-
-//         // Check update asked us to `Render`
-//         assert_effect!(update, Effect::Render(_));
-//     }
-
-//     #[test]
-//     fn adds_session() {
-//         let app = AppTester::<Chopin>::default();
-//         let mut model = Model::default();
-
-//         let update = app.update(
-//             Event::AddSession(PracticeSession::new(
-//                 vec!["Goal 1".to_string()],
-//                 "Intention 1".to_string(),
-//             )),
-//             &mut model,
-//         );
-//         assert_effect!(update, Effect::Render(_));
-//     }
-
-//     #[test]
-//     fn edits_session() {
-//         let app = AppTester::<Chopin>::default();
-//         let mut model = Model::default();
-
-//         let update = app.update(
-//             Event::EditSession(PracticeSession::new(
-//                 vec!["Goal 1".to_string()],
-//                 "Intention 1".to_string(),
-//             )),
-//             &mut model,
-//         );
-//         assert_effect!(update, Effect::Render(_));
-//     }
-
-//     #[test]
-//     fn start_session() {
-//         let app = AppTester::<Chopin>::default();
-//         let mut model = Model::default();
-
-//         let update = app.update(
-//             Event::StartSession(
-//                 PracticeSession::new(vec!["Goal 1".to_string()], "Intention 1".to_string())
-//                     .id
-//                     .clone(),
-//                 "2025-05-01".to_string(),
-//             ),
-//             &mut model,
-//         );
-//         assert_effect!(update, Effect::Render(_));
-//     }
-
-//     #[test]
-//     fn end_session() {
-//         let app = AppTester::<Chopin>::default();
-//         let mut model = Model::default();
-
-//         let update = app.update(
-//             Event::EndSession(
-//                 PracticeSession::new(vec!["Goal 1".to_string()], "Intention 1".to_string())
-//                     .id
-//                     .clone(),
-//                 "2025-05-01".to_string(),
-//             ),
-//             &mut model,
-//         );
-//         assert_effect!(update, Effect::Render(_));
-//     }
-// }

@@ -1,4 +1,4 @@
-use crate::app::{ActiveSession, Exercise, PracticeGoal, PracticeSession};
+use crate::app::{ActiveSession, Exercise, PracticeGoal, PracticeSession, PracticeSessionView};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
@@ -20,6 +20,6 @@ impl Model {}
 pub struct ViewModel {
     pub goals: Vec<PracticeGoal>,
     pub exercises: Vec<Exercise>,
-    pub sessions: Vec<PracticeSession>,
+    pub sessions: Vec<PracticeSessionView>,
     pub app_state: AppState,
 }

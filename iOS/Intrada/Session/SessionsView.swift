@@ -12,10 +12,10 @@ struct SessionsView: View {
     @ObservedObject var core: Core
     @State private var showingAddForm = false
     @State private var showingReflectionForm = false
-    @State private var sessionToReflect: PracticeSession?
+    @State private var sessionToReflect: PracticeSessionView?
     @State private var navigationPath = NavigationPath()
     
-    private var activeSession: PracticeSession? {
+    private var activeSession: PracticeSessionView? {
         if let activeSession = core.view.appState.activeSession {
             core.view.sessions.first { $0.id == activeSession.id }
         } else {
@@ -23,12 +23,9 @@ struct SessionsView: View {
         }
     }
     
-    private var completedSessions: [PracticeSession] {
+    private var completedSessions: [PracticeSessionView] {
         core.view.sessions.filter { 
-            if case .ended(_, _, _) = $0.state {
-                return true
-            }
-            return false
+            $0.isEnded
         }
     }
     
@@ -125,16 +122,16 @@ struct SessionsView: View {
         }
     }
     
-    private func handleSessionEnd(_ session: PracticeSession) {
+    private func handleSessionEnd(_ session: PracticeSessionView) {
         sessionToReflect = session
         showingReflectionForm = true
     }
 }
 
 struct ActiveSessionView: View {
-    let session: PracticeSession
+    let session: PracticeSessionView
     @ObservedObject var core: Core
-    let onSessionEnd: (PracticeSession) -> Void
+    let onSessionEnd: (PracticeSessionView) -> Void
     @StateObject private var sessionTimer = SessionTimer.shared
     
     var body: some View {
@@ -210,7 +207,7 @@ struct ActiveSessionView: View {
 }
 
 struct SessionRow: View {
-    let session: PracticeSession
+    let session: PracticeSessionView
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -224,8 +221,7 @@ struct SessionRow: View {
             }
             
             HStack {
-                switch session.state {
-                case .started(let startTime), .paused(let startTime, _), .ended(let startTime, _, _):
+                if let startTime = session.startTime {
                     HStack(spacing: 4) {
                         Image(systemName: "calendar")
                             .foregroundColor(.accentColor)
@@ -233,13 +229,11 @@ struct SessionRow: View {
                             .font(.caption)
                             .foregroundColor(.gray)
                     }
-                default:
-                    EmptyView()
                 }
                 
                 Spacer()
                 
-                if case .ended(_, _, let duration) = session.state {
+                if let duration = session.duration {
                     Text(duration)
                         .font(.caption)
                         .padding(.horizontal, 8)

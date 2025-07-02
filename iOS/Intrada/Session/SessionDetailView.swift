@@ -10,7 +10,7 @@ struct SessionDetailView: View {
     @State private var showingError = false
     
 
-    private var session: PracticeSession? {
+    private var session: PracticeSessionView? {
         core.view.sessions.first(where: { $0.id == sessionId })
 
     }
@@ -66,7 +66,7 @@ struct SessionDetailView: View {
         }
     }
     
-    private func sessionHeaderView(session: PracticeSession) -> some View {
+    private func sessionHeaderView(session: PracticeSessionView) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(session.intention)
                 .font(.title)
@@ -75,27 +75,24 @@ struct SessionDetailView: View {
         .padding(.horizontal)
     }
     
-    private func sessionSummaryView(session: PracticeSession) -> some View {
+    private func sessionSummaryView(session: PracticeSessionView) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Session Summary")
                 .font(.headline)
             
-            switch session.state {
-            case .ended(_, _, let duration):
+            if let duration = session.duration {
                 HStack {
                     Image(systemName: "clock")
                         .foregroundColor(.blue)
                     Text(duration)
                         .font(.subheadline)
                 }
-            default:
-                EmptyView()
             }
         }
         .padding(.horizontal)
     }
     
-    private func notesView(session: PracticeSession) -> some View {
+    private func notesView(session: PracticeSessionView) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Reflection notes")
                 .font(.headline)
@@ -127,46 +124,42 @@ struct SessionDetailView: View {
         .padding(.horizontal)
     }
     
-    private func sessionTimesView(session: PracticeSession) -> some View {
+    private func sessionTimesView(session: PracticeSessionView) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Session Times")
                 .font(.headline)
             
-            switch session.state {
-            case .started(let startTime), .paused(let startTime, _), .ended(let startTime, _, _):
+            if let startTime = session.startTime {
                 HStack {
                     Image(systemName: "play.circle.fill")
                         .foregroundColor(.green)
                     Text(formatDateAndTime(startTime))
                         .font(.subheadline)
                 }
-            default:
-                EmptyView()
             }
             
-            switch session.state {
-            case .paused(_, let pauseTime):
+            if let pauseTime = session.pauseTime {
                 HStack {
                     Image(systemName: "pause.circle.fill")
                         .foregroundColor(.orange)
                     Text("Paused at \(formatDateAndTime(pauseTime))")
                         .font(.subheadline)
                 }
-            case .ended(_, let endTime, _):
+            }
+            
+            if let endTime = session.endTime {
                 HStack {
                     Image(systemName: "stop.circle.fill")
                         .foregroundColor(.red)
                     Text(formatDateAndTime(endTime))
                         .font(.subheadline)
                 }
-            default:
-                EmptyView()
             }
         }
         .padding(.horizontal)
     }
     
-    private func relatedGoalsView(session: PracticeSession) -> some View {
+    private func relatedGoalsView(session: PracticeSessionView) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Related Goals")
                 .font(.headline)
