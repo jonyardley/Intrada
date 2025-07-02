@@ -25,13 +25,9 @@ struct HomeView: View {
                     .font(.system(size: 34, weight: .bold))
                     .foregroundColor(Color(red: 79/255, green: 70/255, blue: 229/255))
                     .multilineTextAlignment(.center)
-                
-                Spacer()
 
-                Text(core.view.message)
-                    .font(.system(size: 16))
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
+                Spacer()
+                
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
@@ -41,4 +37,3 @@ struct HomeView: View {
 #Preview {
     HomeView(core: Core())
 }
-

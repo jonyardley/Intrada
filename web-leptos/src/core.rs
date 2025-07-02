@@ -19,5 +19,8 @@ pub fn process_effect(core: &Core, effect: Effect, render: WriteSignal<ViewModel
         Effect::Http(_) => {
             // Do nothing
         }
+        Effect::Appwrite(_) => {
+            // Ignored in web environment: Appwrite effects are not applicable in this context.
+        }
     };
 }
