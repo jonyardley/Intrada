@@ -1,4 +1,4 @@
-import Shared
+import SharedTypes
 import SwiftUI
 
 enum HttpError: Error {

@@ -2,6 +2,8 @@ name: Intrada
 packages:
   Shared:
     path: ../shared/Shared
+  SharedTypes:
+    path: ../shared/generated/swift/SharedTypes
 options:
   bundleIdPrefix: com.jonyardley.intrada
 targets:
@@ -12,6 +14,7 @@ targets:
     sources: [Intrada]
     dependencies:
       - package: Shared
+      - package: SharedTypes
     team: JYARDLEY
     info:
       path: Intrada/Info.plist

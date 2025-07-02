@@ -19,6 +19,7 @@
 		60EA876202FF0ABF6CB4F574 /* core.swift in Sources */ = {isa = PBXBuildFile; fileRef = 104D2C969AAB822EE589C8D3 /* core.swift */; };
 		7041A1B95A8BF82D73588AD6 /* http.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBD4BBEE3EB72A49C85AA18E /* http.swift */; };
 		7336455A863CC14299B2B9AF /* HomeVIew.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAAF63990A427F10CDE80895 /* HomeVIew.swift */; };
+		8AE5DA6CECC886C8E65A884F /* SharedTypes in Frameworks */ = {isa = PBXBuildFile; productRef = 917447E964A6FFF42F7753F9 /* SharedTypes */; };
 		8C9C3799281B2075E8CFA0F0 /* SessionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E9EBF7F20DE9609419F2B4B /* SessionsView.swift */; };
 		8DBDC898AC1F95F08F1D3CAC /* ConfigurationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8B2ABF575A88EC880D01779 /* ConfigurationManager.swift */; };
 		9CBDD1C33A5EF3F35D479D6F /* Config.plist.template in Resources */ = {isa = PBXBuildFile; fileRef = A242062F443A30DF2B6B1F7F /* Config.plist.template */; };
@@ -37,6 +38,7 @@
 /* Begin PBXFileReference section */
 		017BD4BD5C3BBD11E8B2DB14 /* SessionReflectionForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionReflectionForm.swift; sourceTree = "<group>"; };
 		02284EEB85D6BF12C62B9E30 /* AppwriteService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppwriteService.swift; sourceTree = "<group>"; };
+		085DE01748EDA39FB010C0A8 /* SharedTypes */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SharedTypes; path = ../shared/generated/swift/SharedTypes; sourceTree = SOURCE_ROOT; };
 		104D2C969AAB822EE589C8D3 /* core.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = core.swift; sourceTree = "<group>"; };
 		13E8B6BF7B3E02B04268499D /* Intrada.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Intrada.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		158AB46FE2EFCCA1A1B6FEB1 /* GoalFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalFormView.swift; sourceTree = "<group>"; };
@@ -70,6 +72,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F5E87B5B23FF53E9F7471A8E /* Shared in Frameworks */,
+				8AE5DA6CECC886C8E65A884F /* SharedTypes in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -80,6 +83,7 @@
 			isa = PBXGroup;
 			children = (
 				EFD4E4A887C5186F83E986D3 /* Shared */,
+				085DE01748EDA39FB010C0A8 /* SharedTypes */,
 			);
 			name = Packages;
 			sourceTree = "<group>";
@@ -175,6 +179,7 @@
 			name = Intrada;
 			packageProductDependencies = (
 				9AF3999A1F62BECE7AD4D98A /* Shared */,
+				917447E964A6FFF42F7753F9 /* SharedTypes */,
 			);
 			productName = Intrada;
 			productReference = 13E8B6BF7B3E02B04268499D /* Intrada.app */;
@@ -203,6 +208,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				4AEAE67A9ED6F0D48F6F61B2 /* XCLocalSwiftPackageReference "../shared/Shared" */,
+				AC2CE8210B9C38E01B856752 /* XCLocalSwiftPackageReference "../shared/generated/swift/SharedTypes" */,
 			);
 			preferredProjectObjectVersion = 54;
 			projectDirPath = "";
@@ -437,9 +443,17 @@
 			isa = XCLocalSwiftPackageReference;
 			relativePath = ../shared/Shared;
 		};
+		AC2CE8210B9C38E01B856752 /* XCLocalSwiftPackageReference "../shared/generated/swift/SharedTypes" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../shared/generated/swift/SharedTypes;
+		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		917447E964A6FFF42F7753F9 /* SharedTypes */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = SharedTypes;
+		};
 		9AF3999A1F62BECE7AD4D98A /* Shared */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = Shared;
