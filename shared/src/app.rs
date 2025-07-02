@@ -216,7 +216,7 @@ impl App for Chopin {
                 goal_ids: s.goal_ids().clone(),
                 intention: s.intention().clone(),
                 state: s.state(),
-                notes: s.notes().cloned(),
+                notes: s.notes().clone(),
                 exercise_records: s.exercise_records().clone(),
                 duration: s.duration(),
                 start_time: s.start_time().map(|t| t.to_string()),

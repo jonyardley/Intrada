@@ -95,13 +95,14 @@ struct SessionFormView: View {
                     } else {
                         // Creating a new session - always starts as NotStarted
                         let sessionId = UUID().uuidString
-                        let notStartedSession = NotStartedSession(
+                        let sessionData = SessionData(
                             id: sessionId,
                             goalIds: Array(selectedGoals),
                             intention: intention,
                             notes: notes.isEmpty ? nil : notes,
                             exerciseRecords: []
                         )
+                        let notStartedSession = NotStartedSession(data: sessionData)
                         let session = PracticeSession.notStarted(notStartedSession)
                         
                         core.update(.addSession(session))

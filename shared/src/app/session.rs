@@ -3,8 +3,9 @@ use crate::app::model::Model;
 use chrono::DateTime;
 use serde::{Deserialize, Serialize};
 
+// Common session data that all session states share
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
-pub struct NotStartedSession {
+pub struct SessionData {
     id: String,
     pub goal_ids: Vec<String>,
     pub intention: String,
@@ -12,23 +13,42 @@ pub struct NotStartedSession {
     pub exercise_records: Vec<ExerciseRecord>,
 }
 
+impl SessionData {
+    pub fn new(goal_ids: Vec<String>, intention: String) -> Self {
+        Self {
+            id: uuid::Uuid::new_v4().to_string(),
+            goal_ids,
+            intention,
+            notes: None,
+            exercise_records: Vec::new(),
+        }
+    }
+
+    pub fn id(&self) -> &str { &self.id }
+    pub fn goal_ids(&self) -> &Vec<String> { &self.goal_ids }
+    pub fn intention(&self) -> &String { &self.intention }
+    pub fn notes(&self) -> &Option<String> { &self.notes }
+    pub fn exercise_records(&self) -> &Vec<ExerciseRecord> { &self.exercise_records }
+    pub fn goal_ids_mut(&mut self) -> &mut Vec<String> { &mut self.goal_ids }
+    pub fn intention_mut(&mut self) -> &mut String { &mut self.intention }
+    pub fn notes_mut(&mut self) -> &mut Option<String> { &mut self.notes }
+    pub fn exercise_records_mut(&mut self) -> &mut Vec<ExerciseRecord> { &mut self.exercise_records }
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct NotStartedSession {
+    pub data: SessionData,
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct StartedSession {
-    id: String,
-    pub goal_ids: Vec<String>,
-    pub intention: String,
-    pub notes: Option<String>,
-    pub exercise_records: Vec<ExerciseRecord>,
+    pub data: SessionData,
     pub start_time: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct EndedSession {
-    id: String,
-    pub goal_ids: Vec<String>,
-    pub intention: String,
-    pub notes: Option<String>,
-    pub exercise_records: Vec<ExerciseRecord>,
+    pub data: SessionData,
     pub start_time: String,
     pub end_time: String,
 }
@@ -43,35 +63,30 @@ pub enum PracticeSession {
 impl NotStartedSession {
     pub fn new(goal_ids: Vec<String>, intention: String) -> Self {
         Self {
-            id: uuid::Uuid::new_v4().to_string(),
-            goal_ids,
-            intention,
-            notes: None,
-            exercise_records: Vec::new(),
+            data: SessionData::new(goal_ids, intention),
         }
     }
-    pub fn id(&self) -> &str { &self.id }
+
+    pub fn id(&self) -> &str {
+        self.data.id()
+    }
+
     pub fn start(self, start_time: String) -> StartedSession {
         StartedSession {
-            id: self.id,
-            goal_ids: self.goal_ids,
-            intention: self.intention,
-            notes: self.notes,
-            exercise_records: self.exercise_records,
+            data: self.data,
             start_time,
         }
     }
 }
 
 impl StartedSession {
-    pub fn id(&self) -> &str { &self.id }
+    pub fn id(&self) -> &str {
+        self.data.id()
+    }
+
     pub fn end(self, end_time: String) -> EndedSession {
         EndedSession {
-            id: self.id,
-            goal_ids: self.goal_ids,
-            intention: self.intention,
-            notes: self.notes,
-            exercise_records: self.exercise_records,
+            data: self.data,
             start_time: self.start_time,
             end_time,
         }
@@ -79,7 +94,9 @@ impl StartedSession {
 }
 
 impl EndedSession {
-    pub fn id(&self) -> &str { &self.id }
+    pub fn id(&self) -> &str {
+        self.data.id()
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
@@ -119,11 +136,52 @@ impl PracticeSession {
         Self::NotStarted(NotStartedSession::new(goal_ids, intention))
     }
 
+    // Delegate common methods to the SessionData through the variants
     pub fn id(&self) -> &str {
         match self {
-            PracticeSession::NotStarted(session) => session.id(),
-            PracticeSession::Started(session) => session.id(),
-            PracticeSession::Ended(session) => session.id(),
+            PracticeSession::NotStarted(s) => s.data.id(),
+            PracticeSession::Started(s) => s.data.id(),
+            PracticeSession::Ended(s) => s.data.id(),
+        }
+    }
+
+    pub fn goal_ids(&self) -> &Vec<String> {
+        match self {
+            PracticeSession::NotStarted(s) => s.data.goal_ids(),
+            PracticeSession::Started(s) => s.data.goal_ids(),
+            PracticeSession::Ended(s) => s.data.goal_ids(),
+        }
+    }
+
+    pub fn intention(&self) -> &String {
+        match self {
+            PracticeSession::NotStarted(s) => s.data.intention(),
+            PracticeSession::Started(s) => s.data.intention(),
+            PracticeSession::Ended(s) => s.data.intention(),
+        }
+    }
+
+    pub fn notes(&self) -> &Option<String> {
+        match self {
+            PracticeSession::NotStarted(s) => s.data.notes(),
+            PracticeSession::Started(s) => s.data.notes(),
+            PracticeSession::Ended(s) => s.data.notes(),
+        }
+    }
+
+    pub fn exercise_records(&self) -> &Vec<ExerciseRecord> {
+        match self {
+            PracticeSession::NotStarted(s) => s.data.exercise_records(),
+            PracticeSession::Started(s) => s.data.exercise_records(),
+            PracticeSession::Ended(s) => s.data.exercise_records(),
+        }
+    }
+
+    pub fn exercise_records_mut(&mut self) -> &mut Vec<ExerciseRecord> {
+        match self {
+            PracticeSession::NotStarted(s) => s.data.exercise_records_mut(),
+            PracticeSession::Started(s) => s.data.exercise_records_mut(),
+            PracticeSession::Ended(s) => s.data.exercise_records_mut(),
         }
     }
 
@@ -184,46 +242,6 @@ impl PracticeSession {
                 Some(calculate_duration(session.start_time.as_str(), session.end_time.as_str()))
             }
             _ => None,
-        }
-    }
-
-    pub fn notes(&self) -> Option<&String> {
-        match self {
-            PracticeSession::NotStarted(s) => s.notes.as_ref(),
-            PracticeSession::Started(s) => s.notes.as_ref(),
-            PracticeSession::Ended(s) => s.notes.as_ref(),
-        }
-    }
-
-    pub fn goal_ids(&self) -> &Vec<String> {
-        match self {
-            PracticeSession::NotStarted(s) => &s.goal_ids,
-            PracticeSession::Started(s) => &s.goal_ids,
-            PracticeSession::Ended(s) => &s.goal_ids,
-        }
-    }
-
-    pub fn intention(&self) -> &String {
-        match self {
-            PracticeSession::NotStarted(s) => &s.intention,
-            PracticeSession::Started(s) => &s.intention,
-            PracticeSession::Ended(s) => &s.intention,
-        }
-    }
-
-    pub fn exercise_records(&self) -> &Vec<ExerciseRecord> {
-        match self {
-            PracticeSession::NotStarted(s) => &s.exercise_records,
-            PracticeSession::Started(s) => &s.exercise_records,
-            PracticeSession::Ended(s) => &s.exercise_records,
-        }
-    }
-
-    pub fn exercise_records_mut(&mut self) -> &mut Vec<ExerciseRecord> {
-        match self {
-            PracticeSession::NotStarted(s) => &mut s.exercise_records,
-            PracticeSession::Started(s) => &mut s.exercise_records,
-            PracticeSession::Ended(s) => &mut s.exercise_records,
         }
     }
 
@@ -320,13 +338,14 @@ pub fn end_session(session_id: String, timestamp: String, model: &mut Model) -> 
 pub fn edit_session_notes(session_id: String, notes: String, model: &mut Model) {
     if let Some(session) = model.sessions.iter_mut().find(|s| s.id() == session_id) {
         match session {
-            PracticeSession::NotStarted(s) => s.notes = Some(notes),
-            PracticeSession::Started(s) => s.notes = Some(notes),
-            PracticeSession::Ended(s) => s.notes = Some(notes),
+            PracticeSession::NotStarted(s) => *s.data.notes_mut() = Some(notes),
+            PracticeSession::Started(s) => *s.data.notes_mut() = Some(notes),
+            PracticeSession::Ended(s) => *s.data.notes_mut() = Some(notes),
         }
     }
 }
 
+// Clean implementation using the SessionData
 pub fn edit_session_fields(
     session_id: String,
     goal_ids: Vec<String>,
@@ -337,19 +356,19 @@ pub fn edit_session_fields(
     if let Some(session) = model.sessions.iter_mut().find(|s| s.id() == session_id) {
         match session {
             PracticeSession::NotStarted(s) => {
-                s.goal_ids = goal_ids;
-                s.intention = intention;
-                s.notes = notes;
+                *s.data.goal_ids_mut() = goal_ids;
+                *s.data.intention_mut() = intention;
+                *s.data.notes_mut() = notes;
             }
             PracticeSession::Started(s) => {
-                s.goal_ids = goal_ids;
-                s.intention = intention;
-                s.notes = notes;
+                *s.data.goal_ids_mut() = goal_ids;
+                *s.data.intention_mut() = intention;
+                *s.data.notes_mut() = notes;
             }
             PracticeSession::Ended(s) => {
-                s.goal_ids = goal_ids;
-                s.intention = intention;
-                s.notes = notes;
+                *s.data.goal_ids_mut() = goal_ids;
+                *s.data.intention_mut() = intention;
+                *s.data.notes_mut() = notes;
             }
         }
     }
@@ -422,7 +441,7 @@ fn test_update_session_notes() {
     add_session(session.clone(), &mut model);
     assert_eq!(model.sessions.len(), 1);
     edit_session_notes(session.id().to_string(), "Notes 1".to_string(), &mut model);
-    assert_eq!(model.sessions[0].notes().cloned(), Some("Notes 1".to_string()));
+    assert_eq!(model.sessions[0].notes().as_ref().map(|s| s.as_str()), Some("Notes 1"));
 }
 
 #[test]
@@ -509,7 +528,7 @@ fn test_edit_session_fields_preserves_state() {
     // Verify the session is still ended and fields are updated
     assert!(model.sessions[0].is_ended(), "Session should still be ended after editing");
     assert_eq!(model.sessions[0].intention(), "Updated intention");
-    assert_eq!(model.sessions[0].notes(), Some(&"Updated notes".to_string()));
+    assert_eq!(model.sessions[0].notes().as_ref().map(|s| s.as_str()), Some("Updated notes"));
     assert_eq!(model.sessions[0].goal_ids(), &vec!["Goal 2".to_string()]);
     
     // Verify the timing information is preserved
@@ -517,5 +536,6 @@ fn test_edit_session_fields_preserves_state() {
     assert_eq!(model.sessions[0].end_time(), Some("2025-05-01T12:30:00Z"));
     assert_eq!(model.sessions[0].duration(), Some("30m".to_string()));
 }
+
 
 
