@@ -85,19 +85,6 @@ private struct SessionControlsView: View {
         HStack {
             Spacer()
             
-            // Pause/Resume button
-            if core.view.canPauseSession {
-                Button("Pause") {
-                    handlePauseSession()
-                }
-                .foregroundColor(.orange)
-            } else if core.view.canResumeSession {
-                Button("Resume") {
-                    handleResumeSession()
-                }
-                .foregroundColor(.blue)
-            }
-            
             // End session button
             if core.view.canEndSession {
                 Button("End Session") {
@@ -110,25 +97,7 @@ private struct SessionControlsView: View {
         .padding(.horizontal)
     }
     
-    private func handlePauseSession() {
-        guard let session = core.view.currentSession else {
-            onError("No active session found")
-            return
-        }
-        
-        let timestamp = Date().ISO8601Format()
-        core.update(.pauseSession(session.id, timestamp))
-    }
-    
-    private func handleResumeSession() {
-        guard let session = core.view.currentSession else {
-            onError("No active session found")
-            return
-        }
-        
-        let timestamp = Date().ISO8601Format()
-        core.update(.resumeSession(session.id, timestamp))
-    }
+
     
     private func handleEndSession() {
         guard let session = core.view.currentSession else {
@@ -177,8 +146,6 @@ private struct SessionStateView: View {
             return "circle"
         case .started:
             return "play.circle.fill"
-        case .paused:
-            return "pause.circle.fill" 
         case .ended:
             return "checkmark.circle.fill"
         }
@@ -190,8 +157,6 @@ private struct SessionStateView: View {
             return .gray
         case .started:
             return .green
-        case .paused:
-            return .orange
         case .ended:
             return .blue
         }
@@ -203,19 +168,15 @@ private struct SessionStateView: View {
             return "Ready to start"
         case .started:
             return "In progress"
-        case .paused:
-            return "Paused"
         case .ended:
             return "Completed"
         }
     }
 }
 
-// MARK: - Session Timer View (Simplified)
+// MARK: - Session Timer View (Dynamic)
 private struct SessionTimerView: View {
     @ObservedObject var core: Core
-    @State private var currentTime = Date()
-    @State private var timer: Timer?
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -225,10 +186,12 @@ private struct SessionTimerView: View {
             
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    if let elapsedTime = core.view.currentSessionElapsedTime {
-                        Text(elapsedTime)
-                            .font(.system(size: 48, weight: .bold, design: .monospaced))
-                            .foregroundColor(.blue)
+                    if let session = core.view.currentSession {
+                        DynamicTimerView(
+                            session: session,
+                            fontSize: .system(size: 48, weight: .bold, design: .monospaced),
+                            textColor: .blue
+                        )
                     } else {
                         Text("00:00:00")
                             .font(.system(size: 48, weight: .bold, design: .monospaced))
@@ -243,25 +206,6 @@ private struct SessionTimerView: View {
             .cornerRadius(10)
         }
         .padding(.horizontal)
-        .onAppear {
-            startTimer()
-        }
-        .onDisappear {
-            stopTimer()
-        }
-    }
-    
-    private func startTimer() {
-        // Update every second to refresh the elapsed time
-        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
-            currentTime = Date()
-            // Force a view refresh by updating the current time
-        }
-    }
-    
-    private func stopTimer() {
-        timer?.invalidate()
-        timer = nil
     }
 }
 

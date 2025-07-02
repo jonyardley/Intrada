@@ -27,11 +27,8 @@ pub struct ViewModel {
     pub current_session: Option<PracticeSessionView>,
     pub has_active_session: bool,
     pub can_start_session: bool,
-    pub can_pause_session: bool,
-    pub can_resume_session: bool,
     pub can_end_session: bool,
     pub is_session_running: bool,
-    pub is_session_paused: bool,
     pub is_session_ended: bool,
     pub current_session_elapsed_time: Option<String>, // e.g. "01:23:45"
 }
@@ -53,20 +50,16 @@ impl ViewModel {
         let has_active_session = current_session.is_some();
         
         // Compute session state flags
-        let (can_start_session, can_pause_session, can_resume_session, can_end_session, 
-             is_session_running, is_session_paused, is_session_ended) = 
+        let (can_start_session, can_end_session, is_session_running, is_session_ended) = 
             if let Some(ref session) = current_session {
                 let can_start = matches!(session.state, SessionState::NotStarted);
-                let can_pause = matches!(session.state, SessionState::Started { .. });
-                let can_resume = matches!(session.state, SessionState::Paused { .. });
-                let can_end = matches!(session.state, SessionState::Started { .. } | SessionState::Paused { .. });
+                let can_end = matches!(session.state, SessionState::Started { .. });
                 let is_running = matches!(session.state, SessionState::Started { .. });
-                let is_paused = matches!(session.state, SessionState::Paused { .. });
                 let is_ended = matches!(session.state, SessionState::Ended { .. });
                 
-                (can_start, can_pause, can_resume, can_end, is_running, is_paused, is_ended)
+                (can_start, can_end, is_running, is_ended)
             } else {
-                (false, false, false, false, false, false, false)
+                (false, false, false, false)
             };
         
         // Calculate elapsed time for running sessions
@@ -74,9 +67,6 @@ impl ViewModel {
             match &session.state {
                 SessionState::Started { start_time } => {
                     Some(calculate_elapsed_time_from_start(start_time))
-                }
-                SessionState::Paused { start_time, pause_time } => {
-                    Some(calculate_elapsed_time_between(start_time, pause_time))
                 }
                 SessionState::Ended { start_time, end_time } => {
                     Some(calculate_elapsed_time_between(start_time, end_time))
@@ -95,11 +85,8 @@ impl ViewModel {
             current_session,
             has_active_session,
             can_start_session,
-            can_pause_session,
-            can_resume_session,
             can_end_session,
             is_session_running,
-            is_session_paused,
             is_session_ended,
             current_session_elapsed_time,
         }

@@ -83,23 +83,27 @@ struct SessionFormView: View {
                     isPresented = false
                 },
                 trailing: Button("Save") {
-                    let sessionId = existingSessionId ?? UUID().uuidString
-                    let existingSession = existingSessionId.flatMap { id in
-                        core.view.sessions.first { $0.id == id }
-                    }
-                    let session = PracticeSession(
-                        id: sessionId,
-                        goalIds: Array(selectedGoals),
-                        intention: intention,
-                        state: .notStarted,
-                        notes: notes.isEmpty ? nil : notes,
-                        exerciseRecords: existingSession?.exerciseRecords ?? []
-                    )
-                    
-                    if existingSessionId != nil {
-                        core.update(.editSession(session))
+                    if let existingSessionId = existingSessionId {
+                        // Editing existing session - let the core handle state preservation
+                        core.update(.editSessionFields(
+                            session_id: existingSessionId,
+                            goal_ids: Array(selectedGoals),
+                            intention: intention,
+                            notes: notes.isEmpty ? nil : notes
+                        ))
                         isPresented = false
                     } else {
+                        // Creating a new session - always starts as NotStarted
+                        let sessionId = UUID().uuidString
+                        let notStartedSession = NotStartedSession(
+                            id: sessionId,
+                            goalIds: Array(selectedGoals),
+                            intention: intention,
+                            notes: notes.isEmpty ? nil : notes,
+                            exerciseRecords: []
+                        )
+                        let session = PracticeSession.notStarted(notStartedSession)
+                        
                         core.update(.addSession(session))
                         isPresented = false
                         onSessionCreated?(sessionId)

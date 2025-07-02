@@ -41,11 +41,8 @@ class Core: ObservableObject {
                 currentSession: nil,
                 hasActiveSession: false,
                 canStartSession: false,
-                canPauseSession: false,
-                canResumeSession: false,
                 canEndSession: false,
                 isSessionRunning: false,
-                isSessionPaused: false,
                 isSessionEnded: false,
                 currentSessionElapsedTime: nil
             )
@@ -64,11 +61,8 @@ class Core: ObservableObject {
                     currentSession: nil,
                     hasActiveSession: false,
                     canStartSession: false,
-                    canPauseSession: false,
-                    canResumeSession: false,
                     canEndSession: false,
                     isSessionRunning: false,
-                    isSessionPaused: false,
                     isSessionEnded: false,
                     currentSessionElapsedTime: nil
                 )
@@ -126,11 +120,8 @@ class Core: ObservableObject {
                         currentSession: nil,
                         hasActiveSession: false,
                         canStartSession: false,
-                        canPauseSession: false,
-                        canResumeSession: false,
                         canEndSession: false,
                         isSessionRunning: false,
-                        isSessionPaused: false,
                         isSessionEnded: false,
                         currentSessionElapsedTime: nil
                     )
@@ -149,11 +140,8 @@ class Core: ObservableObject {
                             currentSession: nil,
                             hasActiveSession: false,
                             canStartSession: false,
-                            canPauseSession: false,
-                            canResumeSession: false,
                             canEndSession: false,
                             isSessionRunning: false,
-                            isSessionPaused: false,
                             isSessionEnded: false,
                             currentSessionElapsedTime: nil
                         )

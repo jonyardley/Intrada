@@ -88,7 +88,7 @@ pub fn set_dev_data(model: &mut Model) {
         model.goals.iter().take(1).map(|g| g.id.clone()).collect(),
         "Completed practice session".to_string(),
     );
-    let session_1_id = session_1.id.clone();
+    let session_1_id = session_1.id().to_string();
     add_session(session_1, model);
 
     let _ = start_session(
@@ -101,7 +101,7 @@ pub fn set_dev_data(model: &mut Model) {
     let exercise_record = ExerciseRecord::new(model.exercises[0].id.clone(), session_1_id.clone());
     add_exercise_record(exercise_record, model);
 
-    let _ = end_session(session_1_id, "2025-05-01T12:30:00Z".to_string(), model);
+    let _ = end_session(session_1_id.clone(), "2025-05-01T12:30:00Z".to_string(), model);
 
     // Create a session that's ready to start (not active yet)
     let ready_session = PracticeSession::new(

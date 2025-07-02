@@ -27,9 +27,9 @@ pub fn add_exercise_record(record: ExerciseRecord, model: &mut Model) {
     if let Some(session) = model
         .sessions
         .iter_mut()
-        .find(|s| s.id == record.session_id)
+        .find(|s| s.id() == record.session_id)
     {
-        session.exercise_records.push(record);
+        session.push_exercise_record(record);
     }
 }
 
@@ -37,15 +37,9 @@ pub fn update_exercise_record(record: ExerciseRecord, model: &mut Model) {
     if let Some(session) = model
         .sessions
         .iter_mut()
-        .find(|s| s.id == record.session_id)
+        .find(|s| s.id() == record.session_id)
     {
-        if let Some(index) = session
-            .exercise_records
-            .iter()
-            .position(|r| r.id == record.id)
-        {
-            session.exercise_records[index] = record;
-        }
+        session.update_exercise_record(record);
     }
 }
 
@@ -53,7 +47,7 @@ pub fn get_exercise_records<'a>(model: &'a Model, exercise_id: &str) -> Vec<&'a 
     model
         .sessions
         .iter()
-        .flat_map(|session| session.exercise_records.iter())
+        .flat_map(|session| session.exercise_records().iter())
         .filter(|record| record.exercise_id == exercise_id)
         .collect()
 }
@@ -65,8 +59,8 @@ pub fn get_exercise_records_for_session<'a>(
     model
         .sessions
         .iter()
-        .find(|session| session.id == session_id)
-        .map(|session| session.exercise_records.iter().collect())
+        .find(|session| session.id() == session_id)
+        .map(|session| session.exercise_records().iter().collect())
         .unwrap_or_default()
 }
 
@@ -78,21 +72,21 @@ pub fn get_exercise_records_for_session<'a>(
 fn test_add_exercise_record() {
     let mut model = Model::default();
     let session = PracticeSession::new(vec!["Goal 1".to_string()], "Intention 1".to_string());
-    let session_id = session.id.clone();
+    let session_id = session.id().to_string();
     add_session(session, &mut model);
 
     let record = ExerciseRecord::new("Exercise 1".to_string(), session_id);
     add_exercise_record(record, &mut model);
 
     let session = model.sessions.first().unwrap();
-    assert_eq!(session.exercise_records.len(), 1);
+    assert_eq!(session.exercise_records().len(), 1);
 }
 
 #[test]
 fn test_update_exercise_record() {
     let mut model = Model::default();
     let session = PracticeSession::new(vec!["Goal 1".to_string()], "Intention 1".to_string());
-    let session_id = session.id.clone();
+    let session_id = session.id().to_string();
     add_session(session, &mut model);
 
     let record = ExerciseRecord::new("Exercise 1".to_string(), session_id.clone());
@@ -105,6 +99,6 @@ fn test_update_exercise_record() {
     update_exercise_record(updated_record, &mut model);
 
     let session = model.sessions.first().unwrap();
-    let record = session.exercise_records.first().unwrap();
+    let record = session.exercise_records().first().unwrap();
     assert_eq!(record.score, Some(8));
 }

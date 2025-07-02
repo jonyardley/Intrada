@@ -138,14 +138,7 @@ struct SessionDetailView: View {
                 }
             }
             
-            if let pauseTime = session.pauseTime {
-                HStack {
-                    Image(systemName: "pause.circle.fill")
-                        .foregroundColor(.orange)
-                    Text("Paused at \(formatDateAndTime(pauseTime))")
-                        .font(.subheadline)
-                }
-            }
+
             
             if let endTime = session.endTime {
                 HStack {

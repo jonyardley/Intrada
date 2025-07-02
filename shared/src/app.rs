@@ -16,7 +16,7 @@ pub mod exercise_record;
 pub use exercise_record::*;
 
 pub mod session;
-pub use session::{PracticeSession, PracticeSessionView, ActiveSession, SessionState, add_session, edit_session, set_active_session, start_session, pause_session, resume_session, end_session, remove_active_session, edit_session_notes};
+pub use session::{PracticeSession, PracticeSessionView, ActiveSession, SessionState, add_session, edit_session, edit_session_fields, set_active_session, start_session, end_session, remove_active_session, edit_session_notes};
 
 pub mod model;
 pub use model::*;
@@ -38,10 +38,14 @@ pub enum Event {
 
     AddSession(PracticeSession),
     EditSession(PracticeSession),
+    EditSessionFields {
+        session_id: String,
+        goal_ids: Vec<String>,
+        intention: String,
+        notes: Option<String>,
+    },
     SetActiveSession(String),
     StartSession(String, String),
-    PauseSession(String, String),
-    ResumeSession(String, String),
     UnsetActiveSession(),
     EndSession(String, String),
     EditSessionNotes(String, String),
@@ -120,6 +124,12 @@ impl App for Chopin {
 
             Event::AddSession(session) => add_session(session, model),
             Event::EditSession(session) => edit_session(session, model),
+            Event::EditSessionFields {
+                session_id,
+                goal_ids,
+                intention,
+                notes,
+            } => edit_session_fields(session_id, goal_ids, intention, notes, model),
             Event::SetActiveSession(session_id) => set_active_session(session_id, model),
             Event::StartSession(session_id, timestamp) => {
                 if let Err(e) = start_session(session_id, timestamp, model) {
@@ -127,16 +137,7 @@ impl App for Chopin {
                     println!("Failed to start session: {}", e);
                 }
             }
-            Event::PauseSession(session_id, timestamp) => {
-                if let Err(e) = pause_session(session_id, timestamp, model) {
-                    println!("Failed to pause session: {}", e);
-                }
-            }
-            Event::ResumeSession(session_id, timestamp) => {
-                if let Err(e) = resume_session(session_id, timestamp, model) {
-                    println!("Failed to resume session: {}", e);
-                }
-            }
+
             Event::EndSession(session_id, timestamp) => {
                 if let Err(e) = end_session(session_id, timestamp, model) {
                     // You might want to handle this error in your UI
@@ -211,15 +212,14 @@ impl App for Chopin {
     fn view(&self, model: &Self::Model) -> Self::ViewModel {
         let session_views: Vec<PracticeSessionView> = model.sessions.iter().map(|s| {
             PracticeSessionView {
-                id: s.id.clone(),
-                goal_ids: s.goal_ids.clone(),
-                intention: s.intention.clone(),
-                state: s.state.clone(),
-                notes: s.notes.clone(),
-                exercise_records: s.exercise_records.clone(),
+                id: s.id().to_string(),
+                goal_ids: s.goal_ids().clone(),
+                intention: s.intention().clone(),
+                state: s.state(),
+                notes: s.notes().cloned(),
+                exercise_records: s.exercise_records().clone(),
                 duration: s.duration(),
                 start_time: s.start_time().map(|t| t.to_string()),
-                pause_time: s.pause_time().map(|t| t.to_string()),
                 end_time: s.end_time().map(|t| t.to_string()),
                 is_ended: s.is_ended(),
             }

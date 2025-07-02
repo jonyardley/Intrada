@@ -22,7 +22,7 @@ impl Exercise {
         model
             .sessions
             .iter()
-            .flat_map(|session| &session.exercise_records)
+            .flat_map(|session| session.exercise_records())
             .filter(|record| record.exercise_id == self.id)
             .collect()
     }
@@ -79,7 +79,7 @@ fn test_exercise_records() {
         vec!["Goal 1".to_string()],
         "Test Session".to_string(),
     );
-    let session_id = session.id.clone();
+    let session_id = session.id().to_string();
     crate::app::session::add_session(session, &mut model);
 
     // Add exercise records

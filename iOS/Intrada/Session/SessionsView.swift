@@ -146,11 +146,8 @@ struct ActiveSessionView: View {
                 }
                 
                 HStack {
-                    if core.view.isSessionRunning, let elapsedTime = core.view.currentSessionElapsedTime {
-                        Text(elapsedTime)
-                            .font(.title3)
-                            .monospacedDigit()
-                            .foregroundColor(.blue)
+                    if core.view.isSessionRunning, let session = core.view.currentSession {
+                        DynamicTimerView(session: session, fontSize: .title3, textColor: .blue)
                     } else {
                         Text("Ready?")
                             .font(.title3)
@@ -255,6 +252,8 @@ struct SessionRow: View {
         return dateString
     }
 }
+
+
 
 #Preview {
     SessionsView(core: Core())

@@ -3,21 +3,89 @@ use crate::app::model::Model;
 use chrono::DateTime;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
-pub struct PracticeSession {
-    pub id: String,
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct NotStartedSession {
+    id: String,
     pub goal_ids: Vec<String>,
     pub intention: String,
-    pub state: SessionState,
     pub notes: Option<String>,
     pub exercise_records: Vec<ExerciseRecord>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct StartedSession {
+    id: String,
+    pub goal_ids: Vec<String>,
+    pub intention: String,
+    pub notes: Option<String>,
+    pub exercise_records: Vec<ExerciseRecord>,
+    pub start_time: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct EndedSession {
+    id: String,
+    pub goal_ids: Vec<String>,
+    pub intention: String,
+    pub notes: Option<String>,
+    pub exercise_records: Vec<ExerciseRecord>,
+    pub start_time: String,
+    pub end_time: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub enum PracticeSession {
+    NotStarted(NotStartedSession),
+    Started(StartedSession),
+    Ended(EndedSession),
+}
+
+impl NotStartedSession {
+    pub fn new(goal_ids: Vec<String>, intention: String) -> Self {
+        Self {
+            id: uuid::Uuid::new_v4().to_string(),
+            goal_ids,
+            intention,
+            notes: None,
+            exercise_records: Vec::new(),
+        }
+    }
+    pub fn id(&self) -> &str { &self.id }
+    pub fn start(self, start_time: String) -> StartedSession {
+        StartedSession {
+            id: self.id,
+            goal_ids: self.goal_ids,
+            intention: self.intention,
+            notes: self.notes,
+            exercise_records: self.exercise_records,
+            start_time,
+        }
+    }
+}
+
+impl StartedSession {
+    pub fn id(&self) -> &str { &self.id }
+    pub fn end(self, end_time: String) -> EndedSession {
+        EndedSession {
+            id: self.id,
+            goal_ids: self.goal_ids,
+            intention: self.intention,
+            notes: self.notes,
+            exercise_records: self.exercise_records,
+            start_time: self.start_time,
+            end_time,
+        }
+    }
+}
+
+impl EndedSession {
+    pub fn id(&self) -> &str { &self.id }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub enum SessionState {
     NotStarted,
     Started { start_time: String },
-    Paused { start_time: String, pause_time: String },
     Ended { start_time: String, end_time: String },
 }
 
@@ -37,7 +105,6 @@ pub struct PracticeSessionView {
     pub exercise_records: Vec<ExerciseRecord>,
     pub duration: Option<String>,
     pub start_time: Option<String>,
-    pub pause_time: Option<String>,
     pub end_time: Option<String>,
     pub is_ended: bool,
 }
@@ -49,104 +116,134 @@ pub struct ActiveSession {
 
 impl PracticeSession {
     pub fn new(goal_ids: Vec<String>, intention: String) -> Self {
-        Self {
-            id: uuid::Uuid::new_v4().to_string(),
-            goal_ids,
-            intention,
-            state: SessionState::NotStarted,
-            notes: None,
-            exercise_records: Vec::new(),
+        Self::NotStarted(NotStartedSession::new(goal_ids, intention))
+    }
+
+    pub fn id(&self) -> &str {
+        match self {
+            PracticeSession::NotStarted(session) => session.id(),
+            PracticeSession::Started(session) => session.id(),
+            PracticeSession::Ended(session) => session.id(),
         }
     }
 
-    // Type-safe methods that only work in certain states
     pub fn start(&mut self, timestamp: String) -> Result<(), &'static str> {
-        match self.state {
-            SessionState::NotStarted => {
-                self.state = SessionState::Started { start_time: timestamp };
+        match std::mem::replace(self, PracticeSession::NotStarted(NotStartedSession::new(vec![], String::new()))) {
+            PracticeSession::NotStarted(session) => {
+                *self = PracticeSession::Started(session.start(timestamp));
                 Ok(())
             }
-            _ => Err("Session is already started or ended"),
-        }
-    }
-
-    pub fn pause(&mut self, timestamp: String) -> Result<(), &'static str> {
-        match &self.state {
-            SessionState::Started { start_time } => {
-                self.state = SessionState::Paused {
-                    start_time: start_time.clone(),
-                    pause_time: timestamp,
-                };
-                Ok(())
+            other => {
+                *self = other;
+                Err("Session is already started or ended")
             }
-            _ => Err("Session is not in started state"),
-        }
-    }
-
-    pub fn resume(&mut self, _timestamp: String) -> Result<(), &'static str> {
-        match &self.state {
-            SessionState::Paused { start_time, .. } => {
-                self.state = SessionState::Started {
-                    start_time: start_time.clone(),
-                };
-                Ok(())
-            }
-            _ => Err("Session is not paused"),
         }
     }
 
     pub fn end(&mut self, timestamp: String) -> Result<(), &'static str> {
-        match &self.state {
-            SessionState::Started { start_time } | SessionState::Paused { start_time, .. } => {
-                self.state = SessionState::Ended {
-                    start_time: start_time.clone(),
-                    end_time: timestamp,
-                };
+        match std::mem::replace(self, PracticeSession::NotStarted(NotStartedSession::new(vec![], String::new()))) {
+            PracticeSession::Started(session) => {
+                *self = PracticeSession::Ended(session.end(timestamp));
                 Ok(())
             }
-            _ => Err("Session is not active"),
+            other => {
+                *self = other;
+                Err("Session is not active")
+            }
         }
     }
 
     // Helper methods for backward compatibility with iOS
     pub fn is_active(&self) -> bool {
-        matches!(self.state, SessionState::Started { .. } | SessionState::Paused { .. })
+        matches!(self, PracticeSession::Started(_))
     }
 
     pub fn is_ended(&self) -> bool {
-        matches!(self.state, SessionState::Ended { .. })
+        matches!(self, PracticeSession::Ended(_))
     }
 
     // Backward compatibility properties for iOS
     pub fn start_time(&self) -> Option<&str> {
-        match &self.state {
-            SessionState::Started { start_time } | SessionState::Paused { start_time, .. } | SessionState::Ended { start_time, .. } => {
-                Some(start_time)
-            }
+        match self {
+            PracticeSession::Started(session) => Some(session.start_time.as_str()),
+            PracticeSession::Ended(session) => Some(session.start_time.as_str()),
             _ => None,
         }
     }
 
     pub fn end_time(&self) -> Option<&str> {
-        match &self.state {
-            SessionState::Ended { end_time, .. } => Some(end_time),
-            _ => None,
-        }
-    }
-
-    pub fn pause_time(&self) -> Option<&str> {
-        match &self.state {
-            SessionState::Paused { pause_time, .. } => Some(pause_time),
+        match self {
+            PracticeSession::Ended(session) => Some(session.end_time.as_str()),
             _ => None,
         }
     }
 
     pub fn duration(&self) -> Option<String> {
-        match &self.state {
-            SessionState::Ended { start_time, end_time } => {
-                Some(calculate_duration(start_time, end_time))
+        match self {
+            PracticeSession::Ended(session) => {
+                Some(calculate_duration(session.start_time.as_str(), session.end_time.as_str()))
             }
             _ => None,
+        }
+    }
+
+    pub fn notes(&self) -> Option<&String> {
+        match self {
+            PracticeSession::NotStarted(s) => s.notes.as_ref(),
+            PracticeSession::Started(s) => s.notes.as_ref(),
+            PracticeSession::Ended(s) => s.notes.as_ref(),
+        }
+    }
+
+    pub fn goal_ids(&self) -> &Vec<String> {
+        match self {
+            PracticeSession::NotStarted(s) => &s.goal_ids,
+            PracticeSession::Started(s) => &s.goal_ids,
+            PracticeSession::Ended(s) => &s.goal_ids,
+        }
+    }
+
+    pub fn intention(&self) -> &String {
+        match self {
+            PracticeSession::NotStarted(s) => &s.intention,
+            PracticeSession::Started(s) => &s.intention,
+            PracticeSession::Ended(s) => &s.intention,
+        }
+    }
+
+    pub fn exercise_records(&self) -> &Vec<ExerciseRecord> {
+        match self {
+            PracticeSession::NotStarted(s) => &s.exercise_records,
+            PracticeSession::Started(s) => &s.exercise_records,
+            PracticeSession::Ended(s) => &s.exercise_records,
+        }
+    }
+
+    pub fn exercise_records_mut(&mut self) -> &mut Vec<ExerciseRecord> {
+        match self {
+            PracticeSession::NotStarted(s) => &mut s.exercise_records,
+            PracticeSession::Started(s) => &mut s.exercise_records,
+            PracticeSession::Ended(s) => &mut s.exercise_records,
+        }
+    }
+
+    pub fn state(&self) -> SessionState {
+        match self {
+            PracticeSession::NotStarted(_) => SessionState::NotStarted,
+            PracticeSession::Started(s) => SessionState::Started { start_time: s.start_time.clone() },
+            PracticeSession::Ended(s) => SessionState::Ended { start_time: s.start_time.clone(), end_time: s.end_time.clone() },
+        }
+    }
+
+    // Mutator: push an ExerciseRecord
+    pub fn push_exercise_record(&mut self, record: ExerciseRecord) {
+        self.exercise_records_mut().push(record);
+    }
+
+    // Mutator: update an ExerciseRecord by id
+    pub fn update_exercise_record(&mut self, record: ExerciseRecord) {
+        if let Some(existing) = self.exercise_records_mut().iter_mut().find(|r| r.id == record.id) {
+            *existing = record;
         }
     }
 }
@@ -161,11 +258,11 @@ pub fn calculate_duration(start_time: &str, end_time: &str) -> String {
 }
 
 fn get_session_by_id<'a>(session_id: &str, model: &'a mut Model) -> Option<&'a mut PracticeSession> {
-    model.sessions.iter_mut().find(|s| s.id == session_id)
+    model.sessions.iter_mut().find(|s| s.id() == session_id)
 }
 
 pub fn add_session(session: PracticeSession, model: &mut Model) {
-    let session_id = session.id.clone();
+    let session_id = session.id().to_string();
     
     // Add the session to the model
     model.sessions.push(session);
@@ -186,9 +283,11 @@ pub fn remove_active_session(model: &mut Model) {
 }
 
 pub fn edit_session(session: PracticeSession, model: &mut Model) {
-    let index = model.sessions.iter().position(|s| s.id == session.id);
+    let index = model.sessions.iter().position(|s| s.id() == session.id());
     if let Some(index) = index {
         model.sessions[index] = session;
+    } else {
+        panic!("Tried to edit a session that does not exist: {}", session.id());
     }
 }
 
@@ -196,24 +295,6 @@ pub fn start_session(session_id: String, timestamp: String, model: &mut Model) -
     if let Some(session) = get_session_by_id(&session_id, model) {
         session.start(timestamp)?;
         set_active_session(session_id, model);
-        Ok(())
-    } else {
-        Err("Session not found")
-    }
-}
-
-pub fn pause_session(session_id: String, timestamp: String, model: &mut Model) -> Result<(), &'static str> {
-    if let Some(session) = get_session_by_id(&session_id, model) {
-        session.pause(timestamp)?;
-        Ok(())
-    } else {
-        Err("Session not found")
-    }
-}
-
-pub fn resume_session(session_id: String, timestamp: String, model: &mut Model) -> Result<(), &'static str> {
-    if let Some(session) = get_session_by_id(&session_id, model) {
-        session.resume(timestamp)?;
         Ok(())
     } else {
         Err("Session not found")
@@ -237,9 +318,40 @@ pub fn end_session(session_id: String, timestamp: String, model: &mut Model) -> 
 }
 
 pub fn edit_session_notes(session_id: String, notes: String, model: &mut Model) {
-    let index = model.sessions.iter().position(|s| s.id == session_id);
-    if let Some(index) = index {
-        model.sessions[index].notes = Some(notes);
+    if let Some(session) = model.sessions.iter_mut().find(|s| s.id() == session_id) {
+        match session {
+            PracticeSession::NotStarted(s) => s.notes = Some(notes),
+            PracticeSession::Started(s) => s.notes = Some(notes),
+            PracticeSession::Ended(s) => s.notes = Some(notes),
+        }
+    }
+}
+
+pub fn edit_session_fields(
+    session_id: String,
+    goal_ids: Vec<String>,
+    intention: String,
+    notes: Option<String>,
+    model: &mut Model,
+) {
+    if let Some(session) = model.sessions.iter_mut().find(|s| s.id() == session_id) {
+        match session {
+            PracticeSession::NotStarted(s) => {
+                s.goal_ids = goal_ids;
+                s.intention = intention;
+                s.notes = notes;
+            }
+            PracticeSession::Started(s) => {
+                s.goal_ids = goal_ids;
+                s.intention = intention;
+                s.notes = notes;
+            }
+            PracticeSession::Ended(s) => {
+                s.goal_ids = goal_ids;
+                s.intention = intention;
+                s.notes = notes;
+            }
+        }
     }
 }
 
@@ -275,7 +387,7 @@ fn test_start_session() {
 fn test_end_session() {
     let mut model = Model::default();
     let session = PracticeSession::new(vec!["Goal 1".to_string()], "Intention 1".to_string());
-    let session_id = session.id.clone();
+    let session_id = session.id().to_string();
     add_session(session, &mut model);
 
     // Start the session
@@ -309,8 +421,8 @@ fn test_update_session_notes() {
     let session = PracticeSession::new(vec!["Goal 1".to_string()], "Intention 1".to_string());
     add_session(session.clone(), &mut model);
     assert_eq!(model.sessions.len(), 1);
-    edit_session_notes(session.id, "Notes 1".to_string(), &mut model);
-    assert_eq!(model.sessions[0].notes, Some("Notes 1".to_string()));
+    edit_session_notes(session.id().to_string(), "Notes 1".to_string(), &mut model);
+    assert_eq!(model.sessions[0].notes().cloned(), Some("Notes 1".to_string()));
 }
 
 #[test]
@@ -338,19 +450,19 @@ fn test_backward_compatibility() {
     let mut session = PracticeSession::new(vec!["Goal 1".to_string()], "Intention 1".to_string());
     
     // Test initial state
-    assert!(matches!(session.state, SessionState::NotStarted));
+    assert!(matches!(session, PracticeSession::NotStarted(_)));
     assert_eq!(session.start_time(), None);
     assert_eq!(session.end_time(), None);
     assert_eq!(session.duration(), None);
     
     // Test after starting
     session.start("2025-05-01T12:00:00Z".to_string()).unwrap();
-    assert!(matches!(session.state, SessionState::Started { .. }));
+    assert!(matches!(session, PracticeSession::Started(_)));
     assert_eq!(session.start_time(), Some("2025-05-01T12:00:00Z"));
     
     // Test after ending
     session.end("2025-05-01T12:30:00Z".to_string()).unwrap();
-    assert!(matches!(session.state, SessionState::Ended { .. }));
+    assert!(matches!(session, PracticeSession::Ended(_)));
     assert_eq!(session.start_time(), Some("2025-05-01T12:00:00Z"));
     assert_eq!(session.end_time(), Some("2025-05-01T12:30:00Z"));
     assert_eq!(session.duration(), Some("30m".to_string()));
@@ -369,25 +481,41 @@ fn test_calculate_duration_function() {
 }
 
 #[test]
-fn test_pause_time_method() {
-    let mut session = PracticeSession::new(vec!["Goal 1".to_string()], "Intention 1".to_string());
+fn test_edit_session_fields_preserves_state() {
+    let mut model = Model::default();
     
-    // Test initial state
-    assert_eq!(session.pause_time(), None);
+    // Create a session and complete it
+    let session = PracticeSession::new(vec!["Goal 1".to_string()], "Original intention".to_string());
+    let session_id = session.id().to_string();
+    add_session(session, &mut model);
     
-    // Test after starting
-    session.start("2025-05-01T12:00:00Z".to_string()).unwrap();
-    assert_eq!(session.pause_time(), None);
+    // Start and end the session to make it completed
+    start_session(session_id.clone(), "2025-05-01T12:00:00Z".to_string(), &mut model).unwrap();
+    end_session(session_id.clone(), "2025-05-01T12:30:00Z".to_string(), &mut model).unwrap();
     
-    // Test after pausing
-    session.pause("2025-05-01T12:15:00Z".to_string()).unwrap();
-    assert_eq!(session.pause_time(), Some("2025-05-01T12:15:00Z"));
+    // Verify the session is ended
+    assert!(model.sessions[0].is_ended());
+    assert_eq!(model.sessions[0].intention(), "Original intention");
     
-    // Test after resuming
-    session.resume("2025-05-01T12:20:00Z".to_string()).unwrap();
-    assert_eq!(session.pause_time(), None);
+    // Edit the session fields
+    edit_session_fields(
+        session_id.clone(),
+        vec!["Goal 2".to_string()],
+        "Updated intention".to_string(),
+        Some("Updated notes".to_string()),
+        &mut model,
+    );
     
-    // Test after ending
-    session.end("2025-05-01T12:30:00Z".to_string()).unwrap();
-    assert_eq!(session.pause_time(), None);
+    // Verify the session is still ended and fields are updated
+    assert!(model.sessions[0].is_ended(), "Session should still be ended after editing");
+    assert_eq!(model.sessions[0].intention(), "Updated intention");
+    assert_eq!(model.sessions[0].notes(), Some(&"Updated notes".to_string()));
+    assert_eq!(model.sessions[0].goal_ids(), &vec!["Goal 2".to_string()]);
+    
+    // Verify the timing information is preserved
+    assert_eq!(model.sessions[0].start_time(), Some("2025-05-01T12:00:00Z"));
+    assert_eq!(model.sessions[0].end_time(), Some("2025-05-01T12:30:00Z"));
+    assert_eq!(model.sessions[0].duration(), Some("30m".to_string()));
 }
+
+
