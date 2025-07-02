@@ -20,7 +20,7 @@ pub fn process_effect(core: &Core, effect: Effect, render: WriteSignal<ViewModel
             // Do nothing
         }
         Effect::Appwrite(_) => {
-            // Do nothing
+            // Ignored in web environment: Appwrite effects are not applicable in this context.
         }
     };
 }
