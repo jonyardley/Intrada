@@ -98,7 +98,13 @@ private extension AppwriteService {
         
         // For DELETE operations, we don't need to decode response
         if method == "DELETE" {
-            return () as! T
+            if T.self == Void.self {
+                return () as! T
+            } else if T.self == EmptyResponse.self {
+                return EmptyResponse() as! T
+            } else {
+                throw AppwriteError.invalidResponseType
+            }
         }
         
         return try JSONDecoder().decode(T.self, from: data)
