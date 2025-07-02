@@ -16,11 +16,7 @@ struct SessionsView: View {
     @State private var navigationPath = NavigationPath()
     
     private var activeSession: PracticeSessionView? {
-        if let activeSession = core.view.appState.activeSession {
-            core.view.sessions.first { $0.id == activeSession.id }
-        } else {
-            nil
-        }
+        core.view.currentSession
     }
     
     private var completedSessions: [PracticeSessionView] {
@@ -132,7 +128,6 @@ struct ActiveSessionView: View {
     let session: PracticeSessionView
     @ObservedObject var core: Core
     let onSessionEnd: (PracticeSessionView) -> Void
-    @StateObject private var sessionTimer = SessionTimer.shared
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -151,8 +146,8 @@ struct ActiveSessionView: View {
                 }
                 
                 HStack {
-                    if case .started(_) = session.state {
-                        Text(sessionTimer.formatElapsedTime(sessionTimer.elapsedTime))
+                    if core.view.isSessionRunning, let elapsedTime = core.view.currentSessionElapsedTime {
+                        Text(elapsedTime)
                             .font(.title3)
                             .monospacedDigit()
                             .foregroundColor(.blue)
@@ -164,7 +159,7 @@ struct ActiveSessionView: View {
                     
                     Spacer()
                     
-                    if case .started(_) = session.state {
+                    if core.view.isSessionRunning {
                         NavigationLink(destination: ActiveSessionDetailView(core: core, sessionId: session.id)) {
                             Text("View Session")
                                 .font(.subheadline)
@@ -174,8 +169,11 @@ struct ActiveSessionView: View {
                                 .background(Color.blue.opacity(0.1))
                                 .cornerRadius(6)
                         }
-                    } else {
-                        NavigationLink(destination: ActiveSessionDetailView(core: core, sessionId: session.id)) {
+                    } else if core.view.canStartSession {
+                        Button {
+                            let startTime = Date().ISO8601Format()
+                            core.update(.startSession(session.id, startTime))
+                        } label: {
                             HStack(spacing: 4) {
                                 Image(systemName: "play.fill")
                                 Text("Start Session")
@@ -186,22 +184,12 @@ struct ActiveSessionView: View {
                             .background(Color.accentColor)
                             .cornerRadius(8)
                         }
-                        .simultaneousGesture(TapGesture().onEnded {
-                            let startTime = Date().ISO8601Format()
-                            core.update(.startSession(session.id, startTime))
-                            sessionTimer.startTimer(startTime: startTime)
-                        })
                     }
                 }
             }
             .padding()
             .background(Color.blue.opacity(0.1))
             .cornerRadius(10)
-        }
-        .onAppear {
-            if case .started(let startTime) = session.state {
-                sessionTimer.startTimer(startTime: startTime)
-            }
         }
     }
 }

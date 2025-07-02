@@ -16,7 +16,7 @@ pub mod exercise_record;
 pub use exercise_record::*;
 
 pub mod session;
-pub use session::*;
+pub use session::{PracticeSession, PracticeSessionView, ActiveSession, SessionState, add_session, edit_session, set_active_session, start_session, pause_session, resume_session, end_session, remove_active_session, edit_session_notes};
 
 pub mod model;
 pub use model::*;
@@ -40,6 +40,8 @@ pub enum Event {
     EditSession(PracticeSession),
     SetActiveSession(String),
     StartSession(String, String),
+    PauseSession(String, String),
+    ResumeSession(String, String),
     UnsetActiveSession(),
     EndSession(String, String),
     EditSessionNotes(String, String),
@@ -125,6 +127,16 @@ impl App for Chopin {
                     println!("Failed to start session: {}", e);
                 }
             }
+            Event::PauseSession(session_id, timestamp) => {
+                if let Err(e) = pause_session(session_id, timestamp, model) {
+                    println!("Failed to pause session: {}", e);
+                }
+            }
+            Event::ResumeSession(session_id, timestamp) => {
+                if let Err(e) = resume_session(session_id, timestamp, model) {
+                    println!("Failed to resume session: {}", e);
+                }
+            }
             Event::EndSession(session_id, timestamp) => {
                 if let Err(e) = end_session(session_id, timestamp, model) {
                     // You might want to handle this error in your UI
@@ -197,25 +209,27 @@ impl App for Chopin {
     }
 
     fn view(&self, model: &Self::Model) -> Self::ViewModel {
-        ViewModel {
-            goals: model.goals.clone(),
-            exercises: model.exercises.clone(),
-            sessions: model.sessions.iter().map(|s| {
-                crate::app::session::PracticeSessionView {
-                    id: s.id.clone(),
-                    goal_ids: s.goal_ids.clone(),
-                    intention: s.intention.clone(),
-                    state: s.state.clone(),
-                    notes: s.notes.clone(),
-                    exercise_records: s.exercise_records.clone(),
-                    duration: s.duration(),
-                    start_time: s.start_time().map(|t| t.to_string()),
-                    pause_time: s.pause_time().map(|t| t.to_string()),
-                    end_time: s.end_time().map(|t| t.to_string()),
-                    is_ended: s.is_ended(),
-                }
-            }).collect(),
-            app_state: model.app_state.clone(),
-        }
+        let session_views: Vec<PracticeSessionView> = model.sessions.iter().map(|s| {
+            PracticeSessionView {
+                id: s.id.clone(),
+                goal_ids: s.goal_ids.clone(),
+                intention: s.intention.clone(),
+                state: s.state.clone(),
+                notes: s.notes.clone(),
+                exercise_records: s.exercise_records.clone(),
+                duration: s.duration(),
+                start_time: s.start_time().map(|t| t.to_string()),
+                pause_time: s.pause_time().map(|t| t.to_string()),
+                end_time: s.end_time().map(|t| t.to_string()),
+                is_ended: s.is_ended(),
+            }
+        }).collect();
+
+        ViewModel::new(
+            model.goals.clone(),
+            model.exercises.clone(),
+            session_views,
+            model.app_state.clone(),
+        )
     }
 }

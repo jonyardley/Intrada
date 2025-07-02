@@ -37,7 +37,17 @@ class Core: ObservableObject {
                 goals: [],
                 exercises: [],
                 sessions: [],
-                appState: AppState(activeSession: nil)
+                appState: AppState(activeSession: nil),
+                currentSession: nil,
+                hasActiveSession: false,
+                canStartSession: false,
+                canPauseSession: false,
+                canResumeSession: false,
+                canEndSession: false,
+                isSessionRunning: false,
+                isSessionPaused: false,
+                isSessionEnded: false,
+                currentSessionElapsedTime: nil
             )
         } else {
             do {
@@ -50,7 +60,17 @@ class Core: ObservableObject {
                     goals: [],
                     exercises: [],
                     sessions: [],
-                    appState: AppState(activeSession: nil)
+                    appState: AppState(activeSession: nil),
+                    currentSession: nil,
+                    hasActiveSession: false,
+                    canStartSession: false,
+                    canPauseSession: false,
+                    canResumeSession: false,
+                    canEndSession: false,
+                    isSessionRunning: false,
+                    isSessionPaused: false,
+                    isSessionEnded: false,
+                    currentSessionElapsedTime: nil
                 )
             }
         }
@@ -102,7 +122,17 @@ class Core: ObservableObject {
                         goals: [],
                         exercises: [],
                         sessions: [],
-                        appState: AppState(activeSession: nil)
+                        appState: AppState(activeSession: nil),
+                        currentSession: nil,
+                        hasActiveSession: false,
+                        canStartSession: false,
+                        canPauseSession: false,
+                        canResumeSession: false,
+                        canEndSession: false,
+                        isSessionRunning: false,
+                        isSessionPaused: false,
+                        isSessionEnded: false,
+                        currentSessionElapsedTime: nil
                     )
                 } else {
                     do {
@@ -115,7 +145,17 @@ class Core: ObservableObject {
                             goals: [],
                             exercises: [],
                             sessions: [],
-                            appState: AppState(activeSession: nil)
+                            appState: AppState(activeSession: nil),
+                            currentSession: nil,
+                            hasActiveSession: false,
+                            canStartSession: false,
+                            canPauseSession: false,
+                            canResumeSession: false,
+                            canEndSession: false,
+                            isSessionRunning: false,
+                            isSessionPaused: false,
+                            isSessionEnded: false,
+                            currentSessionElapsedTime: nil
                         )
                     }
                 }

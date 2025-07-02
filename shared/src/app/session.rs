@@ -205,6 +205,24 @@ pub fn start_session(session_id: String, timestamp: String, model: &mut Model) -
     }
 }
 
+pub fn pause_session(session_id: String, timestamp: String, model: &mut Model) -> Result<(), &'static str> {
+    if let Some(session) = get_session_by_id(&session_id, model) {
+        session.pause(timestamp)?;
+        Ok(())
+    } else {
+        Err("Session not found")
+    }
+}
+
+pub fn resume_session(session_id: String, timestamp: String, model: &mut Model) -> Result<(), &'static str> {
+    if let Some(session) = get_session_by_id(&session_id, model) {
+        session.resume(timestamp)?;
+        Ok(())
+    } else {
+        Err("Session not found")
+    }
+}
+
 pub fn end_session(session_id: String, timestamp: String, model: &mut Model) -> Result<(), &'static str> {
     if let Some(session) = get_session_by_id(&session_id, model) {
         session.end(timestamp)?;
