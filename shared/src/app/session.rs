@@ -306,12 +306,12 @@ impl PracticeSession {
 }
 
 // Public duration calculation function for use by viewmodel
-pub fn calculate_duration(start_time: &str, end_time: &str) -> String {
-    let start = DateTime::parse_from_rfc3339(start_time).unwrap_or_default();
-    let end = DateTime::parse_from_rfc3339(end_time).unwrap_or_default();
+pub fn calculate_duration(start_time: &str, end_time: &str) -> Option<String> {
+    let start = DateTime::parse_from_rfc3339(start_time).ok()?;
+    let end = DateTime::parse_from_rfc3339(end_time).ok()?;
     let duration = end - start;
     let minutes = (duration.num_seconds() as f64 / 60.0).round() as i64;
-    format!("{}m", minutes)
+    Some(format!("{}m", minutes))
 }
 
 fn get_session_by_id<'a>(
