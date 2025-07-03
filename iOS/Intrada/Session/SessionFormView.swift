@@ -100,7 +100,7 @@ struct SessionFormView: View {
                             goalIds: Array(selectedGoals),
                             intention: intention,
                             notes: notes.isEmpty ? nil : notes,
-                            studyRecords: []
+                            studySessions: []
                         )
                         let notStartedSession = NotStartedSession(data: sessionData)
                         let session = PracticeSession.notStarted(notStartedSession)

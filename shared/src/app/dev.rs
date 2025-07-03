@@ -87,7 +87,7 @@ pub fn set_dev_data(model: &mut Model) {
         model,
     );
 
-    // Add study records
+    // Add study sessions
     let study_session = StudySession::new(model.studies[0].id.clone(), session_1_id.clone());
     add_study_session(study_session, model);
 

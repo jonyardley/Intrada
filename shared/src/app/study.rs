@@ -18,12 +18,12 @@ impl Study {
         }
     }
 
-    pub fn get_session_records<'a>(&self, model: &'a Model) -> Vec<&'a StudySession> {
+    pub fn get_study_sessions<'a>(&self, model: &'a Model) -> Vec<&'a StudySession> {
         model
             .sessions
             .iter()
             .flat_map(|session| session.study_sessions())
-            .filter(|record| record.study_id == self.id)
+            .filter(|session| session.study_id == self.id)
             .collect()
     }
 }
@@ -66,7 +66,7 @@ fn test_edit_study() {
 }
 
 #[test]
-fn test_study_records() {
+fn test_study_sessions() {
     let mut model = Model::default();
 
     // Create a study
@@ -90,7 +90,7 @@ fn test_study_records() {
     crate::app::study_session::add_study_session(session1, &mut model);
     crate::app::study_session::add_study_session(session2, &mut model);
 
-    // Test get_session_records
-    let records = study.get_session_records(&model);
-    assert_eq!(records.len(), 2);
+    // Test get_study_sessions
+    let sessions = study.get_study_sessions(&model);
+    assert_eq!(sessions.len(), 2);
 }

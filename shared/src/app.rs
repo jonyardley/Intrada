@@ -231,7 +231,7 @@ impl Chopin {
             intention: session.intention().clone(),
             state: session.state(),
             notes: session.notes().clone(),
-            study_records: session.study_sessions().clone(),
+            study_sessions: session.study_sessions().clone(),
             duration: session.duration(),
             start_time: session.start_time().map(|t| t.to_string()),
             end_time: session.end_time().map(|t| t.to_string()),

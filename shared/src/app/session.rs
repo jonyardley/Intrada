@@ -10,7 +10,7 @@ pub struct SessionData {
     pub goal_ids: Vec<String>,
     pub intention: String,
     pub notes: Option<String>,
-    pub study_records: Vec<StudySession>,
+    pub study_sessions: Vec<StudySession>,
 }
 
 impl SessionData {
@@ -20,7 +20,7 @@ impl SessionData {
             goal_ids,
             intention,
             notes: None,
-            study_records: Vec::new(),
+            study_sessions: Vec::new(),
         }
     }
 
@@ -37,7 +37,7 @@ impl SessionData {
         &self.notes
     }
     pub fn study_sessions(&self) -> &Vec<StudySession> {
-        &self.study_records
+        &self.study_sessions
     }
     pub fn goal_ids_mut(&mut self) -> &mut Vec<String> {
         &mut self.goal_ids
@@ -49,7 +49,7 @@ impl SessionData {
         &mut self.notes
     }
     pub fn study_sessions_mut(&mut self) -> &mut Vec<StudySession> {
-        &mut self.study_records
+        &mut self.study_sessions
     }
 }
 
@@ -142,7 +142,7 @@ pub struct PracticeSessionView {
     pub intention: String,
     pub state: SessionState,
     pub notes: Option<String>,
-    pub study_records: Vec<StudySession>,
+    pub study_sessions: Vec<StudySession>,
     pub duration: Option<String>,
     pub start_time: Option<String>,
     pub end_time: Option<String>,
