@@ -24,15 +24,33 @@ impl SessionData {
         }
     }
 
-    pub fn id(&self) -> &str { &self.id }
-    pub fn goal_ids(&self) -> &Vec<String> { &self.goal_ids }
-    pub fn intention(&self) -> &String { &self.intention }
-    pub fn notes(&self) -> &Option<String> { &self.notes }
-    pub fn exercise_records(&self) -> &Vec<ExerciseRecord> { &self.exercise_records }
-    pub fn goal_ids_mut(&mut self) -> &mut Vec<String> { &mut self.goal_ids }
-    pub fn intention_mut(&mut self) -> &mut String { &mut self.intention }
-    pub fn notes_mut(&mut self) -> &mut Option<String> { &mut self.notes }
-    pub fn exercise_records_mut(&mut self) -> &mut Vec<ExerciseRecord> { &mut self.exercise_records }
+    pub fn id(&self) -> &str {
+        &self.id
+    }
+    pub fn goal_ids(&self) -> &Vec<String> {
+        &self.goal_ids
+    }
+    pub fn intention(&self) -> &String {
+        &self.intention
+    }
+    pub fn notes(&self) -> &Option<String> {
+        &self.notes
+    }
+    pub fn exercise_records(&self) -> &Vec<ExerciseRecord> {
+        &self.exercise_records
+    }
+    pub fn goal_ids_mut(&mut self) -> &mut Vec<String> {
+        &mut self.goal_ids
+    }
+    pub fn intention_mut(&mut self) -> &mut String {
+        &mut self.intention
+    }
+    pub fn notes_mut(&mut self) -> &mut Option<String> {
+        &mut self.notes
+    }
+    pub fn exercise_records_mut(&mut self) -> &mut Vec<ExerciseRecord> {
+        &mut self.exercise_records
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
@@ -102,8 +120,13 @@ impl EndedSession {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub enum SessionState {
     NotStarted,
-    Started { start_time: String },
-    Ended { start_time: String, end_time: String },
+    Started {
+        start_time: String,
+    },
+    Ended {
+        start_time: String,
+        end_time: String,
+    },
 }
 
 impl Default for SessionState {
@@ -186,7 +209,10 @@ impl PracticeSession {
     }
 
     pub fn start(&mut self, timestamp: String) -> Result<(), &'static str> {
-        match std::mem::replace(self, PracticeSession::NotStarted(NotStartedSession::new(vec![], String::new()))) {
+        match std::mem::replace(
+            self,
+            PracticeSession::NotStarted(NotStartedSession::new(vec![], String::new())),
+        ) {
             PracticeSession::NotStarted(session) => {
                 *self = PracticeSession::Started(session.start(timestamp));
                 Ok(())
@@ -199,7 +225,10 @@ impl PracticeSession {
     }
 
     pub fn end(&mut self, timestamp: String) -> Result<(), &'static str> {
-        match std::mem::replace(self, PracticeSession::NotStarted(NotStartedSession::new(vec![], String::new()))) {
+        match std::mem::replace(
+            self,
+            PracticeSession::NotStarted(NotStartedSession::new(vec![], String::new())),
+        ) {
             PracticeSession::Started(session) => {
                 *self = PracticeSession::Ended(session.end(timestamp));
                 Ok(())
@@ -238,9 +267,10 @@ impl PracticeSession {
 
     pub fn duration(&self) -> Option<String> {
         match self {
-            PracticeSession::Ended(session) => {
-                Some(calculate_duration(session.start_time.as_str(), session.end_time.as_str()))
-            }
+            PracticeSession::Ended(session) => Some(calculate_duration(
+                session.start_time.as_str(),
+                session.end_time.as_str(),
+            )),
             _ => None,
         }
     }
@@ -248,8 +278,13 @@ impl PracticeSession {
     pub fn state(&self) -> SessionState {
         match self {
             PracticeSession::NotStarted(_) => SessionState::NotStarted,
-            PracticeSession::Started(s) => SessionState::Started { start_time: s.start_time.clone() },
-            PracticeSession::Ended(s) => SessionState::Ended { start_time: s.start_time.clone(), end_time: s.end_time.clone() },
+            PracticeSession::Started(s) => SessionState::Started {
+                start_time: s.start_time.clone(),
+            },
+            PracticeSession::Ended(s) => SessionState::Ended {
+                start_time: s.start_time.clone(),
+                end_time: s.end_time.clone(),
+            },
         }
     }
 
@@ -260,7 +295,11 @@ impl PracticeSession {
 
     // Mutator: update an ExerciseRecord by id
     pub fn update_exercise_record(&mut self, record: ExerciseRecord) {
-        if let Some(existing) = self.exercise_records_mut().iter_mut().find(|r| r.id == record.id) {
+        if let Some(existing) = self
+            .exercise_records_mut()
+            .iter_mut()
+            .find(|r| r.id == record.id)
+        {
             *existing = record;
         }
     }
@@ -275,16 +314,19 @@ pub fn calculate_duration(start_time: &str, end_time: &str) -> String {
     format!("{}m", minutes)
 }
 
-fn get_session_by_id<'a>(session_id: &str, model: &'a mut Model) -> Option<&'a mut PracticeSession> {
+fn get_session_by_id<'a>(
+    session_id: &str,
+    model: &'a mut Model,
+) -> Option<&'a mut PracticeSession> {
     model.sessions.iter_mut().find(|s| s.id() == session_id)
 }
 
 pub fn add_session(session: PracticeSession, model: &mut Model) {
     let session_id = session.id().to_string();
-    
+
     // Add the session to the model
     model.sessions.push(session);
-    
+
     // Set as active if there's no current active session
     // This ensures new sessions become active when no session is currently active
     if model.app_state.active_session.is_none() {
@@ -300,16 +342,11 @@ pub fn remove_active_session(model: &mut Model) {
     model.app_state.active_session = None;
 }
 
-pub fn edit_session(session: PracticeSession, model: &mut Model) {
-    let index = model.sessions.iter().position(|s| s.id() == session.id());
-    if let Some(index) = index {
-        model.sessions[index] = session;
-    } else {
-        panic!("Tried to edit a session that does not exist: {}", session.id());
-    }
-}
-
-pub fn start_session(session_id: String, timestamp: String, model: &mut Model) -> Result<(), &'static str> {
+pub fn start_session(
+    session_id: String,
+    timestamp: String,
+    model: &mut Model,
+) -> Result<(), &'static str> {
     if let Some(session) = get_session_by_id(&session_id, model) {
         session.start(timestamp)?;
         set_active_session(session_id, model);
@@ -319,10 +356,14 @@ pub fn start_session(session_id: String, timestamp: String, model: &mut Model) -
     }
 }
 
-pub fn end_session(session_id: String, timestamp: String, model: &mut Model) -> Result<(), &'static str> {
+pub fn end_session(
+    session_id: String,
+    timestamp: String,
+    model: &mut Model,
+) -> Result<(), &'static str> {
     if let Some(session) = get_session_by_id(&session_id, model) {
         session.end(timestamp)?;
-        
+
         // Remove from active session if this was the active session
         if let Some(active_session) = &model.app_state.active_session {
             if active_session.id == session_id {
@@ -414,7 +455,8 @@ fn test_end_session() {
         session_id.clone(),
         "2025-05-01T12:00:00Z".to_string(),
         &mut model,
-    ).unwrap();
+    )
+    .unwrap();
 
     // Verify session is active
     assert!(model.sessions[0].is_active());
@@ -441,24 +483,27 @@ fn test_update_session_notes() {
     add_session(session.clone(), &mut model);
     assert_eq!(model.sessions.len(), 1);
     edit_session_notes(session.id().to_string(), "Notes 1".to_string(), &mut model);
-    assert_eq!(model.sessions[0].notes().as_ref().map(|s| s.as_str()), Some("Notes 1"));
+    assert_eq!(
+        model.sessions[0].notes().as_ref().map(|s| s.as_str()),
+        Some("Notes 1")
+    );
 }
 
 #[test]
 fn test_session_state_transitions() {
     let mut session = PracticeSession::new(vec!["Goal 1".to_string()], "Intention 1".to_string());
-    
+
     // Test start
     assert!(session.start("2025-05-01T12:00:00Z".to_string()).is_ok());
     assert!(session.is_active());
     assert_eq!(session.start_time(), Some("2025-05-01T12:00:00Z"));
-    
+
     // Test end
     assert!(session.end("2025-05-01T12:30:00Z".to_string()).is_ok());
     assert!(session.is_ended());
     assert_eq!(session.end_time(), Some("2025-05-01T12:30:00Z"));
     assert_eq!(session.duration(), Some("30m".to_string()));
-    
+
     // Test invalid transitions
     assert!(session.start("2025-05-01T13:00:00Z".to_string()).is_err());
     assert!(session.end("2025-05-01T13:00:00Z".to_string()).is_err());
@@ -467,18 +512,18 @@ fn test_session_state_transitions() {
 #[test]
 fn test_backward_compatibility() {
     let mut session = PracticeSession::new(vec!["Goal 1".to_string()], "Intention 1".to_string());
-    
+
     // Test initial state
     assert!(matches!(session, PracticeSession::NotStarted(_)));
     assert_eq!(session.start_time(), None);
     assert_eq!(session.end_time(), None);
     assert_eq!(session.duration(), None);
-    
+
     // Test after starting
     session.start("2025-05-01T12:00:00Z".to_string()).unwrap();
     assert!(matches!(session, PracticeSession::Started(_)));
     assert_eq!(session.start_time(), Some("2025-05-01T12:00:00Z"));
-    
+
     // Test after ending
     session.end("2025-05-01T12:30:00Z".to_string()).unwrap();
     assert!(matches!(session, PracticeSession::Ended(_)));
@@ -491,10 +536,10 @@ fn test_backward_compatibility() {
 fn test_calculate_duration_function() {
     let duration = calculate_duration("2025-05-01T12:00:00Z", "2025-05-01T12:30:00Z");
     assert_eq!(duration, "30m");
-    
+
     let duration = calculate_duration("2025-05-01T12:00:00Z", "2025-05-01T12:00:00Z");
     assert_eq!(duration, "0m");
-    
+
     let duration = calculate_duration("2025-05-01T12:00:00Z", "2025-05-01T13:15:00Z");
     assert_eq!(duration, "75m");
 }
@@ -502,20 +547,31 @@ fn test_calculate_duration_function() {
 #[test]
 fn test_edit_session_fields_preserves_state() {
     let mut model = Model::default();
-    
+
     // Create a session and complete it
-    let session = PracticeSession::new(vec!["Goal 1".to_string()], "Original intention".to_string());
+    let session =
+        PracticeSession::new(vec!["Goal 1".to_string()], "Original intention".to_string());
     let session_id = session.id().to_string();
     add_session(session, &mut model);
-    
+
     // Start and end the session to make it completed
-    start_session(session_id.clone(), "2025-05-01T12:00:00Z".to_string(), &mut model).unwrap();
-    end_session(session_id.clone(), "2025-05-01T12:30:00Z".to_string(), &mut model).unwrap();
-    
+    start_session(
+        session_id.clone(),
+        "2025-05-01T12:00:00Z".to_string(),
+        &mut model,
+    )
+    .unwrap();
+    end_session(
+        session_id.clone(),
+        "2025-05-01T12:30:00Z".to_string(),
+        &mut model,
+    )
+    .unwrap();
+
     // Verify the session is ended
     assert!(model.sessions[0].is_ended());
     assert_eq!(model.sessions[0].intention(), "Original intention");
-    
+
     // Edit the session fields
     edit_session_fields(
         session_id.clone(),
@@ -524,18 +580,21 @@ fn test_edit_session_fields_preserves_state() {
         Some("Updated notes".to_string()),
         &mut model,
     );
-    
+
     // Verify the session is still ended and fields are updated
-    assert!(model.sessions[0].is_ended(), "Session should still be ended after editing");
+    assert!(
+        model.sessions[0].is_ended(),
+        "Session should still be ended after editing"
+    );
     assert_eq!(model.sessions[0].intention(), "Updated intention");
-    assert_eq!(model.sessions[0].notes().as_ref().map(|s| s.as_str()), Some("Updated notes"));
+    assert_eq!(
+        model.sessions[0].notes().as_ref().map(|s| s.as_str()),
+        Some("Updated notes")
+    );
     assert_eq!(model.sessions[0].goal_ids(), &vec!["Goal 2".to_string()]);
-    
+
     // Verify the timing information is preserved
     assert_eq!(model.sessions[0].start_time(), Some("2025-05-01T12:00:00Z"));
     assert_eq!(model.sessions[0].end_time(), Some("2025-05-01T12:30:00Z"));
     assert_eq!(model.sessions[0].duration(), Some("30m".to_string()));
 }
-
-
-

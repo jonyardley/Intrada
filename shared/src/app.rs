@@ -1,10 +1,11 @@
 use crux_core::{
+    capability::Operation,
     macros::effect,
     render::{render, RenderOperation},
-    App, Command, capability::Operation,
+    App, Command,
 };
+use crux_http::protocol::HttpRequest;
 use serde::{Deserialize, Serialize};
-use crux_http::{protocol::HttpRequest};
 
 pub mod goal;
 pub use goal::*;
@@ -16,7 +17,11 @@ pub mod exercise_record;
 pub use exercise_record::*;
 
 pub mod session;
-pub use session::{PracticeSession, PracticeSessionView, ActiveSession, SessionState, add_session, edit_session, edit_session_fields, set_active_session, start_session, end_session, remove_active_session, edit_session_notes};
+pub use session::{
+    add_session, edit_session_fields, edit_session_notes, end_session, remove_active_session,
+    set_active_session, start_session, ActiveSession, PracticeSession, PracticeSessionView,
+    SessionState,
+};
 
 pub mod model;
 pub use model::*;
@@ -37,7 +42,6 @@ pub enum Event {
     },
 
     AddSession(PracticeSession),
-    EditSession(PracticeSession),
     EditSessionFields {
         session_id: String,
         goal_ids: Vec<String>,
@@ -83,8 +87,8 @@ impl Operation for AppwriteOperation {
 pub enum AppwriteResult {
     Goals(Vec<PracticeGoal>),
     Goal(PracticeGoal), // For create/update operations
-    Success, // For delete operations
-    Error(String), // For error handling
+    Success,            // For delete operations
+    Error(String),      // For error handling
 }
 
 #[effect]
@@ -114,7 +118,6 @@ impl App for Chopin {
         _caps: &Self::Capabilities,
     ) -> Command<Effect, Event> {
         match event {
-
             Event::AddExercise(exercise) => add_exercise(exercise, model),
             Event::EditExercise(exercise) => edit_exercise(exercise, model),
             Event::AddExerciseToGoal {
@@ -123,7 +126,6 @@ impl App for Chopin {
             } => add_exercise_to_goal(goal_id, exercise_id, model),
 
             Event::AddSession(session) => add_session(session, model),
-            Event::EditSession(session) => edit_session(session, model),
             Event::EditSessionFields {
                 session_id,
                 goal_ids,
@@ -187,7 +189,9 @@ impl App for Chopin {
                     AppwriteResult::Goal(goal) => {
                         // Handle single goal result (for create/update)
                         // You might want to update the existing goal or add it to the list
-                        if let Some(existing_index) = model.goals.iter().position(|g| g.id == goal.id) {
+                        if let Some(existing_index) =
+                            model.goals.iter().position(|g| g.id == goal.id)
+                        {
                             model.goals[existing_index] = goal;
                         } else {
                             model.goals.push(goal);
@@ -210,8 +214,10 @@ impl App for Chopin {
     }
 
     fn view(&self, model: &Self::Model) -> Self::ViewModel {
-        let session_views: Vec<PracticeSessionView> = model.sessions.iter().map(|s| {
-            PracticeSessionView {
+        let session_views: Vec<PracticeSessionView> = model
+            .sessions
+            .iter()
+            .map(|s| PracticeSessionView {
                 id: s.id().to_string(),
                 goal_ids: s.goal_ids().clone(),
                 intention: s.intention().clone(),
@@ -222,8 +228,8 @@ impl App for Chopin {
                 start_time: s.start_time().map(|t| t.to_string()),
                 end_time: s.end_time().map(|t| t.to_string()),
                 is_ended: s.is_ended(),
-            }
-        }).collect();
+            })
+            .collect();
 
         ViewModel::new(
             model.goals.clone(),
