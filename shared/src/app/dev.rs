@@ -1,6 +1,6 @@
 use crate::app::{
-    add_goal, add_session, add_study, add_study_record, end_session, start_session, Model,
-    PracticeGoal, PracticeSession, Study, StudyRecord,
+    add_goal, add_session, add_study, add_study_session, end_session, start_session, Model,
+    PracticeGoal, PracticeSession, Study, StudySession,
 };
 
 pub fn set_dev_data(model: &mut Model) {
@@ -88,8 +88,8 @@ pub fn set_dev_data(model: &mut Model) {
     );
 
     // Add study records
-    let study_record = StudyRecord::new(model.studies[0].id.clone(), session_1_id.clone());
-    add_study_record(study_record, model);
+    let study_session = StudySession::new(model.studies[0].id.clone(), session_1_id.clone());
+    add_study_session(study_session, model);
 
     let _ = end_session(
         session_1_id.clone(),

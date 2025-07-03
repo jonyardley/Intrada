@@ -1,5 +1,5 @@
 use crate::app::model::Model;
-use crate::app::study_record::StudyRecord;
+use crate::app::study_session::StudySession;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
@@ -18,11 +18,11 @@ impl Study {
         }
     }
 
-    pub fn get_session_records<'a>(&self, model: &'a Model) -> Vec<&'a StudyRecord> {
+    pub fn get_session_records<'a>(&self, model: &'a Model) -> Vec<&'a StudySession> {
         model
             .sessions
             .iter()
-            .flat_map(|session| session.study_records())
+            .flat_map(|session| session.study_sessions())
             .filter(|record| record.study_id == self.id)
             .collect()
     }
@@ -82,11 +82,13 @@ fn test_study_records() {
     let session_id = session.id().to_string();
     crate::app::session::add_session(session, &mut model);
 
-    // Add study records
-    let record1 = crate::app::study_record::StudyRecord::new(study_id.clone(), session_id.clone());
-    let record2 = crate::app::study_record::StudyRecord::new(study_id.clone(), session_id.clone());
-    crate::app::study_record::add_study_record(record1, &mut model);
-    crate::app::study_record::add_study_record(record2, &mut model);
+    // Add study sessions
+    let session1 =
+        crate::app::study_session::StudySession::new(study_id.clone(), session_id.clone());
+    let session2 =
+        crate::app::study_session::StudySession::new(study_id.clone(), session_id.clone());
+    crate::app::study_session::add_study_session(session1, &mut model);
+    crate::app::study_session::add_study_session(session2, &mut model);
 
     // Test get_session_records
     let records = study.get_session_records(&model);

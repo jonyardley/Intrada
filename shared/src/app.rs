@@ -13,8 +13,8 @@ pub use goal::*;
 pub mod study;
 pub use study::*;
 
-pub mod study_record;
-pub use study_record::*;
+pub mod study_session;
+pub use study_session::*;
 
 pub mod session;
 pub use session::{
@@ -54,8 +54,8 @@ pub enum Event {
     EndSession(String, String),
     EditSessionNotes(String, String),
 
-    AddStudyRecord(StudyRecord),
-    UpdateStudyRecord(StudyRecord),
+    AddStudySession(StudySession),
+    UpdateStudySession(StudySession),
 
     SetDevData(),
     Nothing,
@@ -133,25 +133,19 @@ impl App for Chopin {
             } => edit_session_fields(session_id, goal_ids, intention, notes, model),
             Event::SetActiveSession(session_id) => set_active_session(session_id, model),
             Event::StartSession(session_id, timestamp) => {
-                if let Err(e) = start_session(session_id, timestamp, model) {
-                    // You might want to handle this error in your UI
-                    println!("Failed to start session: {}", e);
-                }
+                Self::handle_session_result(start_session(session_id, timestamp, model), "start")
             }
 
             Event::EndSession(session_id, timestamp) => {
-                if let Err(e) = end_session(session_id, timestamp, model) {
-                    // You might want to handle this error in your UI
-                    println!("Failed to end session: {}", e);
-                }
+                Self::handle_session_result(end_session(session_id, timestamp, model), "end")
             }
             Event::UnsetActiveSession() => remove_active_session(model),
             Event::EditSessionNotes(session_id, notes) => {
                 edit_session_notes(session_id, notes, model)
             }
 
-            Event::AddStudyRecord(record) => add_study_record(record, model),
-            Event::UpdateStudyRecord(record) => update_study_record(record, model),
+            Event::AddStudySession(session) => add_study_session(session, model),
+            Event::UpdateStudySession(session) => update_study_session(session, model),
 
             Event::SetDevData() => dev::set_dev_data(model),
 
@@ -159,53 +153,18 @@ impl App for Chopin {
             Event::Nothing => (),
 
             // Simple Appwrite Events - just for loading goals
-            Event::LoadGoals => {
-                // Request goals from the shell (iOS app)
-                return Command::request_from_shell(AppwriteOperation::GetGoals)
-                    .then_send(Event::GoalsLoaded);
-            }
+            Event::LoadGoals => return Self::appwrite_command(AppwriteOperation::GetGoals),
             Event::CreateGoal(goal) => {
-                // Request to create a goal via the shell (iOS app)
-                return Command::request_from_shell(AppwriteOperation::CreateGoal(goal))
-                    .then_send(Event::GoalsLoaded);
+                return Self::appwrite_command(AppwriteOperation::CreateGoal(goal))
             }
             Event::UpdateGoal(goal) => {
-                // Request to update a goal via the shell (iOS app)
-                return Command::request_from_shell(AppwriteOperation::UpdateGoal(goal))
-                    .then_send(Event::GoalsLoaded);
+                return Self::appwrite_command(AppwriteOperation::UpdateGoal(goal))
             }
             Event::DeleteGoal(goal_id) => {
-                // Request to delete a goal via the shell (iOS app)
-                return Command::request_from_shell(AppwriteOperation::DeleteGoal(goal_id))
-                    .then_send(Event::GoalsLoaded);
+                return Self::appwrite_command(AppwriteOperation::DeleteGoal(goal_id))
             }
             Event::GoalsLoaded(result) => {
-                // Update the model with the loaded goals
-                match result {
-                    AppwriteResult::Goals(goals) => {
-                        model.goals = goals;
-                    }
-                    AppwriteResult::Goal(goal) => {
-                        // Handle single goal result (for create/update)
-                        // You might want to update the existing goal or add it to the list
-                        if let Some(existing_index) =
-                            model.goals.iter().position(|g| g.id == goal.id)
-                        {
-                            model.goals[existing_index] = goal;
-                        } else {
-                            model.goals.push(goal);
-                        }
-                    }
-                    AppwriteResult::Success => {
-                        // Handle success case (for delete operations)
-                        // No action needed for now
-                    }
-                    AppwriteResult::Error(error_message) => {
-                        // Handle error case
-                        println!("Appwrite error: {}", error_message);
-                        // You might want to set an error state in the model
-                    }
-                }
+                Self::handle_goals_result(result, model);
             }
         };
 
@@ -213,22 +172,8 @@ impl App for Chopin {
     }
 
     fn view(&self, model: &Self::Model) -> Self::ViewModel {
-        let session_views: Vec<PracticeSessionView> = model
-            .sessions
-            .iter()
-            .map(|s| PracticeSessionView {
-                id: s.id().to_string(),
-                goal_ids: s.goal_ids().clone(),
-                intention: s.intention().clone(),
-                state: s.state(),
-                notes: s.notes().clone(),
-                study_records: s.study_records().clone(),
-                duration: s.duration(),
-                start_time: s.start_time().map(|t| t.to_string()),
-                end_time: s.end_time().map(|t| t.to_string()),
-                is_ended: s.is_ended(),
-            })
-            .collect();
+        let session_views: Vec<PracticeSessionView> =
+            model.sessions.iter().map(Self::session_to_view).collect();
 
         ViewModel::new(
             model.goals.clone(),
@@ -236,5 +181,61 @@ impl App for Chopin {
             session_views,
             model.app_state.clone(),
         )
+    }
+}
+
+impl Chopin {
+    /// Helper function to create Appwrite commands
+    fn appwrite_command(operation: AppwriteOperation) -> Command<Effect, Event> {
+        Command::request_from_shell(operation).then_send(Event::GoalsLoaded)
+    }
+
+    /// Helper function to handle session operation results
+    fn handle_session_result(result: Result<(), &'static str>, operation: &str) {
+        if let Err(e) = result {
+            println!("Failed to {} session: {}", operation, e);
+        }
+    }
+
+    /// Helper function to handle goals loaded results
+    fn handle_goals_result(result: AppwriteResult, model: &mut Model) {
+        match result {
+            AppwriteResult::Goals(goals) => {
+                model.goals = goals;
+            }
+            AppwriteResult::Goal(goal) => {
+                // Handle single goal result (for create/update)
+                if let Some(existing_index) = model.goals.iter().position(|g| g.id == goal.id) {
+                    model.goals[existing_index] = goal;
+                } else {
+                    model.goals.push(goal);
+                }
+            }
+            AppwriteResult::Success => {
+                // Handle success case (for delete operations)
+                // No action needed for now
+            }
+            AppwriteResult::Error(error_message) => {
+                // Handle error case
+                println!("Appwrite error: {}", error_message);
+                // You might want to set an error state in the model
+            }
+        }
+    }
+
+    /// Helper function to convert PracticeSession to PracticeSessionView
+    fn session_to_view(session: &PracticeSession) -> PracticeSessionView {
+        PracticeSessionView {
+            id: session.id().to_string(),
+            goal_ids: session.goal_ids().clone(),
+            intention: session.intention().clone(),
+            state: session.state(),
+            notes: session.notes().clone(),
+            study_records: session.study_sessions().clone(),
+            duration: session.duration(),
+            start_time: session.start_time().map(|t| t.to_string()),
+            end_time: session.end_time().map(|t| t.to_string()),
+            is_ended: session.is_ended(),
+        }
     }
 }
