@@ -81,7 +81,7 @@ private extension AppwriteService {
         var data: [String: Any] = [
             "name": goal.name,
             "description": goal.description ?? "",
-            "status": statusToString(goal.status),
+            "status": goal.status.rawValue,
             "studyIds": goal.studyIds
         ]
         
@@ -120,7 +120,7 @@ private extension AppwriteService {
             id: id,
             name: name,
             description: description?.isEmpty == false ? description : nil,
-            status: stringToStatus(statusString),
+            status: GoalStatus(rawValue: statusString) ?? .notStarted,
             startDate: startDate?.isEmpty == false ? startDate : nil,
             targetDate: targetDate?.isEmpty == false ? targetDate : nil,
             studyIds: studyIds,
@@ -129,29 +129,30 @@ private extension AppwriteService {
     }
 }
 
-// MARK: - Status Conversion
+// MARK: - GoalStatus Extension
 
-private func statusToString(_ status: GoalStatus) -> String {
-    switch status {
-    case .notStarted:
-        return "NotStarted"
-    case .inProgress:
-        return "InProgress"
-    case .completed:
-        return "Completed"
+extension GoalStatus: @retroactive RawRepresentable, @retroactive CaseIterable {
+    public typealias RawValue = String
+    
+    public var rawValue: String {
+        switch self {
+        case .notStarted: return "NotStarted"
+        case .inProgress: return "InProgress"
+        case .completed: return "Completed"
+        }
     }
-}
-
-private func stringToStatus(_ statusString: String) -> GoalStatus {
-    switch statusString {
-    case "NotStarted":
-        return .notStarted
-    case "InProgress":
-        return .inProgress
-    case "Completed":
-        return .completed
-    default:
-        return .notStarted
+    
+    public init?(rawValue: String) {
+        switch rawValue {
+        case "NotStarted": self = .notStarted
+        case "InProgress": self = .inProgress
+        case "Completed": self = .completed
+        default: return nil
+        }
+    }
+    
+    public static var allCases: [GoalStatus] {
+        return [.notStarted, .inProgress, .completed]
     }
 }
 
