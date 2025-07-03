@@ -267,10 +267,9 @@ impl PracticeSession {
 
     pub fn duration(&self) -> Option<String> {
         match self {
-            PracticeSession::Ended(session) => Some(calculate_duration(
-                session.start_time.as_str(),
-                session.end_time.as_str(),
-            )),
+            PracticeSession::Ended(session) => {
+                calculate_duration(session.start_time.as_str(), session.end_time.as_str())
+            }
             _ => None,
         }
     }
@@ -535,13 +534,13 @@ fn test_backward_compatibility() {
 #[test]
 fn test_calculate_duration_function() {
     let duration = calculate_duration("2025-05-01T12:00:00Z", "2025-05-01T12:30:00Z");
-    assert_eq!(duration, "30m");
+    assert_eq!(duration, Some("30m".to_string()));
 
     let duration = calculate_duration("2025-05-01T12:00:00Z", "2025-05-01T12:00:00Z");
-    assert_eq!(duration, "0m");
+    assert_eq!(duration, Some("0m".to_string()));
 
     let duration = calculate_duration("2025-05-01T12:00:00Z", "2025-05-01T13:15:00Z");
-    assert_eq!(duration, "75m");
+    assert_eq!(duration, Some("75m".to_string()));
 }
 
 #[test]
