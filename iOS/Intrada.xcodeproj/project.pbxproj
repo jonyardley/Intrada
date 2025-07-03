@@ -18,6 +18,7 @@
 		60EA876202FF0ABF6CB4F574 /* core.swift in Sources */ = {isa = PBXBuildFile; fileRef = 104D2C969AAB822EE589C8D3 /* core.swift */; };
 		7041A1B95A8BF82D73588AD6 /* http.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBD4BBEE3EB72A49C85AA18E /* http.swift */; };
 		7336455A863CC14299B2B9AF /* HomeVIew.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAAF63990A427F10CDE80895 /* HomeVIew.swift */; };
+		7DC66E29BCB5F706ABF3F3D9 /* Appwrite in Frameworks */ = {isa = PBXBuildFile; productRef = 35AE0453F1949B2792DE1E13 /* Appwrite */; };
 		88FE04537635F0CD64005A7E /* StudiesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66BF354F8D5813CE670A23EF /* StudiesView.swift */; };
 		8AE5DA6CECC886C8E65A884F /* SharedTypes in Frameworks */ = {isa = PBXBuildFile; productRef = 917447E964A6FFF42F7753F9 /* SharedTypes */; };
 		8C9C3799281B2075E8CFA0F0 /* SessionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E9EBF7F20DE9609419F2B4B /* SessionsView.swift */; };
@@ -73,6 +74,7 @@
 			files = (
 				F5E87B5B23FF53E9F7471A8E /* Shared in Frameworks */,
 				8AE5DA6CECC886C8E65A884F /* SharedTypes in Frameworks */,
+				7DC66E29BCB5F706ABF3F3D9 /* Appwrite in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -180,6 +182,7 @@
 			packageProductDependencies = (
 				9AF3999A1F62BECE7AD4D98A /* Shared */,
 				917447E964A6FFF42F7753F9 /* SharedTypes */,
+				35AE0453F1949B2792DE1E13 /* Appwrite */,
 			);
 			productName = Intrada;
 			productReference = 13E8B6BF7B3E02B04268499D /* Intrada.app */;
@@ -207,6 +210,7 @@
 			mainGroup = 945BC5C2DFF502B4D21E2E21;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				EC87FDE8CDE1CEE608C345F6 /* XCRemoteSwiftPackageReference "sdk-for-apple" */,
 				4AEAE67A9ED6F0D48F6F61B2 /* XCLocalSwiftPackageReference "../shared/Shared" */,
 				AC2CE8210B9C38E01B856752 /* XCLocalSwiftPackageReference "../shared/generated/swift/SharedTypes" */,
 			);
@@ -449,7 +453,23 @@
 		};
 /* End XCLocalSwiftPackageReference section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		EC87FDE8CDE1CEE608C345F6 /* XCRemoteSwiftPackageReference "sdk-for-apple" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/appwrite/sdk-for-apple";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
+		35AE0453F1949B2792DE1E13 /* Appwrite */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = EC87FDE8CDE1CEE608C345F6 /* XCRemoteSwiftPackageReference "sdk-for-apple" */;
+			productName = Appwrite;
+		};
 		917447E964A6FFF42F7753F9 /* SharedTypes */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = SharedTypes;
