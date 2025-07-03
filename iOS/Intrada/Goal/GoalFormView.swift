@@ -10,9 +10,9 @@ struct GoalFormView: View {
   @State private var description: String
   @State private var targetDate: Date
   @State private var tempoTarget: String
-  @State private var selectedExercises: Set<String>
-  @State private var showExerciseForm = false
-  @State private var exerciseFilter = ""
+  @State private var selectedStudies: Set<String>
+  @State private var showStudyForm = false
+  @State private var studyFilter = ""
 
   init(core: Core, existingGoal: PracticeGoal? = nil) {
     self.core = core
@@ -28,7 +28,7 @@ struct GoalFormView: View {
     _targetDate = State(initialValue: date)
     
     _tempoTarget = State(initialValue: existingGoal?.tempoTarget.map(String.init) ?? "")
-    _selectedExercises = State(initialValue: Set(existingGoal?.exerciseIds ?? []))
+    _selectedStudies = State(initialValue: Set(existingGoal?.studyIds ?? []))
   }
 
   var body: some View {
@@ -49,27 +49,27 @@ struct GoalFormView: View {
             .keyboardType(.numberPad)
         }
 
-        Section(header: Text("Exercises")) {
+        Section(header: Text("Studies")) {
   
           Button(action: {
-            // Present exercise form sheet
-            showExerciseForm = true
+            // Present study form sheet
+            showStudyForm = true
           }) {
             HStack {
               Image(systemName: "plus.circle.fill")
                 .foregroundColor(Color(red: 79/255, green: 70/255, blue: 229/255))
-              Text("Add New Exercise")
+              Text("Add New Study")
                 .foregroundColor(Color(red: 79/255, green: 70/255, blue: 229/255))
             }
           }
-          .sheet(isPresented: $showExerciseForm) {
-            ExerciseFormView(core: core)
+          .sheet(isPresented: $showStudyForm) {
+            StudyFormView(core: core)
           }
           
-          ForEach(core.view.exercises, id: \.id) { exercise in
+          ForEach(core.view.studies, id: \.id) { study in
             Toggle(
-              exercise.name,
-              isOn: binding(for: exercise)
+              study.name,
+              isOn: binding(for: study)
             )
           }
         }
@@ -94,7 +94,7 @@ struct GoalFormView: View {
               status: existingGoal?.status ?? .notStarted,
               startDate: existingGoal?.startDate,
               targetDate: targetDateString,
-              exerciseIds: Array(selectedExercises),
+              studyIds: Array(selectedStudies),
               tempoTarget: tempoTarget.isEmpty ? nil : UInt32(tempoTarget)
             )
 
@@ -110,14 +110,14 @@ struct GoalFormView: View {
     }
   }
 
-  private func binding(for exercise: Exercise) -> Binding<Bool> {
+  private func binding(for study: Study) -> Binding<Bool> {
     Binding(
-      get: { selectedExercises.contains(exercise.id) },
+      get: { selectedStudies.contains(study.id) },
       set: { isSelected in
         if isSelected {
-          selectedExercises.insert(exercise.id)
+          selectedStudies.insert(study.id)
         } else {
-          selectedExercises.remove(exercise.id)
+          selectedStudies.remove(study.id)
         }
       }
     )

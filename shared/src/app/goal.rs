@@ -17,7 +17,7 @@ pub struct PracticeGoal {
     pub status: GoalStatus,
     pub start_date: Option<String>,
     pub target_date: Option<String>,
-    pub exercise_ids: Vec<String>,
+    pub study_ids: Vec<String>,
     pub tempo_target: Option<u32>,
 }
 
@@ -26,7 +26,7 @@ impl PracticeGoal {
         name: String,
         description: Option<String>,
         target_date: Option<String>,
-        exercise_ids: Vec<String>,
+        study_ids: Vec<String>,
         tempo_target: Option<u32>,
     ) -> Self {
         Self {
@@ -36,7 +36,7 @@ impl PracticeGoal {
             status: GoalStatus::NotStarted,
             start_date: None,
             target_date: target_date,
-            exercise_ids,
+            study_ids,
             tempo_target,
         }
     }
@@ -52,10 +52,10 @@ pub fn edit_goal(updated_goal: PracticeGoal, model: &mut Model) {
     }
 }
 
-pub fn add_exercise_to_goal(goal_id: String, exercise_id: String, model: &mut Model) {
+pub fn add_study_to_goal(goal_id: String, study_id: String, model: &mut Model) {
     if let Some(goal) = model.goals.iter_mut().find(|g| g.id == goal_id) {
-        if !goal.exercise_ids.contains(&exercise_id) {
-            goal.exercise_ids.push(exercise_id);
+        if !goal.study_ids.contains(&study_id) {
+            goal.study_ids.push(study_id);
         }
     }
 }
@@ -71,7 +71,7 @@ fn test_add_goal() {
         "Goal 1".to_string(),
         None,
         None,
-        vec!["Exercise 1".to_string()],
+        vec!["Study 1".to_string()],
         None,
     );
     add_goal(goal, &mut model);
@@ -85,7 +85,7 @@ fn test_edit_goal() {
         "Goal 1".to_string(),
         None,
         None,
-        vec!["Exercise 1".to_string()],
+        vec!["Study 1".to_string()],
         None,
     );
     let goal_id = goal.id.clone();
@@ -98,7 +98,7 @@ fn test_edit_goal() {
         status: GoalStatus::InProgress,
         start_date: Some("2024-03-20".to_string()),
         target_date: Some("2024-04-20".to_string()),
-        exercise_ids: vec!["Exercise 2".to_string()],
+        study_ids: vec!["Study 2".to_string()],
         tempo_target: Some(120),
     };
 
@@ -111,20 +111,20 @@ fn test_edit_goal() {
         Some("Updated description".to_string())
     );
     assert_eq!(edited_goal.status, GoalStatus::InProgress);
-    assert_eq!(edited_goal.exercise_ids, vec!["Exercise 2".to_string()]);
+    assert_eq!(edited_goal.study_ids, vec!["Study 2".to_string()]);
 }
 
 #[test]
-fn test_add_exercise_to_goal() {
+fn test_add_study_to_goal() {
     let mut model = Model::default();
     let goal = PracticeGoal::new(
         "Goal 1".to_string(),
         None,
         None,
-        vec!["Exercise 1".to_string()],
+        vec!["Study 1".to_string()],
         None,
     );
     let goal_id = goal.id.clone();
     add_goal(goal, &mut model);
-    add_exercise_to_goal(goal_id, "Exercise 1".to_string(), &mut model);
+    add_study_to_goal(goal_id, "Study 1".to_string(), &mut model);
 }

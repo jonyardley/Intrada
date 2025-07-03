@@ -1,6 +1,8 @@
-use crate::app::{ActiveSession, Exercise, PracticeGoal, PracticeSession, PracticeSessionView, SessionState};
-use serde::{Deserialize, Serialize};
+use crate::app::{
+    ActiveSession, PracticeGoal, PracticeSession, PracticeSessionView, SessionState, Study,
+};
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
 pub struct AppState {
@@ -10,7 +12,7 @@ pub struct AppState {
 #[derive(Default)]
 pub struct Model {
     pub goals: Vec<PracticeGoal>,
-    pub exercises: Vec<Exercise>,
+    pub studies: Vec<Study>,
     pub sessions: Vec<PracticeSession>,
     pub app_state: AppState,
 }
@@ -20,7 +22,7 @@ impl Model {}
 #[derive(Serialize, Deserialize, Clone, Default)]
 pub struct ViewModel {
     pub goals: Vec<PracticeGoal>,
-    pub exercises: Vec<Exercise>,
+    pub studies: Vec<Study>,
     pub sessions: Vec<PracticeSessionView>,
     pub app_state: AppState,
     // Session state computed properties (replaces SessionManager)
@@ -36,7 +38,7 @@ pub struct ViewModel {
 impl ViewModel {
     pub fn new(
         goals: Vec<PracticeGoal>,
-        exercises: Vec<Exercise>,
+        studies: Vec<Study>,
         sessions: Vec<PracticeSessionView>,
         app_state: AppState,
     ) -> Self {
@@ -46,40 +48,41 @@ impl ViewModel {
         } else {
             None
         };
-        
+
         let has_active_session = current_session.is_some();
-        
+
         // Compute session state flags
-        let (can_start_session, can_end_session, is_session_running, is_session_ended) = 
+        let (can_start_session, can_end_session, is_session_running, is_session_ended) =
             if let Some(ref session) = current_session {
                 let can_start = matches!(session.state, SessionState::NotStarted);
                 let can_end = matches!(session.state, SessionState::Started { .. });
                 let is_running = matches!(session.state, SessionState::Started { .. });
                 let is_ended = matches!(session.state, SessionState::Ended { .. });
-                
+
                 (can_start, can_end, is_running, is_ended)
             } else {
                 (false, false, false, false)
             };
-        
+
         // Calculate elapsed time for running sessions
         let current_session_elapsed_time = if let Some(ref session) = current_session {
             match &session.state {
                 SessionState::Started { start_time } => {
                     Some(calculate_elapsed_time_from_start(start_time))
                 }
-                SessionState::Ended { start_time, end_time } => {
-                    Some(calculate_elapsed_time_between(start_time, end_time))
-                }
-                _ => None
+                SessionState::Ended {
+                    start_time,
+                    end_time,
+                } => Some(calculate_elapsed_time_between(start_time, end_time)),
+                _ => None,
             }
         } else {
             None
         };
-        
+
         Self {
             goals,
-            exercises,
+            studies,
             sessions,
             app_state,
             current_session,

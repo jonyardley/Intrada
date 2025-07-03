@@ -11,7 +11,7 @@ pub fn CreateGoal() -> impl IntoView {
     let (description, set_description) = signal(String::new());
     let (target_date, set_target_date) = signal(String::new());
     let (tempo_target, set_tempo_target) = signal(String::new());
-    let (selected_exercises, set_selected_exercises) = signal(Vec::new());
+    let (selected_studies, set_selected_studies) = signal(Vec::new());
 
     let (view, set_event) = use_core(Event::Nothing);
     let navigate = use_navigate();
@@ -59,21 +59,21 @@ pub fn CreateGoal() -> impl IntoView {
                             </div>
                         </div>
                         <div class="sm:col-span-4">
-                            <H2 text="Available Exercises".to_string() />
+                            <H2 text="Available Studies".to_string() />
                             <div class="mt-4 space-y-4">
                                 {move || {
                                     view.get()
-                                        .exercises
+                                        .studies
                                         .into_iter()
-                                        .map(|exercise| {
-                                            let is_selected = selected_exercises
+                                        .map(|study| {
+                                            let is_selected = selected_studies
                                                 .get()
-                                                .contains(&exercise.id);
+                                                .contains(&study.id);
                                             view! {
                                                 <div class="flex items-center gap-2">
                                                     {
-                                                        let id = exercise.id.clone();
-                                                        let input_id = format!("exercise-{}", id.clone());
+                                                        let id = study.id.clone();
+                                                        let input_id = format!("study-{}", id.clone());
                                                         view! {
                                                             <input
                                                                 type="checkbox"
@@ -82,14 +82,14 @@ pub fn CreateGoal() -> impl IntoView {
                                                                 checked=is_selected
                                                                 on:change=move |ev| {
                                                                     let checked = event_target_checked(&ev);
-                                                                    set_selected_exercises
-                                                                        .update(|exercises| {
+                                                                    set_selected_studies
+                                                                        .update(|studies| {
                                                                             if checked {
-                                                                                if !exercises.contains(&id) {
-                                                                                    exercises.push(id.clone());
+                                                                                if !studies.contains(&id) {
+                                                                                    studies.push(id.clone());
                                                                                 }
                                                                             } else {
-                                                                                exercises.retain(|eid| eid != &id);
+                                                                                studies.retain(|eid| eid != &id);
                                                                             }
                                                                         });
                                                                 }
@@ -98,7 +98,7 @@ pub fn CreateGoal() -> impl IntoView {
                                                                 for=input_id
                                                                 class="text-sm font-medium text-gray-900"
                                                             >
-                                                                {exercise.name}
+                                                                {study.name}
                                                             </label>
                                                         }
                                                     }
@@ -127,10 +127,7 @@ pub fn CreateGoal() -> impl IntoView {
                                             name.get(),
                                             Some(description.get()),
                                             Some(target_date.get()),
-                                            selected_exercises
-                                                .get()
-                                                .into_iter()
-                                                .collect::<Vec<String>>(),
+                                            selected_studies.get().into_iter().collect::<Vec<String>>(),
                                             tempo_target.get().parse::<u32>().ok(),
                                         ),
                                     );

@@ -121,7 +121,7 @@ private extension PracticeGoal {
             "status": statusToString(status),
             "startDate": startDate ?? "",
             "targetDate": targetDate ?? "",
-            "exerciseIds": exerciseIds,
+            "studyIds": studyIds,
             "tempoTarget": tempoTarget.map { Int32($0) } ?? 0
         ]
     }
@@ -136,7 +136,7 @@ private extension AppwriteDocument {
             status: stringToStatus(status ?? "NotStarted"),
             startDate: startDate,
             targetDate: targetDate,
-            exerciseIds: exerciseIds ?? [],
+            studyIds: studyIds ?? [],
             tempoTarget: tempoTarget.map { UInt32($0) }
         )
     }
@@ -184,14 +184,14 @@ struct AppwriteDocument: Codable {
     let status: String?
     let startDate: String?
     let targetDate: String?
-    let exerciseIds: [String]?
+            let studyIds: [String]?
     let tempoTarget: Int32?
     
     enum CodingKeys: String, CodingKey {
         case id = "$id"
         case createdAt = "$createdAt"
         case updatedAt = "$updatedAt"
-        case name, description, status, startDate, targetDate, exerciseIds, tempoTarget
+        case name, description, status, startDate, targetDate, studyIds, tempoTarget
     }
 }
 

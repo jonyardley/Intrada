@@ -1,7 +1,7 @@
 import SwiftUI
 import SharedTypes
 
-struct ExercisesView: View {
+struct StudiesView: View {
     @ObservedObject var core: Core
     @State private var showingAddForm = false
     
@@ -9,7 +9,7 @@ struct ExercisesView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 HStack {
-                    Text("Your Exercises")
+                    Text("Your Studies")
                         .font(.largeTitle)
                         .fontWeight(.bold)
                     
@@ -24,16 +24,16 @@ struct ExercisesView: View {
                 }
                 .padding(.horizontal)
                 
-                // Exercises section
+                // Studies section
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("Your Exercises")
+                    Text("Your Studies")
                         .font(.title2)
                         .fontWeight(.semibold)
                         .padding(.horizontal)
                     
-                    ForEach(core.view.exercises, id: \.id) { exercise in
-                        NavigationLink(destination: ExerciseDetailView(core: core, exercise: exercise)) {
-                            ExerciseCard(exercise: exercise)
+                    ForEach(core.view.studies, id: \.id) { study in
+                        NavigationLink(destination: StudyDetailView(core: core, study: study)) {
+                            StudyCard(study: study)
                                 .padding(.horizontal)
                         }
                         .buttonStyle(PlainButtonStyle())
@@ -42,23 +42,23 @@ struct ExercisesView: View {
             }
             .padding(.vertical)
         }
-        .navigationTitle("Exercises")
+        .navigationTitle("Studies")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showingAddForm) {
-            ExerciseFormView(core: core)
+            StudyFormView(core: core)
         }
     }
 }
 
-struct ExerciseCard: View {
-    let exercise: Exercise
+struct StudyCard: View {
+    let study: Study
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(exercise.name)
+            Text(study.name)
                 .font(.headline)
             
-            if let description = exercise.description {
+            if let description = study.description {
                 Text(description)
                     .font(.subheadline)
                     .foregroundColor(.gray)
@@ -72,5 +72,5 @@ struct ExerciseCard: View {
 }
 
 #Preview {
-    ExercisesView(core: Core())
+    StudiesView(core: Core())
 } 

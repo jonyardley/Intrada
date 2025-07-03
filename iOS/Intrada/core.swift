@@ -35,7 +35,7 @@ class Core: ObservableObject {
             }
             self.view = ViewModel(
                 goals: [],
-                exercises: [],
+                studies: [],
                 sessions: [],
                 appState: AppState(activeSession: nil),
                 currentSession: nil,
@@ -55,7 +55,7 @@ class Core: ObservableObject {
                 }
                 self.view = ViewModel(
                     goals: [],
-                    exercises: [],
+                    studies: [],
                     sessions: [],
                     appState: AppState(activeSession: nil),
                     currentSession: nil,
@@ -114,7 +114,7 @@ class Core: ObservableObject {
                     }
                     self.view = ViewModel(
                         goals: [],
-                        exercises: [],
+                        studies: [],
                         sessions: [],
                         appState: AppState(activeSession: nil),
                         currentSession: nil,
@@ -134,7 +134,7 @@ class Core: ObservableObject {
                         }
                         self.view = ViewModel(
                             goals: [],
-                            exercises: [],
+                            studies: [],
                             sessions: [],
                             appState: AppState(activeSession: nil),
                             currentSession: nil,

@@ -26,9 +26,9 @@ struct ContentView: View {
                     .tabItem {
                         Label("Sessions", systemImage: "pianokeys")
                     }
-                ExercisesView(core: core)
+                StudiesView(core: core)
                     .tabItem {
-                        Label("Exercises", systemImage: "music.quarternote.3")
+                        Label("Studies", systemImage: "music.quarternote.3")
                     }
                 
                 ProfileView()

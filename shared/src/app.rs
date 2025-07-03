@@ -10,11 +10,11 @@ use serde::{Deserialize, Serialize};
 pub mod goal;
 pub use goal::*;
 
-pub mod exercise;
-pub use exercise::*;
+pub mod study;
+pub use study::*;
 
-pub mod exercise_record;
-pub use exercise_record::*;
+pub mod study_record;
+pub use study_record::*;
 
 pub mod session;
 pub use session::{
@@ -34,11 +34,11 @@ pub use dev::*;
 // *************
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum Event {
-    AddExercise(Exercise),
-    EditExercise(Exercise),
-    AddExerciseToGoal {
+    AddStudy(Study),
+    EditStudy(Study),
+    AddStudyToGoal {
         goal_id: String,
-        exercise_id: String,
+        study_id: String,
     },
 
     AddSession(PracticeSession),
@@ -54,8 +54,8 @@ pub enum Event {
     EndSession(String, String),
     EditSessionNotes(String, String),
 
-    AddExerciseRecord(ExerciseRecord),
-    UpdateExerciseRecord(ExerciseRecord),
+    AddStudyRecord(StudyRecord),
+    UpdateStudyRecord(StudyRecord),
 
     SetDevData(),
     Nothing,
@@ -118,12 +118,11 @@ impl App for Chopin {
         _caps: &Self::Capabilities,
     ) -> Command<Effect, Event> {
         match event {
-            Event::AddExercise(exercise) => add_exercise(exercise, model),
-            Event::EditExercise(exercise) => edit_exercise(exercise, model),
-            Event::AddExerciseToGoal {
-                goal_id,
-                exercise_id,
-            } => add_exercise_to_goal(goal_id, exercise_id, model),
+            Event::AddStudy(study) => add_study(study, model),
+            Event::EditStudy(study) => edit_study(study, model),
+            Event::AddStudyToGoal { goal_id, study_id } => {
+                add_study_to_goal(goal_id, study_id, model)
+            }
 
             Event::AddSession(session) => add_session(session, model),
             Event::EditSessionFields {
@@ -151,8 +150,8 @@ impl App for Chopin {
                 edit_session_notes(session_id, notes, model)
             }
 
-            Event::AddExerciseRecord(record) => add_exercise_record(record, model),
-            Event::UpdateExerciseRecord(record) => update_exercise_record(record, model),
+            Event::AddStudyRecord(record) => add_study_record(record, model),
+            Event::UpdateStudyRecord(record) => update_study_record(record, model),
 
             Event::SetDevData() => dev::set_dev_data(model),
 
@@ -223,7 +222,7 @@ impl App for Chopin {
                 intention: s.intention().clone(),
                 state: s.state(),
                 notes: s.notes().clone(),
-                exercise_records: s.exercise_records().clone(),
+                study_records: s.study_records().clone(),
                 duration: s.duration(),
                 start_time: s.start_time().map(|t| t.to_string()),
                 end_time: s.end_time().map(|t| t.to_string()),
@@ -233,7 +232,7 @@ impl App for Chopin {
 
         ViewModel::new(
             model.goals.clone(),
-            model.exercises.clone(),
+            model.studies.clone(),
             session_views,
             model.app_state.clone(),
         )

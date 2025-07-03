@@ -44,28 +44,28 @@ struct GoalDetailView: View {
                 }
                 .padding(.horizontal)
                 
-                // Associated Exercises
+                // Associated Studies
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Exercises")
+                    Text("Studies")
                         .font(.headline)
                     
-                    let exercises = core.view.exercises.filter { exercise in
-                        goal.exerciseIds.contains(exercise.id)
+                    let studies = core.view.studies.filter { study in
+                        goal.studyIds.contains(study.id)
                     }
                     
-                    if exercises.isEmpty {
-                        Text("No exercises added")
+                    if studies.isEmpty {
+                        Text("No studies added")
                             .foregroundColor(.gray)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding()
                             .background(Color.gray.opacity(0.1))
                             .cornerRadius(8)
                     } else {
-                        ForEach(exercises, id: \.id) { exercise in
+                        ForEach(studies, id: \.id) { study in
                             HStack {
-                                Text(exercise.name)
+                                Text(study.name)
                                 Spacer()
-                                if let description = exercise.description {
+                                if let description = study.description {
                                     Text(description)
                                         .foregroundColor(.gray)
                                 }
@@ -104,7 +104,7 @@ struct GoalDetailView: View {
             status: .inProgress,
             startDate: nil,
             targetDate: "2025-05-01",
-            exerciseIds: [],
+            studyIds: [],
             tempoTarget: nil
         )
     )

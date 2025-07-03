@@ -171,25 +171,25 @@ struct SessionDetailView: View {
             } else {
                 ForEach(goals, id: \.id) { goal in
                     Section {
-                        let exercises = core.view.exercises.filter { exercise in
-                            goal.exerciseIds.contains(exercise.id)
+                        let studies = core.view.studies.filter { study in
+                            goal.studyIds.contains(study.id)
                         }
                         
-                        if exercises.isEmpty {
-                            Text("No exercises added")
+                        if studies.isEmpty {
+                            Text("No studies added")
                                 .foregroundColor(.gray)
                                 .padding(.vertical, 8)
                         } else {
-                            ForEach(exercises, id: \.id) { exercise in
-                                NavigationLink(destination: ExerciseDetailView(core: core, exercise: exercise)) {
+                            ForEach(studies, id: \.id) { study in
+                                NavigationLink(destination: StudyDetailView(core: core, study: study)) {
                                     HStack {
                                         Image(systemName: "music.note")
                                             .foregroundColor(.blue)
                                             .frame(width: 24)
                                         VStack(alignment: .leading, spacing: 4) {
-                                            Text(exercise.name)
+                                            Text(study.name)
                                                 .font(.subheadline)
-                                            if let description = exercise.description {
+                                            if let description = study.description {
                                                 Text(description)
                                                     .font(.caption)
                                                     .foregroundColor(.gray)

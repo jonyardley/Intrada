@@ -1,5 +1,5 @@
-use crate::app::exercise_record::ExerciseRecord;
 use crate::app::model::Model;
+use crate::app::study_record::StudyRecord;
 use chrono::DateTime;
 use serde::{Deserialize, Serialize};
 
@@ -10,7 +10,7 @@ pub struct SessionData {
     pub goal_ids: Vec<String>,
     pub intention: String,
     pub notes: Option<String>,
-    pub exercise_records: Vec<ExerciseRecord>,
+    pub study_records: Vec<StudyRecord>,
 }
 
 impl SessionData {
@@ -20,7 +20,7 @@ impl SessionData {
             goal_ids,
             intention,
             notes: None,
-            exercise_records: Vec::new(),
+            study_records: Vec::new(),
         }
     }
 
@@ -36,8 +36,8 @@ impl SessionData {
     pub fn notes(&self) -> &Option<String> {
         &self.notes
     }
-    pub fn exercise_records(&self) -> &Vec<ExerciseRecord> {
-        &self.exercise_records
+    pub fn study_records(&self) -> &Vec<StudyRecord> {
+        &self.study_records
     }
     pub fn goal_ids_mut(&mut self) -> &mut Vec<String> {
         &mut self.goal_ids
@@ -48,8 +48,8 @@ impl SessionData {
     pub fn notes_mut(&mut self) -> &mut Option<String> {
         &mut self.notes
     }
-    pub fn exercise_records_mut(&mut self) -> &mut Vec<ExerciseRecord> {
-        &mut self.exercise_records
+    pub fn study_records_mut(&mut self) -> &mut Vec<StudyRecord> {
+        &mut self.study_records
     }
 }
 
@@ -142,7 +142,7 @@ pub struct PracticeSessionView {
     pub intention: String,
     pub state: SessionState,
     pub notes: Option<String>,
-    pub exercise_records: Vec<ExerciseRecord>,
+    pub study_records: Vec<StudyRecord>,
     pub duration: Option<String>,
     pub start_time: Option<String>,
     pub end_time: Option<String>,
@@ -192,19 +192,19 @@ impl PracticeSession {
         }
     }
 
-    pub fn exercise_records(&self) -> &Vec<ExerciseRecord> {
+    pub fn study_records(&self) -> &Vec<StudyRecord> {
         match self {
-            PracticeSession::NotStarted(s) => s.data.exercise_records(),
-            PracticeSession::Started(s) => s.data.exercise_records(),
-            PracticeSession::Ended(s) => s.data.exercise_records(),
+            PracticeSession::NotStarted(s) => s.data.study_records(),
+            PracticeSession::Started(s) => s.data.study_records(),
+            PracticeSession::Ended(s) => s.data.study_records(),
         }
     }
 
-    pub fn exercise_records_mut(&mut self) -> &mut Vec<ExerciseRecord> {
+    pub fn study_records_mut(&mut self) -> &mut Vec<StudyRecord> {
         match self {
-            PracticeSession::NotStarted(s) => s.data.exercise_records_mut(),
-            PracticeSession::Started(s) => s.data.exercise_records_mut(),
-            PracticeSession::Ended(s) => s.data.exercise_records_mut(),
+            PracticeSession::NotStarted(s) => s.data.study_records_mut(),
+            PracticeSession::Started(s) => s.data.study_records_mut(),
+            PracticeSession::Ended(s) => s.data.study_records_mut(),
         }
     }
 
@@ -287,15 +287,15 @@ impl PracticeSession {
         }
     }
 
-    // Mutator: push an ExerciseRecord
-    pub fn push_exercise_record(&mut self, record: ExerciseRecord) {
-        self.exercise_records_mut().push(record);
+    // Mutator: push a StudyRecord
+    pub fn push_study_record(&mut self, record: StudyRecord) {
+        self.study_records_mut().push(record);
     }
 
-    // Mutator: update an ExerciseRecord by id
-    pub fn update_exercise_record(&mut self, record: ExerciseRecord) {
+    // Mutator: update a StudyRecord by id
+    pub fn update_study_record(&mut self, record: StudyRecord) {
         if let Some(existing) = self
-            .exercise_records_mut()
+            .study_records_mut()
             .iter_mut()
             .find(|r| r.id == record.id)
         {
