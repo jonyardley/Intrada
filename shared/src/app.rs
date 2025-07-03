@@ -179,7 +179,7 @@ impl App for Chopin {
             model.goals.clone(),
             model.studies.clone(),
             session_views,
-            model.app_state.clone(),
+            model.active_session.clone(),
         )
     }
 }

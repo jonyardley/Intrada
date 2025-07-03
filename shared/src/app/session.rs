@@ -328,17 +328,17 @@ pub fn add_session(session: PracticeSession, model: &mut Model) {
 
     // Set as active if there's no current active session
     // This ensures new sessions become active when no session is currently active
-    if model.app_state.active_session.is_none() {
+    if model.active_session.is_none() {
         set_active_session(session_id, model);
     }
 }
 
 pub fn set_active_session(session_id: String, model: &mut Model) {
-    model.app_state.active_session = Some(ActiveSession { id: session_id });
+    model.active_session = Some(ActiveSession { id: session_id });
 }
 
 pub fn remove_active_session(model: &mut Model) {
-    model.app_state.active_session = None;
+    model.active_session = None;
 }
 
 pub fn start_session(
@@ -364,7 +364,7 @@ pub fn end_session(
         session.end(timestamp)?;
 
         // Remove from active session if this was the active session
-        if let Some(active_session) = &model.app_state.active_session {
+        if let Some(active_session) = &model.active_session {
             if active_session.id == session_id {
                 remove_active_session(model);
             }
@@ -459,11 +459,8 @@ fn test_end_session() {
 
     // Verify session is active
     assert!(model.sessions[0].is_active());
-    assert!(model.app_state.active_session.is_some());
-    assert_eq!(
-        model.app_state.active_session.as_ref().unwrap().id,
-        session_id
-    );
+    assert!(model.active_session.is_some());
+    assert_eq!(model.active_session.as_ref().unwrap().id, session_id);
 
     // End the session 30 minutes later
     end_session(session_id, "2025-05-01T12:30:00Z".to_string(), &mut model).unwrap();
@@ -472,7 +469,7 @@ fn test_end_session() {
     assert_eq!(model.sessions.len(), 1);
     assert_eq!(model.sessions[0].duration(), Some("30m".to_string())); // Now returns Option<String>
     assert!(model.sessions[0].is_ended());
-    assert!(model.app_state.active_session.is_none());
+    assert!(model.active_session.is_none());
 }
 
 #[test]

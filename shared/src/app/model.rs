@@ -4,17 +4,12 @@ use crate::app::{
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
-pub struct AppState {
-    pub active_session: Option<ActiveSession>,
-}
-
 #[derive(Default)]
 pub struct Model {
     pub goals: Vec<PracticeGoal>,
     pub studies: Vec<Study>,
     pub sessions: Vec<PracticeSession>,
-    pub app_state: AppState,
+    pub active_session: Option<ActiveSession>,
 }
 
 impl Model {}
@@ -24,7 +19,7 @@ pub struct ViewModel {
     pub goals: Vec<PracticeGoal>,
     pub studies: Vec<Study>,
     pub sessions: Vec<PracticeSessionView>,
-    pub app_state: AppState,
+    pub active_session: Option<ActiveSession>,
     // Session state computed properties (replaces SessionManager)
     pub current_session: Option<PracticeSessionView>,
     pub has_active_session: bool,
@@ -40,10 +35,10 @@ impl ViewModel {
         goals: Vec<PracticeGoal>,
         studies: Vec<Study>,
         sessions: Vec<PracticeSessionView>,
-        app_state: AppState,
+        active_session: Option<ActiveSession>,
     ) -> Self {
         // Find current session
-        let current_session = if let Some(active_session) = &app_state.active_session {
+        let current_session = if let Some(active_session) = &active_session {
             sessions.iter().find(|s| s.id == active_session.id).cloned()
         } else {
             None
@@ -84,7 +79,7 @@ impl ViewModel {
             goals,
             studies,
             sessions,
-            app_state,
+            active_session,
             current_session,
             has_active_session,
             can_start_session,
