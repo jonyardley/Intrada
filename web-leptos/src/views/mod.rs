@@ -1,8 +1,8 @@
 mod home;
 pub use home::Home;
 
-mod exercises;
-pub use exercises::Exercises;
+mod studies;
+pub use studies::Studies;
 
 mod sessions;
 pub use sessions::Sessions;

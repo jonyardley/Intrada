@@ -45,7 +45,7 @@ struct SessionFormView: View {
                 
                 if let existingSession = existingSessionId.flatMap({ id in
                     core.view.sessions.first { $0.id == id }
-                }), existingSession.endTime != nil {
+                }), existingSession.isEnded {
                     Section(header: Text("Reflection Notes")) {
                         TextEditor(text: $notes)
                             .frame(minHeight: 100)
@@ -83,26 +83,28 @@ struct SessionFormView: View {
                     isPresented = false
                 },
                 trailing: Button("Save") {
-                    let sessionId = existingSessionId ?? UUID().uuidString
-                    let existingSession = existingSessionId.flatMap { id in
-                        core.view.sessions.first { $0.id == id }
-                    }
-                    let session = PracticeSession(
-                        id: sessionId,
-                        goalIds: Array(selectedGoals),
-                        intention: intention,
-                        state: .notStarted,
-                        startTime: existingSession?.startTime,
-                        endTime: existingSession?.endTime,
-                        notes: notes.isEmpty ? nil : notes,
-                        duration: existingSession?.duration,
-                        exerciseRecords: existingSession?.exerciseRecords ?? []
-                    )
-                    
-                    if existingSessionId != nil {
-                        core.update(.editSession(session))
+                    if let existingSessionId = existingSessionId {
+                        // Editing existing session - let the core handle state preservation
+                        core.update(.editSessionFields(
+                            session_id: existingSessionId,
+                            goal_ids: Array(selectedGoals),
+                            intention: intention,
+                            notes: notes.isEmpty ? nil : notes
+                        ))
                         isPresented = false
                     } else {
+                        // Creating a new session - always starts as NotStarted
+                        let sessionId = UUID().uuidString
+                        let sessionData = SessionData(
+                            id: sessionId,
+                            goalIds: Array(selectedGoals),
+                            intention: intention,
+                            notes: notes.isEmpty ? nil : notes,
+                            studySessions: []
+                        )
+                        let notStartedSession = NotStartedSession(data: sessionData)
+                        let session = PracticeSession.notStarted(notStartedSession)
+                        
                         core.update(.addSession(session))
                         isPresented = false
                         onSessionCreated?(sessionId)

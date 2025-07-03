@@ -17,7 +17,7 @@ mod core;
 mod hooks;
 mod views;
 use components::Nav;
-use views::{CreateGoal, Exercises, Goal, Goals, Home, Sessions};
+use views::{CreateGoal, Goal, Goals, Home, Sessions, Studies};
 
 #[component]
 pub fn App() -> impl IntoView {
@@ -49,8 +49,8 @@ pub fn App() -> impl IntoView {
                     // Sessions
                     <Route path=path!("/sessions") view=|| view! { <Sessions /> } />
 
-                    // Exercises
-                    <Route path=path!("/exercises") view=|| view! { <Exercises /> } />
+                    // Studies
+                    <Route path=path!("/studies") view=|| view! { <Studies /> } />
                 </Routes>
             </Router>
         </div>

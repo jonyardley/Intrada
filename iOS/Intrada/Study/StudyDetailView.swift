@@ -1,21 +1,21 @@
 import SwiftUI
 import SharedTypes
 
-struct ExerciseDetailView: View {
+struct StudyDetailView: View {
     @ObservedObject var core: Core
-    let exercise: Exercise
+    let study: Study
     @State private var showingEditForm = false
     
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                // Exercise Header
+                // Study Header
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(exercise.name)
+                    Text(study.name)
                         .font(.title)
                         .fontWeight(.bold)
                     
-                    if let description = exercise.description {
+                    if let description = study.description {
                         Text(description)
                             .font(.subheadline)
                             .foregroundColor(.gray)
@@ -29,7 +29,7 @@ struct ExerciseDetailView: View {
                         .font(.headline)
                     
                     let goals = core.view.goals.filter { goal in
-                        goal.exerciseIds.contains(exercise.id)
+                        goal.studyIds.contains(study.id)
                     }
                     
                     if goals.isEmpty {
@@ -70,18 +70,18 @@ struct ExerciseDetailView: View {
             }
         }
         .sheet(isPresented: $showingEditForm) {
-            ExerciseFormView(core: core, existingExercise: exercise)
+            StudyFormView(core: core, existingStudy: study)
         }
     }
 }
 
 #Preview {
-    ExerciseDetailView(
+    StudyDetailView(
         core: Core(),
-        exercise: Exercise(
+        study: Study(
             id: "1",
-            name: "Sample Exercise",
-            description: "This is a sample exercise"
+            name: "Sample Study",
+            description: "This is a sample study"
         )
     )
 } 

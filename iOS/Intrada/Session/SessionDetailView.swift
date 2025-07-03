@@ -10,7 +10,7 @@ struct SessionDetailView: View {
     @State private var showingError = false
     
 
-    private var session: PracticeSession? {
+    private var session: PracticeSessionView? {
         core.view.sessions.first(where: { $0.id == sessionId })
 
     }
@@ -66,7 +66,7 @@ struct SessionDetailView: View {
         }
     }
     
-    private func sessionHeaderView(session: PracticeSession) -> some View {
+    private func sessionHeaderView(session: PracticeSessionView) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(session.intention)
                 .font(.title)
@@ -75,7 +75,7 @@ struct SessionDetailView: View {
         .padding(.horizontal)
     }
     
-    private func sessionSummaryView(session: PracticeSession) -> some View {
+    private func sessionSummaryView(session: PracticeSessionView) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Session Summary")
                 .font(.headline)
@@ -92,7 +92,7 @@ struct SessionDetailView: View {
         .padding(.horizontal)
     }
     
-    private func notesView(session: PracticeSession) -> some View {
+    private func notesView(session: PracticeSessionView) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Reflection notes")
                 .font(.headline)
@@ -124,7 +124,7 @@ struct SessionDetailView: View {
         .padding(.horizontal)
     }
     
-    private func sessionTimesView(session: PracticeSession) -> some View {
+    private func sessionTimesView(session: PracticeSessionView) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Session Times")
                 .font(.headline)
@@ -138,6 +138,8 @@ struct SessionDetailView: View {
                 }
             }
             
+
+            
             if let endTime = session.endTime {
                 HStack {
                     Image(systemName: "stop.circle.fill")
@@ -150,7 +152,7 @@ struct SessionDetailView: View {
         .padding(.horizontal)
     }
     
-    private func relatedGoalsView(session: PracticeSession) -> some View {
+    private func relatedGoalsView(session: PracticeSessionView) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Related Goals")
                 .font(.headline)
@@ -169,25 +171,25 @@ struct SessionDetailView: View {
             } else {
                 ForEach(goals, id: \.id) { goal in
                     Section {
-                        let exercises = core.view.exercises.filter { exercise in
-                            goal.exerciseIds.contains(exercise.id)
+                        let studies = core.view.studies.filter { study in
+                            goal.studyIds.contains(study.id)
                         }
                         
-                        if exercises.isEmpty {
-                            Text("No exercises added")
+                        if studies.isEmpty {
+                            Text("No studies added")
                                 .foregroundColor(.gray)
                                 .padding(.vertical, 8)
                         } else {
-                            ForEach(exercises, id: \.id) { exercise in
-                                NavigationLink(destination: ExerciseDetailView(core: core, exercise: exercise)) {
+                            ForEach(studies, id: \.id) { study in
+                                NavigationLink(destination: StudyDetailView(core: core, study: study)) {
                                     HStack {
                                         Image(systemName: "music.note")
                                             .foregroundColor(.blue)
                                             .frame(width: 24)
                                         VStack(alignment: .leading, spacing: 4) {
-                                            Text(exercise.name)
+                                            Text(study.name)
                                                 .font(.subheadline)
-                                            if let description = exercise.description {
+                                            if let description = study.description {
                                                 Text(description)
                                                     .font(.caption)
                                                     .foregroundColor(.gray)

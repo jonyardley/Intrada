@@ -142,8 +142,8 @@ pub fn MenuItems(mobile: bool) -> impl IntoView {
             label: "Sessions",
         },
         MenuItem {
-            path: "/exercises",
-            label: "Exercises",
+            path: "/studies",
+            label: "Studies",
         },
     ];
 

@@ -12,19 +12,17 @@ struct SessionsView: View {
     @ObservedObject var core: Core
     @State private var showingAddForm = false
     @State private var showingReflectionForm = false
-    @State private var sessionToReflect: PracticeSession?
+    @State private var sessionToReflect: PracticeSessionView?
     @State private var navigationPath = NavigationPath()
     
-    private var activeSession: PracticeSession? {
-        if let activeSession = core.view.appState.activeSession {
-            core.view.sessions.first { $0.id == activeSession.id }
-        } else {
-            nil
-        }
+    private var activeSession: PracticeSessionView? {
+        core.view.currentSession
     }
     
-    private var completedSessions: [PracticeSession] {
-        core.view.sessions.filter { $0.state == .ended }
+    private var completedSessions: [PracticeSessionView] {
+        core.view.sessions.filter { 
+            $0.isEnded
+        }
     }
     
     var body: some View {
@@ -68,7 +66,7 @@ struct SessionsView: View {
             }
             .navigationDestination(for: String.self) { sessionId in
                 if let session = core.view.sessions.first(where: { $0.id == sessionId }),
-                   session.startTime != nil && session.endTime == nil {
+                   case .started(_) = session.state {
                     ActiveSessionDetailView(core: core, sessionId: sessionId)
                 } else {
                     SessionDetailView(core: core, sessionId: sessionId)
@@ -120,17 +118,16 @@ struct SessionsView: View {
         }
     }
     
-    private func handleSessionEnd(_ session: PracticeSession) {
+    private func handleSessionEnd(_ session: PracticeSessionView) {
         sessionToReflect = session
         showingReflectionForm = true
     }
 }
 
 struct ActiveSessionView: View {
-    let session: PracticeSession
+    let session: PracticeSessionView
     @ObservedObject var core: Core
-    let onSessionEnd: (PracticeSession) -> Void
-    @StateObject private var sessionTimer = SessionTimer.shared
+    let onSessionEnd: (PracticeSessionView) -> Void
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -149,11 +146,8 @@ struct ActiveSessionView: View {
                 }
                 
                 HStack {
-                    if session.startTime != nil {
-                        Text(sessionTimer.formatElapsedTime(sessionTimer.elapsedTime))
-                            .font(.title3)
-                            .monospacedDigit()
-                            .foregroundColor(.blue)
+                    if core.view.isSessionRunning, let session = core.view.currentSession {
+                        DynamicTimerView(session: session, fontSize: .title3, textColor: .blue)
                     } else {
                         Text("Ready?")
                             .font(.title3)
@@ -162,7 +156,7 @@ struct ActiveSessionView: View {
                     
                     Spacer()
                     
-                    if session.startTime != nil {
+                    if core.view.isSessionRunning {
                         NavigationLink(destination: ActiveSessionDetailView(core: core, sessionId: session.id)) {
                             Text("View Session")
                                 .font(.subheadline)
@@ -172,8 +166,11 @@ struct ActiveSessionView: View {
                                 .background(Color.blue.opacity(0.1))
                                 .cornerRadius(6)
                         }
-                    } else {
-                        NavigationLink(destination: ActiveSessionDetailView(core: core, sessionId: session.id)) {
+                    } else if core.view.canStartSession {
+                        Button {
+                            let startTime = Date().ISO8601Format()
+                            core.update(.startSession(session.id, startTime))
+                        } label: {
                             HStack(spacing: 4) {
                                 Image(systemName: "play.fill")
                                 Text("Start Session")
@@ -184,11 +181,6 @@ struct ActiveSessionView: View {
                             .background(Color.accentColor)
                             .cornerRadius(8)
                         }
-                        .simultaneousGesture(TapGesture().onEnded {
-                            let startTime = Date().ISO8601Format()
-                            core.update(.startSession(session.id, startTime))
-                            sessionTimer.startTimer(startTime: startTime)
-                        })
                     }
                 }
             }
@@ -196,16 +188,11 @@ struct ActiveSessionView: View {
             .background(Color.blue.opacity(0.1))
             .cornerRadius(10)
         }
-        .onAppear {
-            if let startTime = session.startTime {
-                sessionTimer.startTimer(startTime: startTime)
-            }
-        }
     }
 }
 
 struct SessionRow: View {
-    let session: PracticeSession
+    let session: PracticeSessionView
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -265,6 +252,8 @@ struct SessionRow: View {
         return dateString
     }
 }
+
+
 
 #Preview {
     SessionsView(core: Core())

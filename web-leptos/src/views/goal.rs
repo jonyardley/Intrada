@@ -74,14 +74,14 @@ pub fn Goal() -> impl IntoView {
                             </div>
 
                             <div>
-                                <H2 text="Associated Exercises".to_string() />
+                                <H2 text="Associated Studies".to_string() />
                                 <div class="mt-4 space-y-4">
                                     {move || {
                                         view.get()
-                                            .exercises
+                                            .studies
                                             .into_iter()
-                                            .filter(|exercise| goal.exercise_ids.contains(&exercise.id))
-                                            .map(|exercise| {
+                                            .filter(|study| goal.study_ids.contains(&study.id))
+                                            .map(|study| {
                                                 view! {
                                                     <div class="flex items-center gap-2">
                                                         <svg
@@ -98,7 +98,7 @@ pub fn Goal() -> impl IntoView {
                                                                 d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                                                             />
                                                         </svg>
-                                                        <span class="text-gray-700">{exercise.name}</span>
+                                                        <span class="text-gray-700">{study.name}</span>
                                                     </div>
                                                 }
                                             })

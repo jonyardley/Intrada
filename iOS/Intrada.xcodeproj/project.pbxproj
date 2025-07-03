@@ -11,14 +11,15 @@
 		12E965758B075383CC4794F1 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B36F261B1F57456079044C9 /* ContentView.swift */; };
 		1A4B87EA8297F8B860FBBB60 /* GoalFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 158AB46FE2EFCCA1A1B6FEB1 /* GoalFormView.swift */; };
 		30F514114D44187730655438 /* GoalsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FD08F85D2983946C780A40B /* GoalsView.swift */; };
+		32BD7E9A803656F78492B8E4 /* StudyDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A9682904D4B5E3E6031AABF /* StudyDetailView.swift */; };
 		475C0F9C8076B4F353028596 /* SessionReflectionForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 017BD4BD5C3BBD11E8B2DB14 /* SessionReflectionForm.swift */; };
-		4F7786829742CFAD6080A6A6 /* ExercisesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6E10A204BB64B1554741E54 /* ExercisesView.swift */; };
-		5273DFBFD2319DE15A43FDBC /* ExerciseDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F6B920DDB6A74556531825 /* ExerciseDetailView.swift */; };
+		495D02D6DA9612297D01DD83 /* DynamicTimerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A90C12BC487A9A2858501805 /* DynamicTimerView.swift */; };
 		5D7D87040C89D8C0290BDC14 /* Config.plist in Resources */ = {isa = PBXBuildFile; fileRef = BF79F444D492395E5C4A36C9 /* Config.plist */; };
 		60EA876202FF0ABF6CB4F574 /* core.swift in Sources */ = {isa = PBXBuildFile; fileRef = 104D2C969AAB822EE589C8D3 /* core.swift */; };
 		7041A1B95A8BF82D73588AD6 /* http.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBD4BBEE3EB72A49C85AA18E /* http.swift */; };
 		7336455A863CC14299B2B9AF /* HomeVIew.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAAF63990A427F10CDE80895 /* HomeVIew.swift */; };
-		81AAACB02255A9DE2FD763A3 /* SessionTimer.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2F8D8367A0806E263F0B498 /* SessionTimer.swift */; };
+		7DC66E29BCB5F706ABF3F3D9 /* Appwrite in Frameworks */ = {isa = PBXBuildFile; productRef = 35AE0453F1949B2792DE1E13 /* Appwrite */; };
+		88FE04537635F0CD64005A7E /* StudiesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66BF354F8D5813CE670A23EF /* StudiesView.swift */; };
 		8AE5DA6CECC886C8E65A884F /* SharedTypes in Frameworks */ = {isa = PBXBuildFile; productRef = 917447E964A6FFF42F7753F9 /* SharedTypes */; };
 		8C9C3799281B2075E8CFA0F0 /* SessionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E9EBF7F20DE9609419F2B4B /* SessionsView.swift */; };
 		8DBDC898AC1F95F08F1D3CAC /* ConfigurationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8B2ABF575A88EC880D01779 /* ConfigurationManager.swift */; };
@@ -26,9 +27,9 @@
 		9F252CA2D458853137E14949 /* ActiveSessionDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42ABA1F7B42F3ADFFBBE1F86 /* ActiveSessionDetailView.swift */; };
 		A7CF84A2E46DA1B4959B6F6F /* IntradaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00E1ECBA4E0EB5DA54C56F2 /* IntradaApp.swift */; };
 		B1DD6317290853D4D4F9E340 /* AppwriteService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02284EEB85D6BF12C62B9E30 /* AppwriteService.swift */; };
-		C9C8B87967C932AF26CBEFD8 /* ExerciseFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C17E91F3A56E7F20016E5921 /* ExerciseFormView.swift */; };
 		CA6965A47994105FE97220A1 /* SessionFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6385FE2DE888540A275E4061 /* SessionFormView.swift */; };
 		D325E51BA0FE74A977C6D746 /* README_CONFIG.md in Resources */ = {isa = PBXBuildFile; fileRef = 55B00CD7F040317EC9D277CC /* README_CONFIG.md */; };
+		EA8DFD8CD3F187836480FBFC /* StudyFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BC81CBD2E4C5D5D62F64935 /* StudyFormView.swift */; };
 		EEC3A3FA9D55DC193CCFCCBE /* GoalDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EA74F0CEF1045787E9E0EA8 /* GoalDetailView.swift */; };
 		F11AC0CE6F3F92B65E71E772 /* SessionDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF5CDEB98E62D262842326BC /* SessionDetailView.swift */; };
 		F5E87B5B23FF53E9F7471A8E /* Shared in Frameworks */ = {isa = PBXBuildFile; productRef = 9AF3999A1F62BECE7AD4D98A /* Shared */; };
@@ -49,18 +50,18 @@
 		4FD08F85D2983946C780A40B /* GoalsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalsView.swift; sourceTree = "<group>"; };
 		55B00CD7F040317EC9D277CC /* README_CONFIG.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README_CONFIG.md; sourceTree = "<group>"; };
 		6385FE2DE888540A275E4061 /* SessionFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionFormView.swift; sourceTree = "<group>"; };
-		63F6B920DDB6A74556531825 /* ExerciseDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseDetailView.swift; sourceTree = "<group>"; };
+		66BF354F8D5813CE670A23EF /* StudiesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudiesView.swift; sourceTree = "<group>"; };
 		683ADA17CC2C8555D48DBD50 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		6EA74F0CEF1045787E9E0EA8 /* GoalDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalDetailView.swift; sourceTree = "<group>"; };
+		7BC81CBD2E4C5D5D62F64935 /* StudyFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyFormView.swift; sourceTree = "<group>"; };
 		83A37A40ED4819A50BFE69F4 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		9A9682904D4B5E3E6031AABF /* StudyDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyDetailView.swift; sourceTree = "<group>"; };
 		A242062F443A30DF2B6B1F7F /* Config.plist.template */ = {isa = PBXFileReference; path = Config.plist.template; sourceTree = "<group>"; };
+		A90C12BC487A9A2858501805 /* DynamicTimerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DynamicTimerView.swift; sourceTree = "<group>"; };
 		B00E1ECBA4E0EB5DA54C56F2 /* IntradaApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntradaApp.swift; sourceTree = "<group>"; };
 		BF79F444D492395E5C4A36C9 /* Config.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Config.plist; sourceTree = "<group>"; };
-		C17E91F3A56E7F20016E5921 /* ExerciseFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseFormView.swift; sourceTree = "<group>"; };
-		D2F8D8367A0806E263F0B498 /* SessionTimer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionTimer.swift; sourceTree = "<group>"; };
 		DAAF63990A427F10CDE80895 /* HomeVIew.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeVIew.swift; sourceTree = "<group>"; };
 		DBD4BBEE3EB72A49C85AA18E /* http.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = http.swift; sourceTree = "<group>"; };
-		E6E10A204BB64B1554741E54 /* ExercisesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExercisesView.swift; sourceTree = "<group>"; };
 		EFD4E4A887C5186F83E986D3 /* Shared */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Shared; path = ../shared/Shared; sourceTree = SOURCE_ROOT; };
 		F8B2ABF575A88EC880D01779 /* ConfigurationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigurationManager.swift; sourceTree = "<group>"; };
 		FF5CDEB98E62D262842326BC /* SessionDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionDetailView.swift; sourceTree = "<group>"; };
@@ -73,6 +74,7 @@
 			files = (
 				F5E87B5B23FF53E9F7471A8E /* Shared in Frameworks */,
 				8AE5DA6CECC886C8E65A884F /* SharedTypes in Frameworks */,
+				7DC66E29BCB5F706ABF3F3D9 /* Appwrite in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -86,6 +88,16 @@
 				085DE01748EDA39FB010C0A8 /* SharedTypes */,
 			);
 			name = Packages;
+			sourceTree = "<group>";
+		};
+		7A2E8539E9C5F29DAE105DC1 /* Study */ = {
+			isa = PBXGroup;
+			children = (
+				66BF354F8D5813CE670A23EF /* StudiesView.swift */,
+				9A9682904D4B5E3E6031AABF /* StudyDetailView.swift */,
+				7BC81CBD2E4C5D5D62F64935 /* StudyFormView.swift */,
+			);
+			path = Study;
 			sourceTree = "<group>";
 		};
 		945BC5C2DFF502B4D21E2E21 = {
@@ -107,25 +119,15 @@
 			path = Goal;
 			sourceTree = "<group>";
 		};
-		C12DCCE15A6C13D38C625F96 /* Excercise */ = {
-			isa = PBXGroup;
-			children = (
-				63F6B920DDB6A74556531825 /* ExerciseDetailView.swift */,
-				C17E91F3A56E7F20016E5921 /* ExerciseFormView.swift */,
-				E6E10A204BB64B1554741E54 /* ExercisesView.swift */,
-			);
-			path = Excercise;
-			sourceTree = "<group>";
-		};
 		E5A7F62A3A0E4D902216AE60 /* Session */ = {
 			isa = PBXGroup;
 			children = (
 				42ABA1F7B42F3ADFFBBE1F86 /* ActiveSessionDetailView.swift */,
+				A90C12BC487A9A2858501805 /* DynamicTimerView.swift */,
 				FF5CDEB98E62D262842326BC /* SessionDetailView.swift */,
 				6385FE2DE888540A275E4061 /* SessionFormView.swift */,
 				017BD4BD5C3BBD11E8B2DB14 /* SessionReflectionForm.swift */,
 				1E9EBF7F20DE9609419F2B4B /* SessionsView.swift */,
-				D2F8D8367A0806E263F0B498 /* SessionTimer.swift */,
 			);
 			path = Session;
 			sourceTree = "<group>";
@@ -154,9 +156,9 @@
 				B00E1ECBA4E0EB5DA54C56F2 /* IntradaApp.swift */,
 				683ADA17CC2C8555D48DBD50 /* ProfileView.swift */,
 				55B00CD7F040317EC9D277CC /* README_CONFIG.md */,
-				C12DCCE15A6C13D38C625F96 /* Excercise */,
 				A88789A635B5B1C83BC114A7 /* Goal */,
 				E5A7F62A3A0E4D902216AE60 /* Session */,
+				7A2E8539E9C5F29DAE105DC1 /* Study */,
 			);
 			path = Intrada;
 			sourceTree = "<group>";
@@ -180,6 +182,7 @@
 			packageProductDependencies = (
 				9AF3999A1F62BECE7AD4D98A /* Shared */,
 				917447E964A6FFF42F7753F9 /* SharedTypes */,
+				35AE0453F1949B2792DE1E13 /* Appwrite */,
 			);
 			productName = Intrada;
 			productReference = 13E8B6BF7B3E02B04268499D /* Intrada.app */;
@@ -207,6 +210,7 @@
 			mainGroup = 945BC5C2DFF502B4D21E2E21;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				EC87FDE8CDE1CEE608C345F6 /* XCRemoteSwiftPackageReference "sdk-for-apple" */,
 				4AEAE67A9ED6F0D48F6F61B2 /* XCLocalSwiftPackageReference "../shared/Shared" */,
 				AC2CE8210B9C38E01B856752 /* XCLocalSwiftPackageReference "../shared/generated/swift/SharedTypes" */,
 			);
@@ -242,9 +246,7 @@
 				B1DD6317290853D4D4F9E340 /* AppwriteService.swift in Sources */,
 				8DBDC898AC1F95F08F1D3CAC /* ConfigurationManager.swift in Sources */,
 				12E965758B075383CC4794F1 /* ContentView.swift in Sources */,
-				5273DFBFD2319DE15A43FDBC /* ExerciseDetailView.swift in Sources */,
-				C9C8B87967C932AF26CBEFD8 /* ExerciseFormView.swift in Sources */,
-				4F7786829742CFAD6080A6A6 /* ExercisesView.swift in Sources */,
+				495D02D6DA9612297D01DD83 /* DynamicTimerView.swift in Sources */,
 				EEC3A3FA9D55DC193CCFCCBE /* GoalDetailView.swift in Sources */,
 				1A4B87EA8297F8B860FBBB60 /* GoalFormView.swift in Sources */,
 				30F514114D44187730655438 /* GoalsView.swift in Sources */,
@@ -254,8 +256,10 @@
 				F11AC0CE6F3F92B65E71E772 /* SessionDetailView.swift in Sources */,
 				CA6965A47994105FE97220A1 /* SessionFormView.swift in Sources */,
 				475C0F9C8076B4F353028596 /* SessionReflectionForm.swift in Sources */,
-				81AAACB02255A9DE2FD763A3 /* SessionTimer.swift in Sources */,
 				8C9C3799281B2075E8CFA0F0 /* SessionsView.swift in Sources */,
+				88FE04537635F0CD64005A7E /* StudiesView.swift in Sources */,
+				32BD7E9A803656F78492B8E4 /* StudyDetailView.swift in Sources */,
+				EA8DFD8CD3F187836480FBFC /* StudyFormView.swift in Sources */,
 				60EA876202FF0ABF6CB4F574 /* core.swift in Sources */,
 				7041A1B95A8BF82D73588AD6 /* http.swift in Sources */,
 			);
@@ -449,7 +453,23 @@
 		};
 /* End XCLocalSwiftPackageReference section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		EC87FDE8CDE1CEE608C345F6 /* XCRemoteSwiftPackageReference "sdk-for-apple" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/appwrite/sdk-for-apple";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
+		35AE0453F1949B2792DE1E13 /* Appwrite */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = EC87FDE8CDE1CEE608C345F6 /* XCRemoteSwiftPackageReference "sdk-for-apple" */;
+			productName = Appwrite;
+		};
 		917447E964A6FFF42F7753F9 /* SharedTypes */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = SharedTypes;

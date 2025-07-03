@@ -1,49 +1,49 @@
 import SwiftUI
 import SharedTypes
 
-struct ExerciseFormView: View {
+struct StudyFormView: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject var core: Core
-    let existingExercise: Exercise?
+    let existingStudy: Study?
     
     @State private var name: String
     @State private var description: String
     
-    init(core: Core, existingExercise: Exercise? = nil) {
+    init(core: Core, existingStudy: Study? = nil) {
         self.core = core
-        self.existingExercise = existingExercise
+        self.existingStudy = existingStudy
         
-        // Initialize state variables with existing exercise data if available
-        _name = State(initialValue: existingExercise?.name ?? "")
-        _description = State(initialValue: existingExercise?.description ?? "")
+        // Initialize state variables with existing study data if available
+        _name = State(initialValue: existingStudy?.name ?? "")
+        _description = State(initialValue: existingStudy?.description ?? "")
     }
     
     var body: some View {
         NavigationView {
             Form {
-                Section(header: Text("Exercise Details")) {
+                Section(header: Text("Study Details")) {
                     TextField("Name", text: $name)
                     TextField("Description", text: $description, axis: .vertical)
                         .lineLimit(3...6)
                 }
             }
-            .navigationTitle(existingExercise == nil ? "New Exercise" : "Edit Exercise")
+            .navigationTitle(existingStudy == nil ? "New Study" : "Edit Study")
             .navigationBarTitleDisplayMode(.inline)
             .navigationBarItems(
                 leading: Button("Cancel") {
                     dismiss()
                 },
                 trailing: Button("Save") {
-                    let exercise = Exercise(
-                        id: existingExercise?.id ?? UUID().uuidString,
+                    let study = Study(
+                        id: existingStudy?.id ?? UUID().uuidString,
                         name: name,
                         description: description.isEmpty ? nil : description
                     )
                     
-                    if existingExercise != nil {
-                        core.update(.editExercise(exercise))
+                    if existingStudy != nil {
+                        core.update(.editStudy(study))
                     } else {
-                        core.update(.addExercise(exercise))
+                        core.update(.addStudy(study))
                     }
                     dismiss()
                 }
@@ -53,5 +53,5 @@ struct ExerciseFormView: View {
 }
 
 #Preview {
-    ExerciseFormView(core: Core())
+    StudyFormView(core: Core())
 } 
