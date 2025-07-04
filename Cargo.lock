@@ -435,6 +435,7 @@ dependencies = [
  "iana-time-zone",
  "js-sys",
  "num-traits",
+ "serde",
  "wasm-bindgen",
  "windows-link",
 ]
@@ -1618,6 +1619,19 @@ name = "infer"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "64e9829a50b42bb782c1df523f78d332fe371b10c661e78b7a3c34b0198e9fac"
+
+[[package]]
+name = "infrastructure"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "clap",
+ "insta",
+ "serde",
+ "serde_json",
+ "shared",
+ "uuid",
+]
 
 [[package]]
 name = "insta"

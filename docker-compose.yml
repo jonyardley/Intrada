@@ -1,0 +1,648 @@
+version: '3.8'
+
+services:
+  appwrite:
+    image: appwrite/appwrite:1.4.13
+    container_name: appwrite
+    restart: unless-stopped
+    networks:
+      - appwrite
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.appwrite.rule=Host(`localhost`)"
+      - "traefik.http.routers.appwrite.entrypoints=web"
+      - "traefik.http.routers.appwrite.service=appwrite"
+      - "traefik.http.services.appwrite.loadbalancer.server.port=80"
+      - "traefik.http.routers.appwrite-secure.rule=Host(`localhost`)"
+      - "traefik.http.routers.appwrite-secure.entrypoints=websecure"
+      - "traefik.http.routers.appwrite-secure.service=appwrite"
+      - "traefik.http.routers.appwrite-secure.tls=true"
+    volumes:
+      - appwrite-uploads:/storage/uploads:rw
+      - appwrite-cache:/storage/cache:rw
+      - appwrite-config:/storage/config:rw
+      - appwrite-certificates:/storage/certificates:rw
+      - appwrite-functions:/storage/functions:rw
+    depends_on:
+      - mariadb
+      - redis
+    environment:
+      - _APP_ENV=development
+      - _APP_LOCALE=en
+      - _APP_CONSOLE_WHITELIST_ROOT=enabled
+      - _APP_CONSOLE_WHITELIST_EMAILS=
+      - _APP_CONSOLE_WHITELIST_IPS=
+      - _APP_SYSTEM_EMAIL_NAME=Appwrite
+      - _APP_SYSTEM_EMAIL_ADDRESS=team@appwrite.io
+      - _APP_SYSTEM_SECURITY_EMAIL_ADDRESS=security@appwrite.io
+      - _APP_SYSTEM_RESPONSE_FORMAT=
+      - _APP_OPTIONS_ABUSE=enabled
+      - _APP_OPTIONS_FORCE_HTTPS=disabled
+      - _APP_OPENSSL_KEY_V1=your-secret-key
+      - _APP_DOMAIN=localhost
+      - _APP_DOMAIN_TARGET=localhost
+      - _APP_REDIS_HOST=redis
+      - _APP_REDIS_PORT=6379
+      - _APP_REDIS_USER=
+      - _APP_REDIS_PASS=
+      - _APP_DB_HOST=mariadb
+      - _APP_DB_PORT=3306
+      - _APP_DB_SCHEMA=appwrite
+      - _APP_DB_USER=user
+      - _APP_DB_PASS=password
+      - _APP_SMTP_HOST=
+      - _APP_SMTP_PORT=
+      - _APP_SMTP_SECURE=
+      - _APP_SMTP_USERNAME=
+      - _APP_SMTP_PASSWORD=
+      - _APP_USAGE_STATS=enabled
+      - _APP_INFLUXDB_HOST=
+      - _APP_INFLUXDB_PORT=
+      - _APP_STORAGE_LIMIT=30000000
+      - _APP_STORAGE_PREVIEW_LIMIT=20000000
+      - _APP_STORAGE_ANTIVIRUS=disabled
+      - _APP_STORAGE_ANTIVIRUS_HOST=clamav
+      - _APP_STORAGE_ANTIVIRUS_PORT=3310
+      - _APP_STORAGE_DEVICE=Local
+      - _APP_STORAGE_S3_ACCESS_KEY=
+      - _APP_STORAGE_S3_SECRET=
+      - _APP_STORAGE_S3_REGION=us-east-1
+      - _APP_STORAGE_S3_BUCKET=
+      - _APP_STORAGE_DO_SPACES_ACCESS_KEY=
+      - _APP_STORAGE_DO_SPACES_SECRET=
+      - _APP_STORAGE_DO_SPACES_REGION=us-east-1
+      - _APP_STORAGE_DO_SPACES_BUCKET=
+      - _APP_STORAGE_BACKBLAZE_ACCESS_KEY=
+      - _APP_STORAGE_BACKBLAZE_SECRET=
+      - _APP_STORAGE_BACKBLAZE_REGION=us-west-004
+      - _APP_STORAGE_BACKBLAZE_BUCKET=
+      - _APP_STORAGE_LINODE_ACCESS_KEY=
+      - _APP_STORAGE_LINODE_SECRET=
+      - _APP_STORAGE_LINODE_REGION=eu-central-1
+      - _APP_STORAGE_LINODE_BUCKET=
+      - _APP_STORAGE_WASABI_ACCESS_KEY=
+      - _APP_STORAGE_WASABI_SECRET=
+      - _APP_STORAGE_WASABI_REGION=eu-central-1
+      - _APP_STORAGE_WASABI_BUCKET=
+      - _APP_FUNCTIONS_SIZE_LIMIT=30000000
+      - _APP_FUNCTIONS_TIMEOUT=900
+      - _APP_FUNCTIONS_BUILD_TIMEOUT=900
+      - _APP_FUNCTIONS_CONTAINERS=10
+      - _APP_FUNCTIONS_CPUS=0
+      - _APP_FUNCTIONS_MEMORY=0
+      - _APP_FUNCTIONS_RUNTIMES=node-14.5,node-16.0,node-18.0,node-19.0,php-8.0,php-8.1,php-8.2,ruby-3.0,ruby-3.1,python-3.8,python-3.9,python-3.10,python-3.11,deno-1.21,deno-1.24,deno-1.35,deno-1.40,dart-2.15,dart-2.16,dart-2.17,dart-2.18,dotnet-3.1,dotnet-6.0,dotnet-7.0,java-8.0,java-11.0,java-17.0,java-18.0,swift-5.5,swift-5.8,kotlin-1.6,kotlin-1.8,kotlin-1.9,cpp-17,cpp-20,bun-1.0
+      - _APP_EXECUTOR_SECRET=your-secret-key
+      - _APP_EXECUTOR_HOST=http://appwrite-executor/v1
+      - _APP_LOGGING_PROVIDER=
+      - _APP_LOGGING_CONFIG=
+      - _APP_MAINTENANCE_INTERVAL=86400
+      - _APP_MAINTENANCE_RETENTION_EXECUTION=1209600
+      - _APP_MAINTENANCE_RETENTION_CACHE=2592000
+      - _APP_MAINTENANCE_RETENTION_ABUSE=86400
+      - _APP_MAINTENANCE_RETENTION_AUDIT=1209600
+      - _APP_MAINTENANCE_RETENTION_USAGE_HOURLY=8640000
+      - _APP_MAINTENANCE_RETENTION_SCHEDULES=86400
+      - _APP_SMS_PROVIDER=
+      - _APP_SMS_FROM=
+      - _APP_GRAPHQL_MAX_BATCH_SIZE=10
+      - _APP_GRAPHQL_MAX_COMPLEXITY=250
+      - _APP_GRAPHQL_MAX_DEPTH=3
+      - _APP_VCS_GITHUB_APP_NAME=
+      - _APP_VCS_GITHUB_PRIVATE_KEY=
+      - _APP_VCS_GITHUB_APP_ID=
+      - _APP_VCS_GITHUB_CLIENT_ID=
+      - _APP_VCS_GITHUB_CLIENT_SECRET=
+      - _APP_VCS_GITHUB_WEBHOOK_SECRET=
+      - _APP_HAMSTER_CONNECTION_LIMIT=1000
+      - _APP_HAMSTER_QUEUE_LIMIT=100
+
+  appwrite-realtime:
+    image: appwrite/appwrite:1.4.13
+    entrypoint: realtime
+    container_name: appwrite-realtime
+    restart: unless-stopped
+    networks:
+      - appwrite
+    depends_on:
+      - mariadb
+      - redis
+    environment:
+      - _APP_ENV=development
+      - _APP_WORKER_PER_CORE=6
+      - _APP_OPTIONS_ABUSE=enabled
+      - _APP_OPENSSL_KEY_V1=your-secret-key
+      - _APP_REDIS_HOST=redis
+      - _APP_REDIS_PORT=6379
+      - _APP_REDIS_USER=
+      - _APP_REDIS_PASS=
+      - _APP_DB_HOST=mariadb
+      - _APP_DB_PORT=3306
+      - _APP_DB_SCHEMA=appwrite
+      - _APP_DB_USER=user
+      - _APP_DB_PASS=password
+      - _APP_USAGE_STATS=enabled
+      - _APP_LOGGING_PROVIDER=
+      - _APP_LOGGING_CONFIG=
+
+  appwrite-executor:
+    image: appwrite/appwrite:1.4.13
+    entrypoint: executor
+    container_name: appwrite-executor
+    restart: unless-stopped
+    networks:
+      - appwrite
+      - runtimes
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - appwrite-functions:/storage/functions:rw
+      - appwrite-builds:/storage/builds:rw
+    depends_on:
+      - redis
+      - mariadb
+    environment:
+      - _APP_ENV=development
+      - _APP_VERSION=1.4.13
+      - _APP_FUNCTIONS_TIMEOUT=900
+      - _APP_FUNCTIONS_BUILD_TIMEOUT=900
+      - _APP_FUNCTIONS_CONTAINERS=10
+      - _APP_FUNCTIONS_RUNTIMES=node-14.5,node-16.0,node-18.0,node-19.0,php-8.0,php-8.1,php-8.2,ruby-3.0,ruby-3.1,python-3.8,python-3.9,python-3.10,python-3.11,deno-1.21,deno-1.24,deno-1.35,deno-1.40,dart-2.15,dart-2.16,dart-2.17,dart-2.18,dotnet-3.1,dotnet-6.0,dotnet-7.0,java-8.0,java-11.0,java-17.0,java-18.0,swift-5.5,swift-5.8,kotlin-1.6,kotlin-1.8,kotlin-1.9,cpp-17,cpp-20,bun-1.0
+      - _APP_FUNCTIONS_CPUS=0
+      - _APP_FUNCTIONS_MEMORY=0
+      - _APP_FUNCTIONS_SIZE_LIMIT=30000000
+      - _APP_OPENSSL_KEY_V1=your-secret-key
+      - _APP_REDIS_HOST=redis
+      - _APP_REDIS_PORT=6379
+      - _APP_REDIS_USER=
+      - _APP_REDIS_PASS=
+      - _APP_DB_HOST=mariadb
+      - _APP_DB_PORT=3306
+      - _APP_DB_SCHEMA=appwrite
+      - _APP_DB_USER=user
+      - _APP_DB_PASS=password
+      - _APP_LOGGING_PROVIDER=
+      - _APP_LOGGING_CONFIG=
+      - _APP_STORAGE_DEVICE=Local
+      - _APP_STORAGE_S3_ACCESS_KEY=
+      - _APP_STORAGE_S3_SECRET=
+      - _APP_STORAGE_S3_REGION=us-east-1
+      - _APP_STORAGE_S3_BUCKET=
+      - _APP_STORAGE_DO_SPACES_ACCESS_KEY=
+      - _APP_STORAGE_DO_SPACES_SECRET=
+      - _APP_STORAGE_DO_SPACES_REGION=us-east-1
+      - _APP_STORAGE_DO_SPACES_BUCKET=
+      - _APP_STORAGE_BACKBLAZE_ACCESS_KEY=
+      - _APP_STORAGE_BACKBLAZE_SECRET=
+      - _APP_STORAGE_BACKBLAZE_REGION=us-west-004
+      - _APP_STORAGE_BACKBLAZE_BUCKET=
+      - _APP_STORAGE_LINODE_ACCESS_KEY=
+      - _APP_STORAGE_LINODE_SECRET=
+      - _APP_STORAGE_LINODE_REGION=eu-central-1
+      - _APP_STORAGE_LINODE_BUCKET=
+      - _APP_STORAGE_WASABI_ACCESS_KEY=
+      - _APP_STORAGE_WASABI_SECRET=
+      - _APP_STORAGE_WASABI_REGION=eu-central-1
+      - _APP_STORAGE_WASABI_BUCKET=
+
+  appwrite-worker-audits:
+    image: appwrite/appwrite:1.4.13
+    entrypoint: worker-audits
+    container_name: appwrite-worker-audits
+    restart: unless-stopped
+    networks:
+      - appwrite
+    depends_on:
+      - redis
+      - mariadb
+    environment:
+      - _APP_ENV=development
+      - _APP_OPENSSL_KEY_V1=your-secret-key
+      - _APP_REDIS_HOST=redis
+      - _APP_REDIS_PORT=6379
+      - _APP_REDIS_USER=
+      - _APP_REDIS_PASS=
+      - _APP_DB_HOST=mariadb
+      - _APP_DB_PORT=3306
+      - _APP_DB_SCHEMA=appwrite
+      - _APP_DB_USER=user
+      - _APP_DB_PASS=password
+      - _APP_LOGGING_PROVIDER=
+      - _APP_LOGGING_CONFIG=
+
+  appwrite-worker-webhooks:
+    image: appwrite/appwrite:1.4.13
+    entrypoint: worker-webhooks
+    container_name: appwrite-worker-webhooks
+    restart: unless-stopped
+    networks:
+      - appwrite
+    depends_on:
+      - redis
+      - mariadb
+    environment:
+      - _APP_ENV=development
+      - _APP_OPENSSL_KEY_V1=your-secret-key
+      - _APP_SYSTEM_SECURITY_EMAIL_ADDRESS=security@appwrite.io
+      - _APP_REDIS_HOST=redis
+      - _APP_REDIS_PORT=6379
+      - _APP_REDIS_USER=
+      - _APP_REDIS_PASS=
+      - _APP_DB_HOST=mariadb
+      - _APP_DB_PORT=3306
+      - _APP_DB_SCHEMA=appwrite
+      - _APP_DB_USER=user
+      - _APP_DB_PASS=password
+      - _APP_LOGGING_PROVIDER=
+      - _APP_LOGGING_CONFIG=
+
+  appwrite-worker-deletes:
+    image: appwrite/appwrite:1.4.13
+    entrypoint: worker-deletes
+    container_name: appwrite-worker-deletes
+    restart: unless-stopped
+    networks:
+      - appwrite
+    depends_on:
+      - redis
+      - mariadb
+    volumes:
+      - appwrite-uploads:/storage/uploads:rw
+      - appwrite-cache:/storage/cache:rw
+      - appwrite-functions:/storage/functions:rw
+      - appwrite-builds:/storage/builds:rw
+      - appwrite-certificates:/storage/certificates:rw
+    environment:
+      - _APP_ENV=development
+      - _APP_OPENSSL_KEY_V1=your-secret-key
+      - _APP_REDIS_HOST=redis
+      - _APP_REDIS_PORT=6379
+      - _APP_REDIS_USER=
+      - _APP_REDIS_PASS=
+      - _APP_DB_HOST=mariadb
+      - _APP_DB_PORT=3306
+      - _APP_DB_SCHEMA=appwrite
+      - _APP_DB_USER=user
+      - _APP_DB_PASS=password
+      - _APP_STORAGE_DEVICE=Local
+      - _APP_STORAGE_S3_ACCESS_KEY=
+      - _APP_STORAGE_S3_SECRET=
+      - _APP_STORAGE_S3_REGION=us-east-1
+      - _APP_STORAGE_S3_BUCKET=
+      - _APP_STORAGE_DO_SPACES_ACCESS_KEY=
+      - _APP_STORAGE_DO_SPACES_SECRET=
+      - _APP_STORAGE_DO_SPACES_REGION=us-east-1
+      - _APP_STORAGE_DO_SPACES_BUCKET=
+      - _APP_STORAGE_BACKBLAZE_ACCESS_KEY=
+      - _APP_STORAGE_BACKBLAZE_SECRET=
+      - _APP_STORAGE_BACKBLAZE_REGION=us-west-004
+      - _APP_STORAGE_BACKBLAZE_BUCKET=
+      - _APP_STORAGE_LINODE_ACCESS_KEY=
+      - _APP_STORAGE_LINODE_SECRET=
+      - _APP_STORAGE_LINODE_REGION=eu-central-1
+      - _APP_STORAGE_LINODE_BUCKET=
+      - _APP_STORAGE_WASABI_ACCESS_KEY=
+      - _APP_STORAGE_WASABI_SECRET=
+      - _APP_STORAGE_WASABI_REGION=eu-central-1
+      - _APP_STORAGE_WASABI_BUCKET=
+      - _APP_LOGGING_PROVIDER=
+      - _APP_LOGGING_CONFIG=
+      - _APP_EXECUTOR_SECRET=your-secret-key
+
+  appwrite-worker-databases:
+    image: appwrite/appwrite:1.4.13
+    entrypoint: worker-databases
+    container_name: appwrite-worker-databases
+    restart: unless-stopped
+    networks:
+      - appwrite
+    depends_on:
+      - redis
+      - mariadb
+    environment:
+      - _APP_ENV=development
+      - _APP_OPENSSL_KEY_V1=your-secret-key
+      - _APP_REDIS_HOST=redis
+      - _APP_REDIS_PORT=6379
+      - _APP_REDIS_USER=
+      - _APP_REDIS_PASS=
+      - _APP_DB_HOST=mariadb
+      - _APP_DB_PORT=3306
+      - _APP_DB_SCHEMA=appwrite
+      - _APP_DB_USER=user
+      - _APP_DB_PASS=password
+      - _APP_LOGGING_PROVIDER=
+      - _APP_LOGGING_CONFIG=
+
+  appwrite-worker-builds:
+    image: appwrite/appwrite:1.4.13
+    entrypoint: worker-builds
+    container_name: appwrite-worker-builds
+    restart: unless-stopped
+    networks:
+      - appwrite
+    depends_on:
+      - redis
+      - mariadb
+    environment:
+      - _APP_ENV=development
+      - _APP_OPENSSL_KEY_V1=your-secret-key
+      - _APP_EXECUTOR_SECRET=your-secret-key
+      - _APP_REDIS_HOST=redis
+      - _APP_REDIS_PORT=6379
+      - _APP_REDIS_USER=
+      - _APP_REDIS_PASS=
+      - _APP_DB_HOST=mariadb
+      - _APP_DB_PORT=3306
+      - _APP_DB_SCHEMA=appwrite
+      - _APP_DB_USER=user
+      - _APP_DB_PASS=password
+      - _APP_LOGGING_PROVIDER=
+      - _APP_LOGGING_CONFIG=
+
+  appwrite-worker-certificates:
+    image: appwrite/appwrite:1.4.13
+    entrypoint: worker-certificates
+    container_name: appwrite-worker-certificates
+    restart: unless-stopped
+    networks:
+      - appwrite
+    depends_on:
+      - redis
+      - mariadb
+    volumes:
+      - appwrite-config:/storage/config:rw
+      - appwrite-certificates:/storage/certificates:rw
+    environment:
+      - _APP_ENV=development
+      - _APP_OPENSSL_KEY_V1=your-secret-key
+      - _APP_DOMAIN=localhost
+      - _APP_DOMAIN_TARGET=localhost
+      - _APP_SYSTEM_SECURITY_EMAIL_ADDRESS=security@appwrite.io
+      - _APP_REDIS_HOST=redis
+      - _APP_REDIS_PORT=6379
+      - _APP_REDIS_USER=
+      - _APP_REDIS_PASS=
+      - _APP_DB_HOST=mariadb
+      - _APP_DB_PORT=3306
+      - _APP_DB_SCHEMA=appwrite
+      - _APP_DB_USER=user
+      - _APP_DB_PASS=password
+      - _APP_LOGGING_PROVIDER=
+      - _APP_LOGGING_CONFIG=
+
+  appwrite-worker-functions:
+    image: appwrite/appwrite:1.4.13
+    entrypoint: worker-functions
+    container_name: appwrite-worker-functions
+    restart: unless-stopped
+    networks:
+      - appwrite
+    depends_on:
+      - redis
+      - mariadb
+      - appwrite-executor
+    environment:
+      - _APP_ENV=development
+      - _APP_OPENSSL_KEY_V1=your-secret-key
+      - _APP_REDIS_HOST=redis
+      - _APP_REDIS_PORT=6379
+      - _APP_REDIS_USER=
+      - _APP_REDIS_PASS=
+      - _APP_DB_HOST=mariadb
+      - _APP_DB_PORT=3306
+      - _APP_DB_SCHEMA=appwrite
+      - _APP_DB_USER=user
+      - _APP_DB_PASS=password
+      - _APP_FUNCTIONS_TIMEOUT=900
+      - _APP_EXECUTOR_SECRET=your-secret-key
+      - _APP_EXECUTOR_HOST=http://appwrite-executor/v1
+      - _APP_USAGE_STATS=enabled
+      - _APP_LOGGING_PROVIDER=
+      - _APP_LOGGING_CONFIG=
+
+  appwrite-worker-mails:
+    image: appwrite/appwrite:1.4.13
+    entrypoint: worker-mails
+    container_name: appwrite-worker-mails
+    restart: unless-stopped
+    networks:
+      - appwrite
+    depends_on:
+      - redis
+      - mariadb
+    environment:
+      - _APP_ENV=development
+      - _APP_OPENSSL_KEY_V1=your-secret-key
+      - _APP_SYSTEM_EMAIL_NAME=Appwrite
+      - _APP_SYSTEM_EMAIL_ADDRESS=team@appwrite.io
+      - _APP_REDIS_HOST=redis
+      - _APP_REDIS_PORT=6379
+      - _APP_REDIS_USER=
+      - _APP_REDIS_PASS=
+      - _APP_DB_HOST=mariadb
+      - _APP_DB_PORT=3306
+      - _APP_DB_SCHEMA=appwrite
+      - _APP_DB_USER=user
+      - _APP_DB_PASS=password
+      - _APP_SMTP_HOST=
+      - _APP_SMTP_PORT=
+      - _APP_SMTP_SECURE=
+      - _APP_SMTP_USERNAME=
+      - _APP_SMTP_PASSWORD=
+      - _APP_LOGGING_PROVIDER=
+      - _APP_LOGGING_CONFIG=
+
+  appwrite-worker-messaging:
+    image: appwrite/appwrite:1.4.13
+    entrypoint: worker-messaging
+    container_name: appwrite-worker-messaging
+    restart: unless-stopped
+    networks:
+      - appwrite
+    depends_on:
+      - redis
+      - mariadb
+    environment:
+      - _APP_ENV=development
+      - _APP_OPENSSL_KEY_V1=your-secret-key
+      - _APP_REDIS_HOST=redis
+      - _APP_REDIS_PORT=6379
+      - _APP_REDIS_USER=
+      - _APP_REDIS_PASS=
+      - _APP_DB_HOST=mariadb
+      - _APP_DB_PORT=3306
+      - _APP_DB_SCHEMA=appwrite
+      - _APP_DB_USER=user
+      - _APP_DB_PASS=password
+      - _APP_SMS_PROVIDER=
+      - _APP_SMS_FROM=
+      - _APP_LOGGING_PROVIDER=
+      - _APP_LOGGING_CONFIG=
+
+  appwrite-maintenance:
+    image: appwrite/appwrite:1.4.13
+    entrypoint: maintenance
+    container_name: appwrite-maintenance
+    restart: unless-stopped
+    networks:
+      - appwrite
+    depends_on:
+      - redis
+      - mariadb
+    environment:
+      - _APP_ENV=development
+      - _APP_OPENSSL_KEY_V1=your-secret-key
+      - _APP_DOMAIN=localhost
+      - _APP_DOMAIN_TARGET=localhost
+      - _APP_REDIS_HOST=redis
+      - _APP_REDIS_PORT=6379
+      - _APP_REDIS_USER=
+      - _APP_REDIS_PASS=
+      - _APP_DB_HOST=mariadb
+      - _APP_DB_PORT=3306
+      - _APP_DB_SCHEMA=appwrite
+      - _APP_DB_USER=user
+      - _APP_DB_PASS=password
+      - _APP_MAINTENANCE_INTERVAL=86400
+      - _APP_MAINTENANCE_RETENTION_EXECUTION=1209600
+      - _APP_MAINTENANCE_RETENTION_CACHE=2592000
+      - _APP_MAINTENANCE_RETENTION_ABUSE=86400
+      - _APP_MAINTENANCE_RETENTION_AUDIT=1209600
+      - _APP_MAINTENANCE_RETENTION_USAGE_HOURLY=8640000
+      - _APP_MAINTENANCE_RETENTION_SCHEDULES=86400
+      - _APP_LOGGING_PROVIDER=
+      - _APP_LOGGING_CONFIG=
+
+  appwrite-usage:
+    image: appwrite/appwrite:1.4.13
+    entrypoint: usage
+    container_name: appwrite-usage
+    restart: unless-stopped
+    networks:
+      - appwrite
+    depends_on:
+      - redis
+      - mariadb
+    environment:
+      - _APP_ENV=development
+      - _APP_OPENSSL_KEY_V1=your-secret-key
+      - _APP_DB_HOST=mariadb
+      - _APP_DB_PORT=3306
+      - _APP_DB_SCHEMA=appwrite
+      - _APP_DB_USER=user
+      - _APP_DB_PASS=password
+      - _APP_REDIS_HOST=redis
+      - _APP_REDIS_PORT=6379
+      - _APP_REDIS_USER=
+      - _APP_REDIS_PASS=
+      - _APP_USAGE_STATS=enabled
+      - _APP_LOGGING_PROVIDER=
+      - _APP_LOGGING_CONFIG=
+
+  appwrite-schedule:
+    image: appwrite/appwrite:1.4.13
+    entrypoint: schedule
+    container_name: appwrite-schedule
+    restart: unless-stopped
+    networks:
+      - appwrite
+    depends_on:
+      - redis
+      - mariadb
+    environment:
+      - _APP_ENV=development
+      - _APP_OPENSSL_KEY_V1=your-secret-key
+      - _APP_REDIS_HOST=redis
+      - _APP_REDIS_PORT=6379
+      - _APP_REDIS_USER=
+      - _APP_REDIS_PASS=
+      - _APP_DB_HOST=mariadb
+      - _APP_DB_PORT=3306
+      - _APP_DB_SCHEMA=appwrite
+      - _APP_DB_USER=user
+      - _APP_DB_PASS=password
+      - _APP_LOGGING_PROVIDER=
+      - _APP_LOGGING_CONFIG=
+
+  appwrite-assistant:
+    image: appwrite/assistant:0.4.0
+    container_name: appwrite-assistant
+    restart: unless-stopped
+    networks:
+      - appwrite
+    environment:
+      - _APP_ASSISTANT_OPENAI_API_KEY=
+
+  mariadb:
+    image: mariadb:10.7
+    container_name: appwrite-mariadb
+    restart: unless-stopped
+    networks:
+      - appwrite
+    volumes:
+      - appwrite-mariadb:/var/lib/mysql:rw
+    environment:
+      - MYSQL_ROOT_PASSWORD=password
+      - MYSQL_DATABASE=appwrite
+      - MYSQL_USER=user
+      - MYSQL_PASSWORD=password
+    command: 'mysqld --innodb-flush-method=fsync'
+
+  redis:
+    image: redis:7.0-alpine
+    container_name: appwrite-redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --maxmemory            512mb
+      --maxmemory-policy     allkeys-lru
+      --maxmemory-samples    5
+    networks:
+      - appwrite
+    volumes:
+      - appwrite-redis:/data:rw
+
+  # Reverse Proxy
+  traefik:
+    image: traefik:2.9
+    container_name: appwrite-traefik
+    restart: unless-stopped
+    command:
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.file.directory=/configurations
+      - --providers.file.watch=true
+      - --certificatesresolvers.letsencrypt.acme.email=security@appwrite.io
+      - --certificatesresolvers.letsencrypt.acme.storage=/certificates/acme.json
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge=true
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
+      - --log.level=DEBUG
+      - --api.insecure=true
+      - --api.dashboard=true
+      - --api.debug=true
+      - --accesslog=true
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - appwrite-certificates:/certificates:rw
+      - appwrite-config:/configurations:rw
+    networks:
+      - appwrite
+
+networks:
+  appwrite:
+  runtimes:
+
+volumes:
+  appwrite-mariadb:
+  appwrite-redis:
+  appwrite-cache:
+  appwrite-uploads:
+  appwrite-certificates:
+  appwrite-functions:
+  appwrite-builds:
+  appwrite-config:
