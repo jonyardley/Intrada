@@ -2,6 +2,21 @@
 
 > Intrada empowers musicians to achieve mastery through structured, efficient, and deeply reflective practice. By providing intelligent tools for planning, focused execution, and insightful analysis, Intrada transforms practice from a routine into a deliberate pathway to virtuosity.
 
+## Quick Start
+
+**Get up and running in one command:**
+```bash
+make setup
+```
+
+For detailed setup instructions, see [docs/QUICKSTART.md](docs/QUICKSTART.md).
+
+## Documentation
+
+- **[Quick Start Guide](docs/QUICKSTART.md)** - Get your development environment running
+- **[Development Guide](docs/DEVELOPMENT.md)** - Development workflow and best practices  
+- **[Appwrite Infrastructure](docs/APPWRITE_INFRASTRUCTURE.md)** - Backend infrastructure details
+
 ## Running the leptos web app
 
 ### Development
