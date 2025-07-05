@@ -556,13 +556,20 @@ impl SchemaBuilder {
                     IndexType::Unique => "unique",
                 };
 
+                let attributes_args = index
+                    .attributes
+                    .iter()
+                    .map(|attr| format!("--attributes {}", attr))
+                    .collect::<Vec<_>>()
+                    .join(" ");
+
                 commands.push(format!(
-                    "appwrite databases createIndex --databaseId {} --collectionId {} --key {} --type {} --attributes '{}'",
+                    "appwrite databases createIndex --databaseId {} --collectionId {} --key {} --type {} {}",
                     schema.database_id,
                     collection.collection_id,
                     index.key,
                     index_type,
-                    index.attributes.join(",")
+                    attributes_args
                 ));
             }
         }

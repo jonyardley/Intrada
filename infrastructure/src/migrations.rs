@@ -587,9 +587,16 @@ impl MigrationExecutor {
             crate::schema::IndexType::Unique => "unique",
         };
 
+        let attributes_args = index
+            .attributes
+            .iter()
+            .map(|attr| format!("--attributes {}", attr))
+            .collect::<Vec<_>>()
+            .join(" ");
+
         format!(
-            "appwrite databases createIndex --databaseId {} --collectionId {} --key {} --type {} --attributes '{}'",
-            database_id, collection_id, index.key, index_type, index.attributes.join(",")
+            "appwrite databases createIndex --databaseId {} --collectionId {} --key {} --type {} {}",
+            database_id, collection_id, index.key, index_type, attributes_args
         )
     }
 

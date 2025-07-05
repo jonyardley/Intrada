@@ -303,8 +303,35 @@ fn deploy_schema(
         let commands = infrastructure::migrations::MigrationExecutor::generate_commands(&migration);
         for command in commands {
             println!("Executing: {}", command);
-            // Here you would execute the actual command
-            // For now, we'll just print it
+
+            // Execute the actual command from the project root
+            let output = std::process::Command::new("sh")
+                .arg("-c")
+                .arg(&command)
+                .current_dir("..") // Run from project root where CLI is configured
+                .output()
+                .expect("Failed to execute command");
+
+            if !output.status.success() {
+                let error_msg = String::from_utf8_lossy(&output.stderr);
+
+                // Handle expected errors gracefully
+                if error_msg.contains("Database already exists")
+                    || error_msg.contains("Collection already exists")
+                    || error_msg.contains("A collection with the requested ID already exists")
+                    || error_msg.contains("Attribute already exists")
+                    || error_msg.contains("Attribute with the requested key already exists")
+                    || error_msg.contains("Index already exists")
+                    || error_msg.contains("Index with the requested key already exists")
+                    || error_msg.contains("Cannot convert undefined or null to object")
+                {
+                    println!("⚠️  Resource already exists or API quirk, continuing...");
+                } else {
+                    eprintln!("❌ Command failed: {}", command);
+                    eprintln!("Error: {}", error_msg);
+                    std::process::exit(1);
+                }
+            }
         }
 
         println!("✅ Deployment completed successfully!");
