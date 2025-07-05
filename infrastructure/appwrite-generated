@@ -1,0 +1,62 @@
+#!/bin/bash
+# Generated Appwrite CLI commands
+# This file is auto-generated. Do not edit manually.
+
+# Database: Intrada Database
+# Database ID: intrada_db
+# Generated: 2025-07-05 09:47:44 UTC
+
+set -e
+
+# Environment variables
+export APPWRITE_ENDPOINT="${APPWRITE_ENDPOINT:-https://cloud.appwrite.io/v1}"
+export APPWRITE_PROJECT_ID="${APPWRITE_PROJECT_ID}"
+export APPWRITE_API_KEY="${APPWRITE_API_KEY}"
+
+# Check required environment variables
+if [ -z "${APPWRITE_PROJECT_ID}" ]; then
+  echo "Error: APPWRITE_PROJECT_ID is required"
+  exit 1
+fi
+
+if [ -z "${APPWRITE_API_KEY}" ]; then
+  echo "Error: APPWRITE_API_KEY is required"
+  exit 1
+fi
+
+# Appwrite CLI commands
+appwrite databases create --databaseId intrada_db --name "Intrada Database"
+appwrite databases createCollection --databaseId intrada_db --collectionId goals --name "goals" --permissions '[{"role":"any","permission":"read"},{"role":"users","permission":"create"},{"role":"users","permission":"update"},{"role":"users","permission":"delete"}]'
+appwrite databases createStringAttribute --databaseId intrada_db --collectionId goals --key name --size 255 --required true --array false
+appwrite databases createStringAttribute --databaseId intrada_db --collectionId goals --key description --size 1000 --required false --array false
+appwrite databases createEnumAttribute --databaseId intrada_db --collectionId goals --key status --elements 'NotStarted,InProgress,Completed' --required true --array false
+appwrite databases createDatetimeAttribute --databaseId intrada_db --collectionId goals --key startDate --required false --array false
+appwrite databases createDatetimeAttribute --databaseId intrada_db --collectionId goals --key targetDate --required false --array false
+appwrite databases createStringAttribute --databaseId intrada_db --collectionId goals --key studyIds --size 36 --required false --array true
+appwrite databases createIntegerAttribute --databaseId intrada_db --collectionId goals --key tempoTarget --required false --array false --min 1 --max 300
+appwrite databases createIndex --databaseId intrada_db --collectionId goals --key status_index --type key --attributes 'status'
+appwrite databases createIndex --databaseId intrada_db --collectionId goals --key target_date_index --type key --attributes 'targetDate'
+appwrite databases createIndex --databaseId intrada_db --collectionId goals --key name_fulltext --type fulltext --attributes 'name'
+appwrite databases createCollection --databaseId intrada_db --collectionId studies --name "studies" --permissions '[{"role":"any","permission":"read"},{"role":"users","permission":"create"},{"role":"users","permission":"update"},{"role":"users","permission":"delete"}]'
+appwrite databases createStringAttribute --databaseId intrada_db --collectionId studies --key name --size 255 --required true --array false
+appwrite databases createStringAttribute --databaseId intrada_db --collectionId studies --key description --size 1000 --required false --array false
+appwrite databases createIndex --databaseId intrada_db --collectionId studies --key name_fulltext --type fulltext --attributes 'name'
+appwrite databases createCollection --databaseId intrada_db --collectionId sessions --name "sessions" --permissions '[{"role":"any","permission":"read"},{"role":"users","permission":"create"},{"role":"users","permission":"update"},{"role":"users","permission":"delete"}]'
+appwrite databases createStringAttribute --databaseId intrada_db --collectionId sessions --key goalIds --size 36 --required true --array true
+appwrite databases createStringAttribute --databaseId intrada_db --collectionId sessions --key intention --size 500 --required true --array false
+appwrite databases createStringAttribute --databaseId intrada_db --collectionId sessions --key notes --size 2000 --required false --array false
+appwrite databases createEnumAttribute --databaseId intrada_db --collectionId sessions --key state --elements 'NotStarted,Started,Ended' --required true --array false
+appwrite databases createDatetimeAttribute --databaseId intrada_db --collectionId sessions --key startTime --required false --array false
+appwrite databases createDatetimeAttribute --databaseId intrada_db --collectionId sessions --key endTime --required false --array false
+appwrite databases createIndex --databaseId intrada_db --collectionId sessions --key state_index --type key --attributes 'state'
+appwrite databases createIndex --databaseId intrada_db --collectionId sessions --key start_time_index --type key --attributes 'startTime'
+appwrite databases createIndex --databaseId intrada_db --collectionId sessions --key goal_ids_index --type key --attributes 'goalIds'
+appwrite databases createCollection --databaseId intrada_db --collectionId study_sessions --name "study_sessions" --permissions '[{"role":"any","permission":"read"},{"role":"users","permission":"create"},{"role":"users","permission":"update"},{"role":"users","permission":"delete"}]'
+appwrite databases createStringAttribute --databaseId intrada_db --collectionId study_sessions --key studyId --size 36 --required true --array false
+appwrite databases createStringAttribute --databaseId intrada_db --collectionId study_sessions --key sessionId --size 36 --required true --array false
+appwrite databases createIntegerAttribute --databaseId intrada_db --collectionId study_sessions --key score --required false --array false --min 0 --max 10
+appwrite databases createIndex --databaseId intrada_db --collectionId study_sessions --key study_id_index --type key --attributes 'studyId'
+appwrite databases createIndex --databaseId intrada_db --collectionId study_sessions --key session_id_index --type key --attributes 'sessionId'
+appwrite databases createIndex --databaseId intrada_db --collectionId study_sessions --key study_session_composite --type key --attributes 'studyId,sessionId'
+
+echo "Schema deployment completed successfully!"
