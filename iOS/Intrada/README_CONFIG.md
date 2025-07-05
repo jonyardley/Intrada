@@ -15,7 +15,6 @@ This app uses a configuration file to manage sensitive information like API keys
    - `AppwriteEndpoint`: Your Appwrite endpoint URL
    - `AppwriteProjectId`: Your Appwrite project ID
    - `AppwriteDatabaseId`: Your Appwrite database ID
-   - `AppwriteCollectionId`: Your Appwrite collection ID
    - `AppwriteApiKey`: Your Appwrite API key
 
 ## Security Notes

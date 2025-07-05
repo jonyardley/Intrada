@@ -97,6 +97,30 @@ deploy_schema() {
     cd ..
 }
 
+# Function to deploy platforms
+deploy_platforms() {
+    echo -e "${YELLOW}📱 Deploying platform configuration...${NC}"
+    
+    # Try the simple approach first
+    if ./scripts/setup-platforms-simple.sh; then
+        echo -e "${GREEN}✅ Platform deployment completed via simple method${NC}"
+        return 0
+    fi
+    
+    echo -e "${YELLOW}⚠️  Simple method failed, trying CLI approach...${NC}"
+    
+    # Fallback to CLI tool
+    cd infrastructure
+    cargo build --bin appwrite_cli --features cli >/dev/null 2>&1
+    
+    ../target/debug/appwrite_cli deploy-platforms \
+        --database-id "$APPWRITE_DATABASE_ID" \
+        --database-name "$APPWRITE_DATABASE_NAME" \
+        --environment dev
+    
+    cd ..
+}
+
 # Function to create environment file
 create_env_file() {
     local api_key=$1
@@ -235,7 +259,10 @@ appwrite databases create \
 echo -e "${YELLOW}📋 Step 6: Deploying schema...${NC}"
 deploy_schema
 
-echo -e "${YELLOW}📋 Step 7: Verifying setup...${NC}"
+echo -e "${YELLOW}📋 Step 7: Deploying platforms...${NC}"
+deploy_platforms
+
+echo -e "${YELLOW}📋 Step 8: Verifying setup...${NC}"
 if verify_setup; then
     echo -e "${GREEN}🎉 Setup completed successfully!${NC}"
 else

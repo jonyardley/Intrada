@@ -24,14 +24,19 @@ class AppwriteService {
     // MARK: - Configuration Properties
     
     private var databaseId: String { config.appwriteDatabaseId }
-    private var collectionId: String { config.appwriteCollectionId }
+    
+    // Collection IDs - these match the database schema
+    private var goalsCollectionId: String { "goals" }
+    private var studiesCollectionId: String { "studies" }
+    private var sessionsCollectionId: String { "sessions" }
+    private var studySessionsCollectionId: String { "study_sessions" }
     
     // MARK: - Goals Operations
     
     func fetchGoals() async throws -> [PracticeGoal] {
         let documents = try await databases.listDocuments(
             databaseId: databaseId,
-            collectionId: collectionId
+            collectionId: goalsCollectionId
         )
         
         return documents.documents.compactMap { document in
@@ -44,7 +49,7 @@ class AppwriteService {
         
         let document = try await databases.createDocument(
             databaseId: databaseId,
-            collectionId: collectionId,
+            collectionId: goalsCollectionId,
             documentId: goal.id,
             data: data
         )
@@ -57,7 +62,7 @@ class AppwriteService {
         
         let document = try await databases.updateDocument(
             databaseId: databaseId,
-            collectionId: collectionId,
+            collectionId: goalsCollectionId,
             documentId: goal.id,
             data: data
         )
@@ -68,7 +73,7 @@ class AppwriteService {
     func deleteGoal(_ goalId: String) async throws {
         _ = try await databases.deleteDocument(
             databaseId: databaseId,
-            collectionId: collectionId,
+            collectionId: goalsCollectionId,
             documentId: goalId
         )
     }

@@ -8,7 +8,7 @@ packages:
     url: https://github.com/appwrite/sdk-for-apple
     from: 4.0.0
 options:
-  bundleIdPrefix: com.jonyardley.intrada
+  bundleIdPrefix: com.jonyardley
 targets:
   Intrada:
     type: application

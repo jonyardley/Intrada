@@ -8,8 +8,6 @@
 	<string>your-project-id-here</string>
 	<key>AppwriteDatabaseId</key>
 	<string>your-database-id-here</string>
-	<key>AppwriteCollectionId</key>
-	<string>your-collection-id-here</string>
 	<key>AppwriteApiKey</key>
 	<string>your-api-key-here</string>
 </dict>

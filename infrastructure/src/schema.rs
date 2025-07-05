@@ -12,6 +12,29 @@ pub struct DatabaseSchema {
     pub collections: Vec<CollectionSchema>,
 }
 
+/// Platform configuration for Appwrite project
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PlatformSchema {
+    pub platforms: Vec<Platform>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Platform {
+    pub platform_type: PlatformType,
+    pub name: String,
+    pub key: Option<String>, // Bundle ID for iOS/Android, hostname for Web
+    pub store_id: Option<String>, // App Store ID for iOS
+    pub hostname: Option<String>, // For web platforms
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum PlatformType {
+    iOS,
+    Android,
+    Web,
+    Flutter,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CollectionSchema {
     pub collection_id: String,
@@ -181,15 +204,15 @@ impl SchemaDefinition for PracticeGoal {
                 permission: "read".to_string(),
             },
             Permission {
-                role: "users".to_string(),
+                role: "any".to_string(),
                 permission: "create".to_string(),
             },
             Permission {
-                role: "users".to_string(),
+                role: "any".to_string(),
                 permission: "update".to_string(),
             },
             Permission {
-                role: "users".to_string(),
+                role: "any".to_string(),
                 permission: "delete".to_string(),
             },
         ]
@@ -239,15 +262,15 @@ impl SchemaDefinition for Study {
                 permission: "read".to_string(),
             },
             Permission {
-                role: "users".to_string(),
+                role: "any".to_string(),
                 permission: "create".to_string(),
             },
             Permission {
-                role: "users".to_string(),
+                role: "any".to_string(),
                 permission: "update".to_string(),
             },
             Permission {
-                role: "users".to_string(),
+                role: "any".to_string(),
                 permission: "delete".to_string(),
             },
         ]
@@ -343,15 +366,15 @@ impl SchemaDefinition for PracticeSession {
                 permission: "read".to_string(),
             },
             Permission {
-                role: "users".to_string(),
+                role: "any".to_string(),
                 permission: "create".to_string(),
             },
             Permission {
-                role: "users".to_string(),
+                role: "any".to_string(),
                 permission: "update".to_string(),
             },
             Permission {
-                role: "users".to_string(),
+                role: "any".to_string(),
                 permission: "delete".to_string(),
             },
         ]
@@ -423,15 +446,15 @@ impl SchemaDefinition for StudySession {
                 permission: "read".to_string(),
             },
             Permission {
-                role: "users".to_string(),
+                role: "any".to_string(),
                 permission: "create".to_string(),
             },
             Permission {
-                role: "users".to_string(),
+                role: "any".to_string(),
                 permission: "update".to_string(),
             },
             Permission {
-                role: "users".to_string(),
+                role: "any".to_string(),
                 permission: "delete".to_string(),
             },
         ]
@@ -465,6 +488,76 @@ impl SchemaBuilder {
         }
     }
 
+    pub fn build_platform_schema(&self) -> PlatformSchema {
+        PlatformSchema {
+            platforms: vec![
+                Platform {
+                    platform_type: PlatformType::iOS,
+                    name: "iOS App".to_string(),
+                    key: Some("com.jonyardley.Intrada".to_string()),
+                    store_id: None,
+                    hostname: None,
+                },
+                Platform {
+                    platform_type: PlatformType::Web,
+                    name: "Web App".to_string(),
+                    key: None,
+                    store_id: None,
+                    hostname: Some("localhost".to_string()),
+                },
+            ],
+        }
+    }
+
+    pub fn build_platform_commands(&self) -> Vec<String> {
+        let platform_schema = self.build_platform_schema();
+        let mut commands = Vec::new();
+
+        for platform in &platform_schema.platforms {
+            match platform.platform_type {
+                PlatformType::iOS => {
+                    if let Some(bundle_id) = &platform.key {
+                        commands.push(format!(
+                            "appwrite projects createPlatform --projectId intrada-dev --type apple-ios --name \"{}\" --key {}",
+                            platform.name, bundle_id
+                        ));
+                    }
+                }
+                PlatformType::Android => {
+                    if let Some(bundle_id) = &platform.key {
+                        commands.push(format!(
+                            "appwrite projects createPlatform --projectId intrada-dev --type android --name \"{}\" --key {}",
+                            platform.name, bundle_id
+                        ));
+                    }
+                }
+                PlatformType::Web => {
+                    if let Some(hostname) = &platform.hostname {
+                        commands.push(format!(
+                            "appwrite projects createPlatform --projectId intrada-dev --type web --name \"{}\" --hostname {}",
+                            platform.name, hostname
+                        ));
+                    }
+                }
+                PlatformType::Flutter => {
+                    // Flutter platforms require both iOS and Android bundles
+                    if let Some(bundle_id) = &platform.key {
+                        commands.push(format!(
+                            "appwrite projects createPlatform --projectId intrada-dev --type apple-ios --name \"Flutter iOS\" --key {}",
+                            bundle_id
+                        ));
+                        commands.push(format!(
+                            "appwrite projects createPlatform --projectId intrada-dev --type android --name \"Flutter Android\" --key {}",
+                            bundle_id
+                        ));
+                    }
+                }
+            }
+        }
+
+        commands
+    }
+
     pub fn build_appwrite_functions(&self) -> Vec<String> {
         // Generate Appwrite CLI commands for collection creation
         let schema = self.build_schema();
@@ -479,11 +572,10 @@ impl SchemaBuilder {
         // Create collections
         for collection in &schema.collections {
             commands.push(format!(
-                "appwrite databases createCollection --databaseId {} --collectionId {} --name \"{}\" --permissions '{}'",
+                "appwrite databases createCollection --databaseId {} --collectionId {} --name \"{}\"",
                 schema.database_id,
                 collection.collection_id,
-                collection.name,
-                serde_json::to_string(&collection.permissions).unwrap_or_default()
+                collection.name
             ));
 
             // Create attributes
@@ -533,12 +625,17 @@ impl SchemaBuilder {
                         )
                     }
                     AttributeType::Enum { elements } => {
+                        let elements_args = elements
+                            .iter()
+                            .map(|e| format!("--elements {}", e))
+                            .collect::<Vec<_>>()
+                            .join(" ");
                         format!(
-                            "appwrite databases createEnumAttribute --databaseId {} --collectionId {} --key {} --elements '{}' --required {} --array {}",
+                            "appwrite databases createEnumAttribute --databaseId {} --collectionId {} --key {} {} --required {} --array {}",
                             schema.database_id,
                             collection.collection_id,
                             attr.key,
-                            elements.join(","),
+                            elements_args,
                             attr.required,
                             attr.array
                         )
@@ -572,7 +669,28 @@ impl SchemaBuilder {
                     attributes_args
                 ));
             }
+
+            // Update collection permissions
+            if !collection.permissions.is_empty() {
+                let permission_args = collection
+                    .permissions
+                    .iter()
+                    .map(|p| format!("--permissions '{}(\"{}\")'", p.permission, p.role))
+                    .collect::<Vec<_>>()
+                    .join(" ");
+
+                commands.push(format!(
+                    "appwrite databases updateCollection --databaseId {} --collectionId {} --name \"{}\" {}",
+                    schema.database_id,
+                    collection.collection_id,
+                    collection.name,
+                    permission_args
+                ));
+            }
         }
+
+        // Add platforms
+        commands.extend(self.build_platform_commands());
 
         commands
     }

@@ -83,6 +83,25 @@ enum Commands {
         #[arg(long)]
         current_schema: Option<PathBuf>,
     },
+
+    /// Deploy platform configuration
+    DeployPlatforms {
+        /// Database ID
+        #[arg(long, default_value = "intrada_db")]
+        database_id: String,
+
+        /// Database name
+        #[arg(long, default_value = "Intrada Database")]
+        database_name: String,
+
+        /// Environment (dev, staging, prod)
+        #[arg(long, default_value = "dev")]
+        environment: String,
+
+        /// Dry run - show what would be executed
+        #[arg(long)]
+        dry_run: bool,
+    },
 }
 
 #[derive(clap::ValueEnum, Clone)]
@@ -132,6 +151,14 @@ fn main() {
             current_schema,
         } => {
             show_diff(database_id, database_name, current_schema);
+        }
+        Commands::DeployPlatforms {
+            database_id,
+            database_name,
+            environment,
+            dry_run,
+        } => {
+            deploy_platforms(database_id, database_name, environment, dry_run);
         }
     }
 }
@@ -578,4 +605,115 @@ fn generate_terraform_config(schema: &infrastructure::schema::DatabaseSchema) ->
     }
 
     config
+}
+
+fn deploy_platforms(
+    database_id: String,
+    database_name: String,
+    environment: String,
+    dry_run: bool,
+) {
+    println!("🚀 Deploying platforms to Appwrite");
+    println!("📊 Database ID: {}", database_id);
+    println!("🌍 Environment: {}", environment);
+    println!("🔄 Dry run: {}", dry_run);
+    println!();
+
+    let builder = SchemaBuilder::new(database_id, database_name);
+    let platform_commands = builder.build_platform_commands();
+
+    if platform_commands.is_empty() {
+        println!("✅ No platform commands to execute");
+        return;
+    }
+
+    println!("📋 Platform commands to execute:");
+    for (i, cmd) in platform_commands.iter().enumerate() {
+        println!("  {}. {}", i + 1, cmd);
+    }
+    println!();
+
+    if dry_run {
+        println!("🔍 Dry run mode - no actual changes will be made");
+        return;
+    }
+
+    println!("🔧 Executing platform commands...");
+    let mut success_count = 0;
+    let mut error_count = 0;
+
+    for (i, cmd) in platform_commands.iter().enumerate() {
+        print!("  {}/{}: ", i + 1, platform_commands.len());
+        print!("Executing platform command... ");
+
+        let result = std::process::Command::new("sh").arg("-c").arg(cmd).output();
+
+        match result {
+            Ok(output) => {
+                if output.status.success() {
+                    println!("✅ SUCCESS");
+                    success_count += 1;
+                } else {
+                    println!("❌ FAILED");
+                    let stderr = String::from_utf8_lossy(&output.stderr);
+                    if !stderr.trim().is_empty() {
+                        println!("     Error: {}", stderr.trim());
+                    }
+                    error_count += 1;
+                }
+            }
+            Err(e) => {
+                println!("❌ ERROR");
+                println!("     Failed to execute command: {}", e);
+                error_count += 1;
+            }
+        }
+    }
+
+    // If CLI commands failed, try the Docker fallback approach
+    if error_count > 0 {
+        println!();
+        println!("⚠️  CLI commands failed. Trying Docker fallback approach...");
+
+        let docker_result = std::process::Command::new("sh")
+            .arg("-c")
+            .arg("./scripts/setup-platforms-docker.sh")
+            .output();
+
+        match docker_result {
+            Ok(docker_output) => {
+                if docker_output.status.success() {
+                    println!("✅ Docker fallback succeeded!");
+                    success_count = platform_commands.len();
+                    error_count = 0;
+                } else {
+                    println!("❌ Docker fallback also failed");
+                    let stderr = String::from_utf8_lossy(&docker_output.stderr);
+                    if !stderr.trim().is_empty() {
+                        println!("     Docker Error: {}", stderr.trim());
+                    }
+                }
+            }
+            Err(e) => {
+                println!("❌ Failed to execute Docker fallback: {}", e);
+            }
+        }
+    }
+
+    println!();
+    println!("📈 Platform deployment summary:");
+    println!("  ✅ Successful: {}", success_count);
+    println!("  ❌ Failed: {}", error_count);
+    println!("  📊 Total: {}", platform_commands.len());
+
+    if error_count > 0 {
+        println!();
+        println!("⚠️  Some platform commands failed.");
+        println!("💡 You can try running: ./scripts/setup-platforms-docker.sh");
+        println!("💡 Or manually add platforms in the Appwrite console UI");
+        std::process::exit(1);
+    } else {
+        println!();
+        println!("🎉 Platform deployment completed successfully!");
+    }
 }

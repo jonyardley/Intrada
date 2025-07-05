@@ -567,9 +567,14 @@ impl MigrationExecutor {
                 )]
             }
             crate::schema::AttributeType::Enum { elements } => {
+                let elements_args = elements
+                    .iter()
+                    .map(|e| format!("--elements {}", e))
+                    .collect::<Vec<_>>()
+                    .join(" ");
                 vec![format!(
-                    "appwrite databases createEnumAttribute --databaseId {} --collectionId {} --key {} --elements '{}' --required {} --array {}",
-                    database_id, collection_id, attr.key, elements.join(","), attr.required, attr.array
+                    "appwrite databases createEnumAttribute --databaseId {} --collectionId {} --key {} {} --required {} --array {}",
+                    database_id, collection_id, attr.key, elements_args, attr.required, attr.array
                 )]
             }
             _ => vec![], // Other types not implemented

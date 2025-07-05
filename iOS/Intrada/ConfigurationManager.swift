@@ -40,10 +40,6 @@ class ConfigurationManager {
         return getString(for: "AppwriteDatabaseId", defaultValue: "")
     }
     
-    var appwriteCollectionId: String {
-        return getString(for: "AppwriteCollectionId", defaultValue: "")
-    }
-    
     var appwriteApiKey: String {
         return getString(for: "AppwriteApiKey", defaultValue: "")
     }
