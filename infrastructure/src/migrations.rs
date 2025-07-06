@@ -412,8 +412,7 @@ impl MigrationExecutor {
             match operation {
                 MigrationOperation::CreateDatabase { database_id, name } => {
                     commands.push(format!(
-                        "appwrite databases create --databaseId {} --name \"{}\"",
-                        database_id, name
+                        "appwrite databases create --databaseId {database_id} --name \"{name}\""
                     ));
                 }
                 MigrationOperation::CreateCollection {
@@ -451,8 +450,7 @@ impl MigrationExecutor {
                 } => {
                     if let Some(new_name) = name {
                         commands.push(format!(
-                            "appwrite databases updateCollection --databaseId {} --collectionId {} --name \"{}\"",
-                            database_id, collection_id, new_name
+                            "appwrite databases updateCollection --databaseId {database_id} --collectionId {collection_id} --name \"{new_name}\""
                         ));
                     }
                     // Note: Permissions would require separate API calls
@@ -462,8 +460,7 @@ impl MigrationExecutor {
                     collection_id,
                 } => {
                     commands.push(format!(
-                        "appwrite databases deleteCollection --databaseId {} --collectionId {}",
-                        database_id, collection_id
+                        "appwrite databases deleteCollection --databaseId {database_id} --collectionId {collection_id}"
                     ));
                 }
                 MigrationOperation::CreateAttribute {
@@ -486,8 +483,7 @@ impl MigrationExecutor {
                 } => {
                     if let Some(req) = required {
                         commands.push(format!(
-                            "appwrite databases updateStringAttribute --databaseId {} --collectionId {} --key {} --required {}",
-                            database_id, collection_id, key, req
+                            "appwrite databases updateStringAttribute --databaseId {database_id} --collectionId {collection_id} --key {key} --required {req}"
                         ));
                     }
                     // Note: Default values would require different API calls
@@ -498,8 +494,7 @@ impl MigrationExecutor {
                     key,
                 } => {
                     commands.push(format!(
-                        "appwrite databases deleteAttribute --databaseId {} --collectionId {} --key {}",
-                        database_id, collection_id, key
+                        "appwrite databases deleteAttribute --databaseId {database_id} --collectionId {collection_id} --key {key}"
                     ));
                 }
                 MigrationOperation::CreateIndex {
@@ -519,8 +514,7 @@ impl MigrationExecutor {
                     key,
                 } => {
                     commands.push(format!(
-                        "appwrite databases deleteIndex --databaseId {} --collectionId {} --key {}",
-                        database_id, collection_id, key
+                        "appwrite databases deleteIndex --databaseId {database_id} --collectionId {collection_id} --key {key}"
                     ));
                 }
                 MigrationOperation::Custom {
@@ -569,7 +563,7 @@ impl MigrationExecutor {
             crate::schema::AttributeType::Enum { elements } => {
                 let elements_args = elements
                     .iter()
-                    .map(|e| format!("--elements {}", e))
+                    .map(|e| format!("--elements {e}"))
                     .collect::<Vec<_>>()
                     .join(" ");
                 vec![format!(
@@ -595,7 +589,7 @@ impl MigrationExecutor {
         let attributes_args = index
             .attributes
             .iter()
-            .map(|attr| format!("--attributes {}", attr))
+            .map(|attr| format!("--attributes {attr}"))
             .collect::<Vec<_>>()
             .join(" ");
 
@@ -614,8 +608,7 @@ impl MigrationExecutor {
             match operation {
                 MigrationOperation::CreateDatabase { database_id, name } => {
                     commands.push(format!(
-                        "appwrite databases create --databaseId {} --name \"{}\"",
-                        database_id, name
+                        "appwrite databases create --databaseId {database_id} --name \"{name}\""
                     ));
                 }
                 MigrationOperation::DeleteCollection {
@@ -623,8 +616,7 @@ impl MigrationExecutor {
                     collection_id,
                 } => {
                     commands.push(format!(
-                        "appwrite databases deleteCollection --databaseId {} --collectionId {}",
-                        database_id, collection_id
+                        "appwrite databases deleteCollection --databaseId {database_id} --collectionId {collection_id}"
                     ));
                 }
                 MigrationOperation::Custom {

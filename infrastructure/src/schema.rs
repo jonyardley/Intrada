@@ -648,12 +648,10 @@ impl SchemaBuilder {
                     // Flutter platforms require both iOS and Android bundles
                     if let Some(bundle_id) = &platform.key {
                         commands.push(format!(
-                            "appwrite projects createPlatform --projectId intrada-dev --type apple-ios --name \"Flutter iOS\" --key {}",
-                            bundle_id
+                            "appwrite projects createPlatform --projectId intrada-dev --type apple-ios --name \"Flutter iOS\" --key {bundle_id}"
                         ));
                         commands.push(format!(
-                            "appwrite projects createPlatform --projectId intrada-dev --type android --name \"Flutter Android\" --key {}",
-                            bundle_id
+                            "appwrite projects createPlatform --projectId intrada-dev --type android --name \"Flutter Android\" --key {bundle_id}"
                         ));
                     }
                 }
@@ -750,7 +748,7 @@ impl SchemaBuilder {
                     AttributeType::Enum { elements } => {
                         let elements_args = elements
                             .iter()
-                            .map(|e| format!("--elements {}", e))
+                            .map(|e| format!("--elements {e}"))
                             .collect::<Vec<_>>()
                             .join(" ");
                         format!(
@@ -779,7 +777,7 @@ impl SchemaBuilder {
                 let attributes_args = index
                     .attributes
                     .iter()
-                    .map(|attr| format!("--attributes {}", attr))
+                    .map(|attr| format!("--attributes {attr}"))
                     .collect::<Vec<_>>()
                     .join(" ");
 
