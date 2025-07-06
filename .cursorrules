@@ -1,0 +1,169 @@
+# Cursor Rules for Intrada Project
+
+## 📋 Project Context
+**Always reference Claude.MD for full project context and guidelines.**
+
+Intrada is a musician practice app built with Rust-first architecture, type safety, and cross-platform compatibility using Crux.
+
+## 🏗️ Architecture Rules
+
+### Core Principles
+- **Rust-First**: All business logic lives in `shared/` using Rust + Crux
+- **Type Safety**: Leverage Rust's type system to prevent bugs at compile time
+- **Shared Core**: Single source of truth for business logic across iOS and web
+- **Infrastructure as Code**: Database schemas derived from Rust types, not vice versa
+
+### Technology Stack
+- **Core**: Rust + Crux (cross-platform business logic)
+- **iOS**: Swift + SwiftUI (native experience)
+- **Web**: Leptos (Rust-based reactive web framework)
+- **Backend**: Appwrite (BaaS with Docker for local development)
+- **Infrastructure**: Rust-based CLI tools for schema management
+
+## 🛠️ Development Workflow
+
+### Code Organization
+- `shared/`: Core business logic, models, and cross-platform code
+- `iOS/`: Native iOS application
+- `web-leptos/`: Web application
+- `infrastructure/`: Backend schema management and deployment tools
+- `docs/`: Comprehensive documentation
+
+### Change Process
+1. **Start with Rust types** in `shared/src/app/`
+2. **Update schema** in `infrastructure/src/schema.rs` if needed
+3. **Add tests** for new functionality
+4. **Update documentation** if APIs change
+5. **Deploy schema changes** via infrastructure tools
+6. **Update frontends** to use new functionality
+
+## 🚨 Critical Patterns
+
+### Type-State State Machines
+**This is essential for compile-time safety:**
+- Use type-state pattern for state machines to catch invalid transitions at compile time
+- Each state is a distinct type with state-specific methods and data
+- Pattern: State-specific structs + enum wrapper + consuming transition methods
+- Invalid transitions become compile-time errors, not runtime bugs
+
+Example structure:
+```rust
+// State-specific structs
+pub struct NotStartedSession { /* state-specific data */ }
+pub struct StartedSession { /* state-specific data */ }
+pub struct EndedSession { /* state-specific data */ }
+
+// Main enum
+pub enum SessionState {
+    NotStarted(NotStartedSession),
+    Started(StartedSession),
+    Ended(EndedSession),
+}
+
+// Consuming transition methods
+impl NotStartedSession {
+    pub fn start(self) -> Result<StartedSession, &'static str> { /* ... */ }
+}
+```
+
+### Type-Driven Development
+- Database schemas are generated from Rust types
+- Changes to data models happen in Rust first, then propagate to database
+- This ensures type safety and prevents schema drift
+
+## 📋 Coding Standards
+
+### Rust Code
+- **Edition**: 2021, minimum version 1.80
+- **Formatting**: Use `cargo fmt` (rustfmt)
+- **Linting**: Use `cargo clippy` for additional checks
+- **Testing**: Use `cargo nextest` for fast, parallel testing
+- **Documentation**: Document public APIs with `///` comments
+
+### Swift Code
+- Follow Swift naming conventions
+- Use SwiftUI for all UI components
+- Leverage Swift's type system for safety
+- Keep platform-specific code minimal
+
+### Web Code (Leptos)
+- Follow Leptos patterns and conventions
+- Use Tailwind for styling
+- Maintain responsive design principles
+- Keep components focused and composable
+
+## 🎯 AI Assistant Guidelines
+
+### When Making Code Changes
+1. **Understand Context**: Always review existing patterns before suggesting changes
+2. **Type Safety First**: Prefer solutions that leverage Rust's type system
+3. **Follow Architecture**: Respect the Crux architecture and shared core principle
+4. **Type-State Machines**: Maintain and extend type-state patterns for state management
+5. **Infrastructure Aware**: Remember that schema changes need infrastructure updates
+6. **Test Coverage**: Include tests for new functionality
+7. **Documentation**: Include or update documentation with code changes
+
+### Preferred Approaches
+- **Investigate First**: Look at existing code patterns and solutions
+- **Minimal Changes**: Prefer small, focused changes over large refactors
+- **Consider Impact**: Think about how changes affect all platforms (iOS, web)
+- **Performance Aware**: Consider the performance implications of changes
+- **Shared Core First**: Business logic changes start in `shared/`
+
+### Common Workflows to Follow
+
+#### Adding New Data Model
+1. Define Rust type in `shared/src/app/`
+2. Implement `SchemaDefinition` in `infrastructure/src/schema.rs`
+3. Add to `SchemaBuilder` in infrastructure
+4. Deploy schema changes
+5. Update frontend code to use new model
+
+#### Adding State Machines
+1. Define state variants as separate structs (e.g., `NotStartedSession`, `StartedSession`)
+2. Create main enum with variants wrapping the state structs
+3. Implement state-specific methods on each state struct
+4. Add transition methods that consume `self` and return next state
+5. Handle transitions in the main enum with `Result<(), &'static str>`
+6. Write tests covering all valid and invalid transitions
+
+#### Bug Fixes
+1. Write failing test that reproduces the bug
+2. Fix the bug in shared core
+3. Ensure test passes
+4. Update documentation if needed
+5. Deploy fix
+
+## 🚫 Avoid These Patterns
+- **Don't** define database schemas separately from Rust types
+- **Don't** create mutable state machines that allow invalid transitions
+- **Don't** put business logic in platform-specific code (iOS/web)
+- **Don't** hardcode values that should be configurable
+- **Don't** skip tests for new functionality
+- **Don't** forget to update documentation when changing APIs
+
+## 🔧 Infrastructure Considerations
+- Local development uses Docker-based Appwrite
+- Schema changes need deployment via `infrastructure/` CLI tools
+- Environment parity across local, staging, and production
+- All deployments are automated via CI/CD
+
+## 📚 Documentation Requirements
+- **Public APIs**: Always documented with examples
+- **Complex Logic**: Inline comments explaining "why" not "what"
+- **Architecture Decisions**: Captured in docs/ folder
+- **State Machines**: Document valid transitions and error cases
+
+## 🧪 Testing Requirements
+- **Unit Tests**: Core business logic in `shared/`
+- **Integration Tests**: Cross-platform functionality
+- **Schema Tests**: Database schema validation
+- **Edge Cases**: Test invalid inputs and error conditions
+- **State Machine Tests**: Test all valid and invalid transitions
+
+## 🎵 Project Vision
+Remember: Intrada empowers musicians to achieve mastery through structured, efficient, and deeply reflective practice. All code changes should serve this vision of transforming practice from routine into a deliberate pathway to virtuosity.
+
+---
+
+*Always reference Claude.MD for complete project context and detailed guidelines.* 
