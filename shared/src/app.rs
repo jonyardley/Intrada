@@ -193,7 +193,7 @@ impl Chopin {
     /// Helper function to handle session operation results
     fn handle_session_result(result: Result<(), &'static str>, operation: &str) {
         if let Err(e) = result {
-            println!("Failed to {} session: {}", operation, e);
+            println!("Failed to {operation} session: {e}");
         }
     }
 
@@ -217,7 +217,7 @@ impl Chopin {
             }
             AppwriteResult::Error(error_message) => {
                 // Handle error case
-                println!("Appwrite error: {}", error_message);
+                println!("Appwrite error: {error_message}");
                 // You might want to set an error state in the model
             }
         }

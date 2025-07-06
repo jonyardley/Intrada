@@ -305,7 +305,7 @@ pub fn calculate_duration(start_time: &str, end_time: &str) -> Option<String> {
     let end = DateTime::parse_from_rfc3339(end_time).ok()?;
     let duration = end - start;
     let minutes = (duration.num_seconds() as f64 / 60.0).round() as i64;
-    Some(format!("{}m", minutes))
+    Some(format!("{minutes}m"))
 }
 
 fn get_session_by_id<'a>(
