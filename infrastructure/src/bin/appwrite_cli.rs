@@ -2,47 +2,45 @@ use clap::{Parser, Subcommand};
 use infrastructure::{MigrationPlanner, SchemaBuilder};
 use std::path::PathBuf;
 
-/// Custom error type for CLI operations
 #[derive(Debug)]
+#[allow(dead_code)]
 enum CliError {
-    IoError(std::io::Error),
-    SerializationError(serde_json::Error),
-    ValidationError(Vec<String>),
-    ExecutionError(String),
-    ConfigurationError(String),
+    Io(std::io::Error),
+    Serialization(serde_json::Error),
+    Validation(Vec<String>),
+    Execution(String),
+    Configuration(String),
 }
 
 impl std::fmt::Display for CliError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            CliError::IoError(e) => write!(f, "File I/O error: {}", e),
-            CliError::SerializationError(e) => write!(f, "Serialization error: {}", e),
-            CliError::ValidationError(errors) => {
-                write!(f, "Validation errors:\n")?;
+            CliError::Io(e) => write!(f, "File I/O error: {}", e),
+            CliError::Serialization(e) => write!(f, "Serialization error: {}", e),
+            CliError::Validation(errors) => {
+                writeln!(f, "Validation errors:")?;
                 for error in errors {
-                    write!(f, "  - {}\n", error)?;
+                    writeln!(f, "  - {}", error)?;
                 }
                 Ok(())
             }
-            CliError::ExecutionError(msg) => write!(f, "Execution error: {}", msg),
-            CliError::ConfigurationError(msg) => write!(f, "Configuration error: {}", msg),
+            CliError::Execution(msg) => write!(f, "Execution error: {}", msg),
+            CliError::Configuration(msg) => write!(f, "Configuration error: {}", msg),
         }
     }
 }
 
 impl From<std::io::Error> for CliError {
     fn from(error: std::io::Error) -> Self {
-        CliError::IoError(error)
+        CliError::Io(error)
     }
 }
 
 impl From<serde_json::Error> for CliError {
     fn from(error: serde_json::Error) -> Self {
-        CliError::SerializationError(error)
+        CliError::Serialization(error)
     }
 }
-
-type CliResult<T> = Result<T, CliError>;
 
 #[derive(Parser)]
 #[command(name = "appwrite-cli")]
@@ -143,18 +141,6 @@ enum Commands {
         /// Dry run - show what would be executed
         #[arg(long)]
         dry_run: bool,
-
-        /// iOS bundle ID
-        #[arg(long)]
-        ios_bundle_id: Option<String>,
-
-        /// Android bundle ID
-        #[arg(long)]
-        android_bundle_id: Option<String>,
-
-        /// Web hostname
-        #[arg(long)]
-        web_hostname: Option<String>,
     },
 }
 
@@ -168,58 +154,52 @@ enum OutputFormat {
 fn main() {
     let cli = Cli::parse();
 
-    let result = match cli.command {
+    match cli.command {
         Commands::Generate {
             database_id,
             database_name,
             format,
             output,
             env_prefix,
-        } => generate_schema(database_id, database_name, format, output, env_prefix),
+        } => {
+            generate_schema(database_id, database_name, format, output, env_prefix);
+        }
         Commands::Validate {
             database_id,
             database_name,
-        } => validate_schema(database_id, database_name),
+        } => {
+            validate_schema(database_id, database_name);
+        }
         Commands::Deploy {
             database_id,
             database_name,
             environment,
             dry_run,
             current_schema,
-        } => deploy_schema(
-            database_id,
-            database_name,
-            environment,
-            dry_run,
-            current_schema,
-        ),
+        } => {
+            deploy_schema(
+                database_id,
+                database_name,
+                environment,
+                dry_run,
+                current_schema,
+            );
+        }
         Commands::Diff {
             database_id,
             database_name,
             current_schema,
-        } => show_diff(database_id, database_name, current_schema),
+        } => {
+            show_diff(database_id, database_name, current_schema);
+        }
         Commands::DeployPlatforms {
             database_id,
             database_name,
             environment,
             dry_run,
-            ios_bundle_id,
-            android_bundle_id,
-            web_hostname,
-        } => deploy_platforms(
-            database_id,
-            database_name,
-            environment,
-            dry_run,
-            ios_bundle_id,
-            android_bundle_id,
-            web_hostname,
-        ),
-    };
-
-    if let Err(error) = result {
-        eprintln!("❌ Error: {}", error);
-        std::process::exit(1);
+        } => {
+            deploy_platforms(database_id, database_name, environment, dry_run);
+        }
     }
 }
 
@@ -229,7 +209,7 @@ fn generate_schema(
     format: OutputFormat,
     output: Option<PathBuf>,
     env_prefix: String,
-) -> CliResult<()> {
+) {
     let builder = SchemaBuilder::new(database_id, database_name);
 
     let content = match format {
@@ -249,7 +229,7 @@ fn generate_schema(
             ));
 
             output.push_str("set -e\n\n");
-            output.push_str(&format!("# Environment variables\n"));
+            output.push_str("# Environment variables\n");
             output.push_str(&format!(
                 "export {}_ENDPOINT=\"${{{}_ENDPOINT:-https://cloud.appwrite.io/v1}}\"\n",
                 env_prefix, env_prefix
@@ -295,7 +275,7 @@ fn generate_schema(
         }
         OutputFormat::Json => {
             let schema = builder.build_schema();
-            serde_json::to_string_pretty(&schema)?
+            serde_json::to_string_pretty(&schema).unwrap()
         }
         OutputFormat::Terraform => {
             let schema = builder.build_schema();
@@ -305,17 +285,15 @@ fn generate_schema(
 
     match output {
         Some(path) => {
-            std::fs::write(path, content)?;
+            std::fs::write(path, content).expect("Failed to write output file");
         }
         None => {
             print!("{}", content);
         }
     }
-
-    Ok(())
 }
 
-fn validate_schema(database_id: String, database_name: String) -> CliResult<()> {
+fn validate_schema(database_id: String, database_name: String) {
     let builder = SchemaBuilder::new(database_id, database_name);
     let schema = builder.build_schema();
 
@@ -332,9 +310,14 @@ fn validate_schema(database_id: String, database_name: String) -> CliResult<()> 
                     collection.indexes.len()
                 );
             }
-            Ok(())
         }
-        Err(errors) => Err(CliError::ValidationError(errors)),
+        Err(errors) => {
+            println!("❌ Schema validation failed:");
+            for error in errors {
+                println!("  - {}", error);
+            }
+            std::process::exit(1);
+        }
     }
 }
 
@@ -344,7 +327,7 @@ fn deploy_schema(
     environment: String,
     dry_run: bool,
     current_schema_path: Option<PathBuf>,
-) -> CliResult<()> {
+) {
     let builder = SchemaBuilder::new(database_id, database_name);
     let target_schema = builder.build_schema();
 
@@ -389,20 +372,12 @@ fn deploy_schema(
             println!("Executing: {}", command);
 
             // Execute the actual command from the project root
-            let output = match std::process::Command::new("sh")
+            let output = std::process::Command::new("sh")
                 .arg("-c")
                 .arg(&command)
                 .current_dir("..") // Run from project root where CLI is configured
                 .output()
-            {
-                Ok(output) => output,
-                Err(e) => {
-                    return Err(CliError::ExecutionError(format!(
-                        "Failed to execute command '{}': {}",
-                        command, e
-                    )));
-                }
-            };
+                .expect("Failed to execute command");
 
             if !output.status.success() {
                 let error_msg = String::from_utf8_lossy(&output.stderr);
@@ -419,25 +394,18 @@ fn deploy_schema(
                 {
                     println!("⚠️  Resource already exists or API quirk, continuing...");
                 } else {
-                    return Err(CliError::ExecutionError(format!(
-                        "Command failed: {}. Error: {}",
-                        command, error_msg
-                    )));
+                    eprintln!("❌ Command failed: {}", command);
+                    eprintln!("Error: {}", error_msg);
+                    std::process::exit(1);
                 }
             }
         }
 
         println!("✅ Deployment completed successfully!");
     }
-
-    Ok(())
 }
 
-fn show_diff(
-    database_id: String,
-    database_name: String,
-    current_schema_path: Option<PathBuf>,
-) -> CliResult<()> {
+fn show_diff(database_id: String, database_name: String, current_schema_path: Option<PathBuf>) {
     let builder = SchemaBuilder::new(database_id, database_name);
     let target_schema = builder.build_schema();
 
@@ -522,8 +490,6 @@ fn show_diff(
             }
         }
     }
-
-    Ok(())
 }
 
 fn generate_terraform_config(schema: &infrastructure::schema::DatabaseSchema) -> String {
@@ -686,43 +652,19 @@ fn deploy_platforms(
     database_name: String,
     environment: String,
     dry_run: bool,
-    ios_bundle_id: Option<String>,
-    android_bundle_id: Option<String>,
-    web_hostname: Option<String>,
-) -> CliResult<()> {
+) {
     println!("🚀 Deploying platforms to Appwrite");
     println!("📊 Database ID: {}", database_id);
     println!("🌍 Environment: {}", environment);
     println!("🔄 Dry run: {}", dry_run);
     println!();
 
-    // Create platform config from CLI args or environment variables
-    let platform_config = infrastructure::schema::PlatformConfig {
-        ios_bundle_id: ios_bundle_id.or_else(|| std::env::var("INTRADA_IOS_BUNDLE_ID").ok()),
-        android_bundle_id: android_bundle_id
-            .or_else(|| std::env::var("INTRADA_ANDROID_BUNDLE_ID").ok()),
-        web_hostname: web_hostname
-            .or_else(|| std::env::var("INTRADA_WEB_HOSTNAME").ok())
-            .or_else(|| Some("localhost".to_string())),
-    };
-
-    // Validate configuration
-    if platform_config.ios_bundle_id.is_none()
-        && platform_config.android_bundle_id.is_none()
-        && platform_config.web_hostname.is_none()
-    {
-        return Err(CliError::ConfigurationError(
-            "No platform configurations found. Set at least one of: --ios-bundle-id, --android-bundle-id, --web-hostname, or corresponding environment variables.".to_string()
-        ));
-    }
-
-    let builder =
-        SchemaBuilder::new(database_id, database_name).with_platform_config(platform_config);
+    let builder = SchemaBuilder::new(database_id, database_name);
     let platform_commands = builder.build_platform_commands();
 
     if platform_commands.is_empty() {
         println!("✅ No platform commands to execute");
-        return Ok(());
+        return;
     }
 
     println!("📋 Platform commands to execute:");
@@ -733,7 +675,7 @@ fn deploy_platforms(
 
     if dry_run {
         println!("🔍 Dry run mode - no actual changes will be made");
-        return Ok(());
+        return;
     }
 
     println!("🔧 Executing platform commands...");
@@ -768,36 +710,6 @@ fn deploy_platforms(
         }
     }
 
-    // If CLI commands failed, try the Docker fallback approach
-    if error_count > 0 {
-        println!();
-        println!("⚠️  CLI commands failed. Trying Docker fallback approach...");
-
-        let docker_result = std::process::Command::new("sh")
-            .arg("-c")
-            .arg("./scripts/setup-platforms-docker.sh")
-            .output();
-
-        match docker_result {
-            Ok(docker_output) => {
-                if docker_output.status.success() {
-                    println!("✅ Docker fallback succeeded!");
-                    success_count = platform_commands.len();
-                    error_count = 0;
-                } else {
-                    println!("❌ Docker fallback also failed");
-                    let stderr = String::from_utf8_lossy(&docker_output.stderr);
-                    if !stderr.trim().is_empty() {
-                        println!("     Docker Error: {}", stderr.trim());
-                    }
-                }
-            }
-            Err(e) => {
-                println!("❌ Failed to execute Docker fallback: {}", e);
-            }
-        }
-    }
-
     println!();
     println!("📈 Platform deployment summary:");
     println!("  ✅ Successful: {}", success_count);
@@ -806,17 +718,10 @@ fn deploy_platforms(
 
     if error_count > 0 {
         println!();
-        println!("⚠️  Some platform commands failed.");
-        println!("💡 You can try running: ./scripts/setup-platforms-docker.sh");
-        println!("💡 Or manually add platforms in the Appwrite console UI");
-        return Err(CliError::ExecutionError(format!(
-            "{} platform command(s) failed",
-            error_count
-        )));
+        println!("⚠️  Some platform commands failed. Please check the output above.");
+        std::process::exit(1);
     } else {
         println!();
         println!("🎉 Platform deployment completed successfully!");
     }
-
-    Ok(())
 }

@@ -1,4 +1,3 @@
-use console_log;
 use leptos::prelude::*;
 use leptos_meta::*;
 use leptos_router::{
