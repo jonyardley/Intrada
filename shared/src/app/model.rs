@@ -15,6 +15,7 @@ pub struct Model {
 impl Model {}
 
 #[derive(Serialize, Deserialize, Clone, Default)]
+#[allow(clippy::struct_excessive_bools)]
 pub struct ViewModel {
     pub goals: Vec<PracticeGoal>,
     pub studies: Vec<Study>,
@@ -69,7 +70,7 @@ impl ViewModel {
                     start_time,
                     end_time,
                 } => Some(calculate_elapsed_time_between(start_time, end_time)),
-                _ => None,
+                SessionState::NotStarted => None,
             }
         } else {
             None

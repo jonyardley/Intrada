@@ -121,7 +121,7 @@ impl App for Chopin {
             Event::AddStudy(study) => add_study(study, model),
             Event::EditStudy(study) => edit_study(study, model),
             Event::AddStudyToGoal { goal_id, study_id } => {
-                add_study_to_goal(goal_id, study_id, model)
+                add_study_to_goal(&goal_id, &study_id, model);
             }
 
             Event::AddSession(session) => add_session(session, model),
@@ -130,18 +130,18 @@ impl App for Chopin {
                 goal_ids,
                 intention,
                 notes,
-            } => edit_session_fields(session_id, goal_ids, intention, notes, model),
+            } => edit_session_fields(&session_id, goal_ids, intention, notes, model),
             Event::SetActiveSession(session_id) => set_active_session(session_id, model),
             Event::StartSession(session_id, timestamp) => {
-                Self::handle_session_result(start_session(session_id, timestamp, model), "start")
+                Self::handle_session_result(start_session(&session_id, timestamp, model), "start");
             }
 
             Event::EndSession(session_id, timestamp) => {
-                Self::handle_session_result(end_session(session_id, timestamp, model), "end")
+                Self::handle_session_result(end_session(&session_id, timestamp, model), "end");
             }
             Event::UnsetActiveSession() => remove_active_session(model),
             Event::EditSessionNotes(session_id, notes) => {
-                edit_session_notes(session_id, notes, model)
+                edit_session_notes(&session_id, notes, model);
             }
 
             Event::AddStudySession(session) => add_study_session(session, model),
@@ -166,7 +166,7 @@ impl App for Chopin {
             Event::GoalsLoaded(result) => {
                 Self::handle_goals_result(result, model);
             }
-        };
+        }
 
         render()
     }
@@ -233,8 +233,8 @@ impl Chopin {
             notes: session.notes().clone(),
             study_sessions: session.study_sessions().clone(),
             duration: session.duration(),
-            start_time: session.start_time().map(|t| t.to_string()),
-            end_time: session.end_time().map(|t| t.to_string()),
+            start_time: session.start_time().map(std::string::ToString::to_string),
+            end_time: session.end_time().map(std::string::ToString::to_string),
             is_ended: session.is_ended(),
         }
     }
