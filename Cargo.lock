@@ -2931,6 +2931,7 @@ dependencies = [
  "crux_core",
  "crux_http",
  "insta",
+ "js-sys",
  "lazy_static",
  "serde",
  "uniffi",

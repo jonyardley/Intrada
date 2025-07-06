@@ -92,12 +92,12 @@ pub mod wasm_ffi {
     use crux_core::middleware::{BincodeFfiFormat, Layer as _};
     use crux_core::{bridge::EffectId, Core};
 
-    use crate::App;
+    use crate::Chopin;
 
     /// The main interface used by the shell
     #[wasm_bindgen::prelude::wasm_bindgen]
     pub struct CoreFFI {
-        core: crux_core::middleware::Bridge<Core<App>, BincodeFfiFormat>,
+        core: crux_core::middleware::Bridge<Core<Chopin>, BincodeFfiFormat>,
     }
 
     struct JsCallback(js_sys::Function);
@@ -117,22 +117,21 @@ pub mod wasm_ffi {
     impl CoreFFI {
         #[wasm_bindgen::prelude::wasm_bindgen(constructor)]
         pub fn new(callback: js_sys::Function) -> Self {
-            use js_sys::wasm_bindgen::JsValue;
+            use wasm_bindgen::JsValue;
 
             let callback = JsCallback(callback);
-            let core =
-                Core::<App>::new().bridge::<BincodeFfiFormat>(
-                    move |effect_bytes| match effect_bytes {
-                        Ok(bytes) => {
-                            callback
-                                .call1(&JsValue::NULL, &JsValue::from(bytes))
-                                .expect("Could not call JS callback");
-                        }
-                        Err(e) => {
-                            panic!("{e}");
-                        }
-                    },
-                );
+            let core = Core::<Chopin>::new().bridge::<BincodeFfiFormat>(move |effect_bytes| {
+                match effect_bytes {
+                    Ok(bytes) => {
+                        callback
+                            .call1(&JsValue::NULL, &JsValue::from(bytes))
+                            .expect("Could not call JS callback");
+                    }
+                    Err(e) => {
+                        panic!("{e}");
+                    }
+                }
+            });
 
             Self { core }
         }
