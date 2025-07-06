@@ -15,8 +15,8 @@ enum CliError {
 impl std::fmt::Display for CliError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            CliError::Io(e) => write!(f, "File I/O error: {}", e),
-            CliError::Serialization(e) => write!(f, "Serialization error: {}", e),
+            CliError::Io(e) => write!(f, "File I/O error: {e}"),
+            CliError::Serialization(e) => write!(f, "Serialization error: {e}"),
             Self::Validation(errors) => {
                 writeln!(f, "Validation errors:")?;
                 for error in errors {
@@ -231,43 +231,34 @@ fn generate_schema(
             output.push_str("set -e\n\n");
             output.push_str("# Environment variables\n");
             output.push_str(&format!(
-                "export {}_ENDPOINT=\"${{{}_ENDPOINT:-https://cloud.appwrite.io/v1}}\"\n",
-                env_prefix, env_prefix
+                "export {env_prefix}_ENDPOINT=\"${{{env_prefix}_ENDPOINT:-https://cloud.appwrite.io/v1}}\"\n"
             ));
             output.push_str(&format!(
-                "export {}_PROJECT_ID=\"${{{}_PROJECT_ID}}\"\n",
-                env_prefix, env_prefix
+                "export {env_prefix}_PROJECT_ID=\"${{{env_prefix}_PROJECT_ID}}\"\n"
             ));
             output.push_str(&format!(
-                "export {}_API_KEY=\"${{{}_API_KEY}}\"\n\n",
-                env_prefix, env_prefix
+                "export {env_prefix}_API_KEY=\"${{{env_prefix}_API_KEY}}\"\n\n"
             ));
 
             output.push_str("# Check required environment variables\n");
             output.push_str(&format!(
-                "if [ -z \"${{{}_PROJECT_ID}}\" ]; then\n",
-                env_prefix
+                "if [ -z \"${{{env_prefix}_PROJECT_ID}}\" ]; then\n"
             ));
             output.push_str(&format!(
-                "  echo \"Error: {}_PROJECT_ID is required\"\n",
-                env_prefix
+                "  echo \"Error: {env_prefix}_PROJECT_ID is required\"\n"
             ));
             output.push_str("  exit 1\n");
             output.push_str("fi\n\n");
+            output.push_str(&format!("if [ -z \"${{{env_prefix}_API_KEY}}\" ]; then\n"));
             output.push_str(&format!(
-                "if [ -z \"${{{}_API_KEY}}\" ]; then\n",
-                env_prefix
-            ));
-            output.push_str(&format!(
-                "  echo \"Error: {}_API_KEY is required\"\n",
-                env_prefix
+                "  echo \"Error: {env_prefix}_API_KEY is required\"\n"
             ));
             output.push_str("  exit 1\n");
             output.push_str("fi\n\n");
 
             output.push_str("# Appwrite CLI commands\n");
             for command in commands {
-                output.push_str(&format!("{}\n", command));
+                output.push_str(&format!("{command}\n"));
             }
 
             output.push_str("\necho \"Schema deployment completed successfully!\"\n");
@@ -340,8 +331,8 @@ fn deploy_schema(
     let migration = MigrationPlanner::plan_migration(
         &current_schema,
         &target_schema,
-        format!("Deploy to {}", environment),
-        format!("Automated deployment to {} environment", environment),
+        format!("Deploy to {environment}"),
+        format!("Automated deployment to {environment} environment"),
     );
 
     if dry_run {
@@ -369,7 +360,7 @@ fn deploy_schema(
 
         let commands = infrastructure::migrations::MigrationExecutor::generate_commands(&migration);
         for command in commands {
-            println!("Executing: {}", command);
+            println!("Executing: {command}");
 
             // Execute the actual command from the project root
             let output = std::process::Command::new("sh")
@@ -394,8 +385,8 @@ fn deploy_schema(
                 {
                     println!("⚠️  Resource already exists or API quirk, continuing...");
                 } else {
-                    eprintln!("❌ Command failed: {}", command);
-                    eprintln!("Error: {}", error_msg);
+                    eprintln!("❌ Command failed: {command}");
+                    eprintln!("Error: {error_msg}");
                     std::process::exit(1);
                 }
             }
@@ -437,7 +428,7 @@ fn show_diff(database_id: String, database_name: String, current_schema_path: Op
                     database_id,
                     name,
                 } => {
-                    println!("  + Create database: {} ({})", name, database_id);
+                    println!("  + Create database: {name} ({database_id})");
                 }
                 infrastructure::migrations::MigrationOperation::CreateCollection {
                     database_id: _,
@@ -454,7 +445,7 @@ fn show_diff(database_id: String, database_name: String, current_schema_path: Op
                     database_id: _,
                     collection_id,
                 } => {
-                    println!("  - Delete collection: {}", collection_id);
+                    println!("  - Delete collection: {collection_id}");
                 }
                 infrastructure::migrations::MigrationOperation::CreateAttribute {
                     database_id: _,
@@ -468,7 +459,7 @@ fn show_diff(database_id: String, database_name: String, current_schema_path: Op
                     collection_id,
                     key,
                 } => {
-                    println!("  - Remove attribute: {}.{}", collection_id, key);
+                    println!("  - Remove attribute: {collection_id}.{key}");
                 }
                 infrastructure::migrations::MigrationOperation::CreateIndex {
                     database_id: _,
@@ -482,10 +473,10 @@ fn show_diff(database_id: String, database_name: String, current_schema_path: Op
                     collection_id,
                     key,
                 } => {
-                    println!("  - Remove index: {}.{}", collection_id, key);
+                    println!("  - Remove index: {collection_id}.{key}");
                 }
                 _ => {
-                    println!("  ~ Other change: {:?}", operation);
+                    println!("  ~ Other change: {operation:?}");
                 }
             }
         }
@@ -587,10 +578,10 @@ fn generate_terraform_config(schema: &infrastructure::schema::DatabaseSchema) ->
                 }
                 infrastructure::schema::AttributeType::Integer { min, max } => {
                     if let Some(min_val) = min {
-                        config.push_str(&format!("  min = {}\n", min_val));
+                        config.push_str(&format!("  min = {min_val}\n"));
                     }
                     if let Some(max_val) = max {
-                        config.push_str(&format!("  max = {}\n", max_val));
+                        config.push_str(&format!("  max = {max_val}\n"));
                     }
                 }
                 infrastructure::schema::AttributeType::Enum { elements } => {
@@ -598,7 +589,7 @@ fn generate_terraform_config(schema: &infrastructure::schema::DatabaseSchema) ->
                         "  elements = [{}]\n",
                         elements
                             .iter()
-                            .map(|e| format!("\"{}\"", e))
+                            .map(|e| format!("\"{e}\""))
                             .collect::<Vec<_>>()
                             .join(", ")
                     ));
@@ -630,13 +621,13 @@ fn generate_terraform_config(schema: &infrastructure::schema::DatabaseSchema) ->
                 collection.collection_id
             ));
             config.push_str(&format!("  key           = \"{}\"\n", index.key));
-            config.push_str(&format!("  type          = \"{}\"\n", index_type));
+            config.push_str(&format!("  type          = \"{index_type}\"\n"));
             config.push_str(&format!(
                 "  attributes    = [{}]\n",
                 index
                     .attributes
                     .iter()
-                    .map(|a| format!("\"{}\"", a))
+                    .map(|a| format!("\"{a}\""))
                     .collect::<Vec<_>>()
                     .join(", ")
             ));
@@ -699,7 +690,7 @@ fn deploy_platforms(database_id: String, database_name: String, environment: &st
             }
             Err(e) => {
                 println!("❌ ERROR");
-                println!("     Failed to execute command: {}", e);
+                println!("     Failed to execute command: {e}");
                 error_count += 1;
             }
         }
@@ -707,8 +698,8 @@ fn deploy_platforms(database_id: String, database_name: String, environment: &st
 
     println!();
     println!("📈 Platform deployment summary:");
-    println!("  ✅ Successful: {}", success_count);
-    println!("  ❌ Failed: {}", error_count);
+    println!("  ✅ Successful: {success_count}");
+    println!("  ❌ Failed: {error_count}");
     println!("  📊 Total: {}", platform_commands.len());
 
     if error_count > 0 {
