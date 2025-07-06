@@ -3,21 +3,21 @@ pub mod uniffi_ffi {
     use std::sync::Arc;
 
     use crux_core::{
-        Core,
         bridge::EffectId,
         macros::effect,
         middleware::{BincodeFfiFormat, Bridge, Layer as _},
         render::RenderOperation,
+        Core,
     };
     use crux_http::protocol::HttpRequest;
 
-    use crate::{Chopin, app::AppwriteOperation};
+    use crate::{app::AppwriteOperation, Chopin};
 
     #[effect]
     pub enum Effect {
         Render(RenderOperation),
         Http(HttpRequest),
-        Appwrite(AppwriteOperation)
+        Appwrite(AppwriteOperation),
     }
 
     impl From<crate::app::Effect> for Effect {
@@ -25,7 +25,7 @@ pub mod uniffi_ffi {
             match effect {
                 crate::Effect::Render(request) => Effect::Render(request),
                 crate::Effect::Http(request) => Effect::Http(request),
-                crate::Effect::Appwrite(operation) => Effect::Appwrite(operation)
+                crate::Effect::Appwrite(operation) => Effect::Appwrite(operation),
             }
         }
     }
@@ -51,11 +51,12 @@ pub mod uniffi_ffi {
     impl CoreFFI {
         #[uniffi::constructor]
         pub fn new(shell: Arc<dyn CruxShell>) -> Self {
-            let core = Core::<Chopin>::new()
-                .bridge::<BincodeFfiFormat>(move |effect_bytes| match effect_bytes {
+            let core = Core::<Chopin>::new().bridge::<BincodeFfiFormat>(move |effect_bytes| {
+                match effect_bytes {
                     Ok(effect) => shell.process_effects(effect),
                     Err(e) => panic!("{e}"),
-                });
+                }
+            });
 
             Self { core }
         }
@@ -89,7 +90,7 @@ pub mod uniffi_ffi {
 #[cfg(target_family = "wasm")]
 pub mod wasm_ffi {
     use crux_core::middleware::{BincodeFfiFormat, Layer as _};
-    use crux_core::{Core, bridge::EffectId};
+    use crux_core::{bridge::EffectId, Core};
 
     use crate::App;
 

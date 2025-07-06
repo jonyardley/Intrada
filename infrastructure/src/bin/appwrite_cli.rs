@@ -175,37 +175,29 @@ fn main() {
             format,
             output,
             env_prefix,
-        } => {
-            generate_schema(database_id, database_name, format, output, env_prefix)
-        }
+        } => generate_schema(database_id, database_name, format, output, env_prefix),
         Commands::Validate {
             database_id,
             database_name,
-        } => {
-            validate_schema(database_id, database_name)
-        }
+        } => validate_schema(database_id, database_name),
         Commands::Deploy {
             database_id,
             database_name,
             environment,
             dry_run,
             current_schema,
-        } => {
-            deploy_schema(
-                database_id,
-                database_name,
-                environment,
-                dry_run,
-                current_schema,
-            )
-        }
+        } => deploy_schema(
+            database_id,
+            database_name,
+            environment,
+            dry_run,
+            current_schema,
+        ),
         Commands::Diff {
             database_id,
             database_name,
             current_schema,
-        } => {
-            show_diff(database_id, database_name, current_schema)
-        }
+        } => show_diff(database_id, database_name, current_schema),
         Commands::DeployPlatforms {
             database_id,
             database_name,
@@ -214,9 +206,15 @@ fn main() {
             ios_bundle_id,
             android_bundle_id,
             web_hostname,
-        } => {
-            deploy_platforms(database_id, database_name, environment, dry_run, ios_bundle_id, android_bundle_id, web_hostname)
-        }
+        } => deploy_platforms(
+            database_id,
+            database_name,
+            environment,
+            dry_run,
+            ios_bundle_id,
+            android_bundle_id,
+            web_hostname,
+        ),
     };
 
     if let Err(error) = result {
@@ -336,9 +334,7 @@ fn validate_schema(database_id: String, database_name: String) -> CliResult<()> 
             }
             Ok(())
         }
-        Err(errors) => {
-            Err(CliError::ValidationError(errors))
-        }
+        Err(errors) => Err(CliError::ValidationError(errors)),
     }
 }
 
@@ -401,7 +397,10 @@ fn deploy_schema(
             {
                 Ok(output) => output,
                 Err(e) => {
-                    return Err(CliError::ExecutionError(format!("Failed to execute command '{}': {}", command, e)));
+                    return Err(CliError::ExecutionError(format!(
+                        "Failed to execute command '{}': {}",
+                        command, e
+                    )));
                 }
             };
 
@@ -420,7 +419,10 @@ fn deploy_schema(
                 {
                     println!("⚠️  Resource already exists or API quirk, continuing...");
                 } else {
-                    return Err(CliError::ExecutionError(format!("Command failed: {}. Error: {}", command, error_msg)));
+                    return Err(CliError::ExecutionError(format!(
+                        "Command failed: {}. Error: {}",
+                        command, error_msg
+                    )));
                 }
             }
         }
@@ -431,7 +433,11 @@ fn deploy_schema(
     Ok(())
 }
 
-fn show_diff(database_id: String, database_name: String, current_schema_path: Option<PathBuf>) -> CliResult<()> {
+fn show_diff(
+    database_id: String,
+    database_name: String,
+    current_schema_path: Option<PathBuf>,
+) -> CliResult<()> {
     let builder = SchemaBuilder::new(database_id, database_name);
     let target_schema = builder.build_schema();
 
@@ -693,21 +699,25 @@ fn deploy_platforms(
     // Create platform config from CLI args or environment variables
     let platform_config = infrastructure::schema::PlatformConfig {
         ios_bundle_id: ios_bundle_id.or_else(|| std::env::var("INTRADA_IOS_BUNDLE_ID").ok()),
-        android_bundle_id: android_bundle_id.or_else(|| std::env::var("INTRADA_ANDROID_BUNDLE_ID").ok()),
-        web_hostname: web_hostname.or_else(|| std::env::var("INTRADA_WEB_HOSTNAME").ok()).or_else(|| Some("localhost".to_string())),
+        android_bundle_id: android_bundle_id
+            .or_else(|| std::env::var("INTRADA_ANDROID_BUNDLE_ID").ok()),
+        web_hostname: web_hostname
+            .or_else(|| std::env::var("INTRADA_WEB_HOSTNAME").ok())
+            .or_else(|| Some("localhost".to_string())),
     };
 
     // Validate configuration
-    if platform_config.ios_bundle_id.is_none() && 
-       platform_config.android_bundle_id.is_none() && 
-       platform_config.web_hostname.is_none() {
+    if platform_config.ios_bundle_id.is_none()
+        && platform_config.android_bundle_id.is_none()
+        && platform_config.web_hostname.is_none()
+    {
         return Err(CliError::ConfigurationError(
             "No platform configurations found. Set at least one of: --ios-bundle-id, --android-bundle-id, --web-hostname, or corresponding environment variables.".to_string()
         ));
     }
 
-    let builder = SchemaBuilder::new(database_id, database_name)
-        .with_platform_config(platform_config);
+    let builder =
+        SchemaBuilder::new(database_id, database_name).with_platform_config(platform_config);
     let platform_commands = builder.build_platform_commands();
 
     if platform_commands.is_empty() {
@@ -799,7 +809,10 @@ fn deploy_platforms(
         println!("⚠️  Some platform commands failed.");
         println!("💡 You can try running: ./scripts/setup-platforms-docker.sh");
         println!("💡 Or manually add platforms in the Appwrite console UI");
-        return Err(CliError::ExecutionError(format!("{} platform command(s) failed", error_count)));
+        return Err(CliError::ExecutionError(format!(
+            "{} platform command(s) failed",
+            error_count
+        )));
     } else {
         println!();
         println!("🎉 Platform deployment completed successfully!");

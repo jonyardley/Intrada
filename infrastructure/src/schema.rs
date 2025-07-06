@@ -463,7 +463,7 @@ impl SchemaDefinition for StudySession {
 }
 
 /// Configuration for platform settings
-/// 
+///
 /// Supports iOS, Android, and Web platform configurations with
 /// bundle IDs and hostnames. Values can be provided via:
 /// - CLI arguments
@@ -484,34 +484,36 @@ impl Default for PlatformConfig {
         Self {
             ios_bundle_id: std::env::var("INTRADA_IOS_BUNDLE_ID").ok(),
             android_bundle_id: std::env::var("INTRADA_ANDROID_BUNDLE_ID").ok(),
-            web_hostname: std::env::var("INTRADA_WEB_HOSTNAME").ok().or_else(|| Some("localhost".to_string())),
+            web_hostname: std::env::var("INTRADA_WEB_HOSTNAME")
+                .ok()
+                .or_else(|| Some("localhost".to_string())),
         }
     }
 }
 
 /// Main schema builder for generating Appwrite database configurations
-/// 
+///
 /// Converts Rust types to Appwrite schema definitions using the
 /// infrastructure-as-code pattern. Generates:
 /// - Database schemas from type definitions
 /// - Platform configurations for iOS, Android, Web
 /// - CLI commands for deployment
 /// - Validation and migration support
-/// 
+///
 /// # Example
-/// 
+///
 /// ```rust
 /// use infrastructure::schema::{SchemaBuilder, PlatformConfig};
-/// 
+///
 /// let config = PlatformConfig {
 ///     ios_bundle_id: Some("com.example.app".to_string()),
 ///     android_bundle_id: None,
 ///     web_hostname: Some("app.example.com".to_string()),
 /// };
-/// 
+///
 /// let builder = SchemaBuilder::new("my_db".to_string(), "My Database".to_string())
 ///     .with_platform_config(config);
-/// 
+///
 /// let schema = builder.build_schema();
 /// let commands = builder.build_appwrite_functions();
 /// ```
@@ -523,10 +525,10 @@ pub struct SchemaBuilder {
 
 impl SchemaBuilder {
     /// Create a new schema builder with default platform configuration
-    /// 
+    ///
     /// Platform configuration will be loaded from environment variables:
     /// - `INTRADA_IOS_BUNDLE_ID`
-    /// - `INTRADA_ANDROID_BUNDLE_ID` 
+    /// - `INTRADA_ANDROID_BUNDLE_ID`
     /// - `INTRADA_WEB_HOSTNAME` (defaults to "localhost")
     pub fn new(database_id: String, database_name: String) -> Self {
         Self {
@@ -537,7 +539,7 @@ impl SchemaBuilder {
     }
 
     /// Override the platform configuration
-    /// 
+    ///
     /// Use this to provide custom platform settings instead of
     /// relying on environment variables.
     pub fn with_platform_config(mut self, config: PlatformConfig) -> Self {
@@ -546,13 +548,13 @@ impl SchemaBuilder {
     }
 
     /// Build the complete database schema from Rust types
-    /// 
+    ///
     /// Generates schema definitions for all application types:
     /// - PracticeGoal
     /// - Study  
     /// - PracticeSession
     /// - StudySession
-    /// 
+    ///
     /// Each type implements `SchemaDefinition` trait to provide
     /// type-safe schema generation.
     pub fn build_schema(&self) -> DatabaseSchema {
@@ -569,7 +571,7 @@ impl SchemaBuilder {
     }
 
     /// Generate platform configuration schema
-    /// 
+    ///
     /// Creates platform configurations for enabled platforms based on
     /// the current `PlatformConfig`. Only platforms with valid configuration
     /// (bundle IDs or hostnames) will be included.
@@ -587,7 +589,7 @@ impl SchemaBuilder {
             });
         }
 
-        // Add Android platform if bundle ID is configured  
+        // Add Android platform if bundle ID is configured
         if let Some(android_bundle_id) = &self.platform_config.android_bundle_id {
             platforms.push(Platform {
                 platform_type: PlatformType::Android,
@@ -662,17 +664,17 @@ impl SchemaBuilder {
     }
 
     /// Generate Appwrite CLI commands for deployment
-    /// 
+    ///
     /// Creates a complete list of `appwrite` CLI commands to:
     /// 1. Create the database
     /// 2. Create all collections with their attributes and indexes
     /// 3. Set up platform configurations
-    /// 
+    ///
     /// The commands handle common Appwrite API quirks and can be executed
     /// sequentially to deploy the complete schema.
-    /// 
+    ///
     /// # Example Output
-    /// 
+    ///
     /// ```bash
     /// appwrite databases create --databaseId intrada_db --name "Intrada Database"
     /// appwrite databases createCollection --databaseId intrada_db --collectionId goals --name "goals"
@@ -949,12 +951,18 @@ mod tests {
 
         let builder = SchemaBuilder::new("test_db".to_string(), "Test DB".to_string())
             .with_platform_config(config);
-        
+
         let platform_schema = builder.build_platform_schema();
-        
+
         assert_eq!(platform_schema.platforms.len(), 2); // iOS and Web
-        assert!(platform_schema.platforms.iter().any(|p| matches!(p.platform_type, PlatformType::IOs)));
-        assert!(platform_schema.platforms.iter().any(|p| matches!(p.platform_type, PlatformType::Web)));
+        assert!(platform_schema
+            .platforms
+            .iter()
+            .any(|p| matches!(p.platform_type, PlatformType::IOs)));
+        assert!(platform_schema
+            .platforms
+            .iter()
+            .any(|p| matches!(p.platform_type, PlatformType::Web)));
     }
 
     #[test]
@@ -967,9 +975,9 @@ mod tests {
 
         let builder = SchemaBuilder::new("test_db".to_string(), "Test DB".to_string())
             .with_platform_config(config);
-        
+
         let platform_schema = builder.build_platform_schema();
-        
+
         assert_eq!(platform_schema.platforms.len(), 0);
     }
 
@@ -983,9 +991,9 @@ mod tests {
 
         let builder = SchemaBuilder::new("test_db".to_string(), "Test DB".to_string())
             .with_platform_config(config);
-        
+
         let commands = builder.build_platform_commands();
-        
+
         assert!(!commands.is_empty());
         assert!(commands.iter().any(|c| c.contains("apple-ios")));
         assert!(commands.iter().any(|c| c.contains("android")));
