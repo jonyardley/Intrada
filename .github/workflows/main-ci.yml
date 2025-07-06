@@ -316,11 +316,22 @@ jobs:
             cargo install cargo-lipo
           fi
 
+      - name: Install uniffi-bindgen
+        run: |
+          if ! command -v uniffi-bindgen &> /dev/null; then
+            cargo install uniffi-bindgen --version 0.29.3
+          fi
+
+      - name: Generate Swift types and bindings
+        run: |
+          ./typegen.sh
+          
       - name: Build iOS app
         run: |
           cd shared
           cargo lipo --release --targets aarch64-apple-ios-sim,x86_64-apple-ios
-          cargo run --bin uniffi-bindgen generate src/shared.udl --language swift --out-dir ../iOS/Generated/
+          mkdir -p ../iOS/Generated/
+          uniffi-bindgen generate src/shared.udl --language swift --out-dir ../iOS/Generated/
           
           cd ../iOS
           xcodebuild \
