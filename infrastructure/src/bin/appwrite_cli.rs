@@ -393,12 +393,17 @@ fn deploy_schema(
             println!("Executing: {}", command);
 
             // Execute the actual command from the project root
-            let output = std::process::Command::new("sh")
+            let output = match std::process::Command::new("sh")
                 .arg("-c")
                 .arg(&command)
                 .current_dir("..") // Run from project root where CLI is configured
                 .output()
-                .expect("Failed to execute command");
+            {
+                Ok(output) => output,
+                Err(e) => {
+                    return Err(CliError::ExecutionError(format!("Failed to execute command '{}': {}", command, e)));
+                }
+            };
 
             if !output.status.success() {
                 let error_msg = String::from_utf8_lossy(&output.stderr);
@@ -415,9 +420,7 @@ fn deploy_schema(
                 {
                     println!("⚠️  Resource already exists or API quirk, continuing...");
                 } else {
-                    eprintln!("❌ Command failed: {}", command);
-                    eprintln!("Error: {}", error_msg);
-                    std::process::exit(1);
+                    return Err(CliError::ExecutionError(format!("Command failed: {}. Error: {}", command, error_msg)));
                 }
             }
         }

@@ -938,4 +938,57 @@ mod tests {
         assert!(commands.iter().any(|c| c.contains("createCollection")));
         assert!(commands.iter().any(|c| c.contains("createStringAttribute")));
     }
+
+    #[test]
+    fn test_platform_config() {
+        let config = PlatformConfig {
+            ios_bundle_id: Some("com.test.app".to_string()),
+            android_bundle_id: None,
+            web_hostname: Some("test.com".to_string()),
+        };
+
+        let builder = SchemaBuilder::new("test_db".to_string(), "Test DB".to_string())
+            .with_platform_config(config);
+        
+        let platform_schema = builder.build_platform_schema();
+        
+        assert_eq!(platform_schema.platforms.len(), 2); // iOS and Web
+        assert!(platform_schema.platforms.iter().any(|p| matches!(p.platform_type, PlatformType::IOs)));
+        assert!(platform_schema.platforms.iter().any(|p| matches!(p.platform_type, PlatformType::Web)));
+    }
+
+    #[test]
+    fn test_platform_config_empty() {
+        let config = PlatformConfig {
+            ios_bundle_id: None,
+            android_bundle_id: None,
+            web_hostname: None,
+        };
+
+        let builder = SchemaBuilder::new("test_db".to_string(), "Test DB".to_string())
+            .with_platform_config(config);
+        
+        let platform_schema = builder.build_platform_schema();
+        
+        assert_eq!(platform_schema.platforms.len(), 0);
+    }
+
+    #[test]
+    fn test_platform_commands() {
+        let config = PlatformConfig {
+            ios_bundle_id: Some("com.test.app".to_string()),
+            android_bundle_id: Some("com.test.app".to_string()),
+            web_hostname: Some("test.com".to_string()),
+        };
+
+        let builder = SchemaBuilder::new("test_db".to_string(), "Test DB".to_string())
+            .with_platform_config(config);
+        
+        let commands = builder.build_platform_commands();
+        
+        assert!(!commands.is_empty());
+        assert!(commands.iter().any(|c| c.contains("apple-ios")));
+        assert!(commands.iter().any(|c| c.contains("android")));
+        assert!(commands.iter().any(|c| c.contains("web")));
+    }
 }

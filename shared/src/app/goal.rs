@@ -35,7 +35,7 @@ impl PracticeGoal {
             description,
             status: GoalStatus::NotStarted,
             start_date: None,
-            target_date: target_date,
+            target_date,
             study_ids,
             tempo_target,
         }

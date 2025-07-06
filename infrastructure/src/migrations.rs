@@ -382,7 +382,7 @@ impl MigrationPlanner {
         }
 
         // Deleted indexes
-        for (key, _) in &current_indexes_map {
+        for key in current_indexes_map.keys() {
             if !target_indexes_map.contains_key(key) {
                 operations.push(MigrationOperation::DeleteIndex {
                     database_id: database_id.to_string(),
@@ -655,16 +655,14 @@ impl MigrationExecutor {
 }
 
 /// Migration history tracking
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct MigrationHistory {
     pub applied_migrations: Vec<Migration>,
 }
 
 impl MigrationHistory {
     pub fn new() -> Self {
-        Self {
-            applied_migrations: Vec::new(),
-        }
+        Self::default()
     }
 
     pub fn add_migration(&mut self, migration: Migration) {

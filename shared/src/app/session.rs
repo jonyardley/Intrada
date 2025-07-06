@@ -117,8 +117,9 @@ impl EndedSession {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default)]
 pub enum SessionState {
+    #[default]
     NotStarted,
     Started {
         start_time: String,
@@ -127,12 +128,6 @@ pub enum SessionState {
         start_time: String,
         end_time: String,
     },
-}
-
-impl Default for SessionState {
-    fn default() -> Self {
-        SessionState::NotStarted
-    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]

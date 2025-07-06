@@ -36,7 +36,7 @@ services:
       - _APP_SYSTEM_RESPONSE_FORMAT=
       - _APP_OPTIONS_ABUSE=enabled
       - _APP_OPTIONS_FORCE_HTTPS=disabled
-      - _APP_OPENSSL_KEY_V1=your-secret-key
+      - _APP_OPENSSL_KEY_V1=${APPWRITE_SECRET_KEY:-your-secret-key-change-this}
       - _APP_DOMAIN=localhost
       - _APP_DOMAIN_TARGET=localhost
       - _APP_REDIS_HOST=redis
@@ -47,7 +47,7 @@ services:
       - _APP_DB_PORT=3306
       - _APP_DB_SCHEMA=appwrite
       - _APP_DB_USER=user
-      - _APP_DB_PASS=password
+      - _APP_DB_PASS=${APPWRITE_DB_PASS:-password}
       - _APP_SMTP_HOST=
       - _APP_SMTP_PORT=
       - _APP_SMTP_SECURE=
@@ -127,7 +127,7 @@ services:
       - _APP_ENV=development
       - _APP_WORKER_PER_CORE=6
       - _APP_OPTIONS_ABUSE=enabled
-      - _APP_OPENSSL_KEY_V1=your-secret-key
+      - _APP_OPENSSL_KEY_V1=${APPWRITE_SECRET_KEY:-your-secret-key-change-this}
       - _APP_REDIS_HOST=redis
       - _APP_REDIS_PORT=6379
       - _APP_REDIS_USER=
@@ -136,7 +136,7 @@ services:
       - _APP_DB_PORT=3306
       - _APP_DB_SCHEMA=appwrite
       - _APP_DB_USER=user
-      - _APP_DB_PASS=password
+      - _APP_DB_PASS=${APPWRITE_DB_PASS:-password}
       - _APP_USAGE_STATS=enabled
       - _APP_LOGGING_PROVIDER=
       - _APP_LOGGING_CONFIG=
@@ -153,7 +153,7 @@ services:
       - mariadb
     environment:
       - _APP_ENV=development
-      - _APP_OPENSSL_KEY_V1=your-secret-key
+      - _APP_OPENSSL_KEY_V1=${APPWRITE_SECRET_KEY:-your-secret-key-change-this}
       - _APP_REDIS_HOST=redis
       - _APP_REDIS_PORT=6379
       - _APP_REDIS_USER=
@@ -162,7 +162,7 @@ services:
       - _APP_DB_PORT=3306
       - _APP_DB_SCHEMA=appwrite
       - _APP_DB_USER=user
-      - _APP_DB_PASS=password
+      - _APP_DB_PASS=${APPWRITE_DB_PASS:-password}
       - _APP_LOGGING_PROVIDER=
       - _APP_LOGGING_CONFIG=
 
@@ -178,7 +178,7 @@ services:
       - mariadb
     environment:
       - _APP_ENV=development
-      - _APP_OPENSSL_KEY_V1=your-secret-key
+      - _APP_OPENSSL_KEY_V1=${APPWRITE_SECRET_KEY:-your-secret-key-change-this}
       - _APP_SYSTEM_SECURITY_EMAIL_ADDRESS=security@appwrite.io
       - _APP_REDIS_HOST=redis
       - _APP_REDIS_PORT=6379
@@ -188,7 +188,7 @@ services:
       - _APP_DB_PORT=3306
       - _APP_DB_SCHEMA=appwrite
       - _APP_DB_USER=user
-      - _APP_DB_PASS=password
+      - _APP_DB_PASS=${APPWRITE_DB_PASS:-password}
       - _APP_LOGGING_PROVIDER=
       - _APP_LOGGING_CONFIG=
 
@@ -210,7 +210,7 @@ services:
       - appwrite-certificates:/storage/certificates:rw
     environment:
       - _APP_ENV=development
-      - _APP_OPENSSL_KEY_V1=your-secret-key
+      - _APP_OPENSSL_KEY_V1=${APPWRITE_SECRET_KEY:-your-secret-key-change-this}
       - _APP_REDIS_HOST=redis
       - _APP_REDIS_PORT=6379
       - _APP_REDIS_USER=
@@ -219,7 +219,7 @@ services:
       - _APP_DB_PORT=3306
       - _APP_DB_SCHEMA=appwrite
       - _APP_DB_USER=user
-      - _APP_DB_PASS=password
+      - _APP_DB_PASS=${APPWRITE_DB_PASS:-password}
       - _APP_STORAGE_DEVICE=Local
       - _APP_STORAGE_S3_ACCESS_KEY=
       - _APP_STORAGE_S3_SECRET=
@@ -257,7 +257,7 @@ services:
       - mariadb
     environment:
       - _APP_ENV=development
-      - _APP_OPENSSL_KEY_V1=your-secret-key
+      - _APP_OPENSSL_KEY_V1=${APPWRITE_SECRET_KEY:-your-secret-key-change-this}
       - _APP_REDIS_HOST=redis
       - _APP_REDIS_PORT=6379
       - _APP_REDIS_USER=
@@ -266,7 +266,7 @@ services:
       - _APP_DB_PORT=3306
       - _APP_DB_SCHEMA=appwrite
       - _APP_DB_USER=user
-      - _APP_DB_PASS=password
+      - _APP_DB_PASS=${APPWRITE_DB_PASS:-password}
       - _APP_LOGGING_PROVIDER=
       - _APP_LOGGING_CONFIG=
 
@@ -282,7 +282,7 @@ services:
       - mariadb
     environment:
       - _APP_ENV=development
-      - _APP_OPENSSL_KEY_V1=your-secret-key
+      - _APP_OPENSSL_KEY_V1=${APPWRITE_SECRET_KEY:-your-secret-key-change-this}
       - _APP_EXECUTOR_SECRET=your-secret-key
       - _APP_REDIS_HOST=redis
       - _APP_REDIS_PORT=6379
@@ -292,7 +292,7 @@ services:
       - _APP_DB_PORT=3306
       - _APP_DB_SCHEMA=appwrite
       - _APP_DB_USER=user
-      - _APP_DB_PASS=password
+      - _APP_DB_PASS=${APPWRITE_DB_PASS:-password}
       - _APP_LOGGING_PROVIDER=
       - _APP_LOGGING_CONFIG=
 
@@ -311,7 +311,7 @@ services:
       - appwrite-certificates:/storage/certificates:rw
     environment:
       - _APP_ENV=development
-      - _APP_OPENSSL_KEY_V1=your-secret-key
+      - _APP_OPENSSL_KEY_V1=${APPWRITE_SECRET_KEY:-your-secret-key-change-this}
       - _APP_DOMAIN=localhost
       - _APP_DOMAIN_TARGET=localhost
       - _APP_SYSTEM_SECURITY_EMAIL_ADDRESS=security@appwrite.io
@@ -323,7 +323,7 @@ services:
       - _APP_DB_PORT=3306
       - _APP_DB_SCHEMA=appwrite
       - _APP_DB_USER=user
-      - _APP_DB_PASS=password
+      - _APP_DB_PASS=${APPWRITE_DB_PASS:-password}
       - _APP_LOGGING_PROVIDER=
       - _APP_LOGGING_CONFIG=
 
@@ -339,7 +339,7 @@ services:
       - mariadb
     environment:
       - _APP_ENV=development
-      - _APP_OPENSSL_KEY_V1=your-secret-key
+      - _APP_OPENSSL_KEY_V1=${APPWRITE_SECRET_KEY:-your-secret-key-change-this}
       - _APP_REDIS_HOST=redis
       - _APP_REDIS_PORT=6379
       - _APP_REDIS_USER=
@@ -348,7 +348,7 @@ services:
       - _APP_DB_PORT=3306
       - _APP_DB_SCHEMA=appwrite
       - _APP_DB_USER=user
-      - _APP_DB_PASS=password
+      - _APP_DB_PASS=${APPWRITE_DB_PASS:-password}
       - _APP_FUNCTIONS_TIMEOUT=900
       - _APP_EXECUTOR_SECRET=your-secret-key
       - _APP_USAGE_STATS=enabled
@@ -367,7 +367,7 @@ services:
       - mariadb
     environment:
       - _APP_ENV=development
-      - _APP_OPENSSL_KEY_V1=your-secret-key
+      - _APP_OPENSSL_KEY_V1=${APPWRITE_SECRET_KEY:-your-secret-key-change-this}
       - _APP_SYSTEM_EMAIL_NAME=Appwrite
       - _APP_SYSTEM_EMAIL_ADDRESS=team@appwrite.io
       - _APP_REDIS_HOST=redis
@@ -378,7 +378,7 @@ services:
       - _APP_DB_PORT=3306
       - _APP_DB_SCHEMA=appwrite
       - _APP_DB_USER=user
-      - _APP_DB_PASS=password
+      - _APP_DB_PASS=${APPWRITE_DB_PASS:-password}
       - _APP_SMTP_HOST=
       - _APP_SMTP_PORT=
       - _APP_SMTP_SECURE=
@@ -399,7 +399,7 @@ services:
       - mariadb
     environment:
       - _APP_ENV=development
-      - _APP_OPENSSL_KEY_V1=your-secret-key
+      - _APP_OPENSSL_KEY_V1=${APPWRITE_SECRET_KEY:-your-secret-key-change-this}
       - _APP_REDIS_HOST=redis
       - _APP_REDIS_PORT=6379
       - _APP_REDIS_USER=
@@ -408,7 +408,7 @@ services:
       - _APP_DB_PORT=3306
       - _APP_DB_SCHEMA=appwrite
       - _APP_DB_USER=user
-      - _APP_DB_PASS=password
+      - _APP_DB_PASS=${APPWRITE_DB_PASS:-password}
       - _APP_SMS_PROVIDER=
       - _APP_SMS_FROM=
       - _APP_LOGGING_PROVIDER=
@@ -426,7 +426,7 @@ services:
       - mariadb
     environment:
       - _APP_ENV=development
-      - _APP_OPENSSL_KEY_V1=your-secret-key
+      - _APP_OPENSSL_KEY_V1=${APPWRITE_SECRET_KEY:-your-secret-key-change-this}
       - _APP_DOMAIN=localhost
       - _APP_DOMAIN_TARGET=localhost
       - _APP_REDIS_HOST=redis
@@ -437,7 +437,7 @@ services:
       - _APP_DB_PORT=3306
       - _APP_DB_SCHEMA=appwrite
       - _APP_DB_USER=user
-      - _APP_DB_PASS=password
+      - _APP_DB_PASS=${APPWRITE_DB_PASS:-password}
       - _APP_MAINTENANCE_INTERVAL=86400
       - _APP_MAINTENANCE_RETENTION_EXECUTION=1209600
       - _APP_MAINTENANCE_RETENTION_CACHE=2592000
