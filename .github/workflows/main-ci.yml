@@ -226,7 +226,7 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: aarch64-apple-ios,aarch64-apple-ios-sim,x86_64-apple-ios
+          targets: aarch64-apple-ios-sim,x86_64-apple-ios
           
       - name: Generate cache key
         id: cache-key
@@ -241,8 +241,6 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            shared/target/aarch64-apple-ios/debug/deps
-            shared/target/aarch64-apple-ios/debug/build
             shared/target/aarch64-apple-ios-sim/debug/deps
             shared/target/aarch64-apple-ios-sim/debug/build
             shared/target/x86_64-apple-ios/debug/deps
@@ -264,7 +262,6 @@ jobs:
           cd shared
           cargo fetch --locked
           # Pre-compile dependencies for iOS targets
-          cargo build --target aarch64-apple-ios --lib --no-default-features
           cargo build --target aarch64-apple-ios-sim --lib --no-default-features
           cargo build --target x86_64-apple-ios --lib --no-default-features
 
@@ -297,7 +294,7 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: aarch64-apple-ios,aarch64-apple-ios-sim,x86_64-apple-ios
+          targets: aarch64-apple-ios-sim,x86_64-apple-ios
 
       - name: Restore iOS Rust dependencies cache
         uses: actions/cache@v4
@@ -305,8 +302,6 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            shared/target/aarch64-apple-ios/debug/deps
-            shared/target/aarch64-apple-ios/debug/build
             shared/target/aarch64-apple-ios-sim/debug/deps
             shared/target/aarch64-apple-ios-sim/debug/build
             shared/target/x86_64-apple-ios/debug/deps
@@ -324,7 +319,7 @@ jobs:
       - name: Build iOS app
         run: |
           cd shared
-          cargo lipo --release --targets aarch64-apple-ios,aarch64-apple-ios-sim,x86_64-apple-ios
+          cargo lipo --release --targets aarch64-apple-ios-sim,x86_64-apple-ios
           cargo run --bin uniffi-bindgen generate src/shared.udl --language swift --out-dir ../iOS/Generated/
           
           cd ../iOS

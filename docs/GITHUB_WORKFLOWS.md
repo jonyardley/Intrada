@@ -95,6 +95,12 @@ crux:      # scripts/setup-crux.sh, Cargo.toml files
 - **Swift Bindings**: UniFFI code generation
 - **iOS Testing**: Simulator-based testing
 
+**Target Architecture**:
+- **Simulator Only**: Uses `aarch64-apple-ios-sim,x86_64-apple-ios` targets
+- **Why No Device Target**: Removed `aarch64-apple-ios` to fix `lipo` conflicts
+- **ARM64 Simulator Issue**: Both device and simulator use ARM64 on Apple Silicon
+- **CI/CD Optimization**: Simulator targets sufficient for testing pipeline
+
 **Optimizations**:
 - **Separate Cache**: iOS-specific Rust cache keys
 - **Parallel Compilation**: Multiple iOS targets simultaneously
