@@ -17,28 +17,28 @@ impl std::fmt::Display for CliError {
         match self {
             CliError::Io(e) => write!(f, "File I/O error: {}", e),
             CliError::Serialization(e) => write!(f, "Serialization error: {}", e),
-            CliError::Validation(errors) => {
+            Self::Validation(errors) => {
                 writeln!(f, "Validation errors:")?;
                 for error in errors {
-                    writeln!(f, "  - {}", error)?;
+                    writeln!(f, "  - {error}")?;
                 }
                 Ok(())
             }
-            CliError::Execution(msg) => write!(f, "Execution error: {}", msg),
-            CliError::Configuration(msg) => write!(f, "Configuration error: {}", msg),
+            Self::Execution(msg) => write!(f, "Execution error: {msg}"),
+            Self::Configuration(msg) => write!(f, "Configuration error: {msg}"),
         }
     }
 }
 
 impl From<std::io::Error> for CliError {
     fn from(error: std::io::Error) -> Self {
-        CliError::Io(error)
+        Self::Io(error)
     }
 }
 
 impl From<serde_json::Error> for CliError {
     fn from(error: serde_json::Error) -> Self {
-        CliError::Serialization(error)
+        Self::Serialization(error)
     }
 }
 
@@ -144,7 +144,7 @@ enum Commands {
     },
 }
 
-#[derive(clap::ValueEnum, Clone)]
+#[derive(clap::ValueEnum, Clone, Copy)]
 enum OutputFormat {
     Shell,
     Json,
@@ -162,7 +162,7 @@ fn main() {
             output,
             env_prefix,
         } => {
-            generate_schema(database_id, database_name, format, output, env_prefix);
+            generate_schema(database_id, database_name, format, output, &env_prefix);
         }
         Commands::Validate {
             database_id,
@@ -180,7 +180,7 @@ fn main() {
             deploy_schema(
                 database_id,
                 database_name,
-                environment,
+                &environment,
                 dry_run,
                 current_schema,
             );
@@ -198,7 +198,7 @@ fn main() {
             environment,
             dry_run,
         } => {
-            deploy_platforms(database_id, database_name, environment, dry_run);
+            deploy_platforms(database_id, database_name, &environment, dry_run);
         }
     }
 }
@@ -208,7 +208,7 @@ fn generate_schema(
     database_name: String,
     format: OutputFormat,
     output: Option<PathBuf>,
-    env_prefix: String,
+    env_prefix: &str,
 ) {
     let builder = SchemaBuilder::new(database_id, database_name);
 
@@ -288,7 +288,7 @@ fn generate_schema(
             std::fs::write(path, content).expect("Failed to write output file");
         }
         None => {
-            print!("{}", content);
+            print!("{content}");
         }
     }
 }
@@ -314,7 +314,7 @@ fn validate_schema(database_id: String, database_name: String) {
         Err(errors) => {
             println!("❌ Schema validation failed:");
             for error in errors {
-                println!("  - {}", error);
+                println!("  - {error}");
             }
             std::process::exit(1);
         }
@@ -324,7 +324,7 @@ fn validate_schema(database_id: String, database_name: String) {
 fn deploy_schema(
     database_id: String,
     database_name: String,
-    environment: String,
+    environment: &str,
     dry_run: bool,
     current_schema_path: Option<PathBuf>,
 ) {
@@ -363,7 +363,7 @@ fn deploy_schema(
             println!("{}. {}", i + 1, command);
         }
     } else {
-        println!("🚀 Deploying to {} environment...", environment);
+        println!("🚀 Deploying to {environment} environment...");
         println!("Migration: {}", migration.name);
         println!("Version: {}", migration.version);
 
@@ -647,16 +647,11 @@ fn generate_terraform_config(schema: &infrastructure::schema::DatabaseSchema) ->
     config
 }
 
-fn deploy_platforms(
-    database_id: String,
-    database_name: String,
-    environment: String,
-    dry_run: bool,
-) {
+fn deploy_platforms(database_id: String, database_name: String, environment: &str, dry_run: bool) {
     println!("🚀 Deploying platforms to Appwrite");
-    println!("📊 Database ID: {}", database_id);
-    println!("🌍 Environment: {}", environment);
-    println!("🔄 Dry run: {}", dry_run);
+    println!("📊 Database ID: {database_id}");
+    println!("🌍 Environment: {environment}");
+    println!("🔄 Dry run: {dry_run}");
     println!();
 
     let builder = SchemaBuilder::new(database_id, database_name);
