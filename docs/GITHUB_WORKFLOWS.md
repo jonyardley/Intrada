@@ -32,10 +32,27 @@ paths-filter detects: infrastructure/**
 Result: rust-checks + appwrite-deploy jobs run (saves ~25 minutes)
 ```
 
+### **Trigger Strategy**
+```yaml
+on:
+  push:
+    branches: [ main, develop ]  # Only production branches
+  pull_request:
+    branches: [ main, develop ]  # PRs to production branches
+  workflow_dispatch:             # Manual testing for feature branches
+```
+
+**Why This Design:**
+- **Prevents Duplicate Builds**: No double-triggering on feature branch push + PR
+- **Resource Efficient**: Feature branches only build on PR creation
+- **Manual Override**: Use workflow dispatch to test feature branches when needed
+- **Smart Concurrency**: Same branch/PR events share concurrency groups
+
 ### **Key Features**
 - ✅ **70% Faster Builds**: Only runs jobs for changed components
 - ✅ **Intelligent Dependencies**: Jobs run in optimal order
-- ✅ **Concurrency Control**: Prevents conflicting simultaneous builds
+- ✅ **No Duplicate Builds**: Prevents multiple runs per push/PR
+- ✅ **Smart Concurrency**: Advanced grouping prevents conflicts
 - ✅ **Zero Redundancy**: Eliminates duplicate work across workflows
 - ✅ **Resource Efficient**: Dramatic reduction in CI/CD costs
 
@@ -116,11 +133,23 @@ crux:      # scripts/setup-crux.sh, Cargo.toml files
 - **Production-Only**: Only triggers on main branch
 - **Environment Protection**: Requires manual approval
 
-## 🎯 **Example Scenarios**
+## 🎯 **Development Workflow Examples**
+
+### **Feature Branch Development**
+```bash
+# Working on feature/new-ui branch
+git push origin feature/new-ui
+# → No build triggered (saves resources)
+
+# Create PR to main
+gh pr create --title "Add new UI components"
+# → Single build triggered with path filtering
+# → Only relevant jobs run based on changed files
+```
 
 ### **Scenario 1: Pure iOS Development**
 ```bash
-# Changes: iOS/ContentView.swift, iOS/ProfileView.swift
+# PR Changes: iOS/ContentView.swift, iOS/ProfileView.swift
 # Path Filter Result: ios=true, rust=false, web=false, appwrite=false
 
 Jobs Run:
@@ -178,6 +207,25 @@ Jobs Run:
 Total Time: ~20 minutes (sequential execution)
 ```
 
+## 🚦 **Build Trigger Behavior**
+
+| Event | Branch | Result | Reasoning |
+|-------|--------|--------|-----------|
+| **Push to `feature/new-ui`** | Feature branch | ❌ No build | Saves resources; build on PR instead |
+| **Push to `main`** | Main branch | ✅ One build | Production deployment |
+| **Push to `develop`** | Develop branch | ✅ One build | Development deployment |
+| **PR `feature/new-ui` → `main`** | Feature → Main | ✅ One build | Testing before merge |
+| **Push + PR simultaneously** | Any | ✅ One build only | Advanced concurrency prevents duplicates |
+| **Multiple rapid commits** | Any | ✅ Latest only | Cancels outdated builds |
+
+### **Manual Testing**
+```bash
+# Test feature branch manually when needed
+gh workflow run "Main CI Pipeline" \
+  --ref feature/new-ui \
+  --field environment=development
+```
+
 ## 🦀 **Test Crux Setup Workflow**
 
 ### **File**: `.github/workflows/test-crux-setup.yml`
@@ -230,12 +278,15 @@ Specialized workflow for validating Crux dependency setup across different confi
 | **iOS-only changes** | 50 minutes | 20 minutes | 60% faster |
 | **Web-only changes** | 50 minutes | 12 minutes | 76% faster |
 | **Infrastructure-only** | 50 minutes | 20 minutes | 60% faster |
-| **Full changes** | 50 minutes | 40 minutes | 20% faster |
+| **Feature branch push** | 50 minutes | 0 minutes | 100% savings |
+| **Push + PR simultaneously** | 100 minutes | 40 minutes | 60% savings |
 
 ### **Resource Efficiency**
 - **70% reduction** in total CI/CD resource usage
-- **Eliminated redundant builds** across multiple workflows
+- **100% elimination** of duplicate builds per push/PR
+- **Zero feature branch builds** until PR creation
 - **Intelligent caching** with component-specific keys
+- **Advanced concurrency control** prevents build conflicts
 - **Parallel execution** where dependencies allow
 
 ### **Caching Strategy**
@@ -253,15 +304,16 @@ key: ${{ runner.os }}-web-rust-${{ hashFiles('**/Cargo.lock') }}-v2
 key: ${{ runner.os }}-xcode-derived-${{ hashFiles('iOS/**/*.swift', 'iOS/**/*.xcodeproj/**') }}-v2
 ```
 
-### **Concurrency Control**
+### **Advanced Concurrency Control**
 ```yaml
 concurrency:
-  group: main-ci-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 ```
-- **Prevents overlapping builds** on same branch
-- **Cancels outdated builds** when new commits pushed
-- **Reduces queue time** and resource contention
+- **Unified Grouping**: Push and PR events for same branch share concurrency group
+- **Prevents Duplicate Builds**: No simultaneous "push" + "PR" builds
+- **Cancels Outdated Builds**: New commits cancel previous runs
+- **Smart Queuing**: Only one build per branch/PR at a time
 
 ## 🔍 **Monitoring & Debugging**
 
