@@ -29,7 +29,8 @@ pub struct Platform {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum PlatformType {
-    iOS,
+    #[serde(rename = "iOS")]
+    IOs,
     Android,
     Web,
     Flutter,
@@ -461,20 +462,99 @@ impl SchemaDefinition for StudySession {
     }
 }
 
-/// Main schema builder
+/// Configuration for platform settings
+/// 
+/// Supports iOS, Android, and Web platform configurations with
+/// bundle IDs and hostnames. Values can be provided via:
+/// - CLI arguments
+/// - Environment variables (INTRADA_IOS_BUNDLE_ID, etc.)
+/// - Default values (localhost for web)
+#[derive(Debug, Clone)]
+pub struct PlatformConfig {
+    /// iOS bundle identifier (e.g., "com.company.app")
+    pub ios_bundle_id: Option<String>,
+    /// Android bundle identifier (e.g., "com.company.app")
+    pub android_bundle_id: Option<String>,
+    /// Web hostname for the application (e.g., "app.example.com")
+    pub web_hostname: Option<String>,
+}
+
+impl Default for PlatformConfig {
+    fn default() -> Self {
+        Self {
+            ios_bundle_id: std::env::var("INTRADA_IOS_BUNDLE_ID").ok(),
+            android_bundle_id: std::env::var("INTRADA_ANDROID_BUNDLE_ID").ok(),
+            web_hostname: std::env::var("INTRADA_WEB_HOSTNAME").ok().or_else(|| Some("localhost".to_string())),
+        }
+    }
+}
+
+/// Main schema builder for generating Appwrite database configurations
+/// 
+/// Converts Rust types to Appwrite schema definitions using the
+/// infrastructure-as-code pattern. Generates:
+/// - Database schemas from type definitions
+/// - Platform configurations for iOS, Android, Web
+/// - CLI commands for deployment
+/// - Validation and migration support
+/// 
+/// # Example
+/// 
+/// ```rust
+/// use infrastructure::schema::{SchemaBuilder, PlatformConfig};
+/// 
+/// let config = PlatformConfig {
+///     ios_bundle_id: Some("com.example.app".to_string()),
+///     android_bundle_id: None,
+///     web_hostname: Some("app.example.com".to_string()),
+/// };
+/// 
+/// let builder = SchemaBuilder::new("my_db".to_string(), "My Database".to_string())
+///     .with_platform_config(config);
+/// 
+/// let schema = builder.build_schema();
+/// let commands = builder.build_appwrite_functions();
+/// ```
 pub struct SchemaBuilder {
     database_id: String,
     database_name: String,
+    platform_config: PlatformConfig,
 }
 
 impl SchemaBuilder {
+    /// Create a new schema builder with default platform configuration
+    /// 
+    /// Platform configuration will be loaded from environment variables:
+    /// - `INTRADA_IOS_BUNDLE_ID`
+    /// - `INTRADA_ANDROID_BUNDLE_ID` 
+    /// - `INTRADA_WEB_HOSTNAME` (defaults to "localhost")
     pub fn new(database_id: String, database_name: String) -> Self {
         Self {
             database_id,
             database_name,
+            platform_config: PlatformConfig::default(),
         }
     }
 
+    /// Override the platform configuration
+    /// 
+    /// Use this to provide custom platform settings instead of
+    /// relying on environment variables.
+    pub fn with_platform_config(mut self, config: PlatformConfig) -> Self {
+        self.platform_config = config;
+        self
+    }
+
+    /// Build the complete database schema from Rust types
+    /// 
+    /// Generates schema definitions for all application types:
+    /// - PracticeGoal
+    /// - Study  
+    /// - PracticeSession
+    /// - StudySession
+    /// 
+    /// Each type implements `SchemaDefinition` trait to provide
+    /// type-safe schema generation.
     pub fn build_schema(&self) -> DatabaseSchema {
         DatabaseSchema {
             database_id: self.database_id.clone(),
@@ -488,25 +568,48 @@ impl SchemaBuilder {
         }
     }
 
+    /// Generate platform configuration schema
+    /// 
+    /// Creates platform configurations for enabled platforms based on
+    /// the current `PlatformConfig`. Only platforms with valid configuration
+    /// (bundle IDs or hostnames) will be included.
     pub fn build_platform_schema(&self) -> PlatformSchema {
-        PlatformSchema {
-            platforms: vec![
-                Platform {
-                    platform_type: PlatformType::iOS,
-                    name: "iOS App".to_string(),
-                    key: Some("com.jonyardley.Intrada".to_string()),
-                    store_id: None,
-                    hostname: None,
-                },
-                Platform {
-                    platform_type: PlatformType::Web,
-                    name: "Web App".to_string(),
-                    key: None,
-                    store_id: None,
-                    hostname: Some("localhost".to_string()),
-                },
-            ],
+        let mut platforms = Vec::new();
+
+        // Add iOS platform if bundle ID is configured
+        if let Some(ios_bundle_id) = &self.platform_config.ios_bundle_id {
+            platforms.push(Platform {
+                platform_type: PlatformType::IOs,
+                name: "iOS App".to_string(),
+                key: Some(ios_bundle_id.clone()),
+                store_id: None,
+                hostname: None,
+            });
         }
+
+        // Add Android platform if bundle ID is configured  
+        if let Some(android_bundle_id) = &self.platform_config.android_bundle_id {
+            platforms.push(Platform {
+                platform_type: PlatformType::Android,
+                name: "Android App".to_string(),
+                key: Some(android_bundle_id.clone()),
+                store_id: None,
+                hostname: None,
+            });
+        }
+
+        // Add Web platform if hostname is configured
+        if let Some(web_hostname) = &self.platform_config.web_hostname {
+            platforms.push(Platform {
+                platform_type: PlatformType::Web,
+                name: "Web App".to_string(),
+                key: None,
+                store_id: None,
+                hostname: Some(web_hostname.clone()),
+            });
+        }
+
+        PlatformSchema { platforms }
     }
 
     pub fn build_platform_commands(&self) -> Vec<String> {
@@ -515,7 +618,7 @@ impl SchemaBuilder {
 
         for platform in &platform_schema.platforms {
             match platform.platform_type {
-                PlatformType::iOS => {
+                PlatformType::IOs => {
                     if let Some(bundle_id) = &platform.key {
                         commands.push(format!(
                             "appwrite projects createPlatform --projectId intrada-dev --type apple-ios --name \"{}\" --key {}",
@@ -558,6 +661,24 @@ impl SchemaBuilder {
         commands
     }
 
+    /// Generate Appwrite CLI commands for deployment
+    /// 
+    /// Creates a complete list of `appwrite` CLI commands to:
+    /// 1. Create the database
+    /// 2. Create all collections with their attributes and indexes
+    /// 3. Set up platform configurations
+    /// 
+    /// The commands handle common Appwrite API quirks and can be executed
+    /// sequentially to deploy the complete schema.
+    /// 
+    /// # Example Output
+    /// 
+    /// ```bash
+    /// appwrite databases create --databaseId intrada_db --name "Intrada Database"
+    /// appwrite databases createCollection --databaseId intrada_db --collectionId goals --name "goals"
+    /// appwrite databases createStringAttribute --databaseId intrada_db --collectionId goals --key name --size 255 --required true --array false
+    /// # ... more commands
+    /// ```
     pub fn build_appwrite_functions(&self) -> Vec<String> {
         // Generate Appwrite CLI commands for collection creation
         let schema = self.build_schema();
