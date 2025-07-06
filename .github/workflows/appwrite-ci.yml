@@ -6,37 +6,58 @@ on:
   pull_request:
     branches: [ main ]
   workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: false
+        default: 'auto'
+        type: choice
+        options:
+        - auto
+        - development
+        - production
 
 env:
   APPWRITE_DATABASE_ID: intrada_db
   APPWRITE_DATABASE_NAME: "Intrada Database"
 
+# Prevent concurrent deployments to the same environment
+concurrency:
+  group: appwrite-deploy-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  test-and-deploy:
+  test:
+    name: Test & Validate
     runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.env.outputs.environment }}
+      deploy_real: ${{ steps.env.outputs.deploy_real }}
+      bundle_id: ${{ steps.env.outputs.bundle_id }}
+      hostname: ${{ steps.env.outputs.hostname }}
     
     steps:
-    - name: Determine deployment environment
-      id: env
-      run: |
-        if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-          echo "environment=production" >> $GITHUB_OUTPUT
-          echo "project_id=${{ secrets.APPWRITE_PROJECT_ID_PROD || 'intrada-prod' }}" >> $GITHUB_OUTPUT
-          echo "endpoint=${{ secrets.APPWRITE_ENDPOINT_PROD || 'https://your-prod-appwrite.com/v1' }}" >> $GITHUB_OUTPUT
-          echo "deploy_real=true" >> $GITHUB_OUTPUT
-        else
-          echo "environment=development" >> $GITHUB_OUTPUT
-          echo "project_id=intrada-dev" >> $GITHUB_OUTPUT
-          echo "endpoint=http://localhost/v1" >> $GITHUB_OUTPUT
-          echo "deploy_real=${{ github.event_name == 'push' }}" >> $GITHUB_OUTPUT
-        fi
-        
-        echo "🌍 Environment: $([ "${{ github.ref }}" == "refs/heads/main" ] && echo "PRODUCTION" || echo "DEVELOPMENT")"
-        echo "📋 Branch: ${{ github.ref_name }}"
-        echo "🚀 Will deploy: $([ "${{ github.event_name }}" == "push" ] && echo "YES" || echo "NO (dry-run only)")"
     - name: Checkout code
       uses: actions/checkout@v4
       
+    - name: Determine deployment environment
+      id: env
+      run: |
+        ./.github/scripts/detect-environment.sh \
+          "${{ github.ref }}" \
+          "${{ github.event_name }}" \
+          "${{ github.ref_name }}" \
+          "${{ github.event.inputs.environment }}"
+      
+    - name: Setup Crux dependency
+      run: |
+        ./scripts/setup-crux.sh
+      env:
+        CI: true
+        CRUX_REPO: "redbadger/crux"
+        CRUX_REF: "main"
+        CRUX_PATH: "../crux"
+        
     - name: Setup Rust
       uses: dtolnay/rust-toolchain@stable
       with:
@@ -49,9 +70,9 @@ jobs:
           ~/.cargo/registry
           ~/.cargo/git
           target
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        key: ${{ runner.os }}-rust-${{ hashFiles('**/Cargo.lock') }}-v2
         restore-keys: |
-          ${{ runner.os }}-cargo-
+          ${{ runner.os }}-rust-v2
           
     - name: Check code formatting
       run: cargo fmt --all -- --check
@@ -68,58 +89,72 @@ jobs:
       run: |
         cd infrastructure
         cargo build --bin appwrite_cli --features cli --release
+
+  deploy:
+    name: Deploy to ${{ needs.test.outputs.environment }}
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push'
+    
+    environment: 
+      name: ${{ needs.test.outputs.environment }}
+      
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Crux dependency
+      run: |
+        ./scripts/setup-crux.sh
+      env:
+        CI: true
+        CRUX_REPO: "redbadger/crux"
+        CRUX_REF: "main"
+        CRUX_PATH: "../crux"
         
-    - name: Setup Docker Buildx (Development only)
-      if: steps.env.outputs.environment == 'development'
+    - name: Setup Rust
+      uses: dtolnay/rust-toolchain@stable
+        
+    - name: Cache Rust dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-rust-${{ hashFiles('**/Cargo.lock') }}-v2
+        restore-keys: |
+          ${{ runner.os }}-rust-v2
+          
+    - name: Build CLI tool
+      run: |
+        cd infrastructure
+        cargo build --bin appwrite_cli --features cli --release
+        
+    - name: Setup Docker (Development only)
+      if: needs.test.outputs.environment == 'development'
       uses: docker/setup-buildx-action@v3
       
     - name: Start Appwrite (Development only)
-      if: steps.env.outputs.environment == 'development'
+      if: needs.test.outputs.environment == 'development'
       run: |
         docker compose up -d
-        echo "Waiting for Appwrite to start..."
+        echo "⏳ Waiting for Appwrite to start..."
         timeout 120 bash -c 'until curl -s http://localhost/v1/health > /dev/null 2>&1; do echo -n "."; sleep 2; done'
+        echo ""
         echo "✅ Appwrite is ready!"
         
     - name: Setup Appwrite project
       run: |
-        if [[ "${{ steps.env.outputs.environment }}" == "development" ]]; then
-          echo "Setting up local Appwrite project..."
-          
-          # Wait a bit more for full startup
-          sleep 10
-          
-          # Create project and API key for local development
-          PROJECT_RESPONSE=$(curl -s -X POST http://localhost/v1/projects \
-            -H "Content-Type: application/json" \
-            -H "X-Appwrite-Project: console" \
-            -d '{
-              "projectId": "${{ steps.env.outputs.project_id }}",
-              "name": "Intrada Development",
-              "teamId": "console"
-            }' || echo '{"error": "failed"}')
-          
-          echo "Project creation response: $PROJECT_RESPONSE"
-          
-          # Create API key for the project
-          API_KEY_RESPONSE=$(curl -s -X POST http://localhost/v1/projects/${{ steps.env.outputs.project_id }}/keys \
-            -H "Content-Type: application/json" \
-            -H "X-Appwrite-Project: console" \
-            -d '{
-              "name": "CI/CD Key",
-              "scopes": ["databases.read", "databases.write", "collections.read", "collections.write", "attributes.read", "attributes.write", "indexes.read", "indexes.write"]
-            }' || echo '{"secret": "dev-fallback-key"}')
-          
-          echo "API key creation response: $API_KEY_RESPONSE"
-          
-          # Extract the API key
-          API_KEY=$(echo "$API_KEY_RESPONSE" | jq -r '.secret // "dev-fallback-key"')
-          echo "APPWRITE_API_KEY=$API_KEY" >> $GITHUB_ENV
-          
+        if [[ "${{ needs.test.outputs.environment }}" == "development" ]]; then
+          ./.github/scripts/setup-appwrite-project.sh \
+            "${{ needs.test.outputs.environment }}" \
+            "intrada-dev" \
+            "http://localhost/v1"
         else
-          echo "Using production Appwrite configuration..."
-          # For production, use the secrets
           echo "APPWRITE_API_KEY=${{ secrets.APPWRITE_API_KEY_PROD }}" >> $GITHUB_ENV
+          echo "APPWRITE_PROJECT_ID=${{ secrets.APPWRITE_PROJECT_ID_PROD }}" >> $GITHUB_ENV
+          echo "APPWRITE_ENDPOINT=${{ secrets.APPWRITE_ENDPOINT_PROD }}" >> $GITHUB_ENV
         fi
         
     - name: Validate schema
@@ -127,93 +162,147 @@ jobs:
         cd infrastructure
         ../target/release/appwrite_cli validate
         
-    - name: Deploy schema (dry run)
-      if: github.event_name == 'pull_request'
-      run: |
-        cd infrastructure
-        ../target/release/appwrite_cli deploy \
-          --database-id $APPWRITE_DATABASE_ID \
-          --database-name "$APPWRITE_DATABASE_NAME" \
-          --environment ${{ steps.env.outputs.environment }} \
-          --dry-run
-          
     - name: Deploy schema
-      if: github.event_name == 'push'
       run: |
         cd infrastructure
         ../target/release/appwrite_cli deploy \
           --database-id $APPWRITE_DATABASE_ID \
           --database-name "$APPWRITE_DATABASE_NAME" \
-          --environment ${{ steps.env.outputs.environment }}
+          --environment ${{ needs.test.outputs.environment }}
       env:
-        APPWRITE_ENDPOINT: ${{ steps.env.outputs.endpoint }}
-        APPWRITE_PROJECT_ID: ${{ steps.env.outputs.project_id }}
+        APPWRITE_ENDPOINT: ${{ env.APPWRITE_ENDPOINT }}
+        APPWRITE_PROJECT_ID: ${{ env.APPWRITE_PROJECT_ID }}
         APPWRITE_API_KEY: ${{ env.APPWRITE_API_KEY }}
         
-    - name: Deploy platforms (dry run)
-      if: github.event_name == 'pull_request'
-      run: |
-        cd infrastructure
-        ../target/release/appwrite_cli deploy-platforms \
-          --database-id $APPWRITE_DATABASE_ID \
-          --database-name "$APPWRITE_DATABASE_NAME" \
-          --environment ${{ steps.env.outputs.environment }} \
-          --ios-bundle-id com.jonyardley.intrada.${{ steps.env.outputs.environment }} \
-          --web-hostname ${{ steps.env.outputs.environment == 'production' && 'intrada.app' || 'localhost' }} \
-          --dry-run
-          
     - name: Deploy platforms
-      if: github.event_name == 'push'
       run: |
         cd infrastructure
         ../target/release/appwrite_cli deploy-platforms \
           --database-id $APPWRITE_DATABASE_ID \
           --database-name "$APPWRITE_DATABASE_NAME" \
-          --environment ${{ steps.env.outputs.environment }} \
-          --ios-bundle-id com.jonyardley.intrada.${{ steps.env.outputs.environment }} \
-          --web-hostname ${{ steps.env.outputs.environment == 'production' && 'intrada.app' || 'localhost' }}
+          --environment ${{ needs.test.outputs.environment }} \
+          --ios-bundle-id ${{ needs.test.outputs.bundle_id }} \
+          --web-hostname ${{ needs.test.outputs.hostname }}
       env:
-        APPWRITE_ENDPOINT: ${{ steps.env.outputs.endpoint }}
-        APPWRITE_PROJECT_ID: ${{ steps.env.outputs.project_id }}
+        APPWRITE_ENDPOINT: ${{ env.APPWRITE_ENDPOINT }}
+        APPWRITE_PROJECT_ID: ${{ env.APPWRITE_PROJECT_ID }}
         APPWRITE_API_KEY: ${{ env.APPWRITE_API_KEY }}
         
     - name: Verify deployment
-      if: github.event_name == 'push'
       run: |
-        echo "Verifying deployment to ${{ steps.env.outputs.environment }}..."
+        echo "🔍 Verifying deployment to ${{ needs.test.outputs.environment }}..."
         
         # Check database exists
-        curl -f -s -H "X-Appwrite-Project: ${{ steps.env.outputs.project_id }}" \
-             -H "X-Appwrite-Key: $APPWRITE_API_KEY" \
-             "${{ steps.env.outputs.endpoint }}/databases/$APPWRITE_DATABASE_ID" | jq .
+        curl -f -s -H "X-Appwrite-Project: ${{ env.APPWRITE_PROJECT_ID }}" \
+             -H "X-Appwrite-Key: ${{ env.APPWRITE_API_KEY }}" \
+             "${{ env.APPWRITE_ENDPOINT }}/databases/$APPWRITE_DATABASE_ID" | jq .
              
         # Check collections exist
-        COLLECTION_COUNT=$(curl -f -s -H "X-Appwrite-Project: ${{ steps.env.outputs.project_id }}" \
-             -H "X-Appwrite-Key: $APPWRITE_API_KEY" \
-             "${{ steps.env.outputs.endpoint }}/databases/$APPWRITE_DATABASE_ID/collections" | jq '.total')
+        COLLECTION_COUNT=$(curl -f -s -H "X-Appwrite-Project: ${{ env.APPWRITE_PROJECT_ID }}" \
+             -H "X-Appwrite-Key: ${{ env.APPWRITE_API_KEY }}" \
+             "${{ env.APPWRITE_ENDPOINT }}/databases/$APPWRITE_DATABASE_ID/collections" | jq '.total')
              
         echo "Found $COLLECTION_COUNT collections"
         
         if [[ "$COLLECTION_COUNT" -ge "4" ]]; then
           echo "✅ Deployment verification completed!"
         else
-          echo "⚠️  Expected 4+ collections, found $COLLECTION_COUNT"
+          echo "⚠️ Expected 4+ collections, found $COLLECTION_COUNT"
         fi
       env:
         APPWRITE_API_KEY: ${{ env.APPWRITE_API_KEY }}
         
     - name: Run integration tests
-      if: github.event_name == 'push'
       run: |
-        echo "Running integration tests against ${{ steps.env.outputs.environment }}..."
-        # Add your integration tests here
-        # Example: test creating a goal, session, etc.
+        echo "🧪 Running integration tests against ${{ needs.test.outputs.environment }}..."
+        # TODO: Add actual integration tests
         echo "✅ Integration tests passed!"
         
     - name: Cleanup (Development only)
-      if: always() && steps.env.outputs.environment == 'development'
+      if: always() && needs.test.outputs.environment == 'development'
       run: |
-        echo "Cleaning up development environment..."
-        docker compose down -v
-        docker system prune -f
+        echo "🧹 Cleaning up development environment..."
+        docker compose down -v || true
+        docker system prune -f || true
         echo "✅ Cleanup completed!"
+
+  dry-run:
+    name: Dry Run for ${{ needs.test.outputs.environment }}
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'pull_request'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Crux dependency
+      run: |
+        ./scripts/setup-crux.sh
+      env:
+        CI: true
+        CRUX_REPO: "redbadger/crux"
+        CRUX_REF: "main"
+        CRUX_PATH: "../crux"
+        
+    - name: Setup Rust
+      uses: dtolnay/rust-toolchain@stable
+        
+    - name: Cache Rust dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-rust-${{ hashFiles('**/Cargo.lock') }}-v2
+        restore-keys: |
+          ${{ runner.os }}-rust-v2
+          
+    - name: Build CLI tool
+      run: |
+        cd infrastructure
+        cargo build --bin appwrite_cli --features cli --release
+        
+    - name: Validate schema
+      run: |
+        cd infrastructure
+        ../target/release/appwrite_cli validate
+        
+    - name: Dry run schema deployment
+      run: |
+        cd infrastructure
+        ../target/release/appwrite_cli deploy \
+          --database-id $APPWRITE_DATABASE_ID \
+          --database-name "$APPWRITE_DATABASE_NAME" \
+          --environment ${{ needs.test.outputs.environment }} \
+          --dry-run
+          
+    - name: Dry run platform deployment
+      run: |
+        cd infrastructure
+        ../target/release/appwrite_cli deploy-platforms \
+          --database-id $APPWRITE_DATABASE_ID \
+          --database-name "$APPWRITE_DATABASE_NAME" \
+          --environment ${{ needs.test.outputs.environment }} \
+          --ios-bundle-id ${{ needs.test.outputs.bundle_id }} \
+          --web-hostname ${{ needs.test.outputs.hostname }} \
+          --dry-run
+          
+    - name: Generate summary
+      run: |
+        echo "# 🔍 Deployment Dry Run Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## Configuration" >> $GITHUB_STEP_SUMMARY
+        echo "- **Target Environment**: ${{ needs.test.outputs.environment }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Bundle ID**: ${{ needs.test.outputs.bundle_id }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Hostname**: ${{ needs.test.outputs.hostname }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Database**: $APPWRITE_DATABASE_ID" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## Validation Results" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Schema validation passed" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Dry run deployment successful" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Platform configuration valid" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## Next Steps" >> $GITHUB_STEP_SUMMARY
+        echo "This pull request is ready to be merged and will deploy to **${{ needs.test.outputs.environment }}** environment." >> $GITHUB_STEP_SUMMARY
