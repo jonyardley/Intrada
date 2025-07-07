@@ -330,6 +330,11 @@ jobs:
             cargo install cargo-swift
           fi
 
+      - name: Build shared library for bindgen
+        run: |
+          cd shared
+          cargo build --lib
+          
       - name: Generate Swift types and bindings
         run: |
           ./typegen.sh
