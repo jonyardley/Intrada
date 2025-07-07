@@ -83,8 +83,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         
-      - name: Setup Crux dependency
+      - name: Cache Crux dependency
         if: needs.changes.outputs.crux == 'true'
+        uses: actions/cache@v4
+        id: cache-crux
+        with:
+          path: ../crux
+          key: crux-${{ runner.os }}-main-${{ hashFiles('scripts/setup-crux.sh') }}-v1
+          restore-keys: |
+            crux-${{ runner.os }}-main-
+            
+      - name: Setup Crux dependency
+        if: needs.changes.outputs.crux == 'true' && steps.cache-crux.outputs.cache-hit != 'true'
         run: |
           ./scripts/setup-crux.sh
         env:
@@ -93,6 +103,17 @@ jobs:
           CRUX_REF: "main"
           CRUX_PATH: "../crux"
           
+      - name: Cache Rust toolchain
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.rustup/toolchains
+            ~/.rustup/update-hashes
+            ~/.rustup/settings.toml
+          key: rust-toolchain-${{ runner.os }}-${{ hashFiles('rust-toolchain.toml') }}-v1
+          restore-keys: |
+            rust-toolchain-${{ runner.os }}-
+            
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -160,8 +181,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         
-      - name: Setup Crux dependency
+      - name: Cache Crux dependency
         if: needs.changes.outputs.crux == 'true'
+        uses: actions/cache@v4
+        id: cache-crux
+        with:
+          path: ../crux
+          key: crux-${{ runner.os }}-main-${{ hashFiles('scripts/setup-crux.sh') }}-v1
+          restore-keys: |
+            crux-${{ runner.os }}-main-
+            
+      - name: Setup Crux dependency
+        if: needs.changes.outputs.crux == 'true' && steps.cache-crux.outputs.cache-hit != 'true'
         run: |
           ./scripts/setup-crux.sh
         env:
@@ -170,6 +201,17 @@ jobs:
           CRUX_REF: "main"
           CRUX_PATH: "../crux"
           
+      - name: Cache Rust toolchain
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.rustup/toolchains
+            ~/.rustup/update-hashes
+            ~/.rustup/settings.toml
+          key: rust-toolchain-${{ runner.os }}-${{ hashFiles('rust-toolchain.toml') }}-v1
+          restore-keys: |
+            rust-toolchain-${{ runner.os }}-
+            
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -213,8 +255,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         
-      - name: Setup Crux dependency
+      - name: Cache Crux dependency
         if: needs.changes.outputs.crux == 'true'
+        uses: actions/cache@v4
+        id: cache-crux
+        with:
+          path: ../crux
+          key: crux-${{ runner.os }}-main-${{ hashFiles('scripts/setup-crux.sh') }}-v1
+          restore-keys: |
+            crux-${{ runner.os }}-main-
+            
+      - name: Setup Crux dependency
+        if: needs.changes.outputs.crux == 'true' && steps.cache-crux.outputs.cache-hit != 'true'
         run: |
           ./scripts/setup-crux.sh
         env:
@@ -223,6 +275,18 @@ jobs:
           CRUX_REF: "main"
           CRUX_PATH: "../crux"
           
+      - name: Cache Rust toolchain
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.rustup/toolchains
+            ~/.rustup/update-hashes
+            ~/.rustup/settings.toml
+          key: rust-toolchain-${{ runner.os }}-${{ hashFiles('rust-toolchain.toml') }}-ios-v1
+          restore-keys: |
+            rust-toolchain-${{ runner.os }}-ios-
+            rust-toolchain-${{ runner.os }}-
+            
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -285,8 +349,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         
-      - name: Setup Crux dependency
+      - name: Cache Crux dependency
         if: needs.changes.outputs.crux == 'true'
+        uses: actions/cache@v4
+        id: cache-crux
+        with:
+          path: ../crux
+          key: crux-${{ runner.os }}-main-${{ hashFiles('scripts/setup-crux.sh') }}-v1
+          restore-keys: |
+            crux-${{ runner.os }}-main-
+            
+      - name: Setup Crux dependency
+        if: needs.changes.outputs.crux == 'true' && steps.cache-crux.outputs.cache-hit != 'true'
         run: |
           ./scripts/setup-crux.sh
         env:
@@ -300,6 +374,18 @@ jobs:
         with:
           xcode-version: '16.0'
 
+      - name: Cache Rust toolchain
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.rustup/toolchains
+            ~/.rustup/update-hashes
+            ~/.rustup/settings.toml
+          key: rust-toolchain-${{ runner.os }}-${{ hashFiles('rust-toolchain.toml') }}-ios-v1
+          restore-keys: |
+            rust-toolchain-${{ runner.os }}-ios-
+            rust-toolchain-${{ runner.os }}-
+            
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -340,7 +426,19 @@ jobs:
           cd shared
           cargo build --lib
           
+      - name: Cache generated types
+        uses: actions/cache@v4
+        id: cache-typegen
+        with:
+          path: |
+            iOS/SharedTypes
+            shared/generated
+          key: typegen-${{ hashFiles('shared/src/**/*.rs', 'typegen.sh') }}-v1
+          restore-keys: |
+            typegen-
+            
       - name: Generate Swift types and bindings
+        if: steps.cache-typegen.outputs.cache-hit != 'true'
         run: |
           ./typegen.sh
           
@@ -403,8 +501,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Crux dependency
+      - name: Cache Crux dependency
         if: needs.changes.outputs.crux == 'true'
+        uses: actions/cache@v4
+        id: cache-crux
+        with:
+          path: ../crux
+          key: crux-${{ runner.os }}-main-${{ hashFiles('scripts/setup-crux.sh') }}-v1
+          restore-keys: |
+            crux-${{ runner.os }}-main-
+            
+      - name: Setup Crux dependency
+        if: needs.changes.outputs.crux == 'true' && steps.cache-crux.outputs.cache-hit != 'true'
         run: |
           ./scripts/setup-crux.sh
         env:
@@ -413,6 +521,18 @@ jobs:
           CRUX_REF: "main"
           CRUX_PATH: "../crux"
 
+      - name: Cache Rust toolchain
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.rustup/toolchains
+            ~/.rustup/update-hashes
+            ~/.rustup/settings.toml
+          key: rust-toolchain-${{ runner.os }}-${{ hashFiles('rust-toolchain.toml') }}-wasm-v1
+          restore-keys: |
+            rust-toolchain-${{ runner.os }}-wasm-
+            rust-toolchain-${{ runner.os }}-
+            
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -440,7 +560,10 @@ jobs:
         uses: actions/cache@v4
         id: cache-trunk
         with:
-          path: ~/.cargo/bin/trunk
+          path: |
+            ~/.cargo/bin/trunk
+            ~/.cargo/.crates.toml
+            ~/.cargo/.crates2.json
           key: trunk-${{ runner.os }}-v1
           
       - name: Install Trunk
@@ -454,13 +577,15 @@ jobs:
           cache: "npm"
           cache-dependency-path: "web-leptos/package-lock.json"
           
-      - name: Cache Tailwind CSS
+      - name: Cache Tailwind CSS and build artifacts
         uses: actions/cache@v4
         with:
           path: |
             web-leptos/node_modules/.cache
-            web-leptos/target/tailwindcss
-          key: tailwind-${{ runner.os }}-${{ hashFiles('web-leptos/tailwind.config.js', 'web-leptos/package-lock.json') }}
+            web-leptos/.trunk
+            web-leptos/style/output.css
+            web-leptos/dist
+          key: tailwind-${{ runner.os }}-${{ hashFiles('web-leptos/tailwind.config.js', 'web-leptos/package-lock.json', 'web-leptos/style/input.css') }}
           restore-keys: |
             tailwind-${{ runner.os }}-
 
@@ -489,8 +614,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         
-      - name: Setup Crux dependency
+      - name: Cache Crux dependency
         if: needs.changes.outputs.crux == 'true'
+        uses: actions/cache@v4
+        id: cache-crux
+        with:
+          path: ../crux
+          key: crux-${{ runner.os }}-main-${{ hashFiles('scripts/setup-crux.sh') }}-v1
+          restore-keys: |
+            crux-${{ runner.os }}-main-
+            
+      - name: Setup Crux dependency
+        if: needs.changes.outputs.crux == 'true' && steps.cache-crux.outputs.cache-hit != 'true'
         run: |
           ./scripts/setup-crux.sh
         env:
@@ -499,6 +634,17 @@ jobs:
           CRUX_REF: "main"
           CRUX_PATH: "../crux"
           
+      - name: Cache Rust toolchain
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.rustup/toolchains
+            ~/.rustup/update-hashes
+            ~/.rustup/settings.toml
+          key: rust-toolchain-${{ runner.os }}-${{ hashFiles('rust-toolchain.toml') }}-v1
+          restore-keys: |
+            rust-toolchain-${{ runner.os }}-
+            
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         
@@ -534,6 +680,19 @@ jobs:
           cd infrastructure
           cargo build --bin appwrite_cli --features cli --release
           
+      - name: Set up Docker Buildx
+        if: github.ref != 'refs/heads/main'
+        uses: docker/setup-buildx-action@v3
+        
+      - name: Cache Docker layers
+        if: github.ref != 'refs/heads/main'
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: docker-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            docker-${{ runner.os }}-
+            
       - name: Deploy to development
         if: github.ref != 'refs/heads/main'
         run: |
@@ -566,7 +725,17 @@ jobs:
           name: dist
           path: ./web-leptos/dist
 
+      - name: Cache Vercel CLI
+        uses: actions/cache@v4
+        id: cache-vercel
+        with:
+          path: ~/.npm
+          key: vercel-cli-${{ runner.os }}-v1
+          restore-keys: |
+            vercel-cli-${{ runner.os }}-
+            
       - name: Install Vercel CLI
+        if: steps.cache-vercel.outputs.cache-hit != 'true'
         run: npm install --global vercel@latest
 
       - name: Deploy to Vercel
