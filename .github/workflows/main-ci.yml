@@ -326,7 +326,7 @@ jobs:
       - name: Install uniffi-bindgen
         run: |
           if ! command -v uniffi-bindgen &> /dev/null; then
-            cargo install uniffi_bindgen --version 0.29.3
+            cargo install uniffi --version 0.29.3 --features cli
           fi
 
       - name: Install cargo-swift
