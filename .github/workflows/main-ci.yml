@@ -680,6 +680,23 @@ jobs:
           cd infrastructure
           cargo build --bin appwrite_cli --features cli --release
           
+      - name: Cache Appwrite CLI
+        uses: actions/cache@v4
+        id: cache-appwrite-cli
+        with:
+          path: ~/.local/bin/appwrite
+          key: appwrite-cli-${{ runner.os }}-v1
+          restore-keys: |
+            appwrite-cli-${{ runner.os }}-
+            
+      - name: Install Appwrite CLI
+        if: steps.cache-appwrite-cli.outputs.cache-hit != 'true'
+        run: |
+          curl -sL https://appwrite.io/cli/install.sh | bash
+          # Make sure it's in PATH
+          export PATH="$HOME/.local/bin:$PATH"
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          
       - name: Set up Docker Buildx
         if: github.ref != 'refs/heads/main'
         uses: docker/setup-buildx-action@v3
