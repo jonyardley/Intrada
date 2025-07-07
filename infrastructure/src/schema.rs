@@ -674,9 +674,9 @@ impl SchemaBuilder {
     /// # Example Output
     ///
     /// ```bash
-    /// appwrite databases create --databaseId intrada_db --name "Intrada Database"
-    /// appwrite databases createCollection --databaseId intrada_db --collectionId goals --name "goals"
-    /// appwrite databases createStringAttribute --databaseId intrada_db --collectionId goals --key name --size 255 --required true --array false
+    /// appwrite databases create --database-id intrada_db --name "Intrada Database"
+    /// appwrite databases createCollection --database-id intrada_db --collection-id goals --name "goals"
+    /// appwrite databases createStringAttribute --database-id intrada_db --collection-id goals --key name --size 255 --required true --array false
     /// # ... more commands
     /// ```
     pub fn build_appwrite_functions(&self) -> Vec<String> {
@@ -686,14 +686,14 @@ impl SchemaBuilder {
 
         // Create database
         commands.push(format!(
-            "appwrite databases create --databaseId {} --name \"{}\"",
+            "appwrite databases create --database-id {} --name \"{}\"",
             schema.database_id, schema.name
         ));
 
         // Create collections
         for collection in &schema.collections {
             commands.push(format!(
-                "appwrite databases createCollection --databaseId {} --collectionId {} --name \"{}\"",
+                "appwrite databases createCollection --database-id {} --collection-id {} --name \"{}\"",
                 schema.database_id,
                 collection.collection_id,
                 collection.name
@@ -704,7 +704,7 @@ impl SchemaBuilder {
                 let attr_command = match &attr.attribute_type {
                     AttributeType::String { size } => {
                         format!(
-                            "appwrite databases createStringAttribute --databaseId {} --collectionId {} --key {} --size {} --required {} --array {}",
+                            "appwrite databases createStringAttribute --database-id {} --collection-id {} --key {} --size {} --required {} --array {}",
                             schema.database_id,
                             collection.collection_id,
                             attr.key,
@@ -715,7 +715,7 @@ impl SchemaBuilder {
                     }
                     AttributeType::Integer { min, max } => {
                         format!(
-                            "appwrite databases createIntegerAttribute --databaseId {} --collectionId {} --key {} --required {} --array {} --min {} --max {}",
+                            "appwrite databases createIntegerAttribute --database-id {} --collection-id {} --key {} --required {} --array {} --min {} --max {}",
                             schema.database_id,
                             collection.collection_id,
                             attr.key,
@@ -727,7 +727,7 @@ impl SchemaBuilder {
                     }
                     AttributeType::Boolean => {
                         format!(
-                            "appwrite databases createBooleanAttribute --databaseId {} --collectionId {} --key {} --required {} --array {}",
+                            "appwrite databases createBooleanAttribute --database-id {} --collection-id {} --key {} --required {} --array {}",
                             schema.database_id,
                             collection.collection_id,
                             attr.key,
@@ -737,7 +737,7 @@ impl SchemaBuilder {
                     }
                     AttributeType::DateTime => {
                         format!(
-                            "appwrite databases createDatetimeAttribute --databaseId {} --collectionId {} --key {} --required {} --array {}",
+                            "appwrite databases createDatetimeAttribute --database-id {} --collection-id {} --key {} --required {} --array {}",
                             schema.database_id,
                             collection.collection_id,
                             attr.key,
@@ -752,7 +752,7 @@ impl SchemaBuilder {
                             .collect::<Vec<_>>()
                             .join(" ");
                         format!(
-                            "appwrite databases createEnumAttribute --databaseId {} --collectionId {} --key {} {} --required {} --array {}",
+                            "appwrite databases createEnumAttribute --database-id {} --collection-id {} --key {} {} --required {} --array {}",
                             schema.database_id,
                             collection.collection_id,
                             attr.key,
@@ -782,7 +782,7 @@ impl SchemaBuilder {
                     .join(" ");
 
                 commands.push(format!(
-                    "appwrite databases createIndex --databaseId {} --collectionId {} --key {} --type {} {}",
+                    "appwrite databases createIndex --database-id {} --collection-id {} --key {} --type {} {}",
                     schema.database_id,
                     collection.collection_id,
                     index.key,
@@ -801,7 +801,7 @@ impl SchemaBuilder {
                     .join(" ");
 
                 commands.push(format!(
-                    "appwrite databases updateCollection --databaseId {} --collectionId {} --name \"{}\" {}",
+                    "appwrite databases updateCollection --database-id {} --collection-id {} --name \"{}\" {}",
                     schema.database_id,
                     collection.collection_id,
                     collection.name,

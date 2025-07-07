@@ -697,6 +697,12 @@ jobs:
           export PATH="$HOME/.local/bin:$PATH"
           echo "$HOME/.local/bin" >> $GITHUB_PATH
           
+      - name: Configure Appwrite CLI
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          # Configure for local development (Docker instance)
+          appwrite client --endpoint http://localhost/v1
+          
       - name: Set up Docker Buildx
         if: github.ref != 'refs/heads/main'
         uses: docker/setup-buildx-action@v3
