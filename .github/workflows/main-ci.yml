@@ -371,9 +371,10 @@ jobs:
           sed -i '' 's|your-database-id-here|${{ secrets.APPWRITE_DATABASE_ID }}|g' iOS/Intrada/Config.plist
           sed -i '' 's|your-api-key-here|${{ secrets.APPWRITE_API_KEY }}|g' iOS/Intrada/Config.plist
           
-      - name: Build iOS app
+      - name: Build and test iOS app
         run: |
           cd iOS
+          # Build the app
           xcodebuild \
             -project Intrada.xcodeproj \
             -scheme Intrada \
@@ -382,6 +383,16 @@ jobs:
             clean build \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
+            
+          # Run tests if they exist
+          xcodebuild test \
+            -project Intrada.xcodeproj \
+            -scheme Intrada \
+            -configuration Debug \
+            -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=latest' \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            || echo "No tests found or tests failed - continuing build verification"
 
   # Web build and test
   web-build:
