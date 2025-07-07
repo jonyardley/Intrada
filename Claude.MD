@@ -36,15 +36,23 @@ We're building intelligent tools that transform practice from routine into a del
 
 ### Development Workflow
 1. **Make changes** in Rust types (`shared/src/app/`)
-2. **Validate schema** changes with CLI tools
-3. **Test locally** against local Appwrite instance
-4. **Deploy** via infrastructure tools
-5. **Update frontends** to use new functionality
+2. **Generate types** for other platforms using `./typegen.sh`
+3. **Validate schema** changes with CLI tools
+4. **Test locally** against local Appwrite instance
+5. **Deploy** via infrastructure tools
+6. **Update frontends** to use new functionality
 
 ### Type-Driven Development
 - Database schemas are generated from Rust types, not defined separately
 - Changes to data models happen in Rust first, then propagate to database
 - This ensures type safety and prevents schema drift
+
+### Cross-Platform Type Generation
+- **`./typegen.sh`**: Generates platform-specific types from Rust core types
+- **Swift Types**: Creates Swift bindings for iOS development (`SharedTypes`)
+- **Java Types**: Generates Java bindings for Android (if needed)
+- **TypeScript**: Can generate TypeScript types for web (currently commented out)
+- **Process**: Run after making changes to shared Rust types to keep platform bindings in sync
 
 ### Type-State State Machines
 - **Critical Pattern**: Use type-state pattern for state machines to catch invalid transitions at compile time

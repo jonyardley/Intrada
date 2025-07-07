@@ -255,6 +255,13 @@ jobs:
           if ! command -v cargo-lipo &> /dev/null; then
             cargo install cargo-lipo
           fi
+
+      - name: Install cargo-swift
+        if: steps.cache-ios-deps.outputs.cache-hit != 'true'
+        run: |
+          if ! command -v cargo-swift &> /dev/null; then
+            cargo install cargo-swift
+          fi
           
       - name: Pre-compile iOS dependencies
         if: steps.cache-ios-deps.outputs.cache-hit != 'true'
@@ -320,6 +327,12 @@ jobs:
         run: |
           if ! command -v uniffi-bindgen &> /dev/null; then
             cargo install uniffi-bindgen --version 0.29.3
+          fi
+
+      - name: Install cargo-swift
+        run: |
+          if ! command -v cargo-swift &> /dev/null; then
+            cargo install cargo-swift
           fi
 
       - name: Generate Swift types and bindings
