@@ -250,8 +250,17 @@ jobs:
             ios-deps-${{ runner.os }}-v3
             
 
+      - name: Cache cargo tools
+        uses: actions/cache@v4
+        id: cache-cargo-tools
+        with:
+          path: ~/.cargo/bin
+          key: cargo-tools-${{ runner.os }}-v1
+          restore-keys: |
+            cargo-tools-${{ runner.os }}-
+            
       - name: Install cargo-swift
-        if: steps.cache-ios-deps.outputs.cache-hit != 'true'
+        if: steps.cache-cargo-tools.outputs.cache-hit != 'true'
         run: |
           if ! command -v cargo-swift &> /dev/null; then
             cargo install cargo-swift
@@ -310,7 +319,17 @@ jobs:
           restore-keys: |
             ios-deps-${{ runner.os }}-v3
 
+      - name: Cache cargo tools
+        uses: actions/cache@v4
+        id: cache-cargo-tools-ios
+        with:
+          path: ~/.cargo/bin
+          key: cargo-tools-${{ runner.os }}-v1
+          restore-keys: |
+            cargo-tools-${{ runner.os }}-
+            
       - name: Install cargo-swift
+        if: steps.cache-cargo-tools-ios.outputs.cache-hit != 'true'
         run: |
           if ! command -v cargo-swift &> /dev/null; then
             cargo install cargo-swift
@@ -324,6 +343,33 @@ jobs:
       - name: Generate Swift types and bindings
         run: |
           ./typegen.sh
+          
+      - name: Cache Xcode DerivedData
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Developer/Xcode/DerivedData
+          key: xcode-deriveddata-${{ runner.os }}-${{ hashFiles('iOS/**/*.swift', 'iOS/**/*.plist', 'iOS/**/*.pbxproj') }}
+          restore-keys: |
+            xcode-deriveddata-${{ runner.os }}-
+            
+      - name: Cache Swift Package Manager
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/org.swift.swiftpm
+            ~/Library/org.swift.swiftpm
+          key: spm-${{ runner.os }}-${{ hashFiles('iOS/Intrada.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+          restore-keys: |
+            spm-${{ runner.os }}-
+            
+      - name: Create Config.plist with secrets
+        run: |
+          cp iOS/Intrada/Config.plist.template iOS/Intrada/Config.plist
+          # Replace placeholders with actual values from GitHub secrets
+          sed -i '' 's|https://your-appwrite-endpoint.cloud.appwrite.io/v1|${{ secrets.APPWRITE_ENDPOINT }}|g' iOS/Intrada/Config.plist
+          sed -i '' 's|your-project-id-here|${{ secrets.APPWRITE_PROJECT_ID }}|g' iOS/Intrada/Config.plist
+          sed -i '' 's|your-database-id-here|${{ secrets.APPWRITE_DATABASE_ID }}|g' iOS/Intrada/Config.plist
+          sed -i '' 's|your-api-key-here|${{ secrets.APPWRITE_API_KEY }}|g' iOS/Intrada/Config.plist
           
       - name: Build iOS app
         run: |
@@ -379,8 +425,16 @@ jobs:
           restore-keys: |
             deps-${{ runner.os }}-v3
 
+      - name: Cache trunk
+        uses: actions/cache@v4
+        id: cache-trunk
+        with:
+          path: ~/.cargo/bin/trunk
+          key: trunk-${{ runner.os }}-v1
+          
       - name: Install Trunk
-        run: cargo install trunk --force
+        if: steps.cache-trunk.outputs.cache-hit != 'true'
+        run: cargo install trunk
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -388,6 +442,16 @@ jobs:
           node-version: "20"
           cache: "npm"
           cache-dependency-path: "web-leptos/package-lock.json"
+          
+      - name: Cache Tailwind CSS
+        uses: actions/cache@v4
+        with:
+          path: |
+            web-leptos/node_modules/.cache
+            web-leptos/target/tailwindcss
+          key: tailwind-${{ runner.os }}-${{ hashFiles('web-leptos/tailwind.config.js', 'web-leptos/package-lock.json') }}
+          restore-keys: |
+            tailwind-${{ runner.os }}-
 
       - name: Install NPM dependencies
         run: npm ci
@@ -442,6 +506,17 @@ jobs:
           key: ${{ needs.compile-deps.outputs.cache-key }}
           restore-keys: |
             deps-${{ runner.os }}-v3
+            
+      - name: Cache infrastructure build
+        uses: actions/cache@v4
+        with:
+          path: |
+            infrastructure/target/release/deps
+            infrastructure/target/release/build
+            infrastructure/target/release/.fingerprint
+          key: infrastructure-release-${{ runner.os }}-${{ hashFiles('infrastructure/Cargo.lock', 'infrastructure/src/**') }}
+          restore-keys: |
+            infrastructure-release-${{ runner.os }}-
             
       - name: Build CLI tool
         run: |
