@@ -22,9 +22,6 @@ env:
   APPWRITE_PROJECT_ID: intrada-dev
   APPWRITE_DATABASE_ID: intrada_db
   APPWRITE_DATABASE_NAME: "Intrada Database"
-  # Unified cache keys
-  RUST_CACHE_KEY: rust-${{ github.run_id }}-${{ hashFiles('**/Cargo.lock', 'rust-toolchain.toml') }}-v1
-  TOOLCHAIN_CACHE_KEY: toolchain-${{ github.run_id }}-${{ hashFiles('rust-toolchain.toml') }}-v1
 
 # Prevent concurrent runs on the same branch/PR
 concurrency:
