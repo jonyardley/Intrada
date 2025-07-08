@@ -724,7 +724,7 @@ jobs:
           # Setup local Appwrite for development
           docker compose up -d
           echo "Waiting for Appwrite to be ready..."
-          timeout 180 bash -c 'until curl -s http://localhost/v1/health > /dev/null 2>&1; do echo "Waiting for Appwrite..."; sleep 5; done'
+          timeout 180 bash -c 'until curl -s http://localhost/health > /dev/null 2>&1; do echo "Waiting for Appwrite..."; sleep 5; done'
           
           # Configure Appwrite CLI to use local instance
           export PATH="$HOME/.local/bin:$PATH"
