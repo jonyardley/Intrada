@@ -724,11 +724,22 @@ jobs:
           # Setup local Appwrite for development
           docker compose up -d
           echo "Waiting for Appwrite to be ready..."
-          timeout 180 bash -c 'until curl -s http://localhost/health > /dev/null 2>&1; do echo "Waiting for Appwrite..."; sleep 5; done'
+          
+          # Wait for health endpoint
+          timeout 180 bash -c 'until curl -s http://localhost/health > /dev/null 2>&1; do echo "Waiting for Appwrite health..."; sleep 5; done'
+          
+          # Wait for API to be fully ready
+          echo "Waiting for Appwrite API to be ready..."
+          timeout 120 bash -c 'until curl -s http://localhost/v1/health > /dev/null 2>&1; do echo "Waiting for Appwrite API..."; sleep 5; done'
+          
+          # Additional wait for services to stabilize
+          echo "Allowing services to stabilize..."
+          sleep 10
           
           # Configure Appwrite CLI to use local instance
           export PATH="$HOME/.local/bin:$PATH"
-          appwrite client --endpoint http://localhost/v1
+          echo "Configuring Appwrite CLI..."
+          appwrite client --endpoint http://localhost/v1 --selfSigned true
           
           cd infrastructure
           ./target/release/appwrite_cli deploy \
