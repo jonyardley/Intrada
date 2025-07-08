@@ -741,7 +741,17 @@ jobs:
           echo "Configuring Appwrite CLI..."
           appwrite client --endpoint http://localhost/v1 --self-signed true
           
+          # Build our CLI tool
+          echo "Building CLI tool..."
           cd infrastructure
+          cargo build --bin appwrite_cli --features cli --release
+          
+          # Verify CLI tool was built
+          echo "Checking CLI tool..."
+          ls -la target/release/appwrite_cli || echo "CLI tool not found"
+          
+          # Deploy schema
+          echo "Deploying schema..."
           ./target/release/appwrite_cli deploy \
             --database-id $APPWRITE_DATABASE_ID \
             --database-name "$APPWRITE_DATABASE_NAME" \
