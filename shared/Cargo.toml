@@ -20,14 +20,15 @@ required-features = ["uniffi/cli"]
 cli = ["crux_core/cli"]
 
 [dependencies]
-crux_core.workspace = true
+crux_core = { workspace = true }
+crux_http = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 lazy_static = "1.5.0"
 uniffi = { version = "0.29.3", features = ["cli"] }
 wasm-bindgen = "0.2.100"
 uuid = { version = "1.7.0", features = ["v4", "serde", "js"] }
 chrono = "0.4.41"
-crux_http = { path = "../../crux/crux_http" }
+
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 uniffi = { version = "0.29.3", features = ["cli"] }

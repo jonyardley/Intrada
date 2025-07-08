@@ -312,9 +312,9 @@ checksum = "38c99613cb3cd7429889a08dfcf651721ca971c86afa30798461f8eee994de47"
 
 [[package]]
 name = "bumpalo"
-version = "3.18.1"
+version = "3.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "793db76d6187cd04dff33004d8e6c9cc4e05cd330500379d2394209271b4aeee"
+checksum = "46c5e41b57b8bba42a04676d81cb89e9ee8e859a1a66f80a5a72e1cb76b34d43"
 
 [[package]]
 name = "byteorder"
@@ -402,9 +402,9 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.2.27"
+version = "1.2.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d487aa071b5f64da6f19a3e848e3578944b726ee5a4854b82172f02aa876bfdc"
+checksum = "5c1599538de2394445747c8cf7935946e3cc27e9625f889d979bfb2aaf569362"
 dependencies = [
  "shlex",
 ]
@@ -488,9 +488,9 @@ checksum = "7546aa32ad2d6e23c47edfc649c1e78e1a30392f51015efe30d0d4a0ed08310e"
 
 [[package]]
 name = "codee"
-version = "0.3.0"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0f18d705321923b1a9358e3fc3c57c3b50171196827fc7f5f10b053242aca627"
+checksum = "fd8bbfdadf2f8999c6e404697bc08016dce4a3d77dec465b36c9a0652fdb3327"
 dependencies = [
  "serde",
  "serde_json",
@@ -499,9 +499,9 @@ dependencies = [
 
 [[package]]
 name = "collection_literals"
-version = "1.0.1"
+version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "186dce98367766de751c42c4f03970fc60fc012296e706ccbb9d5df9b6c1e271"
+checksum = "26b3f65b8fb8e88ba339f7d23a390fe1b0896217da05e2a66c584c9b29a91df8"
 
 [[package]]
 name = "colorchoice"
@@ -659,6 +659,8 @@ checksum = "d0a5c400df2834b80a4c3327b3aad3a4c4cd4de0629063962b03235697506a28"
 [[package]]
 name = "crux_cli"
 version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "edebc045b1f57439197bb335ca008ef8504f9627e6661934e0a46054477917fd"
 dependencies = [
  "anyhow",
  "ascent",
@@ -683,7 +685,9 @@ dependencies = [
 
 [[package]]
 name = "crux_core"
-version = "0.16.0-rc1"
+version = "0.16.0-rc2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5ec4cd413afcddaecdc1bc1c4c61d07c777acc64967e7856ed1d370906423ee3"
 dependencies = [
  "anyhow",
  "bincode",
@@ -697,13 +701,13 @@ dependencies = [
  "serde_json",
  "slab",
  "thiserror 2.0.12",
- "uniffi",
- "wasm-bindgen",
 ]
 
 [[package]]
 name = "crux_http"
-version = "0.15.0-rc1"
+version = "0.15.0-rc2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "77d16cbe7fe2347d43a2428fbc5669a6e95414764934a1c1aad54ba9e866361f"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -725,7 +729,9 @@ dependencies = [
 
 [[package]]
 name = "crux_macros"
-version = "0.7.0-rc1"
+version = "0.7.0-rc2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4a18aef9ec02b9c8a0830a47bcb463af00615b08016e85764559c06454d0ff5e"
 dependencies = [
  "darling",
  "heck 0.5.0",
@@ -1606,9 +1612,9 @@ dependencies = [
 
 [[package]]
 name = "indexmap"
-version = "2.9.0"
+version = "2.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cea70ddb795996207ad57735b50c5982d8844f38ba9ee5f1aedcfb708a2aa11e"
+checksum = "fe4cd85333e22411419a0bcae1297d25e58c9443848b11dc6a86fefe8c78a661"
 dependencies = [
  "equivalent",
  "hashbrown 0.15.4",
@@ -2303,9 +2309,9 @@ dependencies = [
 
 [[package]]
 name = "prettyplease"
-version = "0.2.34"
+version = "0.2.35"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6837b9e10d61f45f987d50808f83d1ee3d206c66acf650c3e4ae2e1f6ddedf55"
+checksum = "061c1221631e079b26479d25bbf2275bfe5917ae8419cd7e34f13bfc2aa7539a"
 dependencies = [
  "proc-macro2",
  "syn 2.0.104",
@@ -2730,9 +2736,9 @@ dependencies = [
 
 [[package]]
 name = "serde-generate"
-version = "0.32.0"
+version = "0.31.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8531271b775abcd08076fc0c787cc5ed14071e2aa0950793b3b7c6f6203a077a"
+checksum = "91a78dc895533d99054e0666aa929c29e9866693ee2dc42c2383c2c4c82310fe"
 dependencies = [
  "anyhow",
  "heck 0.3.3",

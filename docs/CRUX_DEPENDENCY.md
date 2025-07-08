@@ -2,84 +2,69 @@
 
 ## 🦀 **Overview**
 
-This project uses a local version of [Crux](https://github.com/redbadger/crux) that is not yet published to crates.io. This document explains how Crux is managed across different environments.
+This project uses [Crux](https://github.com/redbadger/crux) from the published crates on crates.io. This document explains how Crux dependencies are managed.
 
 ## 📁 **Current Setup**
 
-### **Local Development**
+### **Published Crates**
 ```toml
 # Cargo.toml (workspace)
 [workspace.dependencies]
-crux_core = { path = "../crux/crux_core" }
-
-# shared/Cargo.toml
-crux_http = { path = "../../crux/crux_http" }
+crux_core = "0.16.0-rc2"
+crux_http = "0.15.0-rc2"
 ```
 
-Your local project expects Crux to be available at `../crux/` relative to the project root.
+The project now uses the official Crux crates published on crates.io, eliminating the need for local Git checkouts.
 
 ## 🔧 **Environment Handling**
 
 ### **Local Development**
-- **Expected Path**: `../crux/` (parallel to your project directory)
-- **Setup**: Run `make setup-crux` or `./scripts/setup-crux.sh`
-- **Fallback**: Automatically clones Crux if not found locally
+- **Dependencies**: Automatically downloaded from crates.io
+- **Setup**: Standard `cargo build` - no additional setup required
+- **Caching**: Cargo handles dependency caching automatically
 
 ### **CI/CD (GitHub Actions)**
-- **Automatic Setup**: Clones Crux from GitHub automatically
-- **Repository**: `redbadger/crux`
-- **Branch**: `main` (configurable)
-- **Path**: `../crux/` (consistent with local development)
+- **Dependencies**: Downloaded from crates.io during build
+- **No Special Setup**: No additional Crux setup steps needed
+- **Caching**: Standard Cargo dependency caching
 
 ## 🚀 **Quick Start**
 
 ### **For Local Development**
 ```bash
-# Option 1: Use Make target
-make setup-crux
+# Clone the project
+git clone https://github.com/your-username/intrada.git
+cd intrada
 
-# Option 2: Run script directly  
-./scripts/setup-crux.sh
-
-# Option 3: Manual setup (if you want to modify Crux)
-cd ..
-git clone https://github.com/redbadger/crux.git
-cd crux
-# Make any local modifications to Crux here
+# Build - dependencies downloaded automatically
+cargo build
 ```
 
 ### **For CI/CD**
-No action needed! The GitHub Actions workflows automatically handle Crux setup.
+Standard Rust CI/CD workflows work without modification!
 
-## ⚙️ **Configuration Options**
+## ⚙️ **Version Management**
 
-### **Environment Variables**
-You can customize Crux setup using environment variables:
-
+### **Updating Crux Versions**
 ```bash
-# Use a specific Crux repository (e.g., your fork)
-export CRUX_REPO="your-username/crux"
+# Update to latest compatible version
+cargo update crux_core crux_http
 
-# Use a specific branch/tag/commit
-export CRUX_REF="feature-branch"
-
-# Use a different path (not recommended)
-export CRUX_PATH="../my-custom-crux"
-
-# Then run setup
-./scripts/setup-crux.sh
+# Or edit Cargo.toml directly
+# crux_core = "0.17.0"
+# crux_http = "0.16.0"
 ```
 
-### **GitHub Actions Configuration**
-```yaml
-# .github/workflows/appwrite-ci.yml
-- name: Setup Crux dependency
-  run: ./scripts/setup-crux.sh
-  env:
-    CI: true
-    CRUX_REPO: "redbadger/crux"      # Use your fork if needed
-    CRUX_REF: "main"                 # Use specific branch/tag
-    CRUX_PATH: "../crux"
+### **Pinning Specific Versions**
+```toml
+# Pin to exact version
+crux_core = "=0.16.0-rc2"
+
+# Use version range
+crux_core = "^0.16.0"
+
+# Use pre-release versions
+crux_core = "0.17.0-rc1"
 ```
 
 ## 🔄 **Workflow Examples**
@@ -90,172 +75,144 @@ export CRUX_PATH="../my-custom-crux"
 git clone https://github.com/your-username/intrada.git
 cd intrada
 
-# 2. Setup Crux dependency
-make setup-crux
-
-# 3. Build project
+# 2. Build project (dependencies downloaded automatically)
 cargo build
+
+# 3. Run tests
+cargo test
 ```
 
-### **Developing with Local Crux Changes**
+### **Upgrading Crux**
 ```bash
-# 1. Setup with manual Crux clone
-cd ..
-git clone https://github.com/redbadger/crux.git
-cd crux
+# Check current versions
+cargo tree | grep crux
 
-# 2. Make your changes to Crux
-git checkout -b my-feature
-# Edit crux_core or crux_http...
-git commit -m "My Crux improvements"
+# Update to latest compatible versions
+cargo update crux_core crux_http
 
-# 3. Build your project (uses your local changes)
-cd ../intrada
-cargo build
-```
+# Or update everything
+cargo update
 
-### **Using a Specific Crux Version**
-```bash
-# Use a specific commit/tag
-CRUX_REF="v0.7.0" ./scripts/setup-crux.sh
-
-# Use a feature branch
-CRUX_REF="feature/new-capability" ./scripts/setup-crux.sh
+# Test the upgrade
+cargo test
 ```
 
 ## 🏗️ **CI/CD Integration**
 
 ### **GitHub Actions Support**
-The workflows automatically:
-1. **Clone Crux**: Downloads the specified version
-2. **Verify Setup**: Ensures all required crates are available
-3. **Build Project**: Uses the local Crux for compilation
-4. **Cache Dependencies**: Speeds up subsequent builds
-
-### **Build Matrix Support**
-You can test against multiple Crux versions:
+Standard Rust workflows work without modification:
 
 ```yaml
-strategy:
-  matrix:
-    crux-ref: ["main", "v0.7.0", "develop"]
-    
-steps:
-- name: Setup Crux dependency
-  env:
-    CRUX_REF: ${{ matrix.crux-ref }}
-  run: ./scripts/setup-crux.sh
+name: CI
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: dtolnay/rust-toolchain@stable
+    - run: cargo test
+```
+
+### **Dependency Caching**
+```yaml
+- name: Cache dependencies
+  uses: actions/cache@v4
+  with:
+    path: |
+      ~/.cargo/registry
+      ~/.cargo/git
+      target/
+    key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 ```
 
 ## 🔍 **Troubleshooting**
 
 ### **Common Issues**
 
-**❌ Crux not found**
+**❌ Version conflicts**
 ```bash
-error[E0463]: can't find crate for `crux_core`
+error: failed to select a version for `crux_core`
 ```
-**Solution**: Run `make setup-crux` or verify `../crux/` exists
-
-**❌ Wrong Crux version** 
+**Solution**: Update Cargo.lock or use compatible versions
 ```bash
-error: trait `SomeFeature` is not implemented
-```
-**Solution**: Update Crux to compatible version
-```bash
-cd ../crux
-git pull origin main
-cd ../intrada
-cargo clean && cargo build
+cargo update
 ```
 
-**❌ CI build failing**
+**❌ Pre-release versions not found**
 ```bash
-fatal: repository 'https://github.com/invalid/crux.git' not found
+error: no matching version found for `crux_core = "0.17.0"`
 ```
-**Solution**: Check `CRUX_REPO` environment variable in workflow
+**Solution**: Check available versions on crates.io
+```bash
+cargo search crux_core
+```
+
+**❌ Network issues**
+```bash
+error: failed to download from `https://crates.io/...`
+```
+**Solution**: Check network connectivity or use offline mode
+```bash
+cargo build --offline  # if dependencies already cached
+```
 
 ### **Debugging Commands**
 ```bash
-# Check Crux status
-ls -la ../crux/
-cat ../crux/Cargo.toml | grep name
-
-# Verify Crux version
-cd ../crux && git log --oneline -5
-
-# Check workspace dependencies
+# Check current Crux versions
 cargo tree | grep crux
 
-# Clean rebuild
+# See available versions
+cargo search crux_core
+
+# Check for updates
+cargo outdated  # if you have cargo-outdated installed
+
+# Clean and rebuild
 cargo clean && cargo build
 ```
 
-## 📋 **Migration Strategies**
+## 📋 **Migration History**
 
-### **When Crux is Published**
-Once Crux releases are available on crates.io:
+### **Previous Setup (Git Dependencies)**
+The project previously used local Git checkouts:
+- Required `setup-crux.sh` script
+- Used path dependencies to `../crux/`
+- Required manual Crux repository management
 
-1. **Update Cargo.toml**:
-```toml
-# From:
-crux_core = { path = "../crux/crux_core" }
-
-# To:
-crux_core = "0.8.0"
-```
-
-2. **Remove local setup**:
-```bash
-# Remove from Makefile
-sed -i '/setup-crux/d' Makefile
-
-# Remove from workflows
-# Delete CRUX setup steps from .github/workflows/
-```
-
-3. **Clean up**:
-```bash
-rm scripts/setup-crux.sh
-rm .github/crux-config.yml
-rm docs/CRUX_DEPENDENCY.md
-```
-
-### **Using Git Dependencies**
-Alternative approach using Cargo's git support:
-
-```toml
-# Cargo.toml
-crux_core = { git = "https://github.com/redbadger/crux", rev = "main" }
-crux_http = { git = "https://github.com/redbadger/crux", rev = "main" }
-```
-
-**Pros**: No local setup needed
-**Cons**: Harder to develop with local Crux changes
+### **Current Setup (Published Crates)**
+Now uses standard crates.io dependencies:
+- ✅ No setup scripts needed
+- ✅ Standard Cargo workflows
+- ✅ Automatic dependency resolution
+- ✅ Better version management
+- ✅ Faster CI builds
 
 ## 🎯 **Best Practices**
 
 ### **Development**
-- Use `make setup-crux` for consistent setup
-- Pin to specific Crux commits for reproducible builds
-- Test CI builds before merging changes
+- Use `cargo update` regularly to get latest compatible versions
+- Pin to specific versions for reproducible builds
+- Test upgrades thoroughly before deploying
 
 ### **CI/CD**  
-- Cache Rust dependencies to speed up builds
-- Use specific Crux versions rather than `main` for stability
-- Test against multiple Crux versions if needed
+- Cache Cargo dependencies for faster builds
+- Use `Cargo.lock` for reproducible builds
+- Test against multiple Rust versions if needed
 
 ### **Team Collaboration**
-- Document any Crux version requirements
-- Share Crux commit hashes for consistent development
-- Consider using a Crux fork for team-specific changes
+- Commit `Cargo.lock` to ensure consistent builds
+- Document any version requirements in README
+- Use semantic versioning for your own releases
 
 ## 📚 **Additional Resources**
 
 - **[Crux Documentation](https://redbadger.github.io/crux/)**
-- **[Cargo Path Dependencies](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#specifying-path-dependencies)**
-- **[GitHub Actions with Rust](https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-rust)**
+- **[Cargo Dependencies](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html)**
+- **[Semantic Versioning](https://semver.org/)**
+- **[crates.io](https://crates.io/search?q=crux)**
 
 ---
 
-*This setup ensures your project can build consistently across local development and CI/CD environments while using the latest Crux features!* 🚀
+*Using published crates makes dependency management much simpler and more reliable!* 🚀

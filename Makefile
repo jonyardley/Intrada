@@ -1,5 +1,5 @@
 # Appwrite Environment Management
-.PHONY: help setup teardown start stop logs clean test verify setup-crux
+.PHONY: help setup teardown start stop logs clean test verify
 
 # Default target
 help:
@@ -15,12 +15,10 @@ help:
 	@echo "  test      - Run tests against Appwrite"
 	@echo "  verify    - Verify Appwrite setup"
 	@echo "  status    - Show current status"
-	@echo "  setup-crux - Setup Crux dependency for local development"
+	@echo ""
 
 # Complete setup from scratch
 setup:
-	@echo "🦀 Setting up Crux dependency first..."
-	@./scripts/setup-crux.sh
 	@./scripts/setup-appwrite-complete.sh
 
 # Completely tear down environment
@@ -122,8 +120,4 @@ ci-cleanup:
 	@docker system prune -f
 	@echo "✅ CI cleanup complete!"
 
-# Setup Crux dependency for local development
-setup-crux:
-	@echo "🦀 Setting up Crux dependency..."
-	@./scripts/setup-crux.sh
-	@echo "✅ Crux setup complete!" 
+ 

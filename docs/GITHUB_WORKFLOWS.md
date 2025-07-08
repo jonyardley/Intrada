@@ -66,7 +66,6 @@ rust:      # shared/**, infrastructure/**, Cargo.toml, Cargo.lock
 ios:       # iOS/**, shared/** (shared affects iOS)
 web:       # web-leptos/**, shared/** (shared affects web)
 appwrite:  # infrastructure/**, appwrite.json, scripts/
-crux:      # scripts/setup-crux.sh, Cargo.toml files
 ```
 
 **Intelligence**: Uses `dorny/paths-filter@v2` to detect file changes and set job flags
@@ -77,11 +76,10 @@ crux:      # scripts/setup-crux.sh, Cargo.toml files
 **Purpose**: Code quality and core compilation
 
 **Steps**:
-1. **Conditional Crux Setup**: Only if Crux files changed
-2. **Rust Toolchain**: clippy, rustfmt components
-3. **Smart Caching**: Rust dependencies with version-specific keys
-4. **Code Quality**: Formatting check, clippy linting
-5. **Core Testing**: Workspace tests, infrastructure tests
+1. **Rust Toolchain**: clippy, rustfmt components
+2. **Smart Caching**: Rust dependencies with version-specific keys
+3. **Code Quality**: Formatting check, clippy linting
+4. **Core Testing**: Workspace tests, infrastructure tests
 
 ### **3. iOS Build Job**
 **Runs When**: `ios` changes detected
@@ -89,7 +87,6 @@ crux:      # scripts/setup-crux.sh, Cargo.toml files
 **Purpose**: iOS app compilation and testing
 
 **Smart Dependencies**:
-- **Conditional Crux Setup**: Only if `crux` flag is true
 - **Rust Compilation**: Multi-target iOS library builds
 - **Swift Bindings**: UniFFI code generation
 - **iOS Testing**: Simulator-based testing
@@ -111,7 +108,6 @@ crux:      # scripts/setup-crux.sh, Cargo.toml files
 **Purpose**: Web application build and optimization
 
 **Smart Features**:
-- **Conditional Crux Setup**: Only if `crux` flag is true
 - **Intelligent Caching**: Separate web-specific cache keys
 - **Node.js Integration**: NPM dependency management
 - **CSS Generation**: Tailwind CSS optimization
@@ -231,30 +227,20 @@ gh workflow run "Main CI Pipeline" \
   --field environment=development
 ```
 
-## 🦀 **Test Crux Setup Workflow**
+## 🦀 **Crux Dependencies**
 
-### **File**: `.github/workflows/test-crux-setup.yml`
+### **Current Setup**
+The project now uses published Crux crates from crates.io, eliminating the need for:
+- ❌ `setup-crux.sh` script
+- ❌ Local Crux repository checkouts
+- ❌ Special Crux setup jobs in CI/CD
+- ❌ Crux path-specific change detection
 
-### **Purpose**
-Specialized workflow for validating Crux dependency setup across different configurations.
-
-### **Smart Triggers**
-- **Manual**: Can be triggered with custom Crux repository/branch
-- **Automatic**: Runs only when Crux-related files change
-- **Path Filtered**: `scripts/setup-crux.sh`, `Cargo.toml` files
-
-### **Key Features**
-- ✅ **Focused Testing**: Only tests Crux-specific functionality
-- ✅ **Matrix Support**: Test multiple Crux versions
-- ✅ **Performance Monitoring**: Measures setup time
-- ✅ **Comprehensive Validation**: Tests all compilation targets
-
-### **Test Coverage**
-1. **Crux Setup Verification**: Directory structure and files
-2. **Workspace Compilation**: Tests entire workspace builds
-3. **Shared Library**: Validates iOS-specific compilation
-4. **Infrastructure**: Tests CLI tool compilation
-5. **Dependency Resolution**: Verifies Crux dependencies resolve correctly
+### **Benefits**
+- ✅ **Simplified CI/CD**: No additional setup steps required
+- ✅ **Faster Builds**: Standard Cargo dependency resolution
+- ✅ **Better Caching**: Leverages crates.io and Cargo's built-in caching
+- ✅ **Reduced Complexity**: Standard Rust dependency management
 
 ## 🛠️ **Supporting Scripts**
 
@@ -354,7 +340,6 @@ Each workflow run shows exactly what was detected:
 ✅ ios: true (shared affects iOS)
 ✅ web: true (shared affects web)
 ❌ appwrite: false (no infrastructure changes)
-❌ crux: false (no Crux setup changes)
 ```
 
 ### **Workflow Summaries**
@@ -422,8 +407,8 @@ PROJECT_ID=your-vercel-project-id
 # Trigger manual deployment to production
 gh workflow run "Main CI Pipeline" --ref main --field environment=production
 
-# Test specific Crux version
-gh workflow run "Test Crux Setup" --field crux_ref=v0.16.0
+# Note: Crux setup testing no longer needed with published crates
+# Dependencies are managed through standard Cargo.toml
 ```
 
 ### **Feature Development**

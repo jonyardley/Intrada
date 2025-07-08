@@ -36,7 +36,6 @@ jobs:
       ios: ${{ steps.changes.outputs.ios }}
       web: ${{ steps.changes.outputs.web }}
       appwrite: ${{ steps.changes.outputs.appwrite }}
-      crux: ${{ steps.changes.outputs.crux }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -66,11 +65,6 @@ jobs:
               - 'infrastructure/**'
               - 'appwrite.json'
               - 'scripts/setup-appwrite-complete.sh'
-            crux:
-              - 'scripts/setup-crux.sh'
-              - '.github/scripts/detect-environment.sh'
-              - 'Cargo.toml'
-              - 'shared/Cargo.toml'
 
   # Pre-compile Rust dependencies for reuse across jobs
   compile-deps:
@@ -82,26 +76,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
-      - name: Cache Crux dependency
-        if: needs.changes.outputs.crux == 'true'
-        uses: actions/cache@v4
-        id: cache-crux
-        with:
-          path: ../crux
-          key: crux-${{ runner.os }}-main-${{ hashFiles('scripts/setup-crux.sh') }}-v1
-          restore-keys: |
-            crux-${{ runner.os }}-main-
-            
-      - name: Setup Crux dependency
-        if: needs.changes.outputs.crux == 'true' && steps.cache-crux.outputs.cache-hit != 'true'
-        run: |
-          ./scripts/setup-crux.sh
-        env:
-          CI: true
-          CRUX_REPO: "redbadger/crux"
-          CRUX_REF: "main"
-          CRUX_PATH: "../crux"
           
       - name: Cache Rust toolchain
         uses: actions/cache@v4
@@ -180,26 +154,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
-      - name: Cache Crux dependency
-        if: needs.changes.outputs.crux == 'true'
-        uses: actions/cache@v4
-        id: cache-crux
-        with:
-          path: ../crux
-          key: crux-${{ runner.os }}-main-${{ hashFiles('scripts/setup-crux.sh') }}-v1
-          restore-keys: |
-            crux-${{ runner.os }}-main-
-            
-      - name: Setup Crux dependency
-        if: needs.changes.outputs.crux == 'true' && steps.cache-crux.outputs.cache-hit != 'true'
-        run: |
-          ./scripts/setup-crux.sh
-        env:
-          CI: true
-          CRUX_REPO: "redbadger/crux"
-          CRUX_REF: "main"
-          CRUX_PATH: "../crux"
           
       - name: Cache Rust toolchain
         uses: actions/cache@v4
@@ -254,26 +208,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
-      - name: Cache Crux dependency
-        if: needs.changes.outputs.crux == 'true'
-        uses: actions/cache@v4
-        id: cache-crux
-        with:
-          path: ../crux
-          key: crux-${{ runner.os }}-main-${{ hashFiles('scripts/setup-crux.sh') }}-v1
-          restore-keys: |
-            crux-${{ runner.os }}-main-
-            
-      - name: Setup Crux dependency
-        if: needs.changes.outputs.crux == 'true' && steps.cache-crux.outputs.cache-hit != 'true'
-        run: |
-          ./scripts/setup-crux.sh
-        env:
-          CI: true
-          CRUX_REPO: "redbadger/crux"
-          CRUX_REF: "main"
-          CRUX_PATH: "../crux"
           
       - name: Cache Rust toolchain
         uses: actions/cache@v4
@@ -348,26 +282,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        
-      - name: Cache Crux dependency
-        if: needs.changes.outputs.crux == 'true'
-        uses: actions/cache@v4
-        id: cache-crux
-        with:
-          path: ../crux
-          key: crux-${{ runner.os }}-main-${{ hashFiles('scripts/setup-crux.sh') }}-v1
-          restore-keys: |
-            crux-${{ runner.os }}-main-
-            
-      - name: Setup Crux dependency
-        if: needs.changes.outputs.crux == 'true' && steps.cache-crux.outputs.cache-hit != 'true'
-        run: |
-          ./scripts/setup-crux.sh
-        env:
-          CI: true
-          CRUX_REPO: "redbadger/crux"
-          CRUX_REF: "main"
-          CRUX_PATH: "../crux"
 
       - name: Setup Xcode
         uses: maxim-lobanov/setup-xcode@v1
@@ -614,26 +528,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
-      - name: Cache Crux dependency
-        if: needs.changes.outputs.crux == 'true'
-        uses: actions/cache@v4
-        id: cache-crux
-        with:
-          path: ../crux
-          key: crux-${{ runner.os }}-main-${{ hashFiles('scripts/setup-crux.sh') }}-v1
-          restore-keys: |
-            crux-${{ runner.os }}-main-
-            
-      - name: Setup Crux dependency
-        if: needs.changes.outputs.crux == 'true' && steps.cache-crux.outputs.cache-hit != 'true'
-        run: |
-          ./scripts/setup-crux.sh
-        env:
-          CI: true
-          CRUX_REPO: "redbadger/crux"
-          CRUX_REF: "main"
-          CRUX_PATH: "../crux"
           
       - name: Cache Rust toolchain
         uses: actions/cache@v4
