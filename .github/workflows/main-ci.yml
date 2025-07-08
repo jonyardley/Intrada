@@ -345,10 +345,9 @@ jobs:
         id: cache-typegen
         with:
           path: |
-            iOS/SharedTypes
             shared/generated
             shared/Shared
-          key: typegen-${{ hashFiles('shared/src/**/*.rs', 'typegen.sh') }}-v2
+          key: typegen-${{ hashFiles('shared/src/**/*.rs', 'typegen.sh') }}-v3
           restore-keys: |
             typegen-
             
@@ -688,13 +687,17 @@ jobs:
 
       - name: Deploy to Vercel
         run: |
-          cd web-leptos
+          # Verify dist contents exist
+          ls -la web-leptos/dist/
+          
           if [ "${{ github.ref }}" = "refs/heads/main" ]; then
             # Production deployment for main branch
             vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
-            vercel deploy dist --prod --token=${{ secrets.VERCEL_TOKEN }}
+            echo "Deploying to production..."
+            vercel deploy web-leptos/dist --prod --token=${{ secrets.VERCEL_TOKEN }}
           else
             # Preview deployment for other branches
             vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
-            vercel deploy dist --token=${{ secrets.VERCEL_TOKEN }}
+            echo "Deploying to preview..."
+            vercel deploy web-leptos/dist --token=${{ secrets.VERCEL_TOKEN }}
           fi 

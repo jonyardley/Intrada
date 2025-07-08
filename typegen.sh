@@ -11,9 +11,11 @@ popd
 
 cargo run --package shared --bin crux_cli --features cli -- \
     codegen \
+        --crate-name shared \
         --java com.crux.example.counter.shared \
         --swift SharedTypes
         # --typescript shared_types
 
 cargo run --package shared --bin crux_cli --features cli -- \
-    bindgen
+    bindgen \
+        --crate-name shared
