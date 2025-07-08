@@ -47,16 +47,13 @@ To build the application for production:
 
 ```bash
 cd web-leptos
-npm run build:all
+npm run build
 ```
 
-Or manually:
-
-```bash
-cd web-leptos
-npx tailwindcss -i ./style/input.css -o ./style/output.css
-trunk build --release
-```
+This will automatically:
+1. Build the CSS with Tailwind
+2. Build the Rust/WASM application with Trunk in release mode
+3. Create optimized production assets in the `dist/` folder
 
 ## Running core tests
 
