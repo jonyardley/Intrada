@@ -359,6 +359,8 @@ jobs:
         run: |
           cd web-leptos
           npm run build
+          # Ensure vercel.json is properly formatted
+          ./fix-vercel-config.sh
           
       - name: Upload dist artifact
         uses: actions/upload-artifact@v4
