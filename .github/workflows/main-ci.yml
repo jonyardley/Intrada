@@ -578,23 +578,25 @@ jobs:
         uses: actions/cache@v4
         id: cache-appwrite-cli
         with:
-          path: ~/.local/bin/appwrite
-          key: appwrite-cli-${{ runner.os }}-v1
+          path: ~/.npm
+          key: appwrite-cli-${{ runner.os }}-5.0.0-v1
           restore-keys: |
-            appwrite-cli-${{ runner.os }}-
+            appwrite-cli-${{ runner.os }}-5.0.0-
             
       - name: Install Appwrite CLI
         if: steps.cache-appwrite-cli.outputs.cache-hit != 'true'
         run: |
-          curl -sL https://appwrite.io/cli/install.sh | bash
+          # Install compatible CLI version for Appwrite server 1.5.7
+          npm install -g appwrite-cli@5.0.0
           # Make sure it's in PATH
           export PATH="$HOME/.local/bin:$PATH"
           echo "$HOME/.local/bin" >> $GITHUB_PATH
           
       - name: Configure Appwrite CLI
         run: |
-          export PATH="$HOME/.local/bin:$PATH"
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          # CLI is installed via npm, so it should be in npm global bin
+          export PATH="$(npm bin --global):$PATH"
+          echo "$(npm bin --global)" >> $GITHUB_PATH
           # Test CLI installation
           appwrite --version || echo "Appwrite CLI not found in PATH"
           
@@ -630,7 +632,7 @@ jobs:
           sleep 10
           
           # Configure Appwrite CLI to use local instance
-          export PATH="$HOME/.local/bin:$PATH"
+          export PATH="$(npm bin --global):$PATH"
           echo "Configuring Appwrite CLI..."
           appwrite client --endpoint http://localhost/v1 --self-signed true
           
@@ -638,6 +640,9 @@ jobs:
           echo "Building CLI tool..."
           cd infrastructure
           cargo build --bin appwrite_cli --features cli --release
+          
+          # Go back to workspace root where the binary is actually built
+          cd ..
           
           # Verify CLI tool was built
           echo "Checking CLI tool..."

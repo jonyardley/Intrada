@@ -1,15 +1,12 @@
 {
-    "routes": [
+    "rewrites": [
         {
-            "src": "/(.*\\.(js|css|wasm|png|ico|svg|jpg|jpeg|gif|webp))",
-            "dest": "/$1",
-            "headers": {
-                "Cache-Control": "public, max-age=31536000, immutable"
-            }
+            "source": "/(.*\\.(js|css|wasm|png|ico|svg|jpg|jpeg|gif|webp))",
+            "destination": "/$1"
         },
         {
-            "src": "/.*",
-            "dest": "/index.html"
+            "source": "/(.*)",
+            "destination": "/index.html"
         }
     ],
     "headers": [
@@ -19,6 +16,15 @@
                 {
                     "key": "Content-Type",
                     "value": "application/wasm"
+                }
+            ]
+        },
+        {
+            "source": "**/*.(js|css|wasm|png|ico|svg|jpg|jpeg|gif|webp)",
+            "headers": [
+                {
+                    "key": "Cache-Control",
+                    "value": "public, max-age=31536000, immutable"
                 }
             ]
         }
