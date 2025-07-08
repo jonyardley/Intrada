@@ -11,7 +11,7 @@
     ],
     "headers": [
         {
-            "source": "**/*.wasm",
+            "source": "/(.*)\\.wasm",
             "headers": [
                 {
                     "key": "Content-Type",
@@ -20,7 +20,7 @@
             ]
         },
         {
-            "source": "**/*.(js|css|wasm|png|ico|svg|jpg|jpeg|gif|webp)",
+            "source": "/(.*\\.(js|css|wasm|png|ico|svg|jpg|jpeg|gif|webp))",
             "headers": [
                 {
                     "key": "Cache-Control",
