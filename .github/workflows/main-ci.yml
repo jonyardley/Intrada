@@ -433,7 +433,8 @@ jobs:
           path: |
             iOS/SharedTypes
             shared/generated
-          key: typegen-${{ hashFiles('shared/src/**/*.rs', 'typegen.sh') }}-v1
+            shared/Shared
+          key: typegen-${{ hashFiles('shared/src/**/*.rs', 'typegen.sh') }}-v2
           restore-keys: |
             typegen-
             
@@ -700,8 +701,9 @@ jobs:
       - name: Configure Appwrite CLI
         run: |
           export PATH="$HOME/.local/bin:$PATH"
-          # Configure for local development (Docker instance)
-          appwrite client --endpoint http://localhost/v1
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          # Test CLI installation
+          appwrite --version || echo "Appwrite CLI not found in PATH"
           
       - name: Set up Docker Buildx
         if: github.ref != 'refs/heads/main'
@@ -721,10 +723,15 @@ jobs:
         run: |
           # Setup local Appwrite for development
           docker compose up -d
-          timeout 120 bash -c 'until curl -s http://localhost/v1/health > /dev/null 2>&1; do sleep 2; done'
+          echo "Waiting for Appwrite to be ready..."
+          timeout 180 bash -c 'until curl -s http://localhost/v1/health > /dev/null 2>&1; do echo "Waiting for Appwrite..."; sleep 5; done'
+          
+          # Configure Appwrite CLI to use local instance
+          export PATH="$HOME/.local/bin:$PATH"
+          appwrite client --endpoint http://localhost/v1
           
           cd infrastructure
-          ../target/release/appwrite_cli deploy \
+          ./target/release/appwrite_cli deploy \
             --database-id $APPWRITE_DATABASE_ID \
             --database-name "$APPWRITE_DATABASE_NAME" \
             --environment development
@@ -752,14 +759,17 @@ jobs:
         uses: actions/cache@v4
         id: cache-vercel
         with:
-          path: ~/.npm
-          key: vercel-cli-${{ runner.os }}-v1
+          path: |
+            ~/.npm
+            ~/.npm-global
+          key: vercel-cli-${{ runner.os }}-v2
           restore-keys: |
             vercel-cli-${{ runner.os }}-
             
       - name: Install Vercel CLI
-        if: steps.cache-vercel.outputs.cache-hit != 'true'
-        run: npm install --global vercel@latest
+        run: |
+          npm install --global vercel@latest
+          echo "$(npm bin --global)" >> $GITHUB_PATH
 
       - name: Deploy to Vercel
         run: |
