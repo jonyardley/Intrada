@@ -739,7 +739,7 @@ jobs:
           # Configure Appwrite CLI to use local instance
           export PATH="$HOME/.local/bin:$PATH"
           echo "Configuring Appwrite CLI..."
-          appwrite client --endpoint http://localhost/v1 --self-signed
+          appwrite client --endpoint http://localhost/v1 --self-signed true
           
           cd infrastructure
           ./target/release/appwrite_cli deploy \
