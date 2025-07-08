@@ -79,10 +79,10 @@ feature/*, develop, etc → development environment
 ```bash
 # 1. Build Rust library
 cd shared
-cargo lipo --release --targets aarch64-apple-ios,aarch64-apple-ios-sim,x86_64-apple-ios
+cargo build --lib --release
 
 # 2. Generate Swift bindings
-cargo run --bin uniffi-bindgen generate src/shared.udl --language swift --out-dir ../iOS/Generated/
+./typegen.sh
 
 # 3. Open in Xcode
 cd ../iOS

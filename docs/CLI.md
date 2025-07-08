@@ -10,7 +10,7 @@ cd infrastructure
 cargo build --bin appwrite_cli --features cli --release
 ```
 
-The binary will be available at `target/release/appwrite_cli`.
+The binary will be available at `infrastructure/target/release/appwrite_cli`.
 
 ## Configuration
 
@@ -38,16 +38,17 @@ Generate Appwrite CLI commands from Rust types:
 
 ```bash
 # Generate shell script
-./appwrite_cli generate
+cd infrastructure
+./target/release/appwrite_cli generate
 
 # Generate JSON schema
-./appwrite_cli generate --format json
+./target/release/appwrite_cli generate --format json
 
 # Generate Terraform configuration
-./appwrite_cli generate --format terraform
+./target/release/appwrite_cli generate --format terraform
 
 # Save to file
-./appwrite_cli generate --output schema.sh
+./target/release/appwrite_cli generate --output schema.sh
 ```
 
 ### Validate Schema
@@ -55,10 +56,11 @@ Generate Appwrite CLI commands from Rust types:
 Validate the current schema for consistency:
 
 ```bash
-./appwrite_cli validate
+cd infrastructure
+./target/release/appwrite_cli validate
 
 # Custom database settings
-./appwrite_cli validate --database-id my_db --database-name "My Database"
+./target/release/appwrite_cli validate --database-id my_db --database-name "My Database"
 ```
 
 ### Deploy Schema
@@ -66,17 +68,18 @@ Validate the current schema for consistency:
 Deploy schema to Appwrite:
 
 ```bash
+cd infrastructure
 # Deploy to development
-./appwrite_cli deploy
+./target/release/appwrite_cli deploy
 
 # Deploy to specific environment
-./appwrite_cli deploy --environment staging
+./target/release/appwrite_cli deploy --environment staging
 
 # Dry run (see what would be executed)
-./appwrite_cli deploy --dry-run
+./target/release/appwrite_cli deploy --dry-run
 
 # Deploy with current schema for diff
-./appwrite_cli deploy --current-schema current.json
+./target/release/appwrite_cli deploy --current-schema current.json
 ```
 
 ### Show Schema Diff
@@ -84,11 +87,12 @@ Deploy schema to Appwrite:
 Compare current and target schemas:
 
 ```bash
+cd infrastructure
 # Show differences
-./appwrite_cli diff
+./target/release/appwrite_cli diff
 
 # Compare with specific schema file
-./appwrite_cli diff --current-schema current.json
+./target/release/appwrite_cli diff --current-schema current.json
 ```
 
 ### Deploy Platforms
@@ -96,17 +100,18 @@ Compare current and target schemas:
 Deploy platform configurations (iOS, Android, Web):
 
 ```bash
+cd infrastructure
 # Deploy platforms using environment variables
-./appwrite_cli deploy-platforms
+./target/release/appwrite_cli deploy-platforms
 
 # Deploy with specific bundle IDs
-./appwrite_cli deploy-platforms \
+./target/release/appwrite_cli deploy-platforms \
   --ios-bundle-id com.mycompany.myapp \
   --android-bundle-id com.mycompany.myapp \
   --web-hostname myapp.com
 
 # Dry run
-./appwrite_cli deploy-platforms --dry-run
+./target/release/appwrite_cli deploy-platforms --dry-run
 ```
 
 ## Configuration Options
@@ -151,40 +156,43 @@ The CLI supports different environments for deployment:
 make start
 
 # 2. Deploy schema
-./appwrite_cli deploy --environment dev
+cd infrastructure
+./target/release/appwrite_cli deploy --environment dev
 
 # 3. Deploy platforms
-./appwrite_cli deploy-platforms --dry-run  # check first
-./appwrite_cli deploy-platforms
+./target/release/appwrite_cli deploy-platforms --dry-run  # check first
+./target/release/appwrite_cli deploy-platforms
 ```
 
 ### CI/CD Pipeline
 
 ```bash
+cd infrastructure
 # 1. Validate schema
-./appwrite_cli validate
+./target/release/appwrite_cli validate
 
 # 2. Show what would change
-./appwrite_cli deploy --dry-run --environment staging
+./target/release/appwrite_cli deploy --dry-run --environment staging
 
 # 3. Deploy to staging
-./appwrite_cli deploy --environment staging
+./target/release/appwrite_cli deploy --environment staging
 
 # 4. Deploy platforms
-./appwrite_cli deploy-platforms --environment staging
+./target/release/appwrite_cli deploy-platforms --environment staging
 ```
 
 ### Schema Migration
 
 ```bash
+cd infrastructure
 # 1. Generate current schema backup
-./appwrite_cli generate --format json --output current-schema.json
+./target/release/appwrite_cli generate --format json --output current-schema.json
 
 # 2. Show differences after code changes
-./appwrite_cli diff --current-schema current-schema.json
+./target/release/appwrite_cli diff --current-schema current-schema.json
 
 # 3. Deploy changes
-./appwrite_cli deploy --current-schema current-schema.json
+./target/release/appwrite_cli deploy --current-schema current-schema.json
 ```
 
 ## Error Handling

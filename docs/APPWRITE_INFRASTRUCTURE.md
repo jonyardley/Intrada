@@ -51,15 +51,17 @@ The infrastructure system consists of several key components:
 
 1. **Start Local Appwrite Environment**
    ```bash
-   ./scripts/setup-local-appwrite.sh
+   make setup
    ```
    
-   This script will:
+   This command will:
+   - Setup Crux dependency
    - Start Appwrite using Docker Compose
    - Install and configure Appwrite CLI
    - Create a development project
    - Generate and deploy your schema
    - Configure iOS app settings
+   - Create `.env.local` configuration file
 
 2. **Verify Installation**
    - Open http://localhost/console
@@ -102,6 +104,17 @@ cargo run --bin appwrite_cli --features cli -- generate \
     --format shell
 ```
 
+Or use the built binary:
+```bash
+cd infrastructure
+cargo build --bin appwrite_cli --features cli --release
+./target/release/appwrite_cli generate \
+    --database-id intrada_db \
+    --database-name "Intrada Database" \
+    --output ../appwrite-generated \
+    --format shell
+```
+
 Supported formats:
 - `shell` - Bash deployment scripts
 - `json` - JSON schema definition
@@ -123,9 +136,16 @@ cd infrastructure
 cargo run --bin appwrite_cli --features cli -- deploy \
     --database-id intrada_db \
     --database-name "Intrada Database" \
-    --endpoint https://your-appwrite.io/v1 \
-    --project-id your-project-id \
-    --api-key your-api-key
+    --environment dev
+```
+
+For specific environments:
+```bash
+cd infrastructure
+cargo run --bin appwrite_cli --features cli -- deploy \
+    --database-id intrada_db \
+    --database-name "Intrada Database" \
+    --environment production
 ```
 
 ### Dry Run Deployment
@@ -135,9 +155,7 @@ cd infrastructure
 cargo run --bin appwrite_cli --features cli -- deploy \
     --database-id intrada_db \
     --database-name "Intrada Database" \
-    --endpoint https://your-appwrite.io/v1 \
-    --project-id your-project-id \
-    --api-key your-api-key \
+    --environment dev \
     --dry-run
 ```
 

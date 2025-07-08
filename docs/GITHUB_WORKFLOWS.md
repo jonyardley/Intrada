@@ -9,7 +9,6 @@ This document describes our intelligent GitHub Actions workflows for CI/CD, test
 | Workflow | Purpose | Triggers | Smart Features |
 |----------|---------|----------|----------------|
 | **Main CI Pipeline** | All-in-one CI/CD with path filtering | Push/PR with intelligent job selection | Only runs relevant jobs based on file changes |
-| **Test Crux Setup** | Validate Crux dependency setup | Manual/Crux-specific changes | Focused testing for dependency management |
 
 ## 🧠 **Smart Pipeline Architecture**
 

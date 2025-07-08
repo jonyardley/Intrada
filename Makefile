@@ -14,11 +14,14 @@ help:
 	@echo "  clean     - Clean up Docker resources"
 	@echo "  test      - Run tests against Appwrite"
 	@echo "  verify    - Verify Appwrite setup"
-	@echo "  status    - Show current status"\n	@echo "  setup-crux - Setup Crux dependency for local development"\n	@echo "  setup-crux - Setup Crux dependency for local development"
+	@echo "  status    - Show current status"
+	@echo "  setup-crux - Setup Crux dependency for local development"
 
 # Complete setup from scratch
 setup:
-	@echo "🦀 Setting up Crux dependency first..."\n	@./scripts/setup-crux.sh\n	@./scripts/setup-appwrite-complete.sh
+	@echo "🦀 Setting up Crux dependency first..."
+	@./scripts/setup-crux.sh
+	@./scripts/setup-appwrite-complete.sh
 
 # Completely tear down environment
 teardown:
@@ -30,7 +33,7 @@ start:
 	@echo "🚀 Starting Appwrite services..."
 	@docker compose up -d
 	@echo "⏳ Waiting for services to be ready..."
-	@timeout 120 bash -c 'until curl -s http://localhost/v1/health > /dev/null 2>&1; do sleep 2; done' || (echo "❌ Services failed to start"; exit 1)
+	@timeout 120 bash -c 'until curl -s http://localhost/health > /dev/null 2>&1; do sleep 2; done' || (echo "❌ Services failed to start"; exit 1)
 	@echo "✅ Appwrite services started!"
 
 # Stop Appwrite services
@@ -109,7 +112,7 @@ dev-deploy:
 ci-setup:
 	@echo "🏗️ Setting up CI environment..."
 	@docker compose up -d
-	@timeout 120 bash -c 'until curl -s http://localhost/v1/health > /dev/null 2>&1; do sleep 2; done'
+	@timeout 120 bash -c 'until curl -s http://localhost/health > /dev/null 2>&1; do sleep 2; done'
 	@cd infrastructure && cargo build --bin appwrite_cli --features cli --release
 	@echo "✅ CI setup complete!"
 
@@ -117,4 +120,10 @@ ci-cleanup:
 	@echo "🧹 Cleaning up CI environment..."
 	@docker compose down -v
 	@docker system prune -f
-	@echo "✅ CI cleanup complete!"\n\n# Setup Crux dependency for local development\nsetup-crux:\n	@echo "🦀 Setting up Crux dependency..."\n	@./scripts/setup-crux.sh\n	@echo "✅ Crux setup complete!" 
+	@echo "✅ CI cleanup complete!"
+
+# Setup Crux dependency for local development
+setup-crux:
+	@echo "🦀 Setting up Crux dependency..."
+	@./scripts/setup-crux.sh
+	@echo "✅ Crux setup complete!" 

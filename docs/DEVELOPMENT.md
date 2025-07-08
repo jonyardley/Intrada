@@ -1,5 +1,21 @@
 # Local Development Setup
 
+## Quick Start
+
+Use the automated setup for instant development environment:
+
+```bash
+# Complete setup (recommended for first time)
+make setup
+
+# Or individual commands
+make start          # Start Appwrite services
+make dev-deploy     # Deploy schema changes
+make status         # Check current status
+make stop           # Stop services
+make teardown       # Complete cleanup
+```
+
 ## Appwrite Configuration
 
 Your local Appwrite instance is running at: http://localhost/v1
@@ -8,23 +24,23 @@ Appwrite Console: http://localhost/console
 ### Project Details
 - Project ID: intrada-dev
 - Database ID: intrada_db
-- API Key: YOUR_API_KEY_HERE
+- API Key: Created automatically during setup
 
 ### Environment Variables
 The following environment variables are configured in `.env.local`:
 
 ```
-APPWRITE_ENDPOINT=http://localhost
+APPWRITE_ENDPOINT=http://localhost/v1
 APPWRITE_PROJECT_ID=intrada-dev
 APPWRITE_DATABASE_ID=intrada_db
-APPWRITE_API_KEY=YOUR_API_KEY_HERE
+APPWRITE_API_KEY=auto-generated-api-key
 ```
 
 ## Managing Schema
 
 ### Generate Schema
 ```bash
-cd shared
+cd infrastructure
 cargo run --bin appwrite_cli --features cli -- generate \
     --database-id intrada_db \
     --database-name "Intrada Database" \
@@ -33,18 +49,16 @@ cargo run --bin appwrite_cli --features cli -- generate \
 
 ### Deploy Schema Changes
 ```bash
-cd shared
+cd infrastructure
 cargo run --bin appwrite_cli --features cli -- deploy \
     --database-id intrada_db \
     --database-name "Intrada Database" \
-    --endpoint http://localhost \
-    --project-id intrada-dev \
-    --api-key YOUR_API_KEY_HERE
+    --environment dev
 ```
 
 ### Validate Schema
 ```bash
-cd shared
+cd infrastructure
 cargo run --bin appwrite_cli --features cli -- validate \
     --database-id intrada_db \
     --database-name "Intrada Database"
@@ -66,17 +80,15 @@ docker compose logs -f appwrite
 
 ### Reset Database
 ```bash
-# Stop services
+# Complete reset (recommended)
+make teardown
+make setup
+
+# Or manual reset
 docker compose down
-
-# Remove volumes (this will delete all data)
 docker volume rm $(docker volume ls -q | grep appwrite)
-
-# Start again
 docker compose up -d
-
-# Re-run this setup script
-./scripts/setup-local-appwrite.sh
+./scripts/setup-appwrite-complete.sh
 ```
 
 ## Troubleshooting
