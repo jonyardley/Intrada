@@ -1,6 +1,7 @@
 {
-  "framework": null,
+  "buildCommand": "echo 'Using pre-built files' && ls -la dist/",
   "outputDirectory": "dist",
+  "installCommand": "echo 'No installation needed - using pre-built files'",
   "rewrites": [
     {
       "source": "/(.*)",
