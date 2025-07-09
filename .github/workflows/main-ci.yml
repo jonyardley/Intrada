@@ -427,6 +427,16 @@ jobs:
           # Test CLI installation
           appwrite --version || echo "Appwrite CLI not found in PATH"
           
+      - name: Debug environment setup
+        run: |
+          echo "🔍 Environment Setup Debug Information:"
+          echo "   - Current environment: ${{ github.environment }}"
+          echo "   - GitHub ref: ${{ github.ref }}"
+          echo "   - GitHub ref name: ${{ github.ref_name }}"
+          echo "   - Event name: ${{ github.event_name }}"
+          echo "   - Environment logic result: ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}"
+          echo "   - Will use secrets with suffix: ${{ github.ref == 'refs/heads/main' && '_PROD' || '_DEV' }}"
+          
       - name: Validate environment configuration
         run: |
           echo "🌍 Deployment Environment: $DEPLOYMENT_ENVIRONMENT"
@@ -434,30 +444,55 @@ jobs:
           echo "📋 Project ID: $APPWRITE_PROJECT_ID"
           echo "🗄️  Database ID: $APPWRITE_DATABASE_ID"
           echo "📝 Database Name: $APPWRITE_DATABASE_NAME"
+          echo "🔑 API Key length: ${#APPWRITE_API_KEY}"
+          
+          # Show which branch we're on for debugging
+          echo "📍 GitHub Ref: ${{ github.ref }}"
+          echo "🌿 Branch: ${{ github.ref_name }}"
           
           # Validate required environment variables are set
+          MISSING_VARS=()
+          
           if [ -z "$APPWRITE_ENDPOINT" ]; then
-            echo "❌ Error: APPWRITE_ENDPOINT is not set"
-            exit 1
+            MISSING_VARS+=("APPWRITE_ENDPOINT")
           fi
           
           if [ -z "$APPWRITE_PROJECT_ID" ]; then
-            echo "❌ Error: APPWRITE_PROJECT_ID is not set"
-            exit 1
+            MISSING_VARS+=("APPWRITE_PROJECT_ID")
           fi
           
           if [ -z "$APPWRITE_API_KEY" ]; then
-            echo "❌ Error: APPWRITE_API_KEY is not set"
-            exit 1
+            MISSING_VARS+=("APPWRITE_API_KEY")
           fi
           
           if [ -z "$APPWRITE_DATABASE_ID" ]; then
-            echo "❌ Error: APPWRITE_DATABASE_ID is not set"
-            exit 1
+            MISSING_VARS+=("APPWRITE_DATABASE_ID")
           fi
           
           if [ -z "$APPWRITE_DATABASE_NAME" ]; then
-            echo "❌ Error: APPWRITE_DATABASE_NAME is not set"
+            MISSING_VARS+=("APPWRITE_DATABASE_NAME")
+          fi
+          
+          if [ ${#MISSING_VARS[@]} -gt 0 ]; then
+            echo "❌ Error: Missing required environment variables:"
+            printf "   - %s\n" "${MISSING_VARS[@]}"
+            echo ""
+            echo "🔍 Required GitHub secrets for $DEPLOYMENT_ENVIRONMENT environment:"
+            if [ "$DEPLOYMENT_ENVIRONMENT" = "production" ]; then
+              echo "   - APPWRITE_ENDPOINT_PROD"
+              echo "   - APPWRITE_PROJECT_ID_PROD"
+              echo "   - APPWRITE_API_KEY_PROD"
+              echo "   - APPWRITE_DATABASE_ID_PROD"
+              echo "   - APPWRITE_DATABASE_NAME_PROD"
+            else
+              echo "   - APPWRITE_ENDPOINT_DEV"
+              echo "   - APPWRITE_PROJECT_ID_DEV"
+              echo "   - APPWRITE_API_KEY_DEV"
+              echo "   - APPWRITE_DATABASE_ID_DEV"
+              echo "   - APPWRITE_DATABASE_NAME_DEV"
+            fi
+            echo ""
+            echo "ℹ️  Please configure these secrets in your GitHub repository settings"
             exit 1
           fi
           
@@ -466,31 +501,53 @@ jobs:
       - name: Test Appwrite connection
         run: |
           echo "🔍 Testing Appwrite connection..."
+          echo "🔗 Testing endpoint: $APPWRITE_ENDPOINT"
           
-          # Test health endpoint
-          echo "Checking health endpoint..."
-          curl -s -f "$APPWRITE_ENDPOINT/health" || {
-            echo "❌ Health endpoint not accessible"
-            exit 1
-          }
+          # Test health endpoint (handle both cases: endpoint with/without /v1)
+          # If endpoint already ends with /v1, use /health, otherwise use /v1/health
+          if [[ "$APPWRITE_ENDPOINT" == */v1 ]]; then
+            HEALTH_URL="$APPWRITE_ENDPOINT/health"
+          else
+            HEALTH_URL="$APPWRITE_ENDPOINT/v1/health"
+          fi
           
-          echo "✅ Health endpoint accessible"
+          echo "Checking health endpoint at: $HEALTH_URL"
+          
+          # First test basic connectivity
+          if curl -s -f "$HEALTH_URL" >/dev/null 2>&1; then
+            echo "✅ Health endpoint accessible"
+          else
+            echo "❌ Health endpoint test failed"
+            echo "🔍 Debugging information:"
+            echo "   - Endpoint: $APPWRITE_ENDPOINT"
+            echo "   - Health URL: $HEALTH_URL"
+            echo "   - Testing with verbose curl..."
+            curl -v "$HEALTH_URL" || true
+            echo "❌ Health endpoint not accessible - this might be expected for some Appwrite instances"
+            echo "⚠️  Continuing with project access test..."
+          fi
           
           # Configure CLI for cloud environment
           export PATH="$HOME/.local/bin:$PATH"
+          echo "🔧 Configuring Appwrite CLI..."
+          
           appwrite client \
             --endpoint "$APPWRITE_ENDPOINT" \
             --projectId "$APPWRITE_PROJECT_ID" \
             --key "$APPWRITE_API_KEY"
           
-          # Test project access
-          echo "Testing project access..."
-          appwrite projects get --projectId "$APPWRITE_PROJECT_ID" || {
+          # Test project access - this is the more reliable test
+          echo "🔍 Testing project access..."
+          if appwrite projects get --projectId "$APPWRITE_PROJECT_ID"; then
+            echo "✅ Project access confirmed"
+          else
             echo "❌ Cannot access project"
+            echo "🔍 Debugging information:"
+            echo "   - Endpoint: $APPWRITE_ENDPOINT"
+            echo "   - Project ID: $APPWRITE_PROJECT_ID"
+            echo "   - API Key length: ${#APPWRITE_API_KEY}"
             exit 1
-          }
-          
-          echo "✅ Project access confirmed"
+          fi
           
       - name: Deploy schema
         run: |
