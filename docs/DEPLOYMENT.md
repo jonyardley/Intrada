@@ -199,6 +199,11 @@ make teardown
 - Check API key has required permissions
 - Test connection to production endpoint
 
+### **CLI Issues**
+- Appwrite CLI expects kebab-case options (e.g., `--project-id` not `--projectId`)
+- Health endpoint may return 401 for guest users - this is expected
+- API key permissions: Ensure key has required scopes for database operations
+
 ### **Common Fixes**
 ```bash
 # Re-run failed deployment

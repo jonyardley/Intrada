@@ -533,12 +533,12 @@ jobs:
           
           appwrite client \
             --endpoint "$APPWRITE_ENDPOINT" \
-            --projectId "$APPWRITE_PROJECT_ID" \
+            --project-id "$APPWRITE_PROJECT_ID" \
             --key "$APPWRITE_API_KEY"
           
           # Test project access - this is the more reliable test
           echo "🔍 Testing project access..."
-          if appwrite projects get --projectId "$APPWRITE_PROJECT_ID"; then
+          if appwrite projects get --project-id "$APPWRITE_PROJECT_ID"; then
             echo "✅ Project access confirmed"
           else
             echo "❌ Cannot access project"
@@ -567,7 +567,7 @@ jobs:
           
           # Check if database exists
           export PATH="$HOME/.local/bin:$PATH"
-          appwrite databases get --databaseId "$APPWRITE_DATABASE_ID" || {
+          appwrite databases get --database-id "$APPWRITE_DATABASE_ID" || {
             echo "❌ Database not found after deployment"
             exit 1
           }
@@ -576,7 +576,7 @@ jobs:
           
           # Check collections
           echo "Checking collections..."
-          appwrite databases listCollections --databaseId "$APPWRITE_DATABASE_ID" || {
+          appwrite databases list-collections --database-id "$APPWRITE_DATABASE_ID" || {
             echo "❌ Cannot list collections"
             exit 1
           }
