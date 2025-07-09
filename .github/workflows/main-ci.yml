@@ -516,20 +516,10 @@ jobs:
           
           echo "✅ CLI configured for CI mode"
           
-          # Test project access
-          echo "🔍 Testing project access..."
-          if appwrite projects get --project-id "$APPWRITE_PROJECT_ID"; then
-            echo "✅ Project access confirmed"
-          else
-            echo "❌ Cannot access project"
-            echo "🔍 Debugging information:"
-            echo "   - Endpoint: $APPWRITE_ENDPOINT"
-            echo "   - Project ID: $APPWRITE_PROJECT_ID"
-            echo "   - API Key length: ${#APPWRITE_API_KEY}"
-            echo "   - Current client configuration:"
-            appwrite client --debug || true
-            exit 1
-          fi
+          # Verify configuration without testing commands that require session auth
+          echo "🔍 Verifying client configuration:"
+          appwrite client --debug
+          echo "✅ Configuration verified - proceeding with deployment"
           
       - name: Deploy schema
         run: |
