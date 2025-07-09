@@ -13,16 +13,16 @@ We use a simple deployment strategy with two environments:
 
 ### **Development Environment**
 - **Triggers**: Any branch except `main` (develop, feature/*, appwrite-config, etc.)
-- **Appwrite**: Local Docker instance 
-- **Project ID**: `intrada-dev`
-- **Endpoint**: `http://localhost/v1`
+- **Appwrite**: Cloud development instance
+- **Project ID**: From `APPWRITE_PROJECT_ID_DEV` secret
+- **Endpoint**: From `APPWRITE_ENDPOINT_DEV` secret
 - **Bundle ID**: `com.jonyardley.intrada.development`
-- **Hostname**: `localhost`
+- **Hostname**: Development domain
 
 ### **Production Environment**  
 - **Triggers**: `main` branch only
-- **Appwrite**: Remote production instance
-- **Project ID**: From `APPWRITE_PROJECT_ID_PROD` secret (fallback: `intrada-prod`)
+- **Appwrite**: Cloud production instance
+- **Project ID**: From `APPWRITE_PROJECT_ID_PROD` secret
 - **Endpoint**: From `APPWRITE_ENDPOINT_PROD` secret
 - **Bundle ID**: `com.jonyardley.intrada.production`  
 - **Hostname**: `intrada.app`
@@ -36,7 +36,7 @@ We use a simple deployment strategy with two environments:
 
 ### **Push to Any Branch (except main)**
 - ✅ Run tests and validation
-- ✅ **Deploy to Development** (local Docker Appwrite)
+- ✅ **Deploy to Development** (cloud development Appwrite)
 - ✅ Full integration testing
 
 ### **Push to Main Branch**
@@ -49,16 +49,28 @@ We use a simple deployment strategy with two environments:
 
 ### **Secrets** (Repository Settings → Secrets and variables → Actions)
 
+For **Development** deployments, add these secrets:
+
+```bash
+APPWRITE_ENDPOINT_DEV=https://your-development-appwrite.com/v1
+APPWRITE_PROJECT_ID_DEV=your-development-project-id
+APPWRITE_API_KEY_DEV=your-development-api-key
+APPWRITE_DATABASE_ID_DEV=your-development-database-id
+APPWRITE_DATABASE_NAME_DEV=your-development-database-name
+```
+
 For **Production** deployments, add these secrets:
 
 ```bash
 APPWRITE_ENDPOINT_PROD=https://your-production-appwrite.com/v1
 APPWRITE_PROJECT_ID_PROD=your-production-project-id  
 APPWRITE_API_KEY_PROD=your-production-api-key
+APPWRITE_DATABASE_ID_PROD=your-production-database-id
+APPWRITE_DATABASE_NAME_PROD=your-production-database-name
 ```
 
-### **No Secrets Needed for Development**
-Development uses local Docker and creates projects automatically.
+### **Environment Protection**
+Both development and production environments use GitHub environment protection rules for security.
 
 ## 📋 **Workflow Examples**
 
@@ -143,10 +155,10 @@ You can monitor deployments in GitHub:
 
 ## 🔧 **Local Development**
 
-For local development, use the Makefile:
+For local development (separate from CI/CD), use the Makefile:
 
 ```bash
-# Start local environment
+# Start local Docker environment
 make setup
 
 # Deploy changes locally  
@@ -159,28 +171,33 @@ make status
 make teardown
 ```
 
+**Note**: Local development uses Docker containers, while CI/CD uses cloud Appwrite instances.
+
 ## 📈 **Monitoring**
 
 ### **Development Deployments**
 - Check GitHub Actions logs
-- Local Appwrite console: `http://localhost/console`
+- Development Appwrite console: Use your development instance URL
+- Monitor development environment metrics
 
 ### **Production Deployments**  
 - Check GitHub Actions logs
-- Production Appwrite console
-- Monitor application metrics
+- Production Appwrite console: Use your production instance URL
+- Monitor production application metrics
 
 ## 🚨 **Troubleshooting**
 
 ### **Development Issues**
-- Docker not starting: Check Docker Desktop
-- Port conflicts: Stop other local services
-- API key issues: Workflow recreates them automatically
+- Check development secrets are configured correctly
+- Verify development Appwrite cloud instance is accessible
+- Check API key has required permissions
+- Test connection to development endpoint
 
 ### **Production Issues**
-- Check secrets are configured correctly
+- Check production secrets are configured correctly
 - Verify production Appwrite is accessible
 - Check API key has required permissions
+- Test connection to production endpoint
 
 ### **Common Fixes**
 ```bash

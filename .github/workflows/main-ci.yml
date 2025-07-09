@@ -374,11 +374,20 @@ jobs:
           path: ./web-leptos/dist
           retention-days: 1
 
-  # Optimized Appwrite deployment using pre-built CLI
+  # Appwrite deployment (development for non-main branches, production for main)
   appwrite-deploy:
     runs-on: ubuntu-latest
     needs: [changes, rust-checks, build-artifacts]
     if: needs.changes.outputs.appwrite == 'true' && (github.event_name == 'push' || github.event_name == 'pull_request') && needs.build-artifacts.result == 'success'
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
+    env:
+      # Environment-specific configuration
+      APPWRITE_ENDPOINT: ${{ github.ref == 'refs/heads/main' && secrets.APPWRITE_ENDPOINT_PROD || secrets.APPWRITE_ENDPOINT_DEV }}
+      APPWRITE_PROJECT_ID: ${{ github.ref == 'refs/heads/main' && secrets.APPWRITE_PROJECT_ID_PROD || secrets.APPWRITE_PROJECT_ID_DEV }}
+      APPWRITE_API_KEY: ${{ github.ref == 'refs/heads/main' && secrets.APPWRITE_API_KEY_PROD || secrets.APPWRITE_API_KEY_DEV }}
+      APPWRITE_DATABASE_ID: ${{ github.ref == 'refs/heads/main' && secrets.APPWRITE_DATABASE_ID_PROD || secrets.APPWRITE_DATABASE_ID_DEV }}
+      APPWRITE_DATABASE_NAME: ${{ github.ref == 'refs/heads/main' && secrets.APPWRITE_DATABASE_NAME_PROD || secrets.APPWRITE_DATABASE_NAME_DEV }}
+      DEPLOYMENT_ENVIRONMENT: ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -418,107 +427,105 @@ jobs:
           # Test CLI installation
           appwrite --version || echo "Appwrite CLI not found in PATH"
           
-      - name: Set up Docker Buildx
-        if: github.ref != 'refs/heads/main'
-        uses: docker/setup-buildx-action@v3
-        
-      - name: Cache Docker layers
-        if: github.ref != 'refs/heads/main'
-        uses: actions/cache@v4
-        with:
-          path: /tmp/.buildx-cache
-          key: docker-${{ runner.os }}-${{ github.sha }}
-          restore-keys: |
-            docker-${{ runner.os }}-
-            
-      - name: Deploy to development
-        if: github.ref != 'refs/heads/main'
+      - name: Validate environment configuration
         run: |
-          # Setup local Appwrite for development
-          docker compose up -d
-          echo "Waiting for Appwrite to be ready..."
+          echo "🌍 Deployment Environment: $DEPLOYMENT_ENVIRONMENT"
+          echo "🔗 Appwrite Endpoint: $APPWRITE_ENDPOINT"
+          echo "📋 Project ID: $APPWRITE_PROJECT_ID"
+          echo "🗄️  Database ID: $APPWRITE_DATABASE_ID"
+          echo "📝 Database Name: $APPWRITE_DATABASE_NAME"
           
-          # Wait for Appwrite services to start
-          echo "Waiting for Appwrite services to start..."
-          timeout 180 bash -c 'until curl -s http://localhost > /dev/null 2>&1; do echo "Waiting for Appwrite to respond..."; sleep 5; done'
+          # Validate required environment variables are set
+          if [ -z "$APPWRITE_ENDPOINT" ]; then
+            echo "❌ Error: APPWRITE_ENDPOINT is not set"
+            exit 1
+          fi
           
-          # Wait for API to be fully ready (health endpoint doesn't require auth)
-          echo "Waiting for Appwrite API to be ready..."
-          timeout 120 bash -c 'until curl -s -o /dev/null -w "%{http_code}" http://localhost/v1/health | grep -q "200"; do echo "Waiting for API health..."; sleep 5; done'
+          if [ -z "$APPWRITE_PROJECT_ID" ]; then
+            echo "❌ Error: APPWRITE_PROJECT_ID is not set"
+            exit 1
+          fi
           
-          # Additional wait for all services to stabilize
-          echo "Allowing services to stabilize..."
-          sleep 15
+          if [ -z "$APPWRITE_API_KEY" ]; then
+            echo "❌ Error: APPWRITE_API_KEY is not set"
+            exit 1
+          fi
           
-          # Configure Appwrite CLI to use local instance
-          export PATH="$HOME/.local/bin:$PATH"
-          echo "Configuring Appwrite CLI..."
+          if [ -z "$APPWRITE_DATABASE_ID" ]; then
+            echo "❌ Error: APPWRITE_DATABASE_ID is not set"
+            exit 1
+          fi
           
-          # Wait a bit more for Appwrite to be fully ready
-          echo "Additional wait for Appwrite services..."
-          sleep 20
+          if [ -z "$APPWRITE_DATABASE_NAME" ]; then
+            echo "❌ Error: APPWRITE_DATABASE_NAME is not set"
+            exit 1
+          fi
           
-          # Test basic connectivity (non-failing check)
-          echo "Testing Appwrite connectivity..."
-          echo "Response from health endpoint:"
-          curl -s http://localhost/v1/health || echo "Health endpoint test completed"
+          echo "✅ Environment validation passed"
           
-          # Configure CLI for self-signed certificates first
-          echo "Setting up CLI for local development..."
-          appwrite client --endpoint http://localhost/v1 --self-signed true
+      - name: Test Appwrite connection
+        run: |
+          echo "🔍 Testing Appwrite connection..."
           
-          # Create the project using the console API first
-          echo "Creating project via console API..."
-          PROJECT_RESPONSE=$(curl -s -X POST "http://localhost/v1/projects" \
-            -H "Content-Type: application/json" \
-            -H "X-Appwrite-Project: console" \
-            -d '{
-              "projectId": "'$APPWRITE_PROJECT_ID'",
-              "name": "Intrada Dev"
-            }' 2>/dev/null || echo '{"$id":"exists"}')
-          
-          echo "Project response: $PROJECT_RESPONSE"
-          
-          # Create appwrite.json for CLI configuration
-          cat > appwrite.json << 'EOF'
-          {
-            "projectId": "intrada-dev",
-            "projectName": "Intrada Dev"
+          # Test health endpoint
+          echo "Checking health endpoint..."
+          curl -s -f "$APPWRITE_ENDPOINT/health" || {
+            echo "❌ Health endpoint not accessible"
+            exit 1
           }
-          EOF
           
-          # Configure the CLI client settings with the project
-          appwrite client --endpoint http://localhost/v1 --projectId $APPWRITE_PROJECT_ID --self-signed true
+          echo "✅ Health endpoint accessible"
           
-          # For local development, we don't need to authenticate - the project should work
-          echo "Testing CLI configuration..."
-          appwrite projects get --projectId $APPWRITE_PROJECT_ID || echo "Project access failed - proceeding anyway for local development"
-          
-          echo "CLI configuration complete - proceeding with deployment"
-          
-          # Deploy schema using pre-built CLI
-          echo "Deploying schema..."
-          
-          # Make sure the CLI tool is executable
-          chmod +x ./bin/appwrite_cli
-          
-          # Show current directory and appwrite.json content for debugging
-          echo "Current directory: $(pwd)"
-          echo "Contents of appwrite.json:"
-          cat appwrite.json || echo "No appwrite.json found"
-          
-          # Ensure PATH includes local bin
+          # Configure CLI for cloud environment
           export PATH="$HOME/.local/bin:$PATH"
+          appwrite client \
+            --endpoint "$APPWRITE_ENDPOINT" \
+            --projectId "$APPWRITE_PROJECT_ID" \
+            --key "$APPWRITE_API_KEY"
           
-          # Test that appwrite CLI can see the project
-          echo "Testing Appwrite CLI project access..."
-          appwrite projects get --projectId $APPWRITE_PROJECT_ID || echo "Cannot access project - proceeding anyway"
+          # Test project access
+          echo "Testing project access..."
+          appwrite projects get --projectId "$APPWRITE_PROJECT_ID" || {
+            echo "❌ Cannot access project"
+            exit 1
+          }
           
-          # Deploy using our custom CLI tool (it uses the appwrite.json config we created)
+          echo "✅ Project access confirmed"
+          
+      - name: Deploy schema
+        run: |
+          echo "🚀 Deploying schema to $DEPLOYMENT_ENVIRONMENT environment..."
+          
+          # Deploy using our custom CLI tool
           ./bin/appwrite_cli deploy \
-            --database-id $APPWRITE_DATABASE_ID \
+            --database-id "$APPWRITE_DATABASE_ID" \
             --database-name "$APPWRITE_DATABASE_NAME" \
-            --environment development
+            --environment "$DEPLOYMENT_ENVIRONMENT"
+          
+          echo "✅ Schema deployment completed"
+          
+      - name: Verify deployment
+        run: |
+          echo "🔍 Verifying deployment..."
+          
+          # Check if database exists
+          export PATH="$HOME/.local/bin:$PATH"
+          appwrite databases get --databaseId "$APPWRITE_DATABASE_ID" || {
+            echo "❌ Database not found after deployment"
+            exit 1
+          }
+          
+          echo "✅ Database verified"
+          
+          # Check collections
+          echo "Checking collections..."
+          appwrite databases listCollections --databaseId "$APPWRITE_DATABASE_ID" || {
+            echo "❌ Cannot list collections"
+            exit 1
+          }
+          
+          echo "✅ Collections verified"
+          echo "🎉 Deployment verification completed successfully"
 
   # Vercel deployment (preview for branches, production for main)
   vercel-deploy:
