@@ -463,24 +463,45 @@ jobs:
           }
           EOF
           
-          # Debug: Check Appwrite instance status
-          echo "Checking Appwrite instance status..."
-          curl -s http://localhost/v1/health || echo "Health check failed"
+          # Configure Appwrite CLI for local development
+          echo "Configuring Appwrite CLI for local development..."
           
-          # Try to list projects to see if we can access the console
-          echo "Checking console access..."
-          curl -s http://localhost/v1/projects || echo "Console access failed"
+          # Create the project using the console API directly
+          echo "Creating project using console API..."
           
-          # Configure the CLI client
-          appwrite client --endpoint http://localhost/v1 --projectId $APPWRITE_PROJECT_ID --selfSigned true
+          # Create project via console API
+          curl -X POST "http://localhost/v1/projects" \
+            -H "Content-Type: application/json" \
+            -H "X-Appwrite-Project: console" \
+            -H "X-Appwrite-Key: ${{ secrets.APPWRITE_API_KEY }}" \
+            -d '{
+              "projectId": "'$APPWRITE_PROJECT_ID'",
+              "name": "Intrada Dev",
+              "teamId": "console"
+            }' || echo "Project creation failed or already exists"
           
-          # Try to create the project (this might fail if authentication is needed)
-          echo "Attempting to create project..."
-          appwrite projects create --projectId $APPWRITE_PROJECT_ID --name "Intrada Dev" || echo "Project creation failed - might need authentication"
+          # Create an API key for the project
+          echo "Creating API key for project..."
+          API_KEY_RESPONSE=$(curl -X POST "http://localhost/v1/projects/$APPWRITE_PROJECT_ID/keys" \
+            -H "Content-Type: application/json" \
+            -H "X-Appwrite-Project: console" \
+            -H "X-Appwrite-Key: ${{ secrets.APPWRITE_API_KEY }}" \
+            -d '{
+              "name": "CI/CD Key",
+              "scopes": ["databases.read", "databases.write"]
+            }' || echo '{}')
           
-          # List projects to see what exists
-          echo "Listing existing projects..."
-          appwrite projects list || echo "Could not list projects"
+          # Extract the API key from the response
+          PROJECT_API_KEY=$(echo "$API_KEY_RESPONSE" | jq -r '.secret' || echo "")
+          
+          echo "Project API Key: ${PROJECT_API_KEY:0:10}..." || echo "No API key created"
+          
+          # Configure the CLI with the project
+          echo "Configuring Appwrite CLI..."
+          appwrite client --endpoint http://localhost/v1 --projectId $APPWRITE_PROJECT_ID --key "$PROJECT_API_KEY" --selfSigned true || \
+          appwrite client --endpoint http://localhost/v1 --projectId $APPWRITE_PROJECT_ID --key ${{ secrets.APPWRITE_API_KEY }} --selfSigned true
+          
+          echo "CLI configuration complete - proceeding with deployment"
           
           # Deploy schema using pre-built CLI
           echo "Deploying schema..."
