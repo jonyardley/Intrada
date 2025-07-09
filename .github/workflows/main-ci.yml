@@ -530,14 +530,12 @@ jobs:
       VERCEL_ORG_ID: ${{ secrets.ORG_ID }}
       VERCEL_PROJECT_ID: ${{ secrets.PROJECT_ID }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
+      # Only download the dist artifact - no repository checkout
       - name: Download dist artifact
         uses: actions/download-artifact@v4
         with:
           name: dist
-          path: ./web-leptos/dist
+          path: ./dist
 
       - name: Cache Vercel CLI
         uses: actions/cache@v4
@@ -561,25 +559,25 @@ jobs:
           echo "📦 Deploying build artifacts only..."
           
           # Verify dist contents exist and show what we're deploying
-          echo "Contents of web-leptos/dist/:"
-          ls -la web-leptos/dist/
+          echo "Contents of dist/:"
+          ls -la dist/
           
           # Verify we have the essential files
-          if [ ! -f "web-leptos/dist/index.html" ]; then
+          if [ ! -f "dist/index.html" ]; then
             echo "❌ Error: index.html not found in dist directory"
             exit 1
           fi
           
-          if [ ! -f "web-leptos/dist/vercel.json" ]; then
+          if [ ! -f "dist/vercel.json" ]; then
             echo "❌ Error: vercel.json not found in dist directory"
             exit 1
           fi
           
           echo "Vercel configuration:"
-          cat web-leptos/dist/vercel.json
+          cat dist/vercel.json
           
           # Change to the dist directory to deploy only its contents
-          cd web-leptos/dist
+          cd dist
           
           # Deploy from the dist directory directly as a static site
           if [ "${{ github.ref }}" = "refs/heads/main" ]; then
