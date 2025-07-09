@@ -86,7 +86,7 @@ jobs:
       - name: Generate cache key
         id: cache-key
         run: |
-          key="build-artifacts-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-v1"
+          key="build-artifacts-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-v2"
           echo "key=$key" >> $GITHUB_OUTPUT
           
       - name: Cache build artifacts
@@ -102,7 +102,7 @@ jobs:
             infrastructure/target/
           key: ${{ steps.cache-key.outputs.key }}
           restore-keys: |
-            build-artifacts-${{ runner.os }}-v1
+            build-artifacts-${{ runner.os }}-v2
             
       - name: Build all artifacts
         if: steps.cache-artifacts.outputs.cache-hit != 'true'
@@ -163,7 +163,7 @@ jobs:
             infrastructure/target/
           key: ${{ needs.build-artifacts.outputs.cache-key }}
           restore-keys: |
-            build-artifacts-${{ runner.os }}-v1
+            build-artifacts-${{ runner.os }}-v2
             
       - name: Check code formatting
         run: cargo fmt --all -- --check
@@ -323,7 +323,7 @@ jobs:
             web-leptos/target/
           key: ${{ needs.build-artifacts.outputs.cache-key }}
           restore-keys: |
-            build-artifacts-${{ runner.os }}-v1
+            build-artifacts-${{ runner.os }}-v2
 
       - name: Cache trunk
         uses: actions/cache@v4
@@ -498,17 +498,21 @@ jobs:
 
       - name: Deploy to Vercel
         run: |
+          # Deploy pre-built artifacts from GitHub Action
+          echo "📦 Deploying pre-built artifacts to Vercel..."
+          
           # Verify dist contents exist
+          echo "Contents of web-leptos/dist/:"
           ls -la web-leptos/dist/
           
           if [ "${{ github.ref }}" = "refs/heads/main" ]; then
             # Production deployment for main branch
-            vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
             echo "Deploying to production..."
+            vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
             vercel deploy web-leptos/dist --prod --token=${{ secrets.VERCEL_TOKEN }}
           else
             # Preview deployment for other branches
-            vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
             echo "Deploying to preview..."
+            vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
             vercel deploy web-leptos/dist --token=${{ secrets.VERCEL_TOKEN }}
           fi 
