@@ -452,7 +452,35 @@ jobs:
           # Configure Appwrite CLI to use local instance
           export PATH="$(npm bin --global):$PATH"
           echo "Configuring Appwrite CLI..."
+          
+          # Create appwrite.json configuration file for the CLI
+          cat > appwrite.json << 'EOF'
+          {
+            "projectId": "intrada-dev",
+            "projectName": "Intrada Dev",
+            "endpoint": "http://localhost/v1",
+            "selfSigned": true
+          }
+          EOF
+          
+          # Debug: Check Appwrite instance status
+          echo "Checking Appwrite instance status..."
+          curl -s http://localhost/v1/health || echo "Health check failed"
+          
+          # Try to list projects to see if we can access the console
+          echo "Checking console access..."
+          curl -s http://localhost/v1/projects || echo "Console access failed"
+          
+          # Configure the CLI client
           appwrite client --endpoint http://localhost/v1 --projectId $APPWRITE_PROJECT_ID --selfSigned true
+          
+          # Try to create the project (this might fail if authentication is needed)
+          echo "Attempting to create project..."
+          appwrite projects create --projectId $APPWRITE_PROJECT_ID --name "Intrada Dev" || echo "Project creation failed - might need authentication"
+          
+          # List projects to see what exists
+          echo "Listing existing projects..."
+          appwrite projects list || echo "Could not list projects"
           
           # Deploy schema using pre-built CLI
           echo "Deploying schema..."
