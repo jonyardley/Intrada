@@ -93,7 +93,7 @@ impl MigrationPlanner {
 
                 rollback_operations.push(MigrationOperation::Custom {
                     command: format!(
-                        "appwrite databases delete --database-id {}",
+                        "appwrite databases delete --databaseId {}",
                         target_schema.database_id
                     ),
                     description: "Delete the entire database".to_string(),
@@ -412,7 +412,7 @@ impl MigrationExecutor {
             match operation {
                 MigrationOperation::CreateDatabase { database_id, name } => {
                     commands.push(format!(
-                        "appwrite databases create --database-id {database_id} --name \"{name}\""
+                        "appwrite databases create --databaseId {database_id} --name \"{name}\""
                     ));
                 }
                 MigrationOperation::CreateCollection {
@@ -420,7 +420,7 @@ impl MigrationExecutor {
                     collection,
                 } => {
                     commands.push(format!(
-                        "appwrite databases createCollection --database-id {} --collection-id {} --name \"{}\"",
+                        "appwrite databases createCollection --databaseId {} --collectionId {} --name \"{}\"",
                         database_id, collection.collection_id, collection.name
                     ));
 
@@ -450,7 +450,7 @@ impl MigrationExecutor {
                 } => {
                     if let Some(new_name) = name {
                         commands.push(format!(
-                            "appwrite databases updateCollection --database-id {database_id} --collection-id {collection_id} --name \"{new_name}\""
+                            "appwrite databases updateCollection --databaseId {database_id} --collectionId {collection_id} --name \"{new_name}\""
                         ));
                     }
                     // Note: Permissions would require separate API calls
@@ -460,7 +460,7 @@ impl MigrationExecutor {
                     collection_id,
                 } => {
                     commands.push(format!(
-                        "appwrite databases deleteCollection --database-id {database_id} --collection-id {collection_id}"
+                        "appwrite databases deleteCollection --databaseId {database_id} --collectionId {collection_id}"
                     ));
                 }
                 MigrationOperation::CreateAttribute {
@@ -483,7 +483,7 @@ impl MigrationExecutor {
                 } => {
                     if let Some(req) = required {
                         commands.push(format!(
-                            "appwrite databases updateStringAttribute --database-id {database_id} --collection-id {collection_id} --key {key} --required {req}"
+                            "appwrite databases updateStringAttribute --databaseId {database_id} --collectionId {collection_id} --key {key} --required {req}"
                         ));
                     }
                     // Note: Default values would require different API calls
@@ -494,7 +494,7 @@ impl MigrationExecutor {
                     key,
                 } => {
                     commands.push(format!(
-                        "appwrite databases deleteAttribute --database-id {database_id} --collection-id {collection_id} --key {key}"
+                        "appwrite databases deleteAttribute --databaseId {database_id} --collectionId {collection_id} --key {key}"
                     ));
                 }
                 MigrationOperation::CreateIndex {
@@ -514,7 +514,7 @@ impl MigrationExecutor {
                     key,
                 } => {
                     commands.push(format!(
-                        "appwrite databases deleteIndex --database-id {database_id} --collection-id {collection_id} --key {key}"
+                        "appwrite databases deleteIndex --databaseId {database_id} --collectionId {collection_id} --key {key}"
                     ));
                 }
                 MigrationOperation::Custom {
@@ -537,26 +537,26 @@ impl MigrationExecutor {
         match &attr.attribute_type {
             crate::schema::AttributeType::String { size } => {
                 vec![format!(
-                    "appwrite databases createStringAttribute --database-id {} --collection-id {} --key {} --size {} --required {} --array {}",
+                    "appwrite databases createStringAttribute --databaseId {} --collectionId {} --key {} --size {} --required {} --array {}",
                     database_id, collection_id, attr.key, size.unwrap_or(255), attr.required, attr.array
                 )]
             }
             crate::schema::AttributeType::Integer { min, max } => {
                 vec![format!(
-                    "appwrite databases createIntegerAttribute --database-id {} --collection-id {} --key {} --required {} --array {} --min {} --max {}",
+                    "appwrite databases createIntegerAttribute --databaseId {} --collectionId {} --key {} --required {} --array {} --min {} --max {}",
                     database_id, collection_id, attr.key, attr.required, attr.array,
                     min.unwrap_or(i64::MIN), max.unwrap_or(i64::MAX)
                 )]
             }
             crate::schema::AttributeType::Boolean => {
                 vec![format!(
-                    "appwrite databases createBooleanAttribute --database-id {} --collection-id {} --key {} --required {} --array {}",
+                    "appwrite databases createBooleanAttribute --databaseId {} --collectionId {} --key {} --required {} --array {}",
                     database_id, collection_id, attr.key, attr.required, attr.array
                 )]
             }
             crate::schema::AttributeType::DateTime => {
                 vec![format!(
-                    "appwrite databases createDatetimeAttribute --database-id {} --collection-id {} --key {} --required {} --array {}",
+                    "appwrite databases createDatetimeAttribute --databaseId {} --collectionId {} --key {} --required {} --array {}",
                     database_id, collection_id, attr.key, attr.required, attr.array
                 )]
             }
@@ -567,7 +567,7 @@ impl MigrationExecutor {
                     .collect::<Vec<_>>()
                     .join(" ");
                 vec![format!(
-                    "appwrite databases createEnumAttribute --database-id {} --collection-id {} --key {} {} --required {} --array {}",
+                    "appwrite databases createEnumAttribute --databaseId {} --collectionId {} --key {} {} --required {} --array {}",
                     database_id, collection_id, attr.key, elements_args, attr.required, attr.array
                 )]
             }
@@ -594,7 +594,7 @@ impl MigrationExecutor {
             .join(" ");
 
         format!(
-            "appwrite databases createIndex --database-id {} --collection-id {} --key {} --type {} {}",
+            "appwrite databases createIndex --databaseId {} --collectionId {} --key {} --type {} {}",
             database_id, collection_id, index.key, index_type, attributes_args
         )
     }
@@ -608,7 +608,7 @@ impl MigrationExecutor {
             match operation {
                 MigrationOperation::CreateDatabase { database_id, name } => {
                     commands.push(format!(
-                        "appwrite databases create --database-id {database_id} --name \"{name}\""
+                        "appwrite databases create --databaseId {database_id} --name \"{name}\""
                     ));
                 }
                 MigrationOperation::DeleteCollection {
@@ -616,7 +616,7 @@ impl MigrationExecutor {
                     collection_id,
                 } => {
                     commands.push(format!(
-                        "appwrite databases deleteCollection --database-id {database_id} --collection-id {collection_id}"
+                        "appwrite databases deleteCollection --databaseId {database_id} --collectionId {collection_id}"
                     ));
                 }
                 MigrationOperation::Custom {
