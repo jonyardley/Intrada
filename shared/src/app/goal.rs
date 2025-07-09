@@ -1,7 +1,9 @@
 use crate::app::model::Model;
+use facet::Facet;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
+#[derive(Facet, Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
+#[repr(C)]
 pub enum GoalStatus {
     #[default]
     NotStarted,
@@ -9,7 +11,7 @@ pub enum GoalStatus {
     Completed,
 }
 
-#[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
+#[derive(Facet, Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
 pub struct PracticeGoal {
     pub id: String,
     pub name: String,

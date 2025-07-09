@@ -1,80 +1,63 @@
 # Scripts Directory
 
-This directory contains essential automation scripts for managing your Appwrite infrastructure.
+This directory contains essential automation scripts for managing your development environment.
 
-## 🚀 Main Scripts
+## 🚀 Available Scripts
 
-### `setup-appwrite-complete.sh`
-**The primary setup script** - Run this for complete Appwrite environment setup.
+### `validate-workflow.sh`
+Validates GitHub workflow configuration and job dependencies.
 
 **What it does:**
-- Starts Docker containers
-- Creates/validates API keys
-- Deploys database schema
-- Registers platforms (iOS/Web)
-- Creates environment configuration
-- Verifies complete setup
+- Checks workflow job dependencies
+- Validates GitHub Actions configuration
+- Ensures proper CI/CD pipeline setup
 
 **Usage:**
 ```bash
-./scripts/setup-appwrite-complete.sh [api-key]
+./scripts/validate-workflow.sh
 ```
 
-### `setup-platforms-simple.sh`
-**Platform registration fallback** - Use when platform registration fails in main script.
+### `validate-ci-optimization.sh`
+Validates CI optimization and deployment processes.
 
 **What it does:**
-- Registers iOS and Web platforms via direct API
-- Multiple fallback methods
-- Checks for existing platforms
-- Smart error handling
+- Checks CI optimization settings
+- Validates deployment configuration
+- Ensures efficient build processes
 
 **Usage:**
 ```bash
-./scripts/setup-platforms-simple.sh
+./scripts/validate-ci-optimization.sh
 ```
 
-### `teardown-local-appwrite.sh`
-**Complete cleanup** - Removes all Docker containers, volumes, and local config.
+### `ci-migration.sh`
+Handles CI migration and deployment processes.
 
 **What it does:**
-- Stops and removes containers
-- Cleans up volumes and networks
-- Removes local environment files
-- Resets CLI configuration
+- Manages CI migration tasks
+- Handles deployment coordination
+- Ensures smooth transitions
 
 **Usage:**
 ```bash
-./scripts/teardown-local-appwrite.sh
+./scripts/ci-migration.sh
 ```
 
-## 🔧 Typical Workflow
+## 🔧 Development Workflow
 
-1. **Initial Setup:**
-   ```bash
-   ./scripts/setup-appwrite-complete.sh
-   ```
+Use these scripts to validate and optimize your development and deployment processes:
 
-2. **If platform registration fails:**
-   ```bash
-   ./scripts/setup-platforms-simple.sh
-   ```
-
-3. **Clean slate for testing:**
-   ```bash
-   ./scripts/teardown-local-appwrite.sh
-   ./scripts/setup-appwrite-complete.sh
-   ```
-
-## 📋 Removed Scripts
-
-The following scripts were consolidated or removed:
-- ❌ `setup-platforms.sh` - Functionality moved to `setup-appwrite-complete.sh`
-- ❌ `setup-platforms-docker.sh` - Complex workaround no longer needed
-- ❌ `deploy-schema.sh` - Auto-generated, functionality in CLI tool
-
-For advanced schema deployment, use the CLI tool directly:
 ```bash
-cd infrastructure
-cargo run --bin appwrite_cli deploy --environment dev
-``` 
+# Validate workflows
+./scripts/validate-workflow.sh
+
+# Check CI optimization
+./scripts/validate-ci-optimization.sh
+
+# Handle CI migration
+./scripts/ci-migration.sh
+```
+
+## 📋 Notes
+
+These scripts are designed to work with the project's CI/CD pipeline and development workflow. They help ensure that deployments and builds are properly configured and optimized. 

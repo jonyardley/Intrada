@@ -5,6 +5,7 @@ use crux_core::{
     App, Command,
 };
 use crux_http::protocol::HttpRequest;
+use facet::Facet;
 use serde::{Deserialize, Serialize};
 
 pub mod goal;
@@ -32,7 +33,8 @@ pub use dev::*;
 // *************
 // EVENTS
 // *************
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Facet, Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[repr(C)]
 pub enum Event {
     AddStudy(Study),
     EditStudy(Study),
@@ -50,14 +52,14 @@ pub enum Event {
     },
     SetActiveSession(String),
     StartSession(String, String),
-    UnsetActiveSession(),
+    UnsetActiveSession,
     EndSession(String, String),
     EditSessionNotes(String, String),
 
     AddStudySession(StudySession),
     UpdateStudySession(StudySession),
 
-    SetDevData(),
+    SetDevData,
     Nothing,
 
     // Simple Appwrite Events - just for loading goals
@@ -65,37 +67,12 @@ pub enum Event {
     CreateGoal(PracticeGoal),
     UpdateGoal(PracticeGoal),
     DeleteGoal(String),
-    #[serde(skip)]
-    GoalsLoaded(AppwriteResult),
 }
 
-// Simple Appwrite Operation - just for getting goals
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
-pub enum AppwriteOperation {
-    GetGoals,
-    CreateGoal(PracticeGoal),
-    UpdateGoal(PracticeGoal),
-    DeleteGoal(String),
-}
-
-impl Operation for AppwriteOperation {
-    type Output = AppwriteResult;
-}
-
-// Appwrite Result - wrapper for different response types
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
-pub enum AppwriteResult {
-    Goals(Vec<PracticeGoal>),
-    Goal(PracticeGoal), // For create/update operations
-    Success,            // For delete operations
-    Error(String),      // For error handling
-}
-
-#[effect]
+#[effect(facet_typegen)]
 pub enum Effect {
     Render(RenderOperation),
     Http(HttpRequest),
-    Appwrite(AppwriteOperation),
 }
 
 // *************
@@ -139,7 +116,7 @@ impl App for Chopin {
             Event::EndSession(session_id, timestamp) => {
                 Self::handle_session_result(end_session(&session_id, timestamp, model), "end");
             }
-            Event::UnsetActiveSession() => remove_active_session(model),
+            Event::UnsetActiveSession => remove_active_session(model),
             Event::EditSessionNotes(session_id, notes) => {
                 edit_session_notes(&session_id, notes, model);
             }
@@ -147,25 +124,16 @@ impl App for Chopin {
             Event::AddStudySession(session) => add_study_session(session, model),
             Event::UpdateStudySession(session) => update_study_session(session, model),
 
-            Event::SetDevData() => dev::set_dev_data(model),
+            Event::SetDevData => dev::set_dev_data(model),
 
             //Do Nothing
             Event::Nothing => (),
 
             // Simple Appwrite Events - just for loading goals
-            Event::LoadGoals => return Self::appwrite_command(AppwriteOperation::GetGoals),
-            Event::CreateGoal(goal) => {
-                return Self::appwrite_command(AppwriteOperation::CreateGoal(goal))
-            }
-            Event::UpdateGoal(goal) => {
-                return Self::appwrite_command(AppwriteOperation::UpdateGoal(goal))
-            }
-            Event::DeleteGoal(goal_id) => {
-                return Self::appwrite_command(AppwriteOperation::DeleteGoal(goal_id))
-            }
-            Event::GoalsLoaded(result) => {
-                Self::handle_goals_result(result, model);
-            }
+            Event::LoadGoals => return Command::done(),
+            Event::CreateGoal(goal) => return Command::done(),
+            Event::UpdateGoal(goal) => return Command::done(),
+            Event::DeleteGoal(goal_id) => return Command::done(),
         }
 
         render()
@@ -185,41 +153,10 @@ impl App for Chopin {
 }
 
 impl Chopin {
-    /// Helper function to create Appwrite commands
-    fn appwrite_command(operation: AppwriteOperation) -> Command<Effect, Event> {
-        Command::request_from_shell(operation).then_send(Event::GoalsLoaded)
-    }
-
     /// Helper function to handle session operation results
     fn handle_session_result(result: Result<(), &'static str>, operation: &str) {
         if let Err(e) = result {
             println!("Failed to {operation} session: {e}");
-        }
-    }
-
-    /// Helper function to handle goals loaded results
-    fn handle_goals_result(result: AppwriteResult, model: &mut Model) {
-        match result {
-            AppwriteResult::Goals(goals) => {
-                model.goals = goals;
-            }
-            AppwriteResult::Goal(goal) => {
-                // Handle single goal result (for create/update)
-                if let Some(existing_index) = model.goals.iter().position(|g| g.id == goal.id) {
-                    model.goals[existing_index] = goal;
-                } else {
-                    model.goals.push(goal);
-                }
-            }
-            AppwriteResult::Success => {
-                // Handle success case (for delete operations)
-                // No action needed for now
-            }
-            AppwriteResult::Error(error_message) => {
-                // Handle error case
-                println!("Appwrite error: {error_message}");
-                // You might want to set an error state in the model
-            }
         }
     }
 

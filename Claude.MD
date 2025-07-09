@@ -21,8 +21,8 @@ We're building intelligent tools that transform practice from routine into a del
 - **Core Logic**: Rust + Crux (cross-platform business logic)
 - **iOS**: Swift + SwiftUI (native iOS experience)
 - **Web**: Leptos (Rust-based reactive web framework)
-- **Backend**: Appwrite (BaaS with Docker for local development)
-- **Infrastructure**: Rust-based CLI tools for schema management
+- **Backend**: Custom Rust server with Axum
+- **Infrastructure**: Rust-based server deployment
 - **Styling**: Tailwind CSS for consistent, utility-first design
 
 ## 🛠️ Development Practices
@@ -31,16 +31,15 @@ We're building intelligent tools that transform practice from routine into a del
 - **`shared/`**: Core business logic, models, and cross-platform code
 - **`iOS/`**: Native iOS application
 - **`web-leptos/`**: Web application
-- **`infrastructure/`**: Backend schema management and deployment tools
+- **`server/`**: Backend server implementation
 - **`docs/`**: Comprehensive documentation for all aspects
 
 ### Development Workflow
 1. **Make changes** in Rust types (`shared/src/app/`)
 2. **Generate types** for other platforms using `./typegen.sh`
-3. **Validate schema** changes with CLI tools
-4. **Test locally** against local Appwrite instance
-5. **Deploy** via infrastructure tools
-6. **Update frontends** to use new functionality
+3. **Test locally** against local server
+4. **Deploy** via server deployment
+5. **Update frontends** to use new functionality
 
 ### Type-Driven Development
 - Database schemas are generated from Rust types, not defined separately
@@ -86,22 +85,22 @@ We're building intelligent tools that transform practice from routine into a del
 
 ## 🔧 Infrastructure Standards
 
-### Database Schema Management
+### Server Management
 - **Source of Truth**: Rust types in `shared/src/app/`
-- **Code Generation**: Use `infrastructure/` CLI tools
-- **Deployment**: Automated via scripts and CI/CD
-- **Environments**: Local (Docker), Staging, Production
+- **Server**: Custom Rust server with Axum
+- **Deployment**: Automated via CI/CD
+- **Environments**: Local, Staging, Production
 
 ### Local Development
 - **One Command Setup**: `make setup` should get everything running
-- **Docker-based**: Local Appwrite runs in Docker containers
+- **Local Server**: Local Rust server for development
 - **Environment Files**: `.env.local` for local configuration
 - **Hot Reload**: Development servers with live reloading
 
 ### Deployment
-- **Environment Parity**: Same schema across all environments
+- **Environment Parity**: Same server configuration across all environments
 - **Automated**: CI/CD handles deployments
-- **Rollback Capable**: Migration system supports rollbacks
+- **Rollback Capable**: Server deployment supports rollbacks
 - **Validated**: Pre-deployment validation prevents errors
 
 ## 🧪 Testing Philosophy
@@ -110,7 +109,7 @@ We're building intelligent tools that transform practice from routine into a del
 - **Unit Tests**: Core business logic in `shared/`
 - **Integration Tests**: Cross-platform functionality
 - **End-to-End**: Critical user journeys
-- **Schema Tests**: Database schema validation
+- **Server Tests**: Server API validation
 
 ### Test Data
 - Use realistic but anonymized data
@@ -153,12 +152,12 @@ We're building intelligent tools that transform practice from routine into a del
 - **Type Safety First**: Prefer solutions that leverage Rust's type system
 - **Follow Architecture**: Respect the Crux architecture and shared core principle
 - **Type-State Machines**: Maintain and extend type-state patterns for state management
-- **Infrastructure Aware**: Remember that schema changes need infrastructure updates
+- **Server Aware**: Remember that data model changes need server updates
 - **Documentation**: Include or update documentation with code changes
 
 ### Code Changes
 - **Shared Core First**: Business logic changes start in `shared/`
-- **Schema Evolution**: Database changes follow the infrastructure-as-code pattern
+- **Server Evolution**: Server changes follow the API-first pattern
 - **Test Coverage**: Include tests for new functionality
 - **Platform Consistency**: Ensure changes work across iOS and web
 
@@ -172,16 +171,15 @@ We're building intelligent tools that transform practice from routine into a del
 
 ### Adding New Data Model
 1. Define Rust type in `shared/src/app/`
-2. Implement `SchemaDefinition` in `infrastructure/src/schema.rs`
-3. Add to `SchemaBuilder` in infrastructure
-4. Deploy schema changes
-5. Update frontend code to use new model
+2. Update server API to handle new model
+3. Deploy server changes
+4. Update frontend code to use new model
 
 ### Updating Existing Model
 1. Modify Rust type in `shared/src/app/`
-2. Update schema implementation if needed
+2. Update server API if needed
 3. Plan migration (if breaking changes)
-4. Deploy schema changes
+4. Deploy server changes
 5. Update frontend code
 
 ### Bug Fixes

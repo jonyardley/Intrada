@@ -1,10 +1,11 @@
 use crate::app::model::Model;
 use crate::app::study_session::StudySession;
 use chrono::DateTime;
+use facet::Facet;
 use serde::{Deserialize, Serialize};
 
 // Common session data that all session states share
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[derive(Facet, Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct SessionData {
     id: String,
     pub goal_ids: Vec<String>,
@@ -53,25 +54,27 @@ impl SessionData {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[derive(Facet, Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[repr(C)]
 pub struct NotStartedSession {
     pub data: SessionData,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[derive(Facet, Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct StartedSession {
     pub data: SessionData,
     pub start_time: String,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[derive(Facet, Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct EndedSession {
     pub data: SessionData,
     pub start_time: String,
     pub end_time: String,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[derive(Facet, Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[repr(C)]
 pub enum PracticeSession {
     NotStarted(NotStartedSession),
     Started(StartedSession),
@@ -117,7 +120,8 @@ impl EndedSession {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default)]
+#[derive(Facet, Serialize, Deserialize, Clone, Debug, PartialEq, Default)]
+#[repr(C)]
 pub enum SessionState {
     #[default]
     NotStarted,
@@ -130,7 +134,7 @@ pub enum SessionState {
     },
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[derive(Facet, Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct PracticeSessionView {
     pub id: String,
     pub goal_ids: Vec<String>,
@@ -144,7 +148,7 @@ pub struct PracticeSessionView {
     pub is_ended: bool,
 }
 
-#[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
+#[derive(Facet, Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
 pub struct ActiveSession {
     pub id: String,
 }

@@ -3,7 +3,7 @@ packages:
   Shared:
     path: ../shared/Shared
   SharedTypes:
-    path: ../shared/generated/swift/SharedTypes
+    path: ../shared_types/generated/swift/SharedTypes
   Appwrite:
     url: https://github.com/appwrite/sdk-for-apple
     from: 4.0.0

@@ -15,7 +15,7 @@ For detailed setup instructions, see [docs/QUICKSTART.md](docs/QUICKSTART.md).
 
 - **[Quick Start Guide](docs/QUICKSTART.md)** - Get your development environment running
 - **[Development Guide](docs/DEVELOPMENT.md)** - Development workflow and best practices  
-- **[Appwrite Infrastructure](docs/APPWRITE_INFRASTRUCTURE.md)** - Backend infrastructure details
+
 
 ## Running the leptos web app
 

@@ -22,7 +22,6 @@ class Core: ObservableObject {
 
     private var handler: EffectHandler
     private var core: CoreFfi
-    public let appwriteService = AppwriteService()
 
     init() {
         self.handler = EffectHandler()
@@ -168,59 +167,7 @@ class Core: ObservableObject {
                     }
                 }
             }
-        case let .appwrite(operation):
-            Task {
-                do {
-                    let result = await handleAppwriteOperation(operation)
-                    
-                    let effects = [UInt8](core.resolve(
-                        request.id,
-                        Data(try result.bincodeSerialize()))
-                    )
-                    
-                    let requests: [Request] = try .bincodeDeserialize(input: effects)
-                    for request in requests {
-                        processEffect(request)
-                    }
-                } catch {
-                    if !isPreview {
-                        print("Warning: Failed to handle Appwrite effect: \(error)")
-                    }
-                }
-            }
         }
-    }
-    
-    func handleAppwriteOperation(_ operation: AppwriteOperation) async -> AppwriteResult {
-        switch operation {
-        case .getGoals:
-            do {
-                let goals = try await appwriteService.fetchGoals()
-                return AppwriteResult.goals(goals)
-            } catch {
-                return AppwriteResult.error(error.localizedDescription)
-            }
-        case let .createGoal(goal):
-            do {
-                let createdGoal = try await appwriteService.createGoal(goal)
-                return AppwriteResult.goal(createdGoal)
-            } catch {
-                return AppwriteResult.error(error.localizedDescription)
-            }
-        case let .updateGoal(goal):
-            do {
-                let updatedGoal = try await appwriteService.updateGoal(goal)
-                return AppwriteResult.goal(updatedGoal)
-            } catch {
-                return AppwriteResult.error(error.localizedDescription)
-            }
-        case let .deleteGoal(goalId):
-            do {
-                try await appwriteService.deleteGoal(goalId)
-                return AppwriteResult.success
-            } catch {
-                return AppwriteResult.error(error.localizedDescription)
-            }
-        }
+
     }
 }

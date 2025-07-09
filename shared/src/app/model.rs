@@ -2,6 +2,7 @@ use crate::app::{
     ActiveSession, PracticeGoal, PracticeSession, PracticeSessionView, SessionState, Study,
 };
 use chrono::{DateTime, Utc};
+use facet::Facet;
 use serde::{Deserialize, Serialize};
 
 #[derive(Default)]
@@ -14,7 +15,7 @@ pub struct Model {
 
 impl Model {}
 
-#[derive(Serialize, Deserialize, Clone, Default)]
+#[derive(Facet, Serialize, Deserialize, Clone, Default)]
 #[allow(clippy::struct_excessive_bools)]
 pub struct ViewModel {
     pub goals: Vec<PracticeGoal>,
