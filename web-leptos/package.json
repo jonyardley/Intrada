@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "npm run build:css && trunk serve",
-    "build": "npm run build:css && trunk build --release && ./fix-vercel-config.sh",
+    "build": "npm run build:css && trunk build --release",
     "watch": "trunk watch",
     "clean": "trunk clean",
     "build:css": "tailwindcss -i ./style/input.css -o ./style/output.css",

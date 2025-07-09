@@ -30,3 +30,11 @@ command_arguments = [
     "-o",
     "./dist/output.css",
 ]
+
+[[hooks]]
+stage = "build"
+command = "cp"
+command_arguments = [
+    "vercel.json",
+    "dist/vercel.json",
+]
