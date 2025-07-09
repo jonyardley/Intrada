@@ -547,27 +547,37 @@ jobs:
 
       - name: Deploy to Vercel
         run: |
-          # Deploy from web-leptos directory (monorepo setup)
-          echo "📦 Deploying from web-leptos directory..."
+          # Deploy only the build artifacts (dist directory)
+          echo "📦 Deploying build artifacts only..."
           
-          # Verify dist contents exist
+          # Verify dist contents exist and show what we're deploying
           echo "Contents of web-leptos/dist/:"
           ls -la web-leptos/dist/
           
-          # Change to web-leptos directory for deployment
-          cd web-leptos
+          # Verify we have the essential files
+          if [ ! -f "web-leptos/dist/index.html" ]; then
+            echo "❌ Error: index.html not found in dist directory"
+            exit 1
+          fi
+          
+          if [ ! -f "web-leptos/dist/vercel.json" ]; then
+            echo "❌ Error: vercel.json not found in dist directory"
+            exit 1
+          fi
           
           echo "Vercel configuration:"
-          cat vercel.json
+          cat web-leptos/dist/vercel.json
           
+          # Change to the dist directory to deploy only its contents
+          cd web-leptos/dist
+          
+          # Deploy from the dist directory directly as a static site
           if [ "${{ github.ref }}" = "refs/heads/main" ]; then
             # Production deployment for main branch
-            echo "Deploying to production..."
-            vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+            echo "Deploying to production from $(pwd)..."
             vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
           else
             # Preview deployment for other branches
-            echo "Deploying to preview..."
-            vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+            echo "Deploying to preview from $(pwd)..."
             vercel deploy --token=${{ secrets.VERCEL_TOKEN }}
           fi 
