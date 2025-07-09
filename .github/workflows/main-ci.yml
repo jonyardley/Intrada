@@ -444,7 +444,7 @@ jobs:
           
           # Wait for API to be fully ready (health endpoint doesn't require auth)
           echo "Waiting for Appwrite API to be ready..."
-          timeout 120 bash -c 'until curl -s -o /dev/null -w "%{http_code}" http://localhost/v1/health | grep -q "200\|404"; do echo "Waiting for API health..."; sleep 5; done'
+          timeout 120 bash -c 'until curl -s -o /dev/null -w "%{http_code}" http://localhost/v1/health | grep -q "200"; do echo "Waiting for API health..."; sleep 5; done'
           
           # Additional wait for all services to stabilize
           echo "Allowing services to stabilize..."
@@ -460,11 +460,12 @@ jobs:
           
           # Test basic connectivity (non-failing check)
           echo "Testing Appwrite connectivity..."
-          curl -s http://localhost || echo "Basic connectivity test completed"
+          echo "Response from health endpoint:"
+          curl -s http://localhost/v1/health || echo "Health endpoint test completed"
           
           # Configure CLI for self-signed certificates first
           echo "Setting up CLI for local development..."
-          appwrite client --endpoint http://localhost/v1 --selfSigned true
+          appwrite client --endpoint http://localhost/v1 --self-signed true
           
           # Create the project using the console API first
           echo "Creating project via console API..."
@@ -487,7 +488,7 @@ jobs:
           EOF
           
           # Configure the CLI client settings with the project
-          appwrite client --endpoint http://localhost/v1 --projectId $APPWRITE_PROJECT_ID --selfSigned true
+          appwrite client --endpoint http://localhost/v1 --projectId $APPWRITE_PROJECT_ID --self-signed true
           
           # For local development, we don't need to authenticate - the project should work
           echo "Testing CLI configuration..."
