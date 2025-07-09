@@ -498,21 +498,27 @@ jobs:
 
       - name: Deploy to Vercel
         run: |
-          # Deploy pre-built artifacts from GitHub Action
-          echo "📦 Deploying pre-built artifacts to Vercel..."
+          # Deploy from web-leptos directory (monorepo setup)
+          echo "📦 Deploying from web-leptos directory..."
           
           # Verify dist contents exist
           echo "Contents of web-leptos/dist/:"
           ls -la web-leptos/dist/
           
+          # Change to web-leptos directory for deployment
+          cd web-leptos
+          
+          echo "Vercel configuration:"
+          cat vercel.json
+          
           if [ "${{ github.ref }}" = "refs/heads/main" ]; then
             # Production deployment for main branch
             echo "Deploying to production..."
             vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
-            vercel deploy web-leptos/dist --prod --token=${{ secrets.VERCEL_TOKEN }}
+            vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
           else
             # Preview deployment for other branches
             echo "Deploying to preview..."
             vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
-            vercel deploy web-leptos/dist --token=${{ secrets.VERCEL_TOKEN }}
+            vercel deploy --token=${{ secrets.VERCEL_TOKEN }}
           fi 
