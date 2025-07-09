@@ -498,45 +498,25 @@ jobs:
           
           echo "✅ Environment validation passed"
           
-      - name: Test Appwrite connection
+      - name: Configure and test Appwrite connection
         run: |
-          echo "🔍 Testing Appwrite connection..."
-          echo "🔗 Testing endpoint: $APPWRITE_ENDPOINT"
+          echo "🔍 Configuring Appwrite CLI for CI environment..."
+          echo "🔗 Endpoint: $APPWRITE_ENDPOINT"
+          echo "📋 Project ID: $APPWRITE_PROJECT_ID"
+          echo "🔑 API Key length: ${#APPWRITE_API_KEY}"
           
-          # Test health endpoint (handle both cases: endpoint with/without /v1)
-          # If endpoint already ends with /v1, use /health, otherwise use /v1/health
-          if [[ "$APPWRITE_ENDPOINT" == */v1 ]]; then
-            HEALTH_URL="$APPWRITE_ENDPOINT/health"
-          else
-            HEALTH_URL="$APPWRITE_ENDPOINT/v1/health"
-          fi
-          
-          echo "Checking health endpoint at: $HEALTH_URL"
-          
-          # First test basic connectivity
-          if curl -s -f "$HEALTH_URL" >/dev/null 2>&1; then
-            echo "✅ Health endpoint accessible"
-          else
-            echo "❌ Health endpoint test failed"
-            echo "🔍 Debugging information:"
-            echo "   - Endpoint: $APPWRITE_ENDPOINT"
-            echo "   - Health URL: $HEALTH_URL"
-            echo "   - Testing with verbose curl..."
-            curl -v "$HEALTH_URL" || true
-            echo "❌ Health endpoint not accessible - this might be expected for some Appwrite instances"
-            echo "⚠️  Continuing with project access test..."
-          fi
-          
-          # Configure CLI for cloud environment
+          # Configure CLI for CI/server mode
           export PATH="$HOME/.local/bin:$PATH"
-          echo "🔧 Configuring Appwrite CLI..."
           
+          # Set client configuration for CI environment
           appwrite client \
             --endpoint "$APPWRITE_ENDPOINT" \
             --project-id "$APPWRITE_PROJECT_ID" \
             --key "$APPWRITE_API_KEY"
           
-          # Test project access - this is the more reliable test
+          echo "✅ CLI configured for CI mode"
+          
+          # Test project access
           echo "🔍 Testing project access..."
           if appwrite projects get --project-id "$APPWRITE_PROJECT_ID"; then
             echo "✅ Project access confirmed"
@@ -546,6 +526,8 @@ jobs:
             echo "   - Endpoint: $APPWRITE_ENDPOINT"
             echo "   - Project ID: $APPWRITE_PROJECT_ID"
             echo "   - API Key length: ${#APPWRITE_API_KEY}"
+            echo "   - Current client configuration:"
+            appwrite client --debug || true
             exit 1
           fi
           
@@ -565,23 +547,26 @@ jobs:
         run: |
           echo "🔍 Verifying deployment..."
           
-          # Check if database exists
+          # Ensure PATH is set for Appwrite CLI
           export PATH="$HOME/.local/bin:$PATH"
-          appwrite databases get --database-id "$APPWRITE_DATABASE_ID" || {
+          
+          # Check if database exists
+          if appwrite databases get --database-id "$APPWRITE_DATABASE_ID"; then
+            echo "✅ Database verified"
+          else
             echo "❌ Database not found after deployment"
             exit 1
-          }
-          
-          echo "✅ Database verified"
+          fi
           
           # Check collections
-          echo "Checking collections..."
-          appwrite databases list-collections --database-id "$APPWRITE_DATABASE_ID" || {
+          echo "🔍 Checking collections..."
+          if appwrite databases list-collections --database-id "$APPWRITE_DATABASE_ID"; then
+            echo "✅ Collections verified"
+          else
             echo "❌ Cannot list collections"
             exit 1
-          }
+          fi
           
-          echo "✅ Collections verified"
           echo "🎉 Deployment verification completed successfully"
 
   # Vercel deployment (preview for branches, production for main)
