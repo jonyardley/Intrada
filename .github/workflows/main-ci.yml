@@ -453,58 +453,70 @@ jobs:
           export PATH="$(npm bin --global):$PATH"
           echo "Configuring Appwrite CLI..."
           
-          # Create appwrite.json configuration file for the CLI
+          # Wait a bit more for Appwrite to be fully ready
+          echo "Additional wait for Appwrite services..."
+          sleep 15
+          
+          # Test basic connectivity
+          echo "Testing Appwrite connectivity..."
+          curl -f http://localhost/v1/health || (echo "❌ Appwrite health check failed" && exit 1)
+          
+          # Configure CLI for self-signed certificates first
+          echo "Setting up CLI for local development..."
+          appwrite client --endpoint http://localhost/v1 --selfSigned true
+          
+          # Create the project using the console API first
+          echo "Creating project via console API..."
+          PROJECT_RESPONSE=$(curl -s -X POST "http://localhost/v1/projects" \
+            -H "Content-Type: application/json" \
+            -H "X-Appwrite-Project: console" \
+            -d '{
+              "projectId": "'$APPWRITE_PROJECT_ID'",
+              "name": "Intrada Dev"
+            }' 2>/dev/null || echo '{"$id":"exists"}')
+          
+          echo "Project response: $PROJECT_RESPONSE"
+          
+          # Create appwrite.json for CLI configuration
           cat > appwrite.json << 'EOF'
           {
             "projectId": "intrada-dev",
-            "projectName": "Intrada Dev",
-            "endpoint": "http://localhost/v1",
-            "selfSigned": true
+            "projectName": "Intrada Dev"
           }
           EOF
           
-          # Configure Appwrite CLI for local development
-          echo "Configuring Appwrite CLI for local development..."
+          # Configure the CLI client settings with the project
+          appwrite client --endpoint http://localhost/v1 --projectId $APPWRITE_PROJECT_ID --selfSigned true
           
-          # Create the project using the console API directly
-          echo "Creating project using console API..."
+          # Initialize the project properly
+          echo "Initializing project with CLI..."
+          appwrite init project --projectId $APPWRITE_PROJECT_ID || echo "Project init failed"
           
-          # Create project via console API
-          curl -X POST "http://localhost/v1/projects" \
-            -H "Content-Type: application/json" \
-            -H "X-Appwrite-Project: console" \
-            -H "X-Appwrite-Key: ${{ secrets.APPWRITE_API_KEY }}" \
-            -d '{
-              "projectId": "'$APPWRITE_PROJECT_ID'",
-              "name": "Intrada Dev",
-              "teamId": "console"
-            }' || echo "Project creation failed or already exists"
-          
-          # Create an API key for the project
-          echo "Creating API key for project..."
-          API_KEY_RESPONSE=$(curl -X POST "http://localhost/v1/projects/$APPWRITE_PROJECT_ID/keys" \
-            -H "Content-Type: application/json" \
-            -H "X-Appwrite-Project: console" \
-            -H "X-Appwrite-Key: ${{ secrets.APPWRITE_API_KEY }}" \
-            -d '{
-              "name": "CI/CD Key",
-              "scopes": ["databases.read", "databases.write"]
-            }' || echo '{}')
-          
-          # Extract the API key from the response
-          PROJECT_API_KEY=$(echo "$API_KEY_RESPONSE" | jq -r '.secret' || echo "")
-          
-          echo "Project API Key: ${PROJECT_API_KEY:0:10}..." || echo "No API key created"
-          
-          # Configure the CLI with the project
-          echo "Configuring Appwrite CLI..."
-          appwrite client --endpoint http://localhost/v1 --projectId $APPWRITE_PROJECT_ID --key "$PROJECT_API_KEY" --selfSigned true || \
-          appwrite client --endpoint http://localhost/v1 --projectId $APPWRITE_PROJECT_ID --key ${{ secrets.APPWRITE_API_KEY }} --selfSigned true
+          # Test CLI configuration
+          echo "Testing CLI configuration..."
+          appwrite projects list || echo "Projects list failed"
           
           echo "CLI configuration complete - proceeding with deployment"
           
           # Deploy schema using pre-built CLI
           echo "Deploying schema..."
+          
+          # Make sure the CLI tool is executable
+          chmod +x ./bin/appwrite_cli
+          
+          # Show current directory and appwrite.json content for debugging
+          echo "Current directory: $(pwd)"
+          echo "Contents of appwrite.json:"
+          cat appwrite.json || echo "No appwrite.json found"
+          
+          # Ensure PATH includes npm global bin
+          export PATH="$(npm bin --global):$PATH"
+          
+          # Test that appwrite CLI can see the project
+          echo "Testing Appwrite CLI project access..."
+          appwrite projects list || echo "Cannot list projects"
+          
+          # Deploy using our custom CLI tool (it uses the appwrite.json config we created)
           ./bin/appwrite_cli deploy \
             --database-id $APPWRITE_DATABASE_ID \
             --database-name "$APPWRITE_DATABASE_NAME" \
