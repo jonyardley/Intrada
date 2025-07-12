@@ -20,4 +20,3 @@ pub fn process_effect(core: &Core, effect: Effect, render: WriteSignal<ViewModel
             // Do nothing
         }
     };
-}
