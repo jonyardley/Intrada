@@ -4,12 +4,18 @@
             "server"
         ]
     },
-    "rust-analyzer.rustfmt.overrideCommand": [
-        "leptosfmt",
-        "--stdin",
-        "--rustfmt"
-    ],
+    "rust-analyzer.rustfmt.overrideCommand": null,
     "rust-analyzer.cargo.features": [
         "ssr"
-    ]
+    ],
+    "[rust]": {
+        "editor.defaultFormatter": "rust-lang.rust-analyzer",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.fixAll": "explicit"
+        }
+    },
+    "rust-analyzer.checkOnSave": true,
+    "rust-analyzer.check.command": "fmt",
+    "rust-analyzer.check.extraArgs": ["--", "--check"]
 }
