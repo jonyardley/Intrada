@@ -1,8 +1,4 @@
-use axum::{
-    response::Html,
-    routing::get,
-    Router,
-};
+use axum::{Router, response::Html, routing::get};
 use std::net::SocketAddr;
 use tokio;
 
@@ -30,7 +26,7 @@ async fn main() {
     // Run our app with hyper, listening globally on the configured port
     let addr = SocketAddr::from(([0, 0, 0, 0], port));
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
-    
+
     println!("Server running on http://0.0.0.0:{}", port);
     axum::serve(listener, app).await.unwrap();
 }
