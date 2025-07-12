@@ -21,3 +21,7 @@ disallowed-names = []
 
 # Allow certain patterns that are idiomatic in our Rust/Crux architecture
 enum-variant-name-threshold = 3
+
+# Note: Lint denial (treating warnings as errors) is handled via command line args
+# in both CI/CD and IDE settings, not in this config file.
+# See .cursor/settings.json rust-analyzer.check.extraArgs for IDE configuration

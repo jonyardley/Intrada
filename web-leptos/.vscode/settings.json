@@ -17,5 +17,5 @@
     },
     "rust-analyzer.checkOnSave": true,
     "rust-analyzer.check.command": "clippy",
-    "rust-analyzer.check.extraArgs": ["--all-targets", "--all-features", "--", "-D", "warnings"]
+    "rust-analyzer.check.extraArgs": ["--all-targets", "--all-features", "--", "-D", "warnings", "-D", "clippy::uninlined_format_args"]
 }

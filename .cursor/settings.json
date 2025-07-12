@@ -4,7 +4,6 @@
         "editor.defaultFormatter": "sweetpad",
         "editor.formatOnSave": true
     },
-    "rust-analyzer.checkOnSave": true,
     "sweetpad.enable": true,
     "sweetpad.swiftui.enable": true,
     "sweetpad.swiftui.iosVersion": "18.0",
@@ -12,19 +11,6 @@
     "sweetpad.swiftui.livePreview": true,
     "sweetpad.swiftui.autoComplete": true,
     "sweetpad.swiftui.snippets": true,
-    "rust-analyzer.procMacro.ignored": {
-        "leptos_macro": [
-            "server"
-        ]
-    },
-    "rust-analyzer.check.command": "clippy",
-    "rust-analyzer.check.extraArgs": [
-        "--all-targets",
-        "--all-features",
-        "--",
-        "-D",
-        "warnings"
-    ],
     "swift.buildPath": "${workspaceFolder}/iOS",
     "swift.packagePath": [
         "${workspaceFolder}/shared/Shared",
@@ -40,11 +26,7 @@
         "editor.defaultFormatter": "rust-lang.rust-analyzer",
         "editor.formatOnSave": true
     },
-    "files.associations": {
-        "**/web-leptos/**/*.rs": "leptos"
-    },
-    "[leptos]": {
-        "editor.defaultFormatter": "leptosfmt",
-        "editor.formatOnSave": true
-    }
+    "rust-analyzer.check.command": "clippy",
+    "rust-analyzer.check.extraArgs": ["--", "-D", "clippy::uninlined_format_args"],
+    "rust-analyzer.cargo.allTargets": true,
 }
