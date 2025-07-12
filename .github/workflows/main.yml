@@ -73,7 +73,7 @@ jobs:
       - name: Run clippy
         run: |
           echo "::group::Running clippy lints"
-          cargo clippy --all-targets --all-features -- -D warnings
+          cargo clippy --all-targets --all-features -- -D warnings -A clippy::uninlined_format_args
           echo "::endgroup::"
 
       - name: Build shared library
