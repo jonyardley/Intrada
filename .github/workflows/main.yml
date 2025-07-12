@@ -251,12 +251,13 @@ jobs:
             cargo install cargo-swift --locked
           fi
 
-      - name: Build iOS-specific targets efficiently
+      - name: Build required targets for type generation
         run: |
-          echo "::group::Building only iOS-specific targets"
-          # Build minimal iOS targets needed for Swift package generation
-          # Use cached dependencies from rust-shared job
+          echo "::group::Building targets needed for Swift type generation"
+          # Build debug version of shared lib (needed by typegen.sh)
           cd shared
+          cargo build --lib
+          # Build iOS release targets for Swift package
           cargo build --lib --target aarch64-apple-ios-sim --release
           cargo build --lib --target x86_64-apple-ios --release
           echo "::endgroup::"
