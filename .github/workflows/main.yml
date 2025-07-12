@@ -113,8 +113,12 @@ jobs:
       - name: Run tests (parallel)
         run: |
           echo "::group::Running tests with nextest"
-          # Run tests with dev profile to avoid crate-type collisions with release builds
-          cargo nextest run --workspace
+          # Run tests on individual packages to avoid crate-type collisions
+          # The shared package has multiple crate-types which cause filename collisions
+          cargo nextest run -p shared_types
+          cargo nextest run -p intrada-server
+          # Test shared package separately with specific lib crate-type
+          cargo nextest run -p shared --lib
           echo "::endgroup::"
 
       - name: Build WASM target separately
