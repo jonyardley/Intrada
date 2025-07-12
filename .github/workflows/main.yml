@@ -54,7 +54,12 @@ jobs:
   rust-build:
     runs-on: ubuntu-latest
     needs: changes
-    if: needs.changes.outputs.rust == 'true' || github.event_name == 'workflow_dispatch'
+    # This job provides build artifacts for web, iOS, and server, so it needs to run if any of them change.
+    if: >
+      needs.changes.outputs.rust == 'true' ||
+      needs.changes.outputs.web == 'true' ||
+      needs.changes.outputs.ios == 'true' ||
+      github.event_name == 'workflow_dispatch'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -63,6 +68,16 @@ jobs:
         uses: ./.github/actions/setup-rust
         with:
           targets: 'wasm32-unknown-unknown'
+
+      - name: Cache cargo dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Check formatting
         run: |
@@ -105,7 +120,7 @@ jobs:
       - name: Upload server binary
         uses: actions/upload-artifact@v4
         with:
-          name: server-binary
+          name: server-binary-linux
           path: server/target/release/server
           retention-days: 1
 
@@ -113,7 +128,7 @@ jobs:
   web-build:
     runs-on: ubuntu-latest
     needs: [changes, rust-build]
-    if: needs.changes.outputs.web == 'true' || github.event_name == 'workflow_dispatch'
+    if: (needs.changes.outputs.web == 'true') || github.event_name == 'workflow_dispatch'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -163,7 +178,7 @@ jobs:
   ios-build:
     runs-on: macos-15
     needs: [changes, rust-build]
-    if: needs.changes.outputs.ios == 'true' || github.event_name == 'workflow_dispatch'
+    if: (needs.changes.outputs.ios == 'true') || github.event_name == 'workflow_dispatch'
     env:
       DEVELOPER_DIR: /Applications/Xcode_16.0.app/Contents/Developer
     steps:
@@ -242,38 +257,46 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             || echo "No tests found or tests failed - continuing"
 
-  # Deploy to production (only on main branch)
-  deploy:
+  # Deploy web application to Vercel
+  deploy-web:
     runs-on: ubuntu-latest
-    needs: [rust-build, web-build]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [changes, web-build]
+    if: >
+      github.ref == 'refs/heads/main' &&
+      github.event_name == 'push' &&
+      needs.changes.outputs.web == 'true'
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
       - name: Download web dist
         uses: actions/download-artifact@v4
         with:
           name: web-dist
-          path: web-leptos/dist/
-
-      - name: Download server binary
-        uses: actions/download-artifact@v4
-        with:
-          name: server-binary
-          path: server/target/release/
+          path: ./dist
 
       - name: Deploy web to Vercel
         uses: amondnet/vercel-action@v20
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
           vercel-args: --prod
-          working-directory: web-leptos/dist
+          working-directory: ./dist
 
-      # TODO: Add server deployment to Fly.io when ready
-      # - name: Deploy server to Fly.io
-      #   run: |
-      #     # Install flyctl and deploy
-      #     curl -L https://fly.io/install.sh | sh
-      #     cd server
-      #     ~/.fly/bin/fly deploy 
+  # Deploy server application to Fly.io
+  deploy-server:
+    runs-on: ubuntu-latest
+    needs: [changes, rust-build]
+    if: > # Modified line
+      github.ref == 'refs/heads/main' &&
+      github.event_name == 'push' &&
+      needs.changes.outputs.rust == 'true'
+    steps:
+      - name: Download server binary
+        uses: actions/download-artifact@v4
+        with:
+          name: server-binary-linux
+          path: .
+      - name: TODO: Deploy server to Fly.io
+        run: |
+          echo "Server binary is at ./server"
+          echo "Add deployment steps for Fly.io here"
+          # Example:
+          # curl -L https://fly.io/install.sh | sh
+          # ~/.fly/bin/flyctl deploy --dockerfile ./server/Dockerfile --app intrada-server --image intrada-server --local-only
