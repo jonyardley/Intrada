@@ -1,4 +1,4 @@
-use console_log;
+// Intrada Web Application - Leptos Frontend
 use leptos::prelude::*;
 use leptos_meta::*;
 use leptos_router::{
@@ -25,7 +25,7 @@ pub fn App() -> impl IntoView {
     provide_meta_context();
 
     let global_state = GlobalState::default();
-    global_state.core.process_event(Event::SetDevData());
+    global_state.core.process_event(Event::SetDevData);
     provide_context(Store::new(global_state));
 
     view! {

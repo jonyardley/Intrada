@@ -1,8 +1,9 @@
 use crate::app::model::Model;
 use crate::app::study_session::StudySession;
+use facet::Facet;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
+#[derive(Facet, Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
 pub struct Study {
     pub id: String,
     pub name: String,
@@ -22,7 +23,7 @@ impl Study {
         model
             .sessions
             .iter()
-            .flat_map(|session| session.study_sessions())
+            .flat_map(super::session::PracticeSession::study_sessions)
             .filter(|session| session.study_id == self.id)
             .collect()
     }

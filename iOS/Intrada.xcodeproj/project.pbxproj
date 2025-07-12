@@ -18,17 +18,13 @@
 		60EA876202FF0ABF6CB4F574 /* core.swift in Sources */ = {isa = PBXBuildFile; fileRef = 104D2C969AAB822EE589C8D3 /* core.swift */; };
 		7041A1B95A8BF82D73588AD6 /* http.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBD4BBEE3EB72A49C85AA18E /* http.swift */; };
 		7336455A863CC14299B2B9AF /* HomeVIew.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAAF63990A427F10CDE80895 /* HomeVIew.swift */; };
-		7DC66E29BCB5F706ABF3F3D9 /* Appwrite in Frameworks */ = {isa = PBXBuildFile; productRef = 35AE0453F1949B2792DE1E13 /* Appwrite */; };
 		88FE04537635F0CD64005A7E /* StudiesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66BF354F8D5813CE670A23EF /* StudiesView.swift */; };
 		8AE5DA6CECC886C8E65A884F /* SharedTypes in Frameworks */ = {isa = PBXBuildFile; productRef = 917447E964A6FFF42F7753F9 /* SharedTypes */; };
 		8C9C3799281B2075E8CFA0F0 /* SessionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E9EBF7F20DE9609419F2B4B /* SessionsView.swift */; };
 		8DBDC898AC1F95F08F1D3CAC /* ConfigurationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8B2ABF575A88EC880D01779 /* ConfigurationManager.swift */; };
-		9CBDD1C33A5EF3F35D479D6F /* Config.plist.template in Resources */ = {isa = PBXBuildFile; fileRef = A242062F443A30DF2B6B1F7F /* Config.plist.template */; };
 		9F252CA2D458853137E14949 /* ActiveSessionDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42ABA1F7B42F3ADFFBBE1F86 /* ActiveSessionDetailView.swift */; };
 		A7CF84A2E46DA1B4959B6F6F /* IntradaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00E1ECBA4E0EB5DA54C56F2 /* IntradaApp.swift */; };
-		B1DD6317290853D4D4F9E340 /* AppwriteService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02284EEB85D6BF12C62B9E30 /* AppwriteService.swift */; };
 		CA6965A47994105FE97220A1 /* SessionFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6385FE2DE888540A275E4061 /* SessionFormView.swift */; };
-		D325E51BA0FE74A977C6D746 /* README_CONFIG.md in Resources */ = {isa = PBXBuildFile; fileRef = 55B00CD7F040317EC9D277CC /* README_CONFIG.md */; };
 		EA8DFD8CD3F187836480FBFC /* StudyFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BC81CBD2E4C5D5D62F64935 /* StudyFormView.swift */; };
 		EEC3A3FA9D55DC193CCFCCBE /* GoalDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EA74F0CEF1045787E9E0EA8 /* GoalDetailView.swift */; };
 		F11AC0CE6F3F92B65E71E772 /* SessionDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF5CDEB98E62D262842326BC /* SessionDetailView.swift */; };
@@ -38,8 +34,7 @@
 
 /* Begin PBXFileReference section */
 		017BD4BD5C3BBD11E8B2DB14 /* SessionReflectionForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionReflectionForm.swift; sourceTree = "<group>"; };
-		02284EEB85D6BF12C62B9E30 /* AppwriteService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppwriteService.swift; sourceTree = "<group>"; };
-		085DE01748EDA39FB010C0A8 /* SharedTypes */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SharedTypes; path = ../shared/generated/swift/SharedTypes; sourceTree = SOURCE_ROOT; };
+		085DE01748EDA39FB010C0A8 /* SharedTypes */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SharedTypes; path = ../shared_types/generated/swift/SharedTypes; sourceTree = SOURCE_ROOT; };
 		104D2C969AAB822EE589C8D3 /* core.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = core.swift; sourceTree = "<group>"; };
 		13E8B6BF7B3E02B04268499D /* Intrada.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Intrada.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		158AB46FE2EFCCA1A1B6FEB1 /* GoalFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalFormView.swift; sourceTree = "<group>"; };
@@ -48,7 +43,6 @@
 		3B36F261B1F57456079044C9 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		42ABA1F7B42F3ADFFBBE1F86 /* ActiveSessionDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveSessionDetailView.swift; sourceTree = "<group>"; };
 		4FD08F85D2983946C780A40B /* GoalsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalsView.swift; sourceTree = "<group>"; };
-		55B00CD7F040317EC9D277CC /* README_CONFIG.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README_CONFIG.md; sourceTree = "<group>"; };
 		6385FE2DE888540A275E4061 /* SessionFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionFormView.swift; sourceTree = "<group>"; };
 		66BF354F8D5813CE670A23EF /* StudiesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudiesView.swift; sourceTree = "<group>"; };
 		683ADA17CC2C8555D48DBD50 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
@@ -56,7 +50,6 @@
 		7BC81CBD2E4C5D5D62F64935 /* StudyFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyFormView.swift; sourceTree = "<group>"; };
 		83A37A40ED4819A50BFE69F4 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		9A9682904D4B5E3E6031AABF /* StudyDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyDetailView.swift; sourceTree = "<group>"; };
-		A242062F443A30DF2B6B1F7F /* Config.plist.template */ = {isa = PBXFileReference; path = Config.plist.template; sourceTree = "<group>"; };
 		A90C12BC487A9A2858501805 /* DynamicTimerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DynamicTimerView.swift; sourceTree = "<group>"; };
 		B00E1ECBA4E0EB5DA54C56F2 /* IntradaApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntradaApp.swift; sourceTree = "<group>"; };
 		BF79F444D492395E5C4A36C9 /* Config.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Config.plist; sourceTree = "<group>"; };
@@ -74,7 +67,6 @@
 			files = (
 				F5E87B5B23FF53E9F7471A8E /* Shared in Frameworks */,
 				8AE5DA6CECC886C8E65A884F /* SharedTypes in Frameworks */,
-				7DC66E29BCB5F706ABF3F3D9 /* Appwrite in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -143,10 +135,8 @@
 		EBD5321FFD2231E569F49476 /* Intrada */ = {
 			isa = PBXGroup;
 			children = (
-				02284EEB85D6BF12C62B9E30 /* AppwriteService.swift */,
 				83A37A40ED4819A50BFE69F4 /* Assets.xcassets */,
 				BF79F444D492395E5C4A36C9 /* Config.plist */,
-				A242062F443A30DF2B6B1F7F /* Config.plist.template */,
 				F8B2ABF575A88EC880D01779 /* ConfigurationManager.swift */,
 				3B36F261B1F57456079044C9 /* ContentView.swift */,
 				104D2C969AAB822EE589C8D3 /* core.swift */,
@@ -155,7 +145,6 @@
 				193296C58A583AB40733912E /* Info.plist */,
 				B00E1ECBA4E0EB5DA54C56F2 /* IntradaApp.swift */,
 				683ADA17CC2C8555D48DBD50 /* ProfileView.swift */,
-				55B00CD7F040317EC9D277CC /* README_CONFIG.md */,
 				A88789A635B5B1C83BC114A7 /* Goal */,
 				E5A7F62A3A0E4D902216AE60 /* Session */,
 				7A2E8539E9C5F29DAE105DC1 /* Study */,
@@ -182,7 +171,6 @@
 			packageProductDependencies = (
 				9AF3999A1F62BECE7AD4D98A /* Shared */,
 				917447E964A6FFF42F7753F9 /* SharedTypes */,
-				35AE0453F1949B2792DE1E13 /* Appwrite */,
 			);
 			productName = Intrada;
 			productReference = 13E8B6BF7B3E02B04268499D /* Intrada.app */;
@@ -210,9 +198,8 @@
 			mainGroup = 945BC5C2DFF502B4D21E2E21;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				EC87FDE8CDE1CEE608C345F6 /* XCRemoteSwiftPackageReference "sdk-for-apple" */,
 				4AEAE67A9ED6F0D48F6F61B2 /* XCLocalSwiftPackageReference "../shared/Shared" */,
-				AC2CE8210B9C38E01B856752 /* XCLocalSwiftPackageReference "../shared/generated/swift/SharedTypes" */,
+				37F1BCD307168686DD456EF8 /* XCLocalSwiftPackageReference "../shared_types/generated/swift/SharedTypes" */,
 			);
 			preferredProjectObjectVersion = 54;
 			projectDirPath = "";
@@ -230,8 +217,6 @@
 			files = (
 				F645C88CCA940EA7FD7E922F /* Assets.xcassets in Resources */,
 				5D7D87040C89D8C0290BDC14 /* Config.plist in Resources */,
-				9CBDD1C33A5EF3F35D479D6F /* Config.plist.template in Resources */,
-				D325E51BA0FE74A977C6D746 /* README_CONFIG.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -243,7 +228,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				9F252CA2D458853137E14949 /* ActiveSessionDetailView.swift in Sources */,
-				B1DD6317290853D4D4F9E340 /* AppwriteService.swift in Sources */,
 				8DBDC898AC1F95F08F1D3CAC /* ConfigurationManager.swift in Sources */,
 				12E965758B075383CC4794F1 /* ContentView.swift in Sources */,
 				495D02D6DA9612297D01DD83 /* DynamicTimerView.swift in Sources */,
@@ -334,7 +318,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.jonyardley.intrada.Intrada;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jonyardley.Intrada;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -351,7 +335,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.jonyardley.intrada.Intrada;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jonyardley.Intrada;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -443,33 +427,17 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
+		37F1BCD307168686DD456EF8 /* XCLocalSwiftPackageReference "../shared_types/generated/swift/SharedTypes" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../shared_types/generated/swift/SharedTypes;
+		};
 		4AEAE67A9ED6F0D48F6F61B2 /* XCLocalSwiftPackageReference "../shared/Shared" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = ../shared/Shared;
 		};
-		AC2CE8210B9C38E01B856752 /* XCLocalSwiftPackageReference "../shared/generated/swift/SharedTypes" */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = ../shared/generated/swift/SharedTypes;
-		};
 /* End XCLocalSwiftPackageReference section */
 
-/* Begin XCRemoteSwiftPackageReference section */
-		EC87FDE8CDE1CEE608C345F6 /* XCRemoteSwiftPackageReference "sdk-for-apple" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/appwrite/sdk-for-apple";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 4.0.0;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
-
 /* Begin XCSwiftPackageProductDependency section */
-		35AE0453F1949B2792DE1E13 /* Appwrite */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = EC87FDE8CDE1CEE608C345F6 /* XCRemoteSwiftPackageReference "sdk-for-apple" */;
-			productName = Appwrite;
-		};
 		917447E964A6FFF42F7753F9 /* SharedTypes */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = SharedTypes;

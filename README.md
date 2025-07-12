@@ -2,6 +2,21 @@
 
 > Intrada empowers musicians to achieve mastery through structured, efficient, and deeply reflective practice. By providing intelligent tools for planning, focused execution, and insightful analysis, Intrada transforms practice from a routine into a deliberate pathway to virtuosity.
 
+## Quick Start
+
+**Get up and running in one command:**
+```bash
+make setup
+```
+
+For detailed setup instructions, see [docs/QUICKSTART.md](docs/QUICKSTART.md).
+
+## Documentation
+
+- **[Quick Start Guide](docs/QUICKSTART.md)** - Get your development environment running
+- **[Development Guide](docs/DEVELOPMENT.md)** - Development workflow and best practices  
+
+
 ## Running the leptos web app
 
 ### Development
@@ -32,16 +47,13 @@ To build the application for production:
 
 ```bash
 cd web-leptos
-npm run build:all
+npm run build
 ```
 
-Or manually:
-
-```bash
-cd web-leptos
-npx tailwindcss -i ./style/input.css -o ./style/output.css
-trunk build --release
-```
+This will automatically:
+1. Build the CSS with Tailwind
+2. Build the Rust/WASM application with Trunk in release mode
+3. Create optimized production assets in the `dist/` folder
 
 ## Running core tests
 

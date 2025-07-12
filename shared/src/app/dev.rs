@@ -81,21 +81,13 @@ pub fn set_dev_data(model: &mut Model) {
     let session_1_id = session_1.id().to_string();
     add_session(session_1, model);
 
-    let _ = start_session(
-        session_1_id.clone(),
-        "2025-05-01T12:00:00Z".to_string(),
-        model,
-    );
+    let _ = start_session(&session_1_id, "2025-05-01T12:00:00Z".to_string(), model);
 
     // Add study sessions
     let study_session = StudySession::new(model.studies[0].id.clone(), session_1_id.clone());
     add_study_session(study_session, model);
 
-    let _ = end_session(
-        session_1_id.clone(),
-        "2025-05-01T12:30:00Z".to_string(),
-        model,
-    );
+    let _ = end_session(&session_1_id, "2025-05-01T12:30:00Z".to_string(), model);
 
     // Create a session that's ready to start (not active yet)
     let ready_session = PracticeSession::new(

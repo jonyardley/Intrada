@@ -1,0 +1,34 @@
+name: 'Setup Rust Toolchain'
+description: 'Sets up Rust with caching and targets'
+inputs:
+  targets:
+    description: 'Comma-separated list of targets to install'
+    required: false
+    default: 'wasm32-unknown-unknown'
+  cache-suffix:
+    description: 'Suffix for cache key differentiation'
+    required: false
+    default: ''
+  components:
+    description: 'Components to install'
+    required: false
+    default: 'clippy,rustfmt'
+runs:
+  using: 'composite'
+  steps:
+    - name: Cache Rust toolchain
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.rustup/toolchains
+          ~/.rustup/update-hashes
+          ~/.rustup/settings.toml
+        key: rust-toolchain-${{ runner.os }}-${{ hashFiles('rust-toolchain.toml') }}${{ inputs.cache-suffix }}
+        restore-keys: |
+          rust-toolchain-${{ runner.os }}-
+          
+    - name: Setup Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: ${{ inputs.targets }}
+        components: ${{ inputs.components }}

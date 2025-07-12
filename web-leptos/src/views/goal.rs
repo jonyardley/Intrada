@@ -66,7 +66,7 @@ pub fn Goal() -> impl IntoView {
                                 <H2 text="Tempo Target".to_string() />
                                 <p class="text-gray-700">
                                     {if let Some(tempo) = goal.tempo_target {
-                                        format!("{} BPM", tempo)
+                                        format!("{tempo} BPM")
                                     } else {
                                         "No tempo target set".to_string()
                                     }}

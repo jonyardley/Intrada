@@ -1,10 +1,11 @@
 use crate::app::model::Model;
+use facet::Facet;
 use serde::{Deserialize, Serialize};
 
 #[cfg(test)]
 use crate::app::session::{add_session, PracticeSession};
 
-#[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
+#[derive(Facet, Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
 pub struct StudySession {
     pub id: String,
     pub study_id: String,
