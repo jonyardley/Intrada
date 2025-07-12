@@ -100,7 +100,7 @@ echo ""
 echo "🎯 Performance improvements to expect:"
 echo "   - Unified build job eliminates redundant compilation"
 echo "   - Shared cache keys improve cache hit rates"
-echo "   - Pre-built CLI binary reduces appwrite job time"
+echo "   - Pre-built binaries reduce deployment time"
 echo "   - Composite action reduces workflow duplication"
 
 echo ""

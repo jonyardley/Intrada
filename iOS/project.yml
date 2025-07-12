@@ -4,9 +4,7 @@ packages:
     path: ../shared/Shared
   SharedTypes:
     path: ../shared_types/generated/swift/SharedTypes
-  Appwrite:
-    url: https://github.com/appwrite/sdk-for-apple
-    from: 4.0.0
+
 options:
   bundleIdPrefix: com.jonyardley
 targets:
@@ -18,7 +16,6 @@ targets:
     dependencies:
       - package: Shared
       - package: SharedTypes
-      - package: Appwrite
     team: JYARDLEY
     info:
       path: Intrada/Info.plist

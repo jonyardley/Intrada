@@ -3,7 +3,7 @@ use crate::hooks::use_core;
 use leptos::prelude::*;
 use leptos_router::hooks::use_navigate;
 use leptos_router::*;
-use shared::{Event, PracticeGoal};
+use shared::Event;
 
 #[component]
 pub fn CreateGoal() -> impl IntoView {
@@ -122,15 +122,7 @@ pub fn CreateGoal() -> impl IntoView {
                             ev.prevent_default();
                             set_event
                                 .update(|event| {
-                                    *event = Event::CreateGoal(
-                                        PracticeGoal::new(
-                                            name.get(),
-                                            Some(description.get()),
-                                            Some(target_date.get()),
-                                            selected_studies.get().into_iter().collect::<Vec<String>>(),
-                                            tempo_target.get().parse::<u32>().ok(),
-                                        ),
-                                    );
+                                    *event = Event::Nothing;
                                 });
                             navigate(
                                 "/goals",

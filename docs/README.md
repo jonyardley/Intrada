@@ -7,34 +7,40 @@ Welcome to the Intrada documentation! This directory contains all the guides and
 - **[Quick Start Guide](QUICKSTART.md)** - Get your development environment running in minutes
 - **[Development Guide](DEVELOPMENT.md)** - Development workflow, testing, and best practices
 
-## Infrastructure
+## Documentation
 
-- **[Appwrite Infrastructure](APPWRITE_INFRASTRUCTURE.md)** - Backend infrastructure, database schema, and deployment details
+### Project Structure
+- **[Development Guide](DEVELOPMENT.md)** - Development workflow and best practices
+- **[Deployment Guide](DEPLOYMENT.md)** - Deployment process and configuration
+- **[iOS Testing Guide](IOS_TESTING.md)** - iOS testing and configuration
+- **[GitHub Workflows](GITHUB_WORKFLOWS.md)** - CI/CD pipeline documentation
+
+## Infrastructure
 
 ## Quick Commands
 
 ```bash
-# Complete setup from scratch
-make setup
+# Build everything
+make build
 
-# Start development environment
-make start
+# Test everything  
+make test
 
-# Stop all services
-make stop
+# Generate types
+./typegen.sh
 
-# Complete teardown
-make teardown
+# Start server
+cd server && cargo run
 
-# Show all available commands
-make help
+# Start web app
+cd web-leptos && trunk serve
 ```
 
 ## Need Help?
 
 - Check the [Quick Start Guide](QUICKSTART.md) for common setup issues
 - Review the [Development Guide](DEVELOPMENT.md) for workflow questions
-- Look at the [Infrastructure docs](APPWRITE_INFRASTRUCTURE.md) for backend details
+- Look at the server implementation in `server/` for backend details
 
 ---
 

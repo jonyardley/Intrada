@@ -26,21 +26,5 @@ class ConfigurationManager {
         return getString(for: key) ?? defaultValue
     }
     
-    // MARK: - Appwrite Configuration
-    
-    var appwriteEndpoint: String {
-        return getString(for: "AppwriteEndpoint", defaultValue: "")
-    }
-    
-    var appwriteProjectId: String {
-        return getString(for: "AppwriteProjectId", defaultValue: "")
-    }
-    
-    var appwriteDatabaseId: String {
-        return getString(for: "AppwriteDatabaseId", defaultValue: "")
-    }
-    
-    var appwriteApiKey: String {
-        return getString(for: "AppwriteApiKey", defaultValue: "")
-    }
+
 } 

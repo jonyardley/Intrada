@@ -1,9 +1,9 @@
-name: Build and Deploy
+name: Build and Test
 on:
   push:
-    branches: [main, appwrite-config]
+    branches: [main]
   pull_request:
-    branches: [main, appwrite-config]
+    branches: [main]
 
 jobs:
   build:
@@ -14,9 +14,9 @@ jobs:
       uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
         components: rustfmt, clippy
-    - name: Build infrastructure
+    - name: Build server
       run: |
-        cd infrastructure
+        cd server
         cargo build --release
     - name: Build web
       run: |
@@ -29,61 +29,36 @@ jobs:
         name: dist
         path: web-leptos/dist/
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/appwrite-config'
-    env:
-      APPWRITE_ENDPOINT: ${{ github.ref == 'refs/heads/main' && secrets.APPWRITE_ENDPOINT_PROD || secrets.APPWRITE_ENDPOINT_DEV }}
-      APPWRITE_PROJECT_ID: ${{ github.ref == 'refs/heads/main' && secrets.APPWRITE_PROJECT_ID_PROD || secrets.APPWRITE_PROJECT_ID_DEV }}
-      APPWRITE_API_KEY: ${{ github.ref == 'refs/heads/main' && secrets.APPWRITE_API_KEY_PROD || secrets.APPWRITE_API_KEY_DEV }}
-      APPWRITE_DATABASE_ID: ${{ github.ref == 'refs/heads/main' && secrets.APPWRITE_DATABASE_ID_PROD || secrets.APPWRITE_DATABASE_ID_DEV }}
-      APPWRITE_DATABASE_NAME: ${{ github.ref == 'refs/heads/main' && secrets.APPWRITE_DATABASE_NAME_PROD || secrets.APPWRITE_DATABASE_NAME_DEV }}
-    steps:
-    - uses: actions/checkout@v3
-    - name: Setup Rust
-      uses: actions-rust-lang/setup-rust-toolchain@v1
-      with:
-        components: rustfmt, clippy
-    - name: Cache CLI binary
-      uses: actions/cache@v3
-      with:
-        path: infrastructure/target/release/appwrite_cli
-        key: cli-binary-${{ hashFiles('infrastructure/src/**', 'infrastructure/Cargo.toml', 'infrastructure/Cargo.lock') }}
-    - name: Check if binary exists
-      id: check_binary
-      run: |
-        if [ -f infrastructure/target/release/appwrite_cli ]; then
-          echo "binary_exists=true" >> $GITHUB_OUTPUT
-        else
-          echo "binary_exists=false" >> $GITHUB_OUTPUT
-        fi
-    - name: Build CLI binary (if not cached)
-      if: steps.check_binary.outputs.binary_exists != 'true'
-      run: |
-        cd infrastructure
-        cargo build --release
-    - name: Install Appwrite CLI
-      run: |
-        curl -fsSL https://appwrite.io/cli | bash
-    - name: Deploy migrations
-      run: |
-        cd infrastructure
-        ./target/release/appwrite_cli
-    - name: Deploy to Vercel
-      uses: amondnet/vercel-action@v20
-      with:
-        vercel-token: ${{ secrets.VERCEL_TOKEN }}
-        vercel-args: --prod
-        working-directory: dist
-        
   test:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
     - name: Setup Rust
       uses: actions-rust-lang/setup-rust-toolchain@v1
-    - name: Test
+    - name: Test shared
       run: |
         cd shared
-        cargo test 
+        cargo test
+    - name: Test server
+      run: |
+        cd server
+        cargo test
+        
+  deploy:
+    needs: [build, test]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+    - uses: actions/checkout@v3
+    - name: Setup Rust
+      uses: actions-rust-lang/setup-rust-toolchain@v1
+    - name: Build server
+      run: |
+        cd server
+        cargo build --release
+    - name: Deploy to Vercel
+      uses: amondnet/vercel-action@v20
+      with:
+        vercel-token: ${{ secrets.VERCEL_TOKEN }}
+        vercel-args: --prod
+        working-directory: web-leptos/dist 

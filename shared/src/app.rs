@@ -1,5 +1,4 @@
 use crux_core::{
-    capability::Operation,
     macros::effect,
     render::{render, RenderOperation},
     App, Command,
@@ -61,12 +60,6 @@ pub enum Event {
 
     SetDevData,
     Nothing,
-
-    // Simple Appwrite Events - just for loading goals
-    LoadGoals,
-    CreateGoal(PracticeGoal),
-    UpdateGoal(PracticeGoal),
-    DeleteGoal(String),
 }
 
 #[effect(facet_typegen)]
@@ -128,12 +121,6 @@ impl App for Chopin {
 
             //Do Nothing
             Event::Nothing => (),
-
-            // Simple Appwrite Events - just for loading goals
-            Event::LoadGoals => return Command::done(),
-            Event::CreateGoal(goal) => return Command::done(),
-            Event::UpdateGoal(goal) => return Command::done(),
-            Event::DeleteGoal(goal_id) => return Command::done(),
         }
 
         render()
