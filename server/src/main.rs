@@ -1,6 +1,5 @@
 use axum::{Router, response::Html, routing::get};
 use std::net::SocketAddr;
-use tokio;
 
 async fn hello_world() -> Html<&'static str> {
     Html("<h1>Hello, World!</h1>")
