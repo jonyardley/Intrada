@@ -50,16 +50,17 @@ jobs:
               - 'shared_types/**'
               - '.github/workflows/main.yml'
 
-  # Build and test Rust components
-  rust-build:
+  # Build and test Rust components (optimized)
+  rust-shared:
     runs-on: ubuntu-latest
     needs: changes
-    # This job provides build artifacts for web, iOS, and server, so it needs to run if any of them change.
     if: >
       needs.changes.outputs.rust == 'true' ||
       needs.changes.outputs.web == 'true' ||
       needs.changes.outputs.ios == 'true' ||
       github.event_name == 'workflow_dispatch'
+    outputs:
+      cache-key: ${{ steps.cache-key.outputs.key }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -69,7 +70,12 @@ jobs:
         with:
           targets: 'wasm32-unknown-unknown'
 
-      - name: Cache cargo dependencies
+      - name: Generate cache key
+        id: cache-key
+        run: |
+          echo "key=${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-${{ github.sha }}" >> $GITHUB_OUTPUT
+
+      - name: Cache cargo dependencies and target
         uses: actions/cache@v4
         with:
           path: |
@@ -77,7 +83,10 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ steps.cache-key.outputs.key }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-
+            ${{ runner.os }}-cargo-
 
       - name: Check formatting
         run: |
@@ -91,43 +100,42 @@ jobs:
           cargo clippy --all-targets --all-features -- -D warnings
           echo "::endgroup::"
 
-      - name: Build shared library
-        run: |
-          cd shared
-          cargo build --lib --release
-          cargo build --lib --release --target wasm32-unknown-unknown
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@cargo-nextest
 
-      - name: Build shared_types
+      - name: Build workspace (parallel)
         run: |
-          cd shared_types
-          cargo build --release
+          echo "::group::Building workspace"
+          # Build all workspace members
+          cargo build --release --workspace
+          # Build WASM target for web
+          cargo build --release --target wasm32-unknown-unknown -p shared
+          echo "::endgroup::"
 
-      - name: Build server
+      - name: Run tests (parallel)
         run: |
-          cd server
-          cargo build --release
+          echo "::group::Running tests with nextest"
+          cargo nextest run --workspace --release
+          echo "::endgroup::"
 
-      - name: Test shared
-        run: |
-          cd shared
-          cargo test
-
-      - name: Test server
-        run: |
-          cd server
-          cargo test
+      - name: Upload target directory
+        uses: actions/upload-artifact@v4
+        with:
+          name: cargo-target-${{ github.sha }}
+          path: target/
+          retention-days: 1
 
       - name: Upload server binary
         uses: actions/upload-artifact@v4
         with:
           name: server-binary-linux
-          path: server/target/release/server
+          path: target/release/server
           retention-days: 1
 
-  # Build web application
+  # Build web application (optimized)
   web-build:
     runs-on: ubuntu-latest
-    needs: [changes, rust-build]
+    needs: [changes, rust-shared]
     if: (needs.changes.outputs.web == 'true') || github.event_name == 'workflow_dispatch'
     steps:
       - name: Checkout
@@ -138,17 +146,32 @@ jobs:
         with:
           targets: 'wasm32-unknown-unknown'
 
+      - name: Restore cargo target cache
+        uses: actions/cache@v4
+        with:
+          path: target/
+          key: ${{ needs.rust-shared.outputs.cache-key }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-
+            ${{ runner.os }}-cargo-
+
+      - name: Download target directory
+        uses: actions/download-artifact@v4
+        with:
+          name: cargo-target-${{ github.sha }}
+          path: target/
+
       - name: Cache trunk
         uses: actions/cache@v4
         id: cache-trunk
         with:
           path: |
             ~/.cargo/bin/trunk
-          key: trunk-${{ runner.os }}-v1
+          key: trunk-${{ runner.os }}-v2
 
       - name: Install Trunk
         if: steps.cache-trunk.outputs.cache-hit != 'true'
-        run: cargo install trunk
+        run: cargo install trunk --locked
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -174,10 +197,10 @@ jobs:
           path: web-leptos/dist/
           retention-days: 1
 
-  # Build iOS application
+  # Build iOS application (optimized)
   ios-build:
     runs-on: macos-15
-    needs: [changes, rust-build]
+    needs: [changes, rust-shared]
     if: (needs.changes.outputs.ios == 'true') || github.event_name == 'workflow_dispatch'
     env:
       DEVELOPER_DIR: /Applications/Xcode_16.0.app/Contents/Developer
@@ -195,18 +218,53 @@ jobs:
         with:
           targets: 'aarch64-apple-ios-sim,x86_64-apple-ios'
 
+      - name: Restore cargo target cache
+        uses: actions/cache@v4
+        with:
+          path: target/
+          key: ${{ needs.rust-shared.outputs.cache-key }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-
+            ${{ runner.os }}-cargo-
+
+      - name: Download target directory
+        uses: actions/download-artifact@v4
+        with:
+          name: cargo-target-${{ github.sha }}
+          path: target/
+
       - name: Cache cargo tools
         uses: actions/cache@v4
         id: cache-cargo-tools
         with:
           path: ~/.cargo/bin
-          key: cargo-tools-${{ runner.os }}-v1
+          key: cargo-tools-${{ runner.os }}-v2
+
+      - name: Cache Swift Package Manager
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/org.swift.swiftpm
+            iOS/.build
+          key: spm-${{ hashFiles('iOS/Package.swift', 'iOS/Package.resolved') }}
+          restore-keys: |
+            spm-
+
+      - name: Cache Homebrew
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/Homebrew
+            /usr/local/Homebrew/Library/Taps
+          key: brew-${{ runner.os }}-xcodegen
+          restore-keys: |
+            brew-${{ runner.os }}-
 
       - name: Install cargo-swift (if needed)
         if: steps.cache-cargo-tools.outputs.cache-hit != 'true'
         run: |
           if ! command -v cargo-swift &> /dev/null; then
-            cargo install cargo-swift
+            cargo install cargo-swift --locked
           fi
 
       - name: Build shared library for iOS
@@ -221,16 +279,19 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/Library/Developer/Xcode/DerivedData
-          key: xcode-deriveddata-${{ hashFiles('iOS/**/*.swift', 'iOS/**/*.plist') }}
+          key: xcode-deriveddata-${{ hashFiles('iOS/**/*.swift', 'iOS/**/*.plist', 'iOS/**/*.xcconfig') }}
           restore-keys: |
             xcode-deriveddata-
+
+      - name: Install xcodegen
+        run: |
+          if ! command -v xcodegen &> /dev/null; then
+            brew install xcodegen
+          fi
 
       - name: Generate Xcode project
         run: |
           cd iOS
-          if ! command -v xcodegen &> /dev/null; then
-            brew install xcodegen
-          fi
           xcodegen generate
 
       - name: Build iOS app
@@ -276,14 +337,15 @@ jobs:
         uses: amondnet/vercel-action@v20
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          zeit-token: ${{ secrets.VERCEL_TOKEN }}
           vercel-args: --prod
           working-directory: ./dist
 
   # Deploy server application to Fly.io
   deploy-server:
     runs-on: ubuntu-latest
-    needs: [changes, rust-build]
-    if: > # Modified line
+    needs: [changes, rust-shared]
+    if: >
       github.ref == 'refs/heads/main' &&
       github.event_name == 'push' &&
       needs.changes.outputs.rust == 'true'
@@ -293,10 +355,7 @@ jobs:
         with:
           name: server-binary-linux
           path: .
-      - name: TODO: Deploy server to Fly.io
+      - name: TODO - Deploy server to Fly.io
         run: |
           echo "Server binary is at ./server"
           echo "Add deployment steps for Fly.io here"
-          # Example:
-          # curl -L https://fly.io/install.sh | sh
-          # ~/.fly/bin/flyctl deploy --dockerfile ./server/Dockerfile --app intrada-server --image intrada-server --local-only
