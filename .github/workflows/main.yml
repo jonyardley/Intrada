@@ -337,7 +337,6 @@ jobs:
         uses: amondnet/vercel-action@v20
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          zeit-token: ${{ secrets.VERCEL_TOKEN }}
           vercel-args: --prod
           working-directory: ./dist
 
@@ -350,12 +349,15 @@ jobs:
       github.event_name == 'push' &&
       needs.changes.outputs.rust == 'true'
     steps:
-      - name: Download server binary
-        uses: actions/download-artifact@v4
-        with:
-          name: server-binary-linux
-          path: .
-      - name: TODO - Deploy server to Fly.io
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy to Fly.io
         run: |
-          echo "Server binary is at ./server"
-          echo "Add deployment steps for Fly.io here"
+          cd server
+          flyctl deploy --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
