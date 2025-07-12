@@ -110,17 +110,19 @@ jobs:
           cargo build --release --workspace
           echo "::endgroup::"
 
-      - name: Build WASM target separately
-        run: |
-          echo "::group::Building WASM target"
-          # Build WASM target separately to avoid filename collisions
-          cargo build --release --target wasm32-unknown-unknown -p shared
-          echo "::endgroup::"
-
       - name: Run tests (parallel)
         run: |
           echo "::group::Running tests with nextest"
-          cargo nextest run --workspace --release
+          # Run tests with dev profile to avoid crate-type collisions with release builds
+          cargo nextest run --workspace
+          echo "::endgroup::"
+
+      - name: Build WASM target separately
+        run: |
+          echo "::group::Building WASM target"
+          # Build WASM target separately after tests to avoid filename collisions
+          # The shared lib has multiple crate-types which can cause collisions
+          cargo build --release --target wasm32-unknown-unknown -p shared
           echo "::endgroup::"
 
       - name: Upload target directory
@@ -272,13 +274,27 @@ jobs:
             cargo install cargo-swift --locked
           fi
 
-      - name: Build shared library for iOS
+      - name: Build shared library for iOS targets
         run: |
           cd shared
+          # Build for iOS simulator targets
+          cargo build --lib --target aarch64-apple-ios-sim
+          cargo build --lib --target x86_64-apple-ios
+          # Build for native target (needed for type generation)
           cargo build --lib
 
       - name: Generate Swift types and bindings
-        run: ./typegen.sh
+        run: |
+          echo "::group::Generating Swift types and bindings"
+          ./typegen.sh
+          echo "::endgroup::"
+          
+      - name: Verify generated Swift packages
+        run: |
+          echo "::group::Checking generated Swift packages"
+          ls -la shared/Shared/ || echo "Shared package not found"
+          ls -la shared_types/generated/swift/SharedTypes/ || echo "SharedTypes package not found"
+          echo "::endgroup::"
 
       - name: Cache Xcode DerivedData
         uses: actions/cache@v4
@@ -328,7 +344,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: [changes, web-build]
     if: >
-      github.ref == 'refs/heads/main' &&
       github.event_name == 'push' &&
       needs.changes.outputs.web == 'true'
     steps:
@@ -338,11 +353,23 @@ jobs:
           name: web-dist
           path: ./dist
 
-      - name: Deploy web to Vercel
-        uses: amondnet/vercel-action@v20
+      - name: Deploy web to Vercel (Production)
+        if: github.ref == 'refs/heads/main'
+        uses: amondnet/vercel-action@v25
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.ORG_ID }}
+          vercel-project-id: ${{ secrets.PROJECT_ID }}
           vercel-args: --prod
+          working-directory: ./dist
+
+      - name: Deploy web to Vercel (Preview)
+        if: github.ref != 'refs/heads/main'
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.ORG_ID }}
+          vercel-project-id: ${{ secrets.PROJECT_ID }}
           working-directory: ./dist
 
   # Deploy server application to Fly.io
