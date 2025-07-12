@@ -1,4 +1,4 @@
-use axum::{Router, response::Html, routing::get};
+use axum::{response::Html, routing::get, Router};
 use std::net::SocketAddr;
 
 async fn hello_world() -> Html<&'static str> {

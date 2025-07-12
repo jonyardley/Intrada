@@ -22,7 +22,6 @@ We're building intelligent tools that transform practice from routine into a del
 - **iOS**: Swift + SwiftUI (native iOS experience)
 - **Web**: Leptos (Rust-based reactive web framework)
 - **Backend**: Custom Rust server with Axum
-- **Infrastructure**: Rust-based server deployment
 - **Styling**: Tailwind CSS for consistent, utility-first design
 
 ## 🛠️ Development Practices

@@ -9,6 +9,8 @@
         "--stdin",
         "--rustfmt"
     ],
+    "rust-analyzer.check.command": "clippy",
+    "rust-analyzer.check.extraArgs": ["--all", "--", "-W", "clippy::all"],
     "swift.buildPath": "${workspaceFolder}/iOS",
     "swift.packagePath": [
         "${workspaceFolder}/shared/Shared",
