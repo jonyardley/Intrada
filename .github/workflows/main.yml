@@ -59,8 +59,6 @@ jobs:
       needs.changes.outputs.web == 'true' ||
       needs.changes.outputs.ios == 'true' ||
       github.event_name == 'workflow_dispatch'
-    outputs:
-      cache-key: ${{ steps.cache-key.outputs.key }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -70,11 +68,6 @@ jobs:
         with:
           targets: 'wasm32-unknown-unknown'
 
-      - name: Generate cache key
-        id: cache-key
-        run: |
-          echo "key=${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-${{ github.sha }}" >> $GITHUB_OUTPUT
-
       - name: Cache cargo dependencies and target
         uses: actions/cache@v4
         with:
@@ -83,7 +76,7 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: ${{ steps.cache-key.outputs.key }}
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-
             ${{ runner.os }}-cargo-
@@ -131,13 +124,6 @@ jobs:
           cargo build --release --target wasm32-unknown-unknown -p shared
           echo "::endgroup::"
 
-      - name: Upload target directory
-        uses: actions/upload-artifact@v4
-        with:
-          name: cargo-target-${{ github.sha }}
-          path: target/
-          retention-days: 1
-
       - name: Upload server binary
         uses: actions/upload-artifact@v4
         with:
@@ -163,16 +149,10 @@ jobs:
         uses: actions/cache@v4
         with:
           path: target/
-          key: ${{ needs.rust-shared.outputs.cache-key }}
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-
             ${{ runner.os }}-cargo-
-
-      - name: Download target directory
-        uses: actions/download-artifact@v4
-        with:
-          name: cargo-target-${{ github.sha }}
-          path: target/
 
       - name: Cache trunk
         uses: actions/cache@v4
@@ -235,16 +215,10 @@ jobs:
         uses: actions/cache@v4
         with:
           path: target/
-          key: ${{ needs.rust-shared.outputs.cache-key }}
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-
             ${{ runner.os }}-cargo-
-
-      - name: Download target directory
-        uses: actions/download-artifact@v4
-        with:
-          name: cargo-target-${{ github.sha }}
-          path: target/
 
       - name: Cache cargo tools
         uses: actions/cache@v4
