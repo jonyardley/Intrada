@@ -66,7 +66,7 @@ jobs:
       - name: Setup Rust
         uses: ./.github/actions/setup-rust
         with:
-          targets: 'wasm32-unknown-unknown,aarch64-apple-ios-sim,x86_64-apple-ios'
+          targets: 'wasm32-unknown-unknown'
 
       - name: Cache cargo dependencies and target
         uses: actions/cache@v4
@@ -113,14 +113,12 @@ jobs:
           echo "Tests complete - shared_types skipped due to version conflicts"
           echo "::endgroup::"
 
-      - name: Build additional targets separately
+      - name: Build WASM target separately
         run: |
-          echo "::group::Building WASM and iOS targets"
+          echo "::group::Building WASM target"
           # Build WASM target separately after tests to avoid filename collisions
+          # The shared lib has multiple crate-types which can cause collisions
           cargo build --release --target wasm32-unknown-unknown -p shared
-          # Build iOS targets for ios-build job to use
-          cargo build --release --target aarch64-apple-ios-sim -p shared
-          cargo build --release --target x86_64-apple-ios -p shared
           echo "::endgroup::"
 
       - name: Upload server binary
@@ -253,14 +251,14 @@ jobs:
             cargo install cargo-swift --locked
           fi
 
-      - name: Verify cached targets available
+      - name: Build iOS-specific targets efficiently
         run: |
-          echo "::group::Checking cached build artifacts"
-          # All targets should be available from cached rust-shared job
-          ls -la target/release/ || echo "Native target missing"
-          ls -la target/aarch64-apple-ios-sim/release/ || echo "iOS sim arm64 target missing" 
-          ls -la target/x86_64-apple-ios/release/ || echo "iOS sim x86_64 target missing"
-          ls -la target/wasm32-unknown-unknown/release/ || echo "WASM target missing"
+          echo "::group::Building only iOS-specific targets"
+          # Build minimal iOS targets needed for Swift package generation
+          # Use cached dependencies from rust-shared job
+          cd shared
+          cargo build --lib --target aarch64-apple-ios-sim --release
+          cargo build --lib --target x86_64-apple-ios --release
           echo "::endgroup::"
 
       - name: Generate Swift types and bindings
