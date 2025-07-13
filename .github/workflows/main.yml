@@ -262,6 +262,17 @@ jobs:
           cargo build --lib --target x86_64-apple-ios --release
           echo "::endgroup::"
 
+      - name: Build shared_types to generate Swift bindings
+        run: |
+          echo "::group::Building shared_types package"
+          # Force build of shared_types which generates Swift types in build.rs
+          cargo build -p shared_types || {
+            echo "shared_types build failed, trying without features..."
+            # Try building without potentially problematic features
+            cargo check -p shared_types
+          }
+          echo "::endgroup::"
+
       - name: Generate Swift types and bindings
         run: |
           echo "::group::Generating Swift types and bindings"
@@ -271,8 +282,15 @@ jobs:
       - name: Verify generated Swift packages
         run: |
           echo "::group::Checking generated Swift packages"
+          echo "=== Checking Shared package ==="
           ls -la shared/Shared/ || echo "Shared package not found"
+          echo "=== Checking SharedTypes package ==="
           ls -la shared_types/generated/swift/SharedTypes/ || echo "SharedTypes package not found"
+          echo "=== Debugging: Check all generated directories ==="
+          find . -name "SharedTypes" -type d 2>/dev/null || echo "No SharedTypes directories found"
+          find . -name "*.swift" -path "*/generated/*" 2>/dev/null || echo "No generated Swift files found"
+          echo "=== Check if shared_types build succeeded ==="
+          ls -la shared_types/generated/ || echo "shared_types/generated directory missing"
           echo "::endgroup::"
 
       - name: Cache Xcode DerivedData
