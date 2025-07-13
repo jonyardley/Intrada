@@ -180,6 +180,41 @@ server/
 - `DATABASE_URL` - PostgreSQL connection string
 - `PORT` - Server port (default: 3000)
 
+## Deployment
+
+### Fly.io Deployment
+
+The server is configured for deployment on Fly.io:
+
+```bash
+# Install flyctl if you haven't already
+curl -L https://fly.io/install.sh | sh
+
+# Login to Fly.io
+flyctl auth login
+
+# Deploy the application
+flyctl deploy
+```
+
+The deployment will:
+1. Build the Docker image with both server and migrator binaries
+2. Run database migrations using `cargo run --bin migrator up`
+3. Start the server on the configured port
+
+### Environment Variables for Production
+
+Set the following secrets for production deployment:
+
+```bash
+# Set database URL (Fly.io will provide this when you attach a database)
+flyctl secrets set DATABASE_URL="your-production-database-url"
+```
+
+### Health Checks
+
+The server includes health checks at `/health` that verify database connectivity.
+
 ## Dependencies
 
 - **axum** - Web framework

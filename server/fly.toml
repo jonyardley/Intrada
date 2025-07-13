@@ -1,4 +1,4 @@
-# fly.toml file generated for holy-grass-8371 on 2021-04-06T14:31:33-04:00
+# fly.toml file for Intrada Server (SeaORM-based)
 
 app = "intrada-server"
 primary_region = "dfw"
@@ -12,7 +12,8 @@ kill_timeout = 5
 PORT = "8080"
 
 [deploy]
-release_command = "sqlx migrate run"
+# Updated to use SeaORM migrator instead of SQLx
+release_command = "cargo run --bin migrator up"
 
 [[services]]
 internal_port = 8080
@@ -34,3 +35,12 @@ port = 443
 grace_period = "1s"
 interval = "15s"
 timeout = "2s"
+
+[[services.http_checks]]
+interval = "10s"
+timeout = "2s"
+grace_period = "5s"
+method = "GET"
+path = "/health"
+protocol = "http"
+tls_skip_verify = false
