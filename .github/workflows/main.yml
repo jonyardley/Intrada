@@ -94,14 +94,24 @@ jobs:
           cargo fmt --all -- --check
           echo "::endgroup::"
 
+      - name: Cache cargo tools
+        uses: actions/cache@v4
+        id: cache-cargo-tools
+        with:
+          path: ~/.cargo/bin
+          key: cargo-tools-${{ runner.os }}-clippy-nextest-v1
+          restore-keys: |
+            cargo-tools-${{ runner.os }}-
+
+      - name: Install cargo-nextest
+        if: steps.cache-cargo-tools.outputs.cache-hit != 'true'
+        uses: taiki-e/install-action@cargo-nextest
+
       - name: Run clippy
         run: |
           echo "::group::Running clippy lints"
           cargo clippy --all-targets --all-features -- -D warnings
           echo "::endgroup::"
-
-      - name: Install cargo-nextest
-        uses: taiki-e/install-action@cargo-nextest
 
       - name: Build all targets in parallel
         run: |
