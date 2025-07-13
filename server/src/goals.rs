@@ -310,3 +310,155 @@ pub fn routes() -> Router<DbPool> {
             get(get_goal).put(update_goal).delete(delete_goal),
         )
 }
+
+// *************
+// TESTS
+// *************
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use shared::GoalStatus;
+
+    #[test]
+    fn test_goal_row_into_goal_success() {
+        let goal_row = GoalRow {
+            id: "test-id".to_string(),
+            name: "Test Goal".to_string(),
+            description: Some("Test description".to_string()),
+            status: "InProgress".to_string(),
+            start_date: Some("2024-01-01".to_string()),
+            target_date: Some("2024-12-31".to_string()),
+            study_ids: r#"["study1", "study2"]"#.to_string(),
+            tempo_target: Some(120),
+        };
+
+        let result = goal_row.into_goal();
+        assert!(result.is_ok());
+
+        let goal = result.unwrap();
+        assert_eq!(goal.id, "test-id");
+        assert_eq!(goal.name, "Test Goal");
+        assert_eq!(goal.description, Some("Test description".to_string()));
+        assert_eq!(goal.status, GoalStatus::InProgress);
+        assert_eq!(goal.start_date, Some("2024-01-01".to_string()));
+        assert_eq!(goal.target_date, Some("2024-12-31".to_string()));
+        assert_eq!(goal.study_ids, vec!["study1", "study2"]);
+        assert_eq!(goal.tempo_target, Some(120));
+    }
+
+    #[test]
+    fn test_goal_row_into_goal_invalid_json() {
+        let goal_row = GoalRow {
+            id: "test-id".to_string(),
+            name: "Test Goal".to_string(),
+            description: None,
+            status: "NotStarted".to_string(),
+            start_date: None,
+            target_date: None,
+            study_ids: "invalid json".to_string(),
+            tempo_target: None,
+        };
+
+        let result = goal_row.into_goal();
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_goal_row_into_goal_unknown_status() {
+        let goal_row = GoalRow {
+            id: "test-id".to_string(),
+            name: "Test Goal".to_string(),
+            description: None,
+            status: "UnknownStatus".to_string(),
+            start_date: None,
+            target_date: None,
+            study_ids: r#"[]"#.to_string(),
+            tempo_target: None,
+        };
+
+        let result = goal_row.into_goal();
+        assert!(result.is_ok());
+
+        let goal = result.unwrap();
+        assert_eq!(goal.status, GoalStatus::NotStarted); // Should default to NotStarted
+    }
+
+    #[test]
+    fn test_create_goal_request_validation() {
+        let request = CreateGoalRequest {
+            name: "Test Goal".to_string(),
+            description: Some("Description".to_string()),
+            target_date: Some("2024-12-31".to_string()),
+            study_ids: vec!["study1".to_string(), "study2".to_string()],
+            tempo_target: Some(120),
+        };
+
+        assert_eq!(request.name, "Test Goal");
+        assert_eq!(request.description, Some("Description".to_string()));
+        assert_eq!(request.target_date, Some("2024-12-31".to_string()));
+        assert_eq!(request.study_ids, vec!["study1", "study2"]);
+        assert_eq!(request.tempo_target, Some(120));
+    }
+
+    #[test]
+    fn test_update_goal_request_partial_update() {
+        let request = UpdateGoalRequest {
+            name: Some("Updated Name".to_string()),
+            description: None,
+            status: Some(GoalStatus::Completed),
+            start_date: None,
+            target_date: None,
+            study_ids: None,
+            tempo_target: Some(140),
+        };
+
+        assert_eq!(request.name, Some("Updated Name".to_string()));
+        assert_eq!(request.description, None);
+        assert_eq!(request.status, Some(GoalStatus::Completed));
+        assert_eq!(request.tempo_target, Some(140));
+    }
+
+    #[test]
+    fn test_goal_status_serialization() {
+        let status_not_started = GoalStatus::NotStarted;
+        let status_in_progress = GoalStatus::InProgress;
+        let status_completed = GoalStatus::Completed;
+
+        // Test that the enum variants can be used in pattern matching
+        match status_not_started {
+            GoalStatus::NotStarted => {}
+            _ => panic!("Expected NotStarted"),
+        }
+
+        match status_in_progress {
+            GoalStatus::InProgress => {}
+            _ => panic!("Expected InProgress"),
+        }
+
+        match status_completed {
+            GoalStatus::Completed => {}
+            _ => panic!("Expected Completed"),
+        }
+    }
+
+    #[test]
+    fn test_empty_study_ids() {
+        let goal_row = GoalRow {
+            id: "test-id".to_string(),
+            name: "Test Goal".to_string(),
+            description: None,
+            status: "NotStarted".to_string(),
+            start_date: None,
+            target_date: None,
+            study_ids: r#"[]"#.to_string(),
+            tempo_target: None,
+        };
+
+        let result = goal_row.into_goal();
+        assert!(result.is_ok());
+
+        let goal = result.unwrap();
+        assert_eq!(goal.study_ids, Vec::<String>::new());
+    }
+}

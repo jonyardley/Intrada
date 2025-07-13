@@ -106,11 +106,12 @@ jobs:
       - name: Run tests (parallel)
         run: |
           echo "::group::Running tests with nextest"
-          # Skip shared_types due to crux_core version conflicts in build.rs
-          # Run tests only on packages that don't have build-time conflicts
+          # Run tests on all packages
+          cargo nextest run -p shared || true
+          cargo nextest run -p shared_types || true
           cargo nextest run -p intrada-server || true
           cargo nextest run -p web-leptos || true
-          echo "Tests complete - shared_types skipped due to version conflicts"
+          echo "Tests complete - all packages tested"
           echo "::endgroup::"
 
       - name: Build WASM target separately
