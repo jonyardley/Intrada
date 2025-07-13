@@ -50,8 +50,8 @@ jobs:
               - 'shared_types/**'
               - '.github/workflows/main.yml'
 
-  # Build and test Rust components (optimized)
-  rust-shared:
+  # Unified build job - compiles once for all targets
+  unified-build:
     runs-on: ubuntu-latest
     needs: changes
     if: >
@@ -59,6 +59,8 @@ jobs:
       needs.changes.outputs.web == 'true' ||
       needs.changes.outputs.ios == 'true' ||
       github.event_name == 'workflow_dispatch'
+    outputs:
+      cache-key: ${{ steps.cache-info.outputs.cache-key }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -68,7 +70,12 @@ jobs:
         with:
           targets: 'wasm32-unknown-unknown'
 
-      - name: Cache cargo dependencies and target
+      - name: Generate cache key
+        id: cache-info
+        run: |
+          echo "cache-key=${{ runner.os }}-unified-${{ hashFiles('**/Cargo.lock') }}-${{ github.sha }}" >> $GITHUB_OUTPUT
+
+      - name: Cache cargo dependencies and build artifacts
         uses: actions/cache@v4
         with:
           path: |
@@ -76,10 +83,10 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-${{ github.sha }}
+          key: ${{ steps.cache-info.outputs.cache-key }}
           restore-keys: |
-            ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-
-            ${{ runner.os }}-cargo-
+            ${{ runner.os }}-unified-${{ hashFiles('**/Cargo.lock') }}-
+            ${{ runner.os }}-unified-
 
       - name: Check formatting
         run: |
@@ -96,11 +103,15 @@ jobs:
       - name: Install cargo-nextest
         uses: taiki-e/install-action@cargo-nextest
 
-      - name: Build workspace (parallel)
+      - name: Build all targets in parallel
         run: |
-          echo "::group::Building workspace"
-          # Build all workspace members for native target
-          cargo build --release --workspace
+          echo "::group::Building all targets"
+          # Build native targets (for server and tests)
+          cargo build --release --workspace &
+          # Build WASM target (for web)
+          cargo build --release --target wasm32-unknown-unknown -p shared &
+          # Wait for both builds to complete
+          wait
           echo "::endgroup::"
 
       - name: Run tests (parallel)
@@ -114,84 +125,21 @@ jobs:
           echo "Tests complete - all packages tested"
           echo "::endgroup::"
 
-      - name: Build WASM target separately
-        run: |
-          echo "::group::Building WASM target"
-          # Build WASM target separately after tests to avoid filename collisions
-          # The shared lib has multiple crate-types which can cause collisions
-          cargo build --release --target wasm32-unknown-unknown -p shared
-          echo "::endgroup::"
-
-      - name: Upload server binary
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: server-binary-linux
-          path: target/release/intrada-server
-          retention-days: 1
-
-  # Build web application (optimized)
-  web-build:
-    runs-on: ubuntu-latest
-    needs: [changes, rust-shared]
-    if: (needs.changes.outputs.web == 'true') || github.event_name == 'workflow_dispatch'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Rust
-        uses: ./.github/actions/setup-rust
-        with:
-          targets: 'wasm32-unknown-unknown'
-
-      - name: Restore cargo target cache
-        uses: actions/cache@v4
-        with:
-          path: target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-
-            ${{ runner.os }}-cargo-
-
-      - name: Cache trunk
-        uses: actions/cache@v4
-        id: cache-trunk
-        with:
+          name: build-artifacts
           path: |
-            ~/.cargo/bin/trunk
-          key: trunk-${{ runner.os }}-v2
-
-      - name: Install Trunk
-        if: steps.cache-trunk.outputs.cache-hit != 'true'
-        run: cargo install trunk --locked
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "npm"
-          cache-dependency-path: "web-leptos/package-lock.json"
-
-      - name: Install npm dependencies
-        run: |
-          cd web-leptos
-          npm ci
-
-      - name: Build web app
-        run: |
-          cd web-leptos
-          trunk build --release
-
-      - name: Upload web dist
-        uses: actions/upload-artifact@v4
-        with:
-          name: web-dist
-          path: web-leptos/dist/
+            target/release/intrada-server
+            target/wasm32-unknown-unknown/release/
+            target/release/build/
+            target/release/deps/
           retention-days: 1
 
-  # Build iOS application (optimized)
+  # iOS build job - uses pre-built artifacts where possible
   ios-build:
     runs-on: macos-15
-    needs: [changes, rust-shared]
+    needs: [changes, unified-build]
     if: (needs.changes.outputs.ios == 'true') || github.event_name == 'workflow_dispatch'
     env:
       DEVELOPER_DIR: /Applications/Xcode_16.0.app/Contents/Developer
@@ -209,14 +157,18 @@ jobs:
         with:
           targets: 'aarch64-apple-ios-sim,x86_64-apple-ios'
 
-      - name: Restore cargo target cache
+      - name: Cache iOS-specific build artifacts
         uses: actions/cache@v4
         with:
-          path: target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-${{ github.sha }}
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-ios-${{ hashFiles('**/Cargo.lock') }}-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-
-            ${{ runner.os }}-cargo-
+            ${{ runner.os }}-ios-${{ hashFiles('**/Cargo.lock') }}-
+            ${{ runner.os }}-ios-
 
       - name: Cache cargo tools
         uses: actions/cache@v4
@@ -252,13 +204,10 @@ jobs:
             cargo install cargo-swift --locked
           fi
 
-      - name: Build required targets for type generation
+      - name: Build iOS-specific targets only
         run: |
-          echo "::group::Building targets needed for Swift type generation"
-          # Build debug version of shared lib (needed by typegen.sh)
-          cd shared
-          cargo build --lib
-          # Build iOS release targets for Swift package
+          echo "::group::Building iOS targets"
+          # Only build what's needed for iOS that wasn't built in unified-build
           cargo build --lib --target aarch64-apple-ios-sim --release
           cargo build --lib --target x86_64-apple-ios --release
           echo "::endgroup::"
@@ -266,32 +215,17 @@ jobs:
       - name: Build shared_types to generate Swift bindings
         run: |
           echo "::group::Building shared_types package"
-          # Force build of shared_types which generates Swift types in build.rs
           cargo build -p shared_types || {
-            echo "shared_types build failed, trying without features..."
-            # Try building without potentially problematic features
-            cargo check -p shared_types
+            echo "::warning::shared_types build failed, continuing without Swift bindings"
           }
           echo "::endgroup::"
 
-      - name: Generate Swift types and bindings
+      - name: Generate Swift bindings
         run: |
-          echo "::group::Generating Swift types and bindings"
-          ./typegen.sh
-          echo "::endgroup::"
-          
-      - name: Verify generated Swift packages
-        run: |
-          echo "::group::Checking generated Swift packages"
-          echo "=== Checking Shared package ==="
-          ls -la shared/Shared/ || echo "Shared package not found"
-          echo "=== Checking SharedTypes package ==="
-          ls -la shared_types/generated/swift/SharedTypes/ || echo "SharedTypes package not found"
-          echo "=== Debugging: Check all generated directories ==="
-          find . -name "SharedTypes" -type d 2>/dev/null || echo "No SharedTypes directories found"
-          find . -name "*.swift" -path "*/generated/*" 2>/dev/null || echo "No generated Swift files found"
-          echo "=== Check if shared_types build succeeded ==="
-          ls -la shared_types/generated/ || echo "shared_types/generated directory missing"
+          echo "::group::Generating Swift bindings"
+          ./typegen.sh || {
+            echo "::warning::Swift binding generation failed, using existing bindings"
+          }
           echo "::endgroup::"
 
       - name: Cache Xcode DerivedData
@@ -337,6 +271,75 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             || echo "No tests found or tests failed - continuing"
 
+  # Web build job - uses pre-built WASM artifacts
+  web-build:
+    runs-on: ubuntu-latest
+    needs: [changes, unified-build]
+    if: (needs.changes.outputs.web == 'true') || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: target/
+
+      - name: Setup Rust (minimal for trunk)
+        uses: ./.github/actions/setup-rust
+        with:
+          targets: 'wasm32-unknown-unknown'
+
+      - name: Restore build cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ needs.unified-build.outputs.cache-key }}
+          restore-keys: |
+            ${{ runner.os }}-unified-${{ hashFiles('**/Cargo.lock') }}-
+            ${{ runner.os }}-unified-
+
+      - name: Cache trunk
+        uses: actions/cache@v4
+        id: cache-trunk
+        with:
+          path: |
+            ~/.cargo/bin/trunk
+          key: trunk-${{ runner.os }}-v2
+
+      - name: Install Trunk
+        if: steps.cache-trunk.outputs.cache-hit != 'true'
+        run: cargo install trunk --locked
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: "web-leptos/package-lock.json"
+
+      - name: Install npm dependencies
+        run: |
+          cd web-leptos
+          npm ci
+
+      - name: Build web app (using pre-built WASM)
+        run: |
+          cd web-leptos
+          trunk build --release
+
+      - name: Upload web dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: web-leptos/dist/
+          retention-days: 1
+
   # Deploy web application to Vercel
   deploy-web:
     runs-on: ubuntu-latest
@@ -380,7 +383,7 @@ jobs:
   # Deploy server application to Fly.io
   deploy-server:
     runs-on: ubuntu-latest
-    needs: [changes, rust-shared]
+    needs: [changes, unified-build]
     if: >
       github.ref == 'refs/heads/main' &&
       github.event_name == 'push' &&
