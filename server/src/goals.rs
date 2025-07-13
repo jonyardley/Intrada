@@ -33,7 +33,7 @@ impl GoalRow {
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ApiError {
-                    message: format!("Failed to parse study IDs: {}", e),
+                    message: format!("Failed to parse study IDs: {e}"),
                 }),
             )
         })?;
@@ -97,7 +97,7 @@ async fn create_goal(
         (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ApiError {
-                message: format!("Failed to serialize study IDs: {}", e),
+                message: format!("Failed to serialize study IDs: {e}"),
             }),
         )
     })?;
@@ -119,7 +119,7 @@ async fn create_goal(
     .await
     .map_err(|e| (
         StatusCode::INTERNAL_SERVER_ERROR,
-        Json(ApiError { message: format!("Database error: {}", e) })
+        Json(ApiError { message: format!("Database error: {e}") })
     ))?;
 
     Ok(Json(goal))
@@ -139,7 +139,7 @@ async fn get_goals(
         (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ApiError {
-                message: format!("Database error: {}", e),
+                message: format!("Database error: {e}"),
             }),
         )
     })?;
@@ -169,7 +169,7 @@ async fn get_goal(
         (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ApiError {
-                message: format!("Database error: {}", e),
+                message: format!("Database error: {e}"),
             }),
         )
     })?;
@@ -203,7 +203,7 @@ async fn update_goal(
         (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ApiError {
-                message: format!("Database error: {}", e),
+                message: format!("Database error: {e}"),
             }),
         )
     })?;
@@ -237,7 +237,7 @@ async fn update_goal(
         (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ApiError {
-                message: format!("Failed to serialize study IDs: {}", e),
+                message: format!("Failed to serialize study IDs: {e}"),
             }),
         )
     })?;
@@ -267,7 +267,7 @@ async fn update_goal(
     .await
     .map_err(|e| (
         StatusCode::INTERNAL_SERVER_ERROR,
-        Json(ApiError { message: format!("Database error: {}", e) })
+        Json(ApiError { message: format!("Database error: {e}") })
     ))?;
 
     Ok(Json(updated_goal))
@@ -285,7 +285,7 @@ async fn delete_goal(
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ApiError {
-                    message: format!("Database error: {}", e),
+                    message: format!("Database error: {e}"),
                 }),
             )
         })?;

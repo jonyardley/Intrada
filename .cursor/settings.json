@@ -26,10 +26,17 @@
         "editor.defaultFormatter": "rust-lang.rust-analyzer",
         "editor.formatOnSave": true
     },
-    "rust-analyzer.check.command": "check",
-    "rust-analyzer.cargo.target": "x86_64-apple-darwin",
-    "rust-analyzer.cargo.noDefaultFeatures": false,
-    "rust-analyzer.procMacro.enable": false,
-    "rust-analyzer.cargo.features": [],
-    "rust-analyzer.diagnostics.experimental.enable": false
+    "rust-analyzer.check.command": "clippy",
+    "rust-analyzer.check.allTargets": true,
+    "rust-analyzer.check.features": "all",
+    "rust-analyzer.check.extraArgs": [
+        "--",
+        "-W",
+        "clippy::uninlined-format-args",
+        "-D",
+        "warnings"
+    ],
+    "rust-analyzer.cargo.features": "all",
+    "rust-analyzer.diagnostics.enable": true,
+    "rust-analyzer.diagnostics.enableExperimental": true
 }
