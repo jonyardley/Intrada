@@ -359,6 +359,8 @@ jobs:
           vercel-project-id: ${{ secrets.PROJECT_ID }}
           vercel-args: --prod
           working-directory: ./dist
+          github-comment: false
+          github-deployment: false
 
       - name: Deploy web to Vercel (Preview)
         if: github.ref != 'refs/heads/main'
@@ -368,6 +370,8 @@ jobs:
           vercel-org-id: ${{ secrets.ORG_ID }}
           vercel-project-id: ${{ secrets.PROJECT_ID }}
           working-directory: ./dist
+          github-comment: false
+          github-deployment: false
 
   # Deploy server application to Fly.io
   deploy-server:
