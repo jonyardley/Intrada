@@ -97,7 +97,7 @@ fn StatusBadge(#[prop(into)] status: GoalStatus) -> impl IntoView {
         GoalStatus::Completed => ("bg-green-600", "M5 13l4 4L19 7"),
     };
 
-    let status_text = move || format!("{:?}", status);
+    let status_text = move || format!("{status:?}");
 
     view! {
         <strong class=format!(

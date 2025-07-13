@@ -1,0 +1,27 @@
+# Clippy configuration for Intrada project
+# Ensures consistent linting across the entire workspace
+
+# Set the maximum complexity threshold for functions
+cognitive-complexity-threshold = 30
+
+# Limit the number of lines in a function
+too-many-lines-threshold = 100
+
+# Set reasonable type complexity limit
+type-complexity-threshold = 250
+
+# Allow common single character variable names
+single-char-binding-names-threshold = 4
+
+# Don't lint these patterns that are common in our codebase
+avoid-breaking-exported-api = false
+
+# Disable some overly pedantic lints for this project
+disallowed-names = []
+
+# Allow certain patterns that are idiomatic in our Rust/Crux architecture
+enum-variant-name-threshold = 3
+
+# Note: Lint denial (treating warnings as errors) is handled via command line args
+# in both CI/CD and IDE settings, not in this config file.
+# See .cursor/settings.json rust-analyzer.check.extraArgs for IDE configuration

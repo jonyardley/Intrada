@@ -1,7 +1,9 @@
 use crate::app::model::Model;
+use facet::Facet;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
+#[derive(Facet, Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
+#[repr(C)]
 pub enum GoalStatus {
     #[default]
     NotStarted,
@@ -9,7 +11,7 @@ pub enum GoalStatus {
     Completed,
 }
 
-#[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
+#[derive(Facet, Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
 pub struct PracticeGoal {
     pub id: String,
     pub name: String,
@@ -35,7 +37,7 @@ impl PracticeGoal {
             description,
             status: GoalStatus::NotStarted,
             start_date: None,
-            target_date: target_date,
+            target_date,
             study_ids,
             tempo_target,
         }
@@ -52,10 +54,10 @@ pub fn edit_goal(updated_goal: PracticeGoal, model: &mut Model) {
     }
 }
 
-pub fn add_study_to_goal(goal_id: String, study_id: String, model: &mut Model) {
+pub fn add_study_to_goal(goal_id: &str, study_id: &str, model: &mut Model) {
     if let Some(goal) = model.goals.iter_mut().find(|g| g.id == goal_id) {
-        if !goal.study_ids.contains(&study_id) {
-            goal.study_ids.push(study_id);
+        if !goal.study_ids.contains(&study_id.to_string()) {
+            goal.study_ids.push(study_id.to_string());
         }
     }
 }
@@ -126,5 +128,5 @@ fn test_add_study_to_goal() {
     );
     let goal_id = goal.id.clone();
     add_goal(goal, &mut model);
-    add_study_to_goal(goal_id, "Study 1".to_string(), &mut model);
+    add_study_to_goal(&goal_id, "Study 1", &mut model);
 }

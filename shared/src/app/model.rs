@@ -2,6 +2,7 @@ use crate::app::{
     ActiveSession, PracticeGoal, PracticeSession, PracticeSessionView, SessionState, Study,
 };
 use chrono::{DateTime, Utc};
+use facet::Facet;
 use serde::{Deserialize, Serialize};
 
 #[derive(Default)]
@@ -14,7 +15,8 @@ pub struct Model {
 
 impl Model {}
 
-#[derive(Serialize, Deserialize, Clone, Default)]
+#[derive(Facet, Serialize, Deserialize, Clone, Default)]
+#[allow(clippy::struct_excessive_bools)]
 pub struct ViewModel {
     pub goals: Vec<PracticeGoal>,
     pub studies: Vec<Study>,
@@ -69,7 +71,7 @@ impl ViewModel {
                     start_time,
                     end_time,
                 } => Some(calculate_elapsed_time_between(start_time, end_time)),
-                _ => None,
+                SessionState::NotStarted => None,
             }
         } else {
             None
@@ -110,5 +112,5 @@ fn format_duration_hms(total_seconds: i64) -> String {
     let hours = total_seconds / 3600;
     let minutes = (total_seconds % 3600) / 60;
     let seconds = total_seconds % 60;
-    format!("{:02}:{:02}:{:02}", hours, minutes, seconds)
+    format!("{hours:02}:{minutes:02}:{seconds:02}")
 }

@@ -12,24 +12,32 @@ name = "shared"
 name = "crux_cli"
 required-features = ["cli"]
 
+[[bin]]
+name = "uniffi-bindgen"
+required-features = ["uniffi/cli"]
+
 [features]
 cli = ["crux_core/cli"]
+facet_typegen = ["crux_core/facet_typegen"]
 
 [dependencies]
-crux_core.workspace = true
+crux_core = { workspace = true }
+crux_http = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 lazy_static = "1.5.0"
-uniffi = "0.29.3"
+uniffi = { version = "0.29.3", features = ["cli"] }
 wasm-bindgen = "0.2.100"
 uuid = { version = "1.7.0", features = ["v4", "serde", "js"] }
 chrono = "0.4.41"
-crux_http = { path = "../../crux/crux_http" }
+facet = "0.27.16"
+
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
-uniffi = "0.29.3"
+uniffi = { version = "0.29.3", features = ["cli"] }
 
 [target.'cfg(target_family = "wasm")'.dependencies]
 wasm-bindgen = "0.2.100"
+js-sys = "0.3.70"
 
 [dev-dependencies]
 insta = { version = "1.43.1", features = ["yaml"] }

@@ -3,21 +3,20 @@ pub mod uniffi_ffi {
     use std::sync::Arc;
 
     use crux_core::{
-        Core,
         bridge::EffectId,
         macros::effect,
         middleware::{BincodeFfiFormat, Bridge, Layer as _},
         render::RenderOperation,
+        Core,
     };
     use crux_http::protocol::HttpRequest;
 
-    use crate::{Chopin, app::AppwriteOperation};
+    use crate::Chopin;
 
     #[effect]
     pub enum Effect {
         Render(RenderOperation),
         Http(HttpRequest),
-        Appwrite(AppwriteOperation)
     }
 
     impl From<crate::app::Effect> for Effect {
@@ -25,7 +24,6 @@ pub mod uniffi_ffi {
             match effect {
                 crate::Effect::Render(request) => Effect::Render(request),
                 crate::Effect::Http(request) => Effect::Http(request),
-                crate::Effect::Appwrite(operation) => Effect::Appwrite(operation)
             }
         }
     }
@@ -51,11 +49,12 @@ pub mod uniffi_ffi {
     impl CoreFFI {
         #[uniffi::constructor]
         pub fn new(shell: Arc<dyn CruxShell>) -> Self {
-            let core = Core::<Chopin>::new()
-                .bridge::<BincodeFfiFormat>(move |effect_bytes| match effect_bytes {
+            let core = Core::<Chopin>::new().bridge::<BincodeFfiFormat>(move |effect_bytes| {
+                match effect_bytes {
                     Ok(effect) => shell.process_effects(effect),
                     Err(e) => panic!("{e}"),
-                });
+                }
+            });
 
             Self { core }
         }
@@ -89,14 +88,14 @@ pub mod uniffi_ffi {
 #[cfg(target_family = "wasm")]
 pub mod wasm_ffi {
     use crux_core::middleware::{BincodeFfiFormat, Layer as _};
-    use crux_core::{Core, bridge::EffectId};
+    use crux_core::{bridge::EffectId, Core};
 
-    use crate::App;
+    use crate::Chopin;
 
     /// The main interface used by the shell
     #[wasm_bindgen::prelude::wasm_bindgen]
     pub struct CoreFFI {
-        core: crux_core::middleware::Bridge<Core<App>, BincodeFfiFormat>,
+        core: crux_core::middleware::Bridge<Core<Chopin>, BincodeFfiFormat>,
     }
 
     struct JsCallback(js_sys::Function);
@@ -116,22 +115,21 @@ pub mod wasm_ffi {
     impl CoreFFI {
         #[wasm_bindgen::prelude::wasm_bindgen(constructor)]
         pub fn new(callback: js_sys::Function) -> Self {
-            use js_sys::wasm_bindgen::JsValue;
+            use wasm_bindgen::JsValue;
 
             let callback = JsCallback(callback);
-            let core =
-                Core::<App>::new().bridge::<BincodeFfiFormat>(
-                    move |effect_bytes| match effect_bytes {
-                        Ok(bytes) => {
-                            callback
-                                .call1(&JsValue::NULL, &JsValue::from(bytes))
-                                .expect("Could not call JS callback");
-                        }
-                        Err(e) => {
-                            panic!("{e}");
-                        }
-                    },
-                );
+            let core = Core::<Chopin>::new().bridge::<BincodeFfiFormat>(move |effect_bytes| {
+                match effect_bytes {
+                    Ok(bytes) => {
+                        callback
+                            .call1(&JsValue::NULL, &JsValue::from(bytes))
+                            .expect("Could not call JS callback");
+                    }
+                    Err(e) => {
+                        panic!("{e}");
+                    }
+                }
+            });
 
             Self { core }
         }
