@@ -1,12 +1,18 @@
 # fly.toml file generated for holy-grass-8371 on 2021-04-06T14:31:33-04:00
 
 app = "intrada-server"
+primary_region = "dfw"
 
 kill_signal = "SIGINT"
 kill_timeout = 5
 
+[build]
+
 [env]
 PORT = "8080"
+
+[deploy]
+release_command = "sqlx migrate run"
 
 [[services]]
 internal_port = 8080
