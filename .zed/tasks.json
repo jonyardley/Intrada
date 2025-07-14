@@ -1,0 +1,105 @@
+[
+  {
+    "label": "🔧 Rust: Check All",
+    "command": "cargo",
+    "args": ["check", "--workspace"],
+    "reveal": "always",
+    "hide": "never",
+    "shell": "system",
+    "cwd": "${ZED_WORKTREE_ROOT}"
+  },
+  {
+    "label": "🧪 Rust: Test (nextest)",
+    "command": "cargo",
+    "args": ["nextest", "run"],
+    "reveal": "always",
+    "hide": "never",
+    "shell": "system",
+    "cwd": "${ZED_WORKTREE_ROOT}"
+  },
+  {
+    "label": "🎨 Rust: Format",
+    "command": "cargo",
+    "args": ["fmt"],
+    "reveal": "always",
+    "hide": "never",
+    "shell": "system",
+    "cwd": "${ZED_WORKTREE_ROOT}"
+  },
+  {
+    "label": "📋 Rust: Clippy",
+    "command": "cargo",
+    "args": ["clippy", "--workspace", "--all-targets"],
+    "reveal": "always",
+    "hide": "never",
+    "shell": "system",
+    "cwd": "${ZED_WORKTREE_ROOT}"
+  },
+  {
+    "label": "🔄 Generate Types",
+    "command": "./typegen.sh",
+    "args": [],
+    "reveal": "always",
+    "hide": "never",
+    "shell": "system",
+    "cwd": "${ZED_WORKTREE_ROOT}"
+  },
+  {
+    "label": "🏗️ Build Server",
+    "command": "cargo",
+    "args": ["build", "--package", "server"],
+    "reveal": "always",
+    "hide": "never",
+    "shell": "system",
+    "cwd": "${ZED_WORKTREE_ROOT}"
+  },
+  {
+    "label": "🚀 Run Server",
+    "command": "cargo",
+    "args": ["run", "--package", "server"],
+    "reveal": "always",
+    "shell": "system",
+    "cwd": "${ZED_WORKTREE_ROOT}"
+  },
+  {
+    "label": "🌐 Run Web (Leptos)",
+    "command": "trunk",
+    "args": ["serve"],
+    "reveal": "always",
+    "shell": "system",
+    "cwd": "${ZED_WORKTREE_ROOT}/web-leptos"
+  },
+  {
+    "label": "📱 Build & Run iOS",
+    "command": "sh",
+    "args": [
+      "-c",
+      "set -e && echo '🏗️  Building app...' && xcodebuild -project Intrada.xcodeproj -scheme Intrada -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 16' -sdk iphonesimulator build && echo '📱 Booting simulator...' && xcrun simctl boot 086A9B73-B0D8-4EDC-A917-64556A1ACCD1 2>/dev/null || true && sleep 2 && echo '📲 Installing app...' && APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData -name 'Intrada.app' -path '*/Build/Products/Debug-iphonesimulator/*' | head -1) && xcrun simctl install booted \"$APP_PATH\" && echo '🚀 Launching app...' && open -a Simulator && xcrun simctl launch booted com.jonyardley.Intrada && echo '✅ App launched successfully!'"
+    ],
+    "reveal": "always",
+    "hide": "never",
+    "shell": "system",
+    "cwd": "${ZED_WORKTREE_ROOT}/iOS"
+  },
+  {
+    "label": "🧹 Clean All",
+    "command": "cargo",
+    "args": ["clean"],
+    "reveal": "always",
+    "hide": "never",
+    "shell": "system",
+    "cwd": "${ZED_WORKTREE_ROOT}"
+  },
+  {
+    "label": "🔍 Full Check Pipeline",
+    "command": "sh",
+    "args": [
+      "-c",
+      "cargo fmt --check && cargo clippy --workspace --all-targets && cargo nextest run"
+    ],
+    "reveal": "always",
+    "hide": "never",
+    "shell": "system",
+    "cwd": "${ZED_WORKTREE_ROOT}"
+  }
+]

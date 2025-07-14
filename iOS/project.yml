@@ -17,6 +17,11 @@ targets:
       - package: Shared
       - package: SharedTypes
     team: JYARDLEY
+    settings:
+      base:
+        CODE_SIGN_IDENTITY[sdk=iphonesimulator*]: ""
+        CODE_SIGNING_ALLOWED[sdk=iphonesimulator*]: NO
+        CODE_SIGNING_REQUIRED[sdk=iphonesimulator*]: NO
     info:
       path: Intrada/Info.plist
       properties:

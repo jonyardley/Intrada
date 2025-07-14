@@ -3,9 +3,11 @@ use crux_core::{
     render::{render, RenderOperation},
     App, Command,
 };
-use crux_http::protocol::HttpRequest;
+use crux_http::{command::Http, protocol::HttpRequest, HttpError};
 use facet::Facet;
 use serde::{Deserialize, Serialize};
+
+const API_URL: &str = "http://localhost:8080/api/goals";
 
 pub mod goal;
 pub use goal::*;
@@ -35,6 +37,14 @@ pub use dev::*;
 #[derive(Facet, Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[repr(C)]
 pub enum Event {
+    FetchGoals,
+    #[serde(skip)]
+    #[facet(skip)]
+    SetGoals(HttpResult<crux_http::Response<Vec<PracticeGoal>>, HttpError>),
+    UpdateGoals(Vec<PracticeGoal>),
+    AddGoal(PracticeGoal),
+    EditGoal(PracticeGoal),
+
     AddStudy(Study),
     EditStudy(Study),
     AddStudyToGoal {
@@ -60,6 +70,24 @@ pub enum Event {
 
     SetDevData,
     Nothing,
+}
+
+#[derive(Facet, Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[repr(C)]
+pub enum HttpResult<T, E> {
+    Ok(T),
+    Err(E),
+}
+
+impl<T> From<crux_http::Result<crux_http::Response<T>>>
+    for HttpResult<crux_http::Response<T>, HttpError>
+{
+    fn from(value: crux_http::Result<crux_http::Response<T>>) -> Self {
+        match value {
+            Ok(response) => HttpResult::Ok(response),
+            Err(error) => HttpResult::Err(error),
+        }
+    }
 }
 
 #[effect(facet_typegen)]
@@ -88,6 +116,24 @@ impl App for Chopin {
         _caps: &Self::Capabilities,
     ) -> Command<Effect, Event> {
         match event {
+            Event::FetchGoals => {
+                return Http::get(API_URL)
+                    .expect_json()
+                    .build()
+                    .map(Into::into)
+                    .then_send(Event::SetGoals);
+            }
+            Event::SetGoals(HttpResult::Ok(mut response)) => {
+                let goals = response.take_body().unwrap();
+                return Command::event(Event::UpdateGoals(goals));
+            }
+            Event::SetGoals(HttpResult::Err(e)) => {
+                panic!("Failed to fetch goals: {e:?}");
+            }
+            Event::UpdateGoals(goals) => model.goals = goals,
+            Event::AddGoal(goal) => goal::add_goal(goal, model),
+            Event::EditGoal(goal) => goal::edit_goal(goal, model),
+
             Event::AddStudy(study) => add_study(study, model),
             Event::EditStudy(study) => edit_study(study, model),
             Event::AddStudyToGoal { goal_id, study_id } => {
