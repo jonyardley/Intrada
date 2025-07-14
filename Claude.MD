@@ -75,6 +75,8 @@ We're building intelligent tools that transform practice from routine into a del
 - Use SwiftUI for all UI components
 - Leverage Swift's type system for safety
 - Keep platform-specific code minimal
+- **Error Handling**: Prefer `Result<T, E>` types over complex type-state patterns for compile-time safety
+- **Builder Pattern**: Use simple builder patterns with Result validation rather than verbose type-state builders
 
 ### Web Code (Leptos)
 - Follow Leptos patterns and conventions

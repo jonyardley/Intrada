@@ -3,11 +3,30 @@ use crux_core::{
     render::{render, RenderOperation},
     App, Command,
 };
-use crux_http::{command::Http, protocol::HttpRequest, HttpError};
+use crux_http::{command::Http, protocol::HttpRequest};
 use facet::Facet;
 use serde::{Deserialize, Serialize};
 
-const API_URL: &str = "http://localhost:8080/api/goals";
+const API_URL: &str = "http://localhost:3000/goals";
+
+// Simple wrapper for HTTP results that can work with Facet
+#[derive(Facet, Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[repr(C)]
+pub enum HttpResult<T, E> {
+    Ok(T),
+    Err(E),
+}
+
+impl<T> From<crux_http::Result<crux_http::Response<T>>>
+    for HttpResult<crux_http::Response<T>, crux_http::HttpError>
+{
+    fn from(value: crux_http::Result<crux_http::Response<T>>) -> Self {
+        match value {
+            Ok(response) => HttpResult::Ok(response),
+            Err(error) => HttpResult::Err(error),
+        }
+    }
+}
 
 pub mod goal;
 pub use goal::*;
@@ -40,9 +59,12 @@ pub enum Event {
     FetchGoals,
     #[serde(skip)]
     #[facet(skip)]
-    SetGoals(HttpResult<crux_http::Response<Vec<PracticeGoal>>, HttpError>),
+    SetGoals(HttpResult<crux_http::Response<Vec<PracticeGoal>>, crux_http::HttpError>),
     UpdateGoals(Vec<PracticeGoal>),
     AddGoal(PracticeGoal),
+    #[serde(skip)]
+    #[facet(skip)]
+    GoalCreated(HttpResult<crux_http::Response<PracticeGoal>, crux_http::HttpError>),
     EditGoal(PracticeGoal),
 
     AddStudy(Study),
@@ -72,23 +94,6 @@ pub enum Event {
     Nothing,
 }
 
-#[derive(Facet, Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
-#[repr(C)]
-pub enum HttpResult<T, E> {
-    Ok(T),
-    Err(E),
-}
-
-impl<T> From<crux_http::Result<crux_http::Response<T>>>
-    for HttpResult<crux_http::Response<T>, HttpError>
-{
-    fn from(value: crux_http::Result<crux_http::Response<T>>) -> Self {
-        match value {
-            Ok(response) => HttpResult::Ok(response),
-            Err(error) => HttpResult::Err(error),
-        }
-    }
-}
 
 #[effect(facet_typegen)]
 pub enum Effect {
@@ -128,10 +133,39 @@ impl App for Chopin {
                 return Command::event(Event::UpdateGoals(goals));
             }
             Event::SetGoals(HttpResult::Err(e)) => {
-                panic!("Failed to fetch goals: {e:?}");
+                eprintln!("Failed to fetch goals: {e:?}");
+                // TODO: Add proper error handling - show error to user
             }
             Event::UpdateGoals(goals) => model.goals = goals,
-            Event::AddGoal(goal) => goal::add_goal(goal, model),
+            Event::AddGoal(goal) => {
+                // Transform PracticeGoal to the format the server expects
+                let create_request = serde_json::json!({
+                    "name": goal.name,
+                    "description": goal.description,
+                    "target_date": goal.target_date,
+                    "study_ids": goal.study_ids,
+                    "tempo_target": goal.tempo_target
+                });
+
+                let json_string = serde_json::to_string(&create_request).expect("Failed to serialize JSON");
+                eprintln!("Creating goal with JSON: {}", json_string);
+
+                return Http::post(API_URL)
+                    .header("Content-Type", "application/json")
+                    .body(json_string)
+                    .expect_json::<goal::PracticeGoal>()
+                    .build()
+                    .map(Into::into)
+                    .then_send(Event::GoalCreated);
+            }
+            Event::GoalCreated(HttpResult::Ok(mut response)) => {
+                let created_goal = response.take_body().unwrap();
+                goal::add_goal(created_goal, model);
+            }
+            Event::GoalCreated(HttpResult::Err(e)) => {
+                eprintln!("Failed to create goal: {e:?}");
+                // TODO: Add proper error handling - show error to user
+            }
             Event::EditGoal(goal) => goal::edit_goal(goal, model),
 
             Event::AddStudy(study) => add_study(study, model),
