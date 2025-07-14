@@ -1,5 +1,6 @@
-use axum::Router;
+use axum::{Router, response::Json, routing::get};
 use serde::Serialize;
+use serde_json::json;
 use sqlx::PgPool;
 use std::net::SocketAddr;
 
@@ -36,7 +37,12 @@ async fn main() {
 
     let pool = setup_database().await.expect("Failed to setup database");
 
-    let app = Router::new().merge(goals::routes()).with_state(pool);
+    let health = || async { Json(json!({ "status": "ok" })) };
+
+    let app = Router::new()
+        .route("/health", get(health))
+        .merge(goals::routes())
+        .with_state(pool);
 
     let port = std::env::var("PORT")
         .unwrap_or_else(|_| "3000".to_string())
