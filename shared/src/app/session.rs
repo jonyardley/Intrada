@@ -16,6 +16,21 @@ pub struct SessionData {
     pub study_sessions: Vec<StudySession>,
 }
 
+pub fn session_view_model(session: &PracticeSession) -> PracticeSessionView {
+    PracticeSessionView {
+        id: session.id().to_string(),
+        goal_ids: session.goal_ids().clone(),
+        intention: session.intention().clone(),
+        state: session.state(),
+        notes: session.notes().clone(),
+        study_sessions: session.study_sessions().clone(),
+        duration: session.duration(),
+        start_time: session.start_time().map(std::string::ToString::to_string),
+        end_time: session.end_time().map(std::string::ToString::to_string),
+        is_ended: session.is_ended(),
+    }
+}
+
 #[derive(Facet, Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[repr(C)]
 pub enum SessionEvent {

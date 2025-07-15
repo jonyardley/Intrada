@@ -98,8 +98,11 @@ impl App for Chopin {
     }
 
     fn view(&self, model: &Self::Model) -> Self::ViewModel {
-        let session_views: Vec<PracticeSessionView> =
-            model.sessions.iter().map(Self::session_to_view).collect();
+        let session_views: Vec<PracticeSessionView> = model
+            .sessions
+            .iter()
+            .map(Self::session_view_model)
+            .collect();
 
         ViewModel::new(
             model.goals.clone(),
@@ -112,18 +115,7 @@ impl App for Chopin {
 
 impl Chopin {
     /// Helper function to convert PracticeSession to PracticeSessionView
-    fn session_to_view(session: &PracticeSession) -> PracticeSessionView {
-        PracticeSessionView {
-            id: session.id().to_string(),
-            goal_ids: session.goal_ids().clone(),
-            intention: session.intention().clone(),
-            state: session.state(),
-            notes: session.notes().clone(),
-            study_sessions: session.study_sessions().clone(),
-            duration: session.duration(),
-            start_time: session.start_time().map(std::string::ToString::to_string),
-            end_time: session.end_time().map(std::string::ToString::to_string),
-            is_ended: session.is_ended(),
-        }
+    fn session_view_model(session: &PracticeSession) -> PracticeSessionView {
+        session::session_view_model(session)
     }
 }
