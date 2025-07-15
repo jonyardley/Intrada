@@ -13,6 +13,13 @@ pub struct StudySession {
     pub score: Option<u32>, // out of 10
 }
 
+#[derive(Facet, Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[repr(C)]
+pub enum StudySessionEvent {
+    AddStudySession(StudySession),
+    UpdateStudySession(StudySession),
+}
+
 impl StudySession {
     pub fn new(study_id: String, session_id: String) -> Self {
         Self {

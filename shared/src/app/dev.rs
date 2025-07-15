@@ -2,6 +2,15 @@ use crate::app::{
     add_goal, add_session, add_study, add_study_session, end_session, start_session, Model,
     PracticeGoal, PracticeSession, Study, StudySession,
 };
+use facet::Facet;
+use serde::{Deserialize, Serialize};
+
+#[derive(Facet, Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[repr(C)]
+pub enum DevEvent {
+    SetDevData,
+    Nothing,
+}
 
 pub fn set_dev_data(model: &mut Model) {
     //Studies

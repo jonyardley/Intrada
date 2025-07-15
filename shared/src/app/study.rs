@@ -10,6 +10,14 @@ pub struct Study {
     pub description: Option<String>,
 }
 
+#[derive(Facet, Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[repr(C)]
+pub enum StudyEvent {
+    AddStudy(Study),
+    EditStudy(Study),
+    AddStudyToGoal { goal_id: String, study_id: String },
+}
+
 impl Study {
     pub fn new(name: String, description: Option<String>) -> Self {
         Self {

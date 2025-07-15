@@ -1,4 +1,5 @@
 use crate::app::model::Model;
+use crate::HttpResult;
 use facet::Facet;
 use serde::{Deserialize, Serialize};
 
@@ -21,6 +22,21 @@ pub struct PracticeGoal {
     pub target_date: Option<String>,
     pub study_ids: Vec<String>,
     pub tempo_target: Option<u32>,
+}
+
+#[derive(Facet, Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[repr(C)]
+pub enum GoalEvent {
+    FetchGoals,
+    #[serde(skip)]
+    #[facet(skip)]
+    SetGoals(HttpResult<crux_http::Response<Vec<PracticeGoal>>, crux_http::HttpError>),
+    UpdateGoals(Vec<PracticeGoal>),
+    AddGoal(PracticeGoal),
+    #[serde(skip)]
+    #[facet(skip)]
+    GoalCreated(HttpResult<crux_http::Response<PracticeGoal>, crux_http::HttpError>),
+    EditGoal(PracticeGoal),
 }
 
 impl PracticeGoal {

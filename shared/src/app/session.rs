@@ -15,6 +15,23 @@ pub struct SessionData {
     pub study_sessions: Vec<StudySession>,
 }
 
+#[derive(Facet, Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[repr(C)]
+pub enum SessionEvent {
+    AddSession(PracticeSession),
+    EditSessionFields {
+        session_id: String,
+        goal_ids: Vec<String>,
+        intention: String,
+        notes: Option<String>,
+    },
+    SetActiveSession(String),
+    StartSession(String, String),
+    UnsetActiveSession,
+    EndSession(String, String),
+    EditSessionNotes(String, String),
+}
+
 impl SessionData {
     pub fn new(goal_ids: Vec<String>, intention: String) -> Self {
         Self {

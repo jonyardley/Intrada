@@ -32,84 +32,30 @@ pub mod error;
 pub use error::*;
 
 pub mod goal;
-pub use goal::*;
+pub use goal::{add_goal, add_study_to_goal, edit_goal, GoalEvent, GoalStatus, PracticeGoal};
 
 pub mod study;
-pub use study::*;
+pub use study::{add_study, edit_study, Study, StudyEvent};
 
 pub mod study_session;
-pub use study_session::*;
+pub use study_session::{add_study_session, update_study_session, StudySession, StudySessionEvent};
 
 pub mod session;
 pub use session::{
     add_session, edit_session_fields, edit_session_notes, end_session, remove_active_session,
     set_active_session, start_session, ActiveSession, PracticeSession, PracticeSessionView,
-    SessionState,
+    SessionEvent, SessionState,
 };
 
 pub mod model;
 pub use model::*;
 
 pub mod dev;
-pub use dev::*;
+pub use dev::{set_dev_data, DevEvent};
 
 // *************
 // EVENTS
 // *************
-
-#[derive(Facet, Serialize, Deserialize, Clone, Debug, PartialEq)]
-#[repr(C)]
-pub enum GoalEvent {
-    FetchGoals,
-    #[serde(skip)]
-    #[facet(skip)]
-    SetGoals(HttpResult<crux_http::Response<Vec<PracticeGoal>>, crux_http::HttpError>),
-    UpdateGoals(Vec<PracticeGoal>),
-    AddGoal(PracticeGoal),
-    #[serde(skip)]
-    #[facet(skip)]
-    GoalCreated(HttpResult<crux_http::Response<PracticeGoal>, crux_http::HttpError>),
-    EditGoal(PracticeGoal),
-}
-
-#[derive(Facet, Serialize, Deserialize, Clone, Debug, PartialEq)]
-#[repr(C)]
-pub enum StudyEvent {
-    AddStudy(Study),
-    EditStudy(Study),
-    AddStudyToGoal { goal_id: String, study_id: String },
-}
-
-#[derive(Facet, Serialize, Deserialize, Clone, Debug, PartialEq)]
-#[repr(C)]
-pub enum SessionEvent {
-    AddSession(PracticeSession),
-    EditSessionFields {
-        session_id: String,
-        goal_ids: Vec<String>,
-        intention: String,
-        notes: Option<String>,
-    },
-    SetActiveSession(String),
-    StartSession(String, String),
-    UnsetActiveSession,
-    EndSession(String, String),
-    EditSessionNotes(String, String),
-}
-
-#[derive(Facet, Serialize, Deserialize, Clone, Debug, PartialEq)]
-#[repr(C)]
-pub enum StudySessionEvent {
-    AddStudySession(StudySession),
-    UpdateStudySession(StudySession),
-}
-
-#[derive(Facet, Serialize, Deserialize, Clone, Debug, PartialEq)]
-#[repr(C)]
-pub enum DevEvent {
-    SetDevData,
-    Nothing,
-}
 
 #[derive(Facet, Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[repr(C)]
