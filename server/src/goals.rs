@@ -3,7 +3,7 @@ use axum::{
     extract::{Path, State},
     http::StatusCode,
     response::Json,
-    routing::{get, post},
+    routing::get,
 };
 use serde::Deserialize;
 use shared::{GoalStatus, PracticeGoal};
