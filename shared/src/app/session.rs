@@ -2,6 +2,7 @@ use crate::app::error::SessionError;
 use crate::app::model::Model;
 use crate::app::study_session::StudySession;
 use chrono::DateTime;
+use crux_core::Command;
 use facet::Facet;
 use serde::{Deserialize, Serialize};
 
@@ -438,6 +439,41 @@ pub fn edit_session_fields(
             }
         }
     }
+}
+
+/// Helper function to handle session operation results
+fn handle_session_result(result: Result<(), SessionError>, operation: &str) {
+    if let Err(e) = result {
+        log::error!("Failed to {operation} session: {e}");
+    }
+}
+
+pub fn handle_event(
+    event: SessionEvent,
+    model: &mut Model,
+) -> Command<super::Effect, super::Event> {
+    match event {
+        SessionEvent::AddSession(session) => add_session(session, model),
+        SessionEvent::EditSessionFields {
+            session_id,
+            goal_ids,
+            intention,
+            notes,
+        } => edit_session_fields(&session_id, goal_ids, intention, notes, model),
+        SessionEvent::SetActiveSession(session_id) => set_active_session(session_id, model),
+        SessionEvent::StartSession(session_id, timestamp) => {
+            handle_session_result(start_session(&session_id, timestamp, model), "start");
+        }
+        SessionEvent::EndSession(session_id, timestamp) => {
+            handle_session_result(end_session(&session_id, timestamp, model), "end");
+        }
+        SessionEvent::UnsetActiveSession => remove_active_session(model),
+        SessionEvent::EditSessionNotes(session_id, notes) => {
+            edit_session_notes(&session_id, notes, model);
+        }
+    }
+
+    crux_core::render::render()
 }
 
 // *************
