@@ -1,13 +1,12 @@
 use crate::components::{GoalList, Header, Main, H2};
-use crate::hooks::use_core;
+use crate::hooks::{nothing_event, use_core};
 use leptos::prelude::Memo;
 use leptos::prelude::*;
 use leptos_router::components::A;
-use shared::Event;
 
 #[component]
 pub fn Goals() -> impl IntoView {
-    let (view, _) = use_core(Event::Nothing);
+    let (view, _) = use_core(nothing_event());
     let goals = Memo::new(move |_| view.get().goals);
 
     view! {

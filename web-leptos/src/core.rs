@@ -29,7 +29,7 @@ pub fn process_effect(core: &Core, effect: Effect, render: WriteSignal<ViewModel
 #[cfg(test)]
 mod tests {
     use super::*;
-    use shared::{Chopin, Event};
+    use shared::{Chopin, DevEvent, Event};
 
     #[test]
     fn test_core_creation() {
@@ -40,7 +40,7 @@ mod tests {
     #[test]
     fn test_core_process_event() {
         let core = Arc::new(shared::Core::<Chopin>::new());
-        let effects = core.process_event(Event::Nothing);
+        let effects = core.process_event(Event::Dev(DevEvent::Nothing));
 
         // Should return at least one effect (typically a Render effect)
         assert!(!effects.is_empty());
@@ -49,7 +49,7 @@ mod tests {
     #[test]
     fn test_core_process_dev_data() {
         let core = Arc::new(shared::Core::<Chopin>::new());
-        let effects = core.process_event(Event::SetDevData);
+        let effects = core.process_event(Event::Dev(DevEvent::SetDevData));
 
         // Should return effects when setting dev data
         assert!(!effects.is_empty());
@@ -83,7 +83,7 @@ mod tests {
         let core = Arc::new(shared::Core::<Chopin>::new());
 
         // Test that Nothing event can be processed
-        let effects = core.process_event(Event::Nothing);
+        let effects = core.process_event(Event::Dev(DevEvent::Nothing));
         assert!(!effects.is_empty());
     }
 }

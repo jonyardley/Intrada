@@ -1,9 +1,8 @@
-use crate::components::{DatePicker, Header, Main, TempoInput, TextInput, H2};
-use crate::hooks::use_core;
+use crate::components::{DatePicker, Header, Main, TempoInput, TextInput};
+use crate::hooks::{nothing_event, use_core};
 use leptos::prelude::*;
 use leptos_router::hooks::use_navigate;
 use leptos_router::*;
-use shared::Event;
 
 #[component]
 pub fn CreateGoal() -> impl IntoView {
@@ -13,7 +12,7 @@ pub fn CreateGoal() -> impl IntoView {
     let (tempo_target, set_tempo_target) = signal(String::new());
     let (selected_studies, set_selected_studies) = signal(Vec::new());
 
-    let (view, set_event) = use_core(Event::Nothing);
+    let (view, set_event) = use_core(nothing_event());
     let navigate = use_navigate();
 
     view! {
@@ -55,59 +54,76 @@ pub fn CreateGoal() -> impl IntoView {
                                     id="tempo_target".to_string()
                                     set_value=set_tempo_target
                                 />
-
                             </div>
                         </div>
-                        <div class="sm:col-span-4">
-                            <H2 text="Available Studies".to_string() />
-                            <div class="mt-4 space-y-4">
-                                {move || {
-                                    view.get()
-                                        .studies
-                                        .into_iter()
-                                        .map(|study| {
-                                            let is_selected = selected_studies
-                                                .get()
-                                                .contains(&study.id);
-                                            view! {
-                                                <div class="flex items-center gap-2">
-                                                    {
-                                                        let id = study.id.clone();
-                                                        let input_id = format!("study-{}", id.clone());
-                                                        view! {
+                    </div>
+
+                    <div class="border-b border-gray-900/10 pb-12">
+                        <h2 class="text-base/7 font-semibold text-gray-900">
+                            "Select studies to work on"
+                        </h2>
+
+                        <div class="mt-10 space-y-10">
+                            <fieldset>
+                                <legend class="text-sm/6 font-semibold text-gray-900">
+                                    "Available studies"
+                                </legend>
+                                <div class="mt-6 space-y-6">
+                                    {move || {
+                                        view.get()
+                                            .studies
+                                            .into_iter()
+                                            .map(|study| {
+                                                let study_id = study.id.clone();
+                                                let study_id_for_check = study_id.clone();
+                                                let is_selected = move || {
+                                                    selected_studies.get().contains(&study_id_for_check)
+                                                };
+
+                                                view! {
+                                                    <div class="relative flex gap-x-3">
+                                                        <div class="flex h-6 items-center">
                                                             <input
+                                                                id=study.id.clone()
+                                                                name="studies"
                                                                 type="checkbox"
-                                                                id=input_id.clone()
-                                                                class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
+                                                                class="size-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
                                                                 checked=is_selected
-                                                                on:change=move |ev| {
-                                                                    let checked = event_target_checked(&ev);
-                                                                    set_selected_studies
-                                                                        .update(|studies| {
-                                                                            if checked {
-                                                                                if !studies.contains(&id) {
-                                                                                    studies.push(id.clone());
+                                                                on:change={
+                                                                    let study_id = study_id.clone();
+                                                                    move |_| {
+                                                                        set_selected_studies
+                                                                            .update(|studies| {
+                                                                                if studies.contains(&study_id) {
+                                                                                    studies.retain(|id| id != &study_id);
+                                                                                } else {
+                                                                                    studies.push(study_id.clone());
                                                                                 }
-                                                                            } else {
-                                                                                studies.retain(|eid| eid != &id);
-                                                                            }
-                                                                        });
+                                                                            });
+                                                                    }
                                                                 }
                                                             />
+                                                        </div>
+                                                        <div class="text-sm/6">
                                                             <label
-                                                                for=input_id
-                                                                class="text-sm font-medium text-gray-900"
+                                                                for=study.id.clone()
+                                                                class="font-medium text-gray-900"
                                                             >
                                                                 {study.name}
                                                             </label>
-                                                        }
-                                                    }
-                                                </div>
-                                            }
-                                        })
-                                        .collect::<Vec<_>>()
-                                }}
-                            </div>
+                                                            <p class="text-gray-500">
+                                                                {study
+                                                                    .description
+                                                                    .unwrap_or_else(|| "No description".to_string())}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                }
+                                            })
+                                            .collect::<Vec<_>>()
+                                    }}
+                                </div>
+                            </fieldset>
                         </div>
                     </div>
                 </div>
@@ -122,7 +138,7 @@ pub fn CreateGoal() -> impl IntoView {
                             ev.prevent_default();
                             set_event
                                 .update(|event| {
-                                    *event = Event::Nothing;
+                                    *event = nothing_event();
                                 });
                             navigate(
                                 "/goals",

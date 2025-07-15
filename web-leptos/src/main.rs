@@ -7,7 +7,7 @@ use leptos_router::{
 };
 use log::info;
 use reactive_stores::Store;
-use shared::Event;
+use shared::{DevEvent, Event};
 use wasm_bindgen::JsCast;
 use web_leptos::GlobalState;
 use web_sys::HtmlElement;
@@ -25,7 +25,9 @@ pub fn App() -> impl IntoView {
     provide_meta_context();
 
     let global_state = GlobalState::default();
-    global_state.core.process_event(Event::SetDevData);
+    global_state
+        .core
+        .process_event(Event::Dev(DevEvent::SetDevData));
     provide_context(Store::new(global_state));
 
     view! {
@@ -80,7 +82,7 @@ fn main() {
 #[cfg(test)]
 mod tests {
     // App component not tested in unit tests (requires WASM environment)
-    use shared::{Event, PracticeSession, Study};
+    use shared::{DevEvent, Event, PracticeSession, SessionEvent, Study, StudyEvent};
     use web_leptos::GlobalState;
 
     #[test]
@@ -97,7 +99,9 @@ mod tests {
     #[test]
     fn test_dev_data_processing() {
         let global_state = GlobalState::default();
-        global_state.core.process_event(Event::SetDevData);
+        global_state
+            .core
+            .process_event(Event::Dev(DevEvent::SetDevData));
 
         // After setting dev data, should have some content
         let view_model = global_state.core.view();
@@ -110,7 +114,9 @@ mod tests {
         let global_state = GlobalState::default();
 
         // Test that Nothing event can be processed
-        let effects = global_state.core.process_event(Event::Nothing);
+        let effects = global_state
+            .core
+            .process_event(Event::Dev(DevEvent::Nothing));
         assert!(!effects.is_empty());
     }
 
@@ -123,7 +129,9 @@ mod tests {
 
         let effects = global_state
             .core
-            .process_event(Event::AddSession(new_session.clone()));
+            .process_event(Event::Session(SessionEvent::AddSession(
+                new_session.clone(),
+            )));
         assert!(!effects.is_empty());
 
         // Check that the session was added
@@ -143,7 +151,7 @@ mod tests {
 
         let effects = global_state
             .core
-            .process_event(Event::AddStudy(new_study.clone()));
+            .process_event(Event::Study(StudyEvent::AddStudy(new_study.clone())));
         assert!(!effects.is_empty());
 
         // Check that the study was added
