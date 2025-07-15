@@ -94,7 +94,6 @@ pub enum Event {
     Nothing,
 }
 
-
 #[effect(facet_typegen)]
 pub enum Effect {
     Render(RenderOperation),
@@ -147,8 +146,9 @@ impl App for Chopin {
                     "tempo_target": goal.tempo_target
                 });
 
-                let json_string = serde_json::to_string(&create_request).expect("Failed to serialize JSON");
-                eprintln!("Creating goal with JSON: {}", json_string);
+                let json_string =
+                    serde_json::to_string(&create_request).expect("Failed to serialize JSON");
+                eprintln!("Creating goal with JSON: {json_string}");
 
                 return Http::post(API_URL)
                     .header("Content-Type", "application/json")
