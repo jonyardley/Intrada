@@ -68,8 +68,8 @@ class Core: ObservableObject {
             }
         }
         
-        self.update(Event.setDevData)
-        self.update(Event.fetchGoals)
+        self.update(Event.dev(.setDevData))
+        self.update(Event.goal(.fetchGoals))
 
         // the handler assignment needs to be deferred, otherwise we create a circular
         // reference between handler and self, before self is done initializing

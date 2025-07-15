@@ -172,9 +172,9 @@ struct GoalFormView: View {
     
     // Update core
     if existingGoal != nil {
-      core.update(.editGoal(goal))
+      core.update(.goal(.editGoal(goal)))
     } else {
-      core.update(.addGoal(goal))
+      core.update(.goal(.addGoal(goal)))
     }
     
     dismiss()

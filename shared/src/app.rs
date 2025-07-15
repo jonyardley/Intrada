@@ -56,9 +56,10 @@ pub use dev::*;
 // *************
 // EVENTS
 // *************
+
 #[derive(Facet, Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[repr(C)]
-pub enum Event {
+pub enum GoalEvent {
     FetchGoals,
     #[serde(skip)]
     #[facet(skip)]
@@ -69,14 +70,19 @@ pub enum Event {
     #[facet(skip)]
     GoalCreated(HttpResult<crux_http::Response<PracticeGoal>, crux_http::HttpError>),
     EditGoal(PracticeGoal),
+}
 
+#[derive(Facet, Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[repr(C)]
+pub enum StudyEvent {
     AddStudy(Study),
     EditStudy(Study),
-    AddStudyToGoal {
-        goal_id: String,
-        study_id: String,
-    },
+    AddStudyToGoal { goal_id: String, study_id: String },
+}
 
+#[derive(Facet, Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[repr(C)]
+pub enum SessionEvent {
     AddSession(PracticeSession),
     EditSessionFields {
         session_id: String,
@@ -89,12 +95,30 @@ pub enum Event {
     UnsetActiveSession,
     EndSession(String, String),
     EditSessionNotes(String, String),
+}
 
+#[derive(Facet, Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[repr(C)]
+pub enum StudySessionEvent {
     AddStudySession(StudySession),
     UpdateStudySession(StudySession),
+}
 
+#[derive(Facet, Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[repr(C)]
+pub enum DevEvent {
     SetDevData,
     Nothing,
+}
+
+#[derive(Facet, Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[repr(C)]
+pub enum Event {
+    Goal(GoalEvent),
+    Study(StudyEvent),
+    Session(SessionEvent),
+    StudySession(StudySessionEvent),
+    Dev(DevEvent),
 }
 
 #[effect(facet_typegen)]
@@ -123,87 +147,99 @@ impl App for Chopin {
         _caps: &Self::Capabilities,
     ) -> Command<Effect, Event> {
         match event {
-            Event::FetchGoals => {
-                return Http::get(API_URL)
-                    .expect_json()
-                    .build()
-                    .map(Into::into)
-                    .then_send(Event::SetGoals);
-            }
-            Event::SetGoals(HttpResult::Ok(mut response)) => {
-                let goals = response.take_body().unwrap();
-                return Command::event(Event::UpdateGoals(goals));
-            }
-            Event::SetGoals(HttpResult::Err(e)) => {
-                eprintln!("Failed to fetch goals: {e:?}");
-                // TODO: Add proper error handling - show error to user
-            }
-            Event::UpdateGoals(goals) => model.goals = goals,
-            Event::AddGoal(goal) => {
-                // Transform PracticeGoal to the format the server expects
-                let create_request = serde_json::json!({
-                    "name": goal.name,
-                    "description": goal.description,
-                    "target_date": goal.target_date,
-                    "study_ids": goal.study_ids,
-                    "tempo_target": goal.tempo_target
-                });
+            Event::Goal(goal_event) => match goal_event {
+                GoalEvent::FetchGoals => {
+                    return Http::get(API_URL)
+                        .expect_json()
+                        .build()
+                        .map(Into::into)
+                        .then_send(|response| Event::Goal(GoalEvent::SetGoals(response)));
+                }
+                GoalEvent::SetGoals(HttpResult::Ok(mut response)) => {
+                    let goals = response.take_body().unwrap();
+                    return Command::event(Event::Goal(GoalEvent::UpdateGoals(goals)));
+                }
+                GoalEvent::SetGoals(HttpResult::Err(e)) => {
+                    eprintln!("Failed to fetch goals: {e:?}");
+                    // TODO: Add proper error handling - show error to user
+                }
+                GoalEvent::UpdateGoals(goals) => model.goals = goals,
+                GoalEvent::AddGoal(goal) => {
+                    // Transform PracticeGoal to the format the server expects
+                    let create_request = serde_json::json!({
+                        "name": goal.name,
+                        "description": goal.description,
+                        "target_date": goal.target_date,
+                        "study_ids": goal.study_ids,
+                        "tempo_target": goal.tempo_target
+                    });
 
-                let json_string =
-                    serde_json::to_string(&create_request).expect("Failed to serialize JSON");
-                eprintln!("Creating goal with JSON: {json_string}");
+                    let json_string =
+                        serde_json::to_string(&create_request).expect("Failed to serialize JSON");
+                    eprintln!("Creating goal with JSON: {json_string}");
 
-                return Http::post(API_URL)
-                    .header("Content-Type", "application/json")
-                    .body(json_string)
-                    .expect_json::<goal::PracticeGoal>()
-                    .build()
-                    .map(Into::into)
-                    .then_send(Event::GoalCreated);
-            }
-            Event::GoalCreated(HttpResult::Ok(mut response)) => {
-                let created_goal = response.take_body().unwrap();
-                goal::add_goal(created_goal, model);
-            }
-            Event::GoalCreated(HttpResult::Err(e)) => {
-                eprintln!("Failed to create goal: {e:?}");
-                // TODO: Add proper error handling - show error to user
-            }
-            Event::EditGoal(goal) => goal::edit_goal(goal, model),
+                    return Http::post(API_URL)
+                        .header("Content-Type", "application/json")
+                        .body(json_string)
+                        .expect_json::<goal::PracticeGoal>()
+                        .build()
+                        .map(Into::into)
+                        .then_send(|response| Event::Goal(GoalEvent::GoalCreated(response)));
+                }
+                GoalEvent::GoalCreated(HttpResult::Ok(mut response)) => {
+                    let created_goal = response.take_body().unwrap();
+                    goal::add_goal(created_goal, model);
+                }
+                GoalEvent::GoalCreated(HttpResult::Err(e)) => {
+                    eprintln!("Failed to create goal: {e:?}");
+                    // TODO: Add proper error handling - show error to user
+                }
+                GoalEvent::EditGoal(goal) => goal::edit_goal(goal, model),
+            },
 
-            Event::AddStudy(study) => add_study(study, model),
-            Event::EditStudy(study) => edit_study(study, model),
-            Event::AddStudyToGoal { goal_id, study_id } => {
-                add_study_to_goal(&goal_id, &study_id, model);
-            }
+            Event::Study(study_event) => match study_event {
+                StudyEvent::AddStudy(study) => add_study(study, model),
+                StudyEvent::EditStudy(study) => edit_study(study, model),
+                StudyEvent::AddStudyToGoal { goal_id, study_id } => {
+                    add_study_to_goal(&goal_id, &study_id, model);
+                }
+            },
 
-            Event::AddSession(session) => add_session(session, model),
-            Event::EditSessionFields {
-                session_id,
-                goal_ids,
-                intention,
-                notes,
-            } => edit_session_fields(&session_id, goal_ids, intention, notes, model),
-            Event::SetActiveSession(session_id) => set_active_session(session_id, model),
-            Event::StartSession(session_id, timestamp) => {
-                Self::handle_session_result(start_session(&session_id, timestamp, model), "start");
-            }
+            Event::Session(session_event) => match session_event {
+                SessionEvent::AddSession(session) => add_session(session, model),
+                SessionEvent::EditSessionFields {
+                    session_id,
+                    goal_ids,
+                    intention,
+                    notes,
+                } => edit_session_fields(&session_id, goal_ids, intention, notes, model),
+                SessionEvent::SetActiveSession(session_id) => set_active_session(session_id, model),
+                SessionEvent::StartSession(session_id, timestamp) => {
+                    Self::handle_session_result(
+                        start_session(&session_id, timestamp, model),
+                        "start",
+                    );
+                }
+                SessionEvent::EndSession(session_id, timestamp) => {
+                    Self::handle_session_result(end_session(&session_id, timestamp, model), "end");
+                }
+                SessionEvent::UnsetActiveSession => remove_active_session(model),
+                SessionEvent::EditSessionNotes(session_id, notes) => {
+                    edit_session_notes(&session_id, notes, model);
+                }
+            },
 
-            Event::EndSession(session_id, timestamp) => {
-                Self::handle_session_result(end_session(&session_id, timestamp, model), "end");
-            }
-            Event::UnsetActiveSession => remove_active_session(model),
-            Event::EditSessionNotes(session_id, notes) => {
-                edit_session_notes(&session_id, notes, model);
-            }
+            Event::StudySession(study_session_event) => match study_session_event {
+                StudySessionEvent::AddStudySession(session) => add_study_session(session, model),
+                StudySessionEvent::UpdateStudySession(session) => {
+                    update_study_session(session, model)
+                }
+            },
 
-            Event::AddStudySession(session) => add_study_session(session, model),
-            Event::UpdateStudySession(session) => update_study_session(session, model),
-
-            Event::SetDevData => dev::set_dev_data(model),
-
-            //Do Nothing
-            Event::Nothing => (),
+            Event::Dev(dev_event) => match dev_event {
+                DevEvent::SetDevData => dev::set_dev_data(model),
+                DevEvent::Nothing => (),
+            },
         }
 
         render()

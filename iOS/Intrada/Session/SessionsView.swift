@@ -169,7 +169,7 @@ struct ActiveSessionView: View {
                     } else if core.view.canStartSession {
                         Button {
                             let startTime = Date().ISO8601Format()
-                            core.update(.startSession(session.id, startTime))
+                            core.update(.session(.startSession(session.id, startTime)))
                         } label: {
                             HStack(spacing: 4) {
                                 Image(systemName: "play.fill")
