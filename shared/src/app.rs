@@ -28,6 +28,9 @@ impl<T> From<crux_http::Result<crux_http::Response<T>>>
     }
 }
 
+pub mod error;
+pub use error::*;
+
 pub mod goal;
 pub use goal::*;
 
@@ -221,9 +224,9 @@ impl App for Chopin {
 
 impl Chopin {
     /// Helper function to handle session operation results
-    fn handle_session_result(result: Result<(), &'static str>, operation: &str) {
+    fn handle_session_result(result: Result<(), SessionError>, operation: &str) {
         if let Err(e) = result {
-            println!("Failed to {operation} session: {e}");
+            log::error!("Failed to {operation} session: {e}");
         }
     }
 

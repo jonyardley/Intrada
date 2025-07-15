@@ -1,14 +1,6 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
+// This crate is used for generating type definitions for different platforms
+// Currently it's primarily used for Swift type generation via facet
+// The actual implementation is in build.rs
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+// Re-export types that need to be generated
+pub use shared::*;

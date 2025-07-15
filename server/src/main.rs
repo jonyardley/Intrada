@@ -1,4 +1,4 @@
-use axum::{Router, response::Json, routing::get};
+use axum::{response::Json, routing::get, Router};
 use serde::Serialize;
 use serde_json::json;
 use sqlx::PgPool;

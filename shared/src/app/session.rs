@@ -1,3 +1,4 @@
+use crate::app::error::SessionError;
 use crate::app::model::Model;
 use crate::app::study_session::StudySession;
 use chrono::DateTime;
@@ -207,7 +208,7 @@ impl PracticeSession {
         }
     }
 
-    pub fn start(&mut self, timestamp: String) -> Result<(), &'static str> {
+    pub fn start(&mut self, timestamp: String) -> Result<(), SessionError> {
         match std::mem::replace(
             self,
             PracticeSession::NotStarted(NotStartedSession::new(vec![], String::new())),
@@ -216,14 +217,18 @@ impl PracticeSession {
                 *self = PracticeSession::Started(session.start(timestamp));
                 Ok(())
             }
-            other => {
-                *self = other;
-                Err("Session is already started or ended")
+            PracticeSession::Started(session) => {
+                *self = PracticeSession::Started(session);
+                Err(SessionError::AlreadyStarted)
+            }
+            PracticeSession::Ended(session) => {
+                *self = PracticeSession::Ended(session);
+                Err(SessionError::AlreadyEnded)
             }
         }
     }
 
-    pub fn end(&mut self, timestamp: String) -> Result<(), &'static str> {
+    pub fn end(&mut self, timestamp: String) -> Result<(), SessionError> {
         match std::mem::replace(
             self,
             PracticeSession::NotStarted(NotStartedSession::new(vec![], String::new())),
@@ -232,9 +237,13 @@ impl PracticeSession {
                 *self = PracticeSession::Ended(session.end(timestamp));
                 Ok(())
             }
-            other => {
-                *self = other;
-                Err("Session is not active")
+            PracticeSession::NotStarted(session) => {
+                *self = PracticeSession::NotStarted(session);
+                Err(SessionError::NotActive)
+            }
+            PracticeSession::Ended(session) => {
+                *self = PracticeSession::Ended(session);
+                Err(SessionError::AlreadyEnded)
             }
         }
     }
@@ -345,13 +354,13 @@ pub fn start_session(
     session_id: &str,
     timestamp: String,
     model: &mut Model,
-) -> Result<(), &'static str> {
+) -> Result<(), SessionError> {
     if let Some(session) = get_session_by_id(session_id, model) {
         session.start(timestamp)?;
         set_active_session(session_id.to_string(), model);
         Ok(())
     } else {
-        Err("Session not found")
+        Err(SessionError::NotFound)
     }
 }
 
@@ -359,7 +368,7 @@ pub fn end_session(
     session_id: &str,
     timestamp: String,
     model: &mut Model,
-) -> Result<(), &'static str> {
+) -> Result<(), SessionError> {
     if let Some(session) = get_session_by_id(session_id, model) {
         session.end(timestamp)?;
 
@@ -371,7 +380,7 @@ pub fn end_session(
         }
         Ok(())
     } else {
-        Err("Session not found")
+        Err(SessionError::NotFound)
     }
 }
 
