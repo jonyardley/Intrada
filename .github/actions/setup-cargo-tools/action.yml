@@ -18,16 +18,25 @@ runs:
           cargo-tools-${{ runner.os }}-
 
     - name: Install cargo-nextest
-      if: steps.cache-tools.outputs.cache-hit != 'true' && contains(inputs.tools, 'nextest')
+      if: contains(inputs.tools, 'nextest')
       shell: bash
-      run: cargo install cargo-nextest --locked
+      run: |
+        if ! command -v cargo-nextest &> /dev/null; then
+          cargo install cargo-nextest --locked
+        fi
 
     - name: Install trunk
-      if: steps.cache-tools.outputs.cache-hit != 'true' && contains(inputs.tools, 'trunk')
+      if: contains(inputs.tools, 'trunk')
       shell: bash
-      run: cargo install trunk --locked
+      run: |
+        if ! command -v trunk &> /dev/null; then
+          cargo install trunk --locked
+        fi
 
     - name: Install cargo-swift
-      if: steps.cache-tools.outputs.cache-hit != 'true' && contains(inputs.tools, 'cargo-swift')
+      if: contains(inputs.tools, 'cargo-swift')
       shell: bash
-      run: cargo install cargo-swift --locked
+      run: |
+        if ! command -v cargo-swift &> /dev/null; then
+          cargo install cargo-swift --locked
+        fi
