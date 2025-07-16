@@ -43,7 +43,7 @@ async fn main() {
         .route(
             "/",
             get(|| async {
-                Json(json!({ "message": "Hello, world! This is the Intrada Server." }))
+                Json(json!({ "message": "Hello, world! This is the Intrada Server..." }))
             }),
         )
         .route("/health", get(health))
