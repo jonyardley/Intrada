@@ -252,6 +252,12 @@ jobs:
           cargo build --lib --target x86_64-apple-ios --release
           echo "::endgroup::"
 
+      - name: Build Crux Core (Shared)
+        run: |
+          echo "::group::Building shared crate in debug mode for crux_cli"
+          cargo build -p shared --features cli
+          echo "::endgroup::"
+
       - name: Build shared_types to generate Swift bindings
         run: |
           echo "::group::Building shared_types package"
