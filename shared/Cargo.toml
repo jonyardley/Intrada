@@ -5,8 +5,10 @@ edition = "2021"
 rust-version = "1.80"
 
 [lib]
-crate-type = ["lib", "staticlib", "cdylib"]
 name = "shared"
+# Use lib by default to avoid filename collisions
+# Other crate types built explicitly when needed
+crate-type = ["lib"]
 
 [[bin]]
 name = "crux_cli"
@@ -42,3 +44,4 @@ js-sys = "0.3.70"
 
 [dev-dependencies]
 insta = { version = "1.43.1", features = ["yaml"] }
+

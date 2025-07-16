@@ -1,0 +1,25 @@
+name: 'Cache Cargo Build'
+description: 'Unified caching for Cargo builds'
+inputs:
+  cache-key:
+    description: 'Base cache key'
+    required: true
+  additional-paths:
+    description: 'Additional paths to cache'
+    required: false
+    default: ''
+runs:
+  using: 'composite'
+  steps:
+    - name: Cache cargo build
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          target/
+          ${{ inputs.additional-paths }}
+        key: ${{ inputs.cache-key }}-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ inputs.cache-key }}-
