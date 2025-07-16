@@ -1,5 +1,5 @@
-use crux_http::HttpError;
 /// Utility functions for common operations across the application
+use crux_http::HttpError;
 use uuid::Uuid;
 
 /// Generates a new unique ID using UUID v4
