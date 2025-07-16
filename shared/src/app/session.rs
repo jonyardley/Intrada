@@ -6,7 +6,21 @@ use crux_core::Command;
 use facet::Facet;
 use serde::{Deserialize, Serialize};
 
-/// Macro to simplify session data access patterns
+/// Macro to simplify session data access patterns.
+/// 
+/// # Purpose
+/// This macro provides a unified way to access data fields from a `PracticeSession` enum,
+/// regardless of its state (`NotStarted`, `Started`, or `Ended`).
+///
+/// # Parameters
+/// - `$session`: The `PracticeSession` instance to access.
+/// - `$accessor`: The method or field to access on the `data` field of the session.
+///
+/// # Example
+/// ```
+/// let session = PracticeSession::Started(started_session);
+/// let goal_ids = session_data_access!(session, goal_ids);
+/// ```
 macro_rules! session_data_access {
     ($session:expr, $accessor:ident) => {
         match $session {
