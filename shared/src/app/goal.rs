@@ -94,7 +94,7 @@ pub fn handle_event(event: GoalEvent, model: &mut Model) -> Command<super::Effec
             return Command::event(super::Event::Goal(GoalEvent::UpdateGoals(goals)));
         }
         GoalEvent::SetGoals(HttpResult::Err(e)) => {
-            crate::app::handle_http_error(e, "fetch goals");
+            let _ = crate::app::handle_http_error(e, "fetch goals");
         }
         GoalEvent::UpdateGoals(goals) => model.goals = goals,
         GoalEvent::AddGoal(goal) => {
@@ -117,7 +117,7 @@ pub fn handle_event(event: GoalEvent, model: &mut Model) -> Command<super::Effec
             add_goal(created_goal, model);
         }
         GoalEvent::GoalCreated(HttpResult::Err(e)) => {
-            crate::app::handle_http_error(e, "create goal");
+            let _ = crate::app::handle_http_error(e, "create goal");
         }
         GoalEvent::EditGoal(goal) => edit_goal(goal, model),
     }
