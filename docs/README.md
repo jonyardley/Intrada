@@ -13,7 +13,6 @@ Welcome to the Intrada documentation! This directory contains all the guides and
 - **[Development Guide](DEVELOPMENT.md)** - Development workflow and best practices
 - **[Deployment Guide](DEPLOYMENT.md)** - Deployment process and configuration
 - **[iOS Testing Guide](IOS_TESTING.md)** - iOS testing and configuration
-- **[GitHub Workflows](GITHUB_WORKFLOWS.md)** - CI/CD pipeline documentation
 
 ## Infrastructure
 

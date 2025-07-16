@@ -7,8 +7,8 @@ rust-version = "1.80"
 [lib]
 name = "shared"
 # Use lib by default to avoid filename collisions
-# Other crate types built explicitly when needed
-crate-type = ["lib"]
+# staticlib needed for iOS Swift bindings
+crate-type = ["lib", "staticlib"]
 
 [[bin]]
 name = "crux_cli"
