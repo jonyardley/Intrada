@@ -1,0 +1,19 @@
+# Optimized Dockerfile using pre-built binary from CI
+# This skips the entire Rust compilation process
+
+FROM debian:bookworm-slim AS runtime
+
+# Install runtime dependencies if needed
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy the pre-built binary directly
+COPY intrada-server /usr/local/bin/intrada-server
+
+# Ensure binary is executable
+RUN chmod +x /usr/local/bin/intrada-server
+
+ENTRYPOINT ["/usr/local/bin/intrada-server"]

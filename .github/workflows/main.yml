@@ -80,11 +80,14 @@ jobs:
       - name: Run tests
         run: cargo nextest run --workspace
 
+      - name: Build release server binary
+        run: cargo build --release --bin intrada-server
+
       - name: Upload server binary
         uses: actions/upload-artifact@v4
         with:
           name: server-binary
-          path: target/debug/intrada-server
+          path: target/release/intrada-server
           retention-days: 1
 
   # iOS build - only when iOS code changes
@@ -268,11 +271,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Download server binary
+        uses: actions/download-artifact@v4
+        with:
+          name: server-binary
+          path: ./server/
+
+      - name: Make binary executable
+        run: chmod +x ./server/intrada-server
+
       - name: Setup flyctl
         uses: superfly/flyctl-actions/setup-flyctl@master
 
       - name: Deploy to Fly.io
         run: |
-          flyctl deploy --remote-only --dockerfile ./server/Dockerfile --config ./server/fly.toml
+          flyctl deploy --remote-only --dockerfile ./server/Dockerfile.optimized --config ./server/fly.toml
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

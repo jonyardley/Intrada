@@ -40,6 +40,12 @@ async fn main() {
     let health = || async { Json(json!({ "status": "ok" })) };
 
     let app = Router::new()
+        .route(
+            "/",
+            get(|| async {
+                Json(json!({ "message": "Hello, world! This is the Intrada Server." }))
+            }),
+        )
         .route("/health", get(health))
         .merge(goals::routes())
         .with_state(pool);
