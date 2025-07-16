@@ -31,7 +31,21 @@ macro_rules! session_data_access {
     };
 }
 
-/// Macro to simplify mutable session data access patterns
+/// Macro to simplify mutable session data access patterns.
+/// 
+/// # Purpose
+/// This macro provides a convenient way to access mutable fields of the `data` property
+/// within different states of a `PracticeSession` (e.g., `NotStarted`, `Started`, `Ended`).
+/// 
+/// # Parameters
+/// - `$session`: The `PracticeSession` instance to access.
+/// - `$accessor`: The name of the method or field to access on the `data` property.
+/// 
+/// # Example
+/// ```
+/// let mut session = PracticeSession::Started(started_session);
+/// session_data_access_mut!(session, some_mutable_field) = new_value;
+/// ```
 macro_rules! session_data_access_mut {
     ($session:expr, $accessor:ident) => {
         match $session {
