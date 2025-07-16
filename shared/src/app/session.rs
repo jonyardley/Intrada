@@ -7,7 +7,7 @@ use facet::Facet;
 use serde::{Deserialize, Serialize};
 
 /// Macro to simplify session data access patterns.
-/// 
+///
 /// # Purpose
 /// This macro provides a unified way to access data fields from a `PracticeSession` enum,
 /// regardless of its state (`NotStarted`, `Started`, or `Ended`).
@@ -32,15 +32,15 @@ macro_rules! session_data_access {
 }
 
 /// Macro to simplify mutable session data access patterns.
-/// 
+///
 /// # Purpose
 /// This macro provides a convenient way to access mutable fields of the `data` property
 /// within different states of a `PracticeSession` (e.g., `NotStarted`, `Started`, `Ended`).
-/// 
+///
 /// # Parameters
 /// - `$session`: The `PracticeSession` instance to access.
 /// - `$accessor`: The name of the method or field to access on the `data` property.
-/// 
+///
 /// # Example
 /// ```
 /// let mut session = PracticeSession::Started(started_session);

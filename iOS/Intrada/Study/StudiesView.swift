@@ -7,45 +7,37 @@ struct StudiesView: View {
     
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                HStack {
-                    Text("Your Studies")
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-                    
-                    Spacer()
-                    
-                    Button(action: {
-                        showingAddForm = true
-                    }) {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.title)
-                    }
+            VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
+                ListHeader(title: "Your Studies") {
+                    showingAddForm = true
                 }
-                .padding(.horizontal)
                 
-                // Studies section
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Your Studies")
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                        .padding(.horizontal)
-                    
-                    ForEach(core.view.studies, id: \.id) { study in
-                        NavigationLink(destination: StudyDetailView(core: core, study: study)) {
-                            StudyCard(study: study)
-                                .padding(.horizontal)
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                    }
-                }
+                studiesSection
             }
-            .padding(.vertical)
+            .padding(.vertical, Theme.Spacing.lg)
         }
         .navigationTitle("Studies")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showingAddForm) {
             StudyFormView(core: core)
+        }
+    }
+    
+    private var studiesSection: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.md) {
+            SectionHeader(title: "Your Studies")
+            
+            if core.view.studies.isEmpty {
+                EmptyStateView(message: "No studies yet")
+            } else {
+                ForEach(core.view.studies, id: \.id) { study in
+                    NavigationLink(destination: StudyDetailView(core: core, study: study)) {
+                        StudyCard(study: study)
+                            .padding(.horizontal, Theme.Spacing.lg)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                }
+            }
         }
     }
 }
@@ -54,20 +46,19 @@ struct StudyCard: View {
     let study: Study
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(study.name)
-                .font(.headline)
-            
-            if let description = study.description {
-                Text(description)
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
+        Card {
+            VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
+                Text(study.name)
+                    .font(Theme.Typography.headline)
+                
+                if let description = study.description {
+                    Text(description)
+                        .font(Theme.Typography.subheadline)
+                        .foregroundColor(Theme.Colors.textSecondary)
+                }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding()
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.gray.opacity(0.1))
-        .cornerRadius(10)
     }
 }
 
