@@ -2,6 +2,16 @@ use crate::app::{
     add_goal, add_session, add_study, add_study_session, end_session, start_session, Model,
     PracticeGoal, PracticeSession, Study, StudySession,
 };
+use crux_core::Command;
+use facet::Facet;
+use serde::{Deserialize, Serialize};
+
+#[derive(Facet, Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[repr(C)]
+pub enum DevEvent {
+    SetDevData,
+    Nothing,
+}
 
 pub fn set_dev_data(model: &mut Model) {
     //Studies
@@ -101,4 +111,13 @@ pub fn set_dev_data(model: &mut Model) {
         "Ready to practice - etudes session".to_string(),
     );
     add_session(ready_session, model);
+}
+
+pub fn handle_event(event: DevEvent, model: &mut Model) -> Command<super::Effect, super::Event> {
+    match event {
+        DevEvent::SetDevData => set_dev_data(model),
+        DevEvent::Nothing => (),
+    }
+
+    crux_core::render::render()
 }

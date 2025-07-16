@@ -85,12 +85,12 @@ struct SessionFormView: View {
                 trailing: Button("Save") {
                     if let existingSessionId = existingSessionId {
                         // Editing existing session - let the core handle state preservation
-                        core.update(.editSessionFields(
+                        core.update(.session(.editSessionFields(
                             session_id: existingSessionId,
                             goal_ids: Array(selectedGoals),
                             intention: intention,
                             notes: notes.isEmpty ? nil : notes
-                        ))
+                        )))
                         isPresented = false
                     } else {
                         // Creating a new session - always starts as NotStarted
@@ -105,7 +105,7 @@ struct SessionFormView: View {
                         let notStartedSession = NotStartedSession(data: sessionData)
                         let session = PracticeSession.notStarted(notStartedSession)
                         
-                        core.update(.addSession(session))
+                        core.update(.session(.addSession(session)))
                         isPresented = false
                         onSessionCreated?(sessionId)
                     }

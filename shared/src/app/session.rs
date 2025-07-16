@@ -1,6 +1,8 @@
+use crate::app::error::SessionError;
 use crate::app::model::Model;
 use crate::app::study_session::StudySession;
 use chrono::DateTime;
+use crux_core::Command;
 use facet::Facet;
 use serde::{Deserialize, Serialize};
 
@@ -12,6 +14,38 @@ pub struct SessionData {
     pub intention: String,
     pub notes: Option<String>,
     pub study_sessions: Vec<StudySession>,
+}
+
+pub fn session_view_model(session: &PracticeSession) -> PracticeSessionView {
+    PracticeSessionView {
+        id: session.id().to_string(),
+        goal_ids: session.goal_ids().clone(),
+        intention: session.intention().clone(),
+        state: session.state(),
+        notes: session.notes().clone(),
+        study_sessions: session.study_sessions().clone(),
+        duration: session.duration(),
+        start_time: session.start_time().map(std::string::ToString::to_string),
+        end_time: session.end_time().map(std::string::ToString::to_string),
+        is_ended: session.is_ended(),
+    }
+}
+
+#[derive(Facet, Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[repr(C)]
+pub enum SessionEvent {
+    AddSession(PracticeSession),
+    EditSessionFields {
+        session_id: String,
+        goal_ids: Vec<String>,
+        intention: String,
+        notes: Option<String>,
+    },
+    SetActiveSession(String),
+    StartSession(String, String),
+    UnsetActiveSession,
+    EndSession(String, String),
+    EditSessionNotes(String, String),
 }
 
 impl SessionData {
@@ -207,7 +241,7 @@ impl PracticeSession {
         }
     }
 
-    pub fn start(&mut self, timestamp: String) -> Result<(), &'static str> {
+    pub fn start(&mut self, timestamp: String) -> Result<(), SessionError> {
         match std::mem::replace(
             self,
             PracticeSession::NotStarted(NotStartedSession::new(vec![], String::new())),
@@ -216,14 +250,18 @@ impl PracticeSession {
                 *self = PracticeSession::Started(session.start(timestamp));
                 Ok(())
             }
-            other => {
-                *self = other;
-                Err("Session is already started or ended")
+            PracticeSession::Started(session) => {
+                *self = PracticeSession::Started(session);
+                Err(SessionError::AlreadyStarted)
+            }
+            PracticeSession::Ended(session) => {
+                *self = PracticeSession::Ended(session);
+                Err(SessionError::AlreadyEnded)
             }
         }
     }
 
-    pub fn end(&mut self, timestamp: String) -> Result<(), &'static str> {
+    pub fn end(&mut self, timestamp: String) -> Result<(), SessionError> {
         match std::mem::replace(
             self,
             PracticeSession::NotStarted(NotStartedSession::new(vec![], String::new())),
@@ -232,9 +270,13 @@ impl PracticeSession {
                 *self = PracticeSession::Ended(session.end(timestamp));
                 Ok(())
             }
-            other => {
-                *self = other;
-                Err("Session is not active")
+            PracticeSession::NotStarted(session) => {
+                *self = PracticeSession::NotStarted(session);
+                Err(SessionError::NotActive)
+            }
+            PracticeSession::Ended(session) => {
+                *self = PracticeSession::Ended(session);
+                Err(SessionError::AlreadyEnded)
             }
         }
     }
@@ -345,13 +387,13 @@ pub fn start_session(
     session_id: &str,
     timestamp: String,
     model: &mut Model,
-) -> Result<(), &'static str> {
+) -> Result<(), SessionError> {
     if let Some(session) = get_session_by_id(session_id, model) {
         session.start(timestamp)?;
         set_active_session(session_id.to_string(), model);
         Ok(())
     } else {
-        Err("Session not found")
+        Err(SessionError::NotFound)
     }
 }
 
@@ -359,7 +401,7 @@ pub fn end_session(
     session_id: &str,
     timestamp: String,
     model: &mut Model,
-) -> Result<(), &'static str> {
+) -> Result<(), SessionError> {
     if let Some(session) = get_session_by_id(session_id, model) {
         session.end(timestamp)?;
 
@@ -371,7 +413,7 @@ pub fn end_session(
         }
         Ok(())
     } else {
-        Err("Session not found")
+        Err(SessionError::NotFound)
     }
 }
 
@@ -412,6 +454,41 @@ pub fn edit_session_fields(
             }
         }
     }
+}
+
+/// Helper function to handle session operation results
+fn handle_session_result(result: Result<(), SessionError>, operation: &str) {
+    if let Err(e) = result {
+        log::error!("Failed to {operation} session: {e}");
+    }
+}
+
+pub fn handle_event(
+    event: SessionEvent,
+    model: &mut Model,
+) -> Command<super::Effect, super::Event> {
+    match event {
+        SessionEvent::AddSession(session) => add_session(session, model),
+        SessionEvent::EditSessionFields {
+            session_id,
+            goal_ids,
+            intention,
+            notes,
+        } => edit_session_fields(&session_id, goal_ids, intention, notes, model),
+        SessionEvent::SetActiveSession(session_id) => set_active_session(session_id, model),
+        SessionEvent::StartSession(session_id, timestamp) => {
+            handle_session_result(start_session(&session_id, timestamp, model), "start");
+        }
+        SessionEvent::EndSession(session_id, timestamp) => {
+            handle_session_result(end_session(&session_id, timestamp, model), "end");
+        }
+        SessionEvent::UnsetActiveSession => remove_active_session(model),
+        SessionEvent::EditSessionNotes(session_id, notes) => {
+            edit_session_notes(&session_id, notes, model);
+        }
+    }
+
+    crux_core::render::render()
 }
 
 // *************

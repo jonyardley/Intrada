@@ -1,5 +1,6 @@
 use crate::app::model::Model;
 use crate::app::study_session::StudySession;
+use crux_core::Command;
 use facet::Facet;
 use serde::{Deserialize, Serialize};
 
@@ -8,6 +9,14 @@ pub struct Study {
     pub id: String,
     pub name: String,
     pub description: Option<String>,
+}
+
+#[derive(Facet, Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[repr(C)]
+pub enum StudyEvent {
+    AddStudy(Study),
+    EditStudy(Study),
+    AddStudyToGoal { goal_id: String, study_id: String },
 }
 
 impl Study {
@@ -38,6 +47,18 @@ pub fn edit_study(study: Study, model: &mut Model) {
     if let Some(index) = index {
         model.studies[index] = study;
     }
+}
+
+pub fn handle_event(event: StudyEvent, model: &mut Model) -> Command<super::Effect, super::Event> {
+    match event {
+        StudyEvent::AddStudy(study) => add_study(study, model),
+        StudyEvent::EditStudy(study) => edit_study(study, model),
+        StudyEvent::AddStudyToGoal { goal_id, study_id } => {
+            super::goal::add_study_to_goal(&goal_id, &study_id, model);
+        }
+    }
+
+    crux_core::render::render()
 }
 
 // *************

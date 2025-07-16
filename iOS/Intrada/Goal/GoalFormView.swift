@@ -13,6 +13,7 @@ struct GoalFormView: View {
   @State private var selectedStudies: Set<String>
   @State private var showStudyForm = false
   @State private var studyFilter = ""
+  @State private var validationErrors: [String] = []
 
   init(core: Core, existingGoal: PracticeGoal? = nil) {
     self.core = core
@@ -47,6 +48,22 @@ struct GoalFormView: View {
         Section(header: Text("Tempo Target (BPM)")) {
           TextField("Enter tempo", text: $tempoTarget)
             .keyboardType(.numberPad)
+          
+          if !tempoTarget.isEmpty && (UInt32(tempoTarget) == nil || UInt32(tempoTarget)! <= 0 || UInt32(tempoTarget)! > 300) {
+            Text("Tempo must be between 1-300 BPM")
+              .foregroundColor(.red)
+              .font(.caption)
+          }
+        }
+        
+        if !validationErrors.isEmpty {
+          Section {
+            ForEach(validationErrors, id: \.self) { error in
+              Text(error)
+                .foregroundColor(.red)
+                .font(.caption)
+            }
+          }
         }
 
         Section(header: Text("Studies")) {
@@ -83,28 +100,9 @@ struct GoalFormView: View {
         }
         ToolbarItem(placement: .topBarTrailing) {
           Button("Save") {
-            let dateFormatter = DateFormatter()
-            dateFormatter.dateFormat = "yyyy-MM-dd"
-            let targetDateString = dateFormatter.string(from: targetDate)
-
-            let goal = PracticeGoal(
-              id: existingGoal?.id ?? UUID().uuidString,
-              name: name,
-              description: description.isEmpty ? nil : description,
-              status: existingGoal?.status ?? .notStarted,
-              startDate: existingGoal?.startDate,
-              targetDate: targetDateString,
-              studyIds: Array(selectedStudies),
-              tempoTarget: tempoTarget.isEmpty ? nil : UInt32(tempoTarget)
-            )
-
-            if existingGoal != nil {
-              // core.update(.updateGoal(goal))
-            } else {
-              // core.update(.createGoal(goal))
-            }
-            dismiss()
+            saveGoal()
           }
+          .disabled(!isFormValid)
         }
       }
     }
@@ -121,6 +119,65 @@ struct GoalFormView: View {
         }
       }
     )
+  }
+  
+  private var isFormValid: Bool {
+    let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+    let tempoValid = tempoTarget.isEmpty || (UInt32(tempoTarget) != nil && UInt32(tempoTarget)! > 0 && UInt32(tempoTarget)! <= 300)
+    
+    return !trimmedName.isEmpty && tempoValid
+  }
+  
+  private func saveGoal() {
+    validationErrors.removeAll()
+    
+    // Compile-time validation of required fields
+    let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmedName.isEmpty else {
+      validationErrors.append("Name cannot be empty")
+      return
+    }
+    
+    // Validate tempo if provided  
+    let tempoValue: UInt32? = {
+      guard !tempoTarget.isEmpty else { return nil }
+      guard let tempo = UInt32(tempoTarget), tempo > 0 && tempo <= 300 else {
+        validationErrors.append("Tempo must be between 1-300 BPM")
+        return nil
+      }
+      return tempo
+    }()
+    
+    // Return early if validation failed
+    if !validationErrors.isEmpty {
+      return
+    }
+    
+    // Validate date format
+    let dateFormatter = DateFormatter()
+    dateFormatter.dateFormat = "yyyy-MM-dd"
+    let targetDateString = dateFormatter.string(from: targetDate)
+    
+    // Create goal with validated inputs - no runtime crashes possible!
+    let goal = PracticeGoal(
+      id: existingGoal?.id ?? UUID().uuidString,
+      name: trimmedName, // Guaranteed non-empty
+      description: description.isEmpty ? nil : description,
+      status: existingGoal?.status ?? .notStarted,
+      startDate: existingGoal?.startDate,
+      targetDate: targetDateString, // Guaranteed valid format
+      studyIds: Array(selectedStudies),
+      tempoTarget: tempoValue // Guaranteed valid or nil
+    )
+    
+    // Update core
+    if existingGoal != nil {
+      core.update(.goal(.editGoal(goal)))
+    } else {
+      core.update(.goal(.addGoal(goal)))
+    }
+    
+    dismiss()
   }
 }
 

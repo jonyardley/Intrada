@@ -106,7 +106,7 @@ private struct SessionControlsView: View {
         }
         
         let timestamp = Date().ISO8601Format()
-        core.update(.endSession(session.id, timestamp))
+        core.update(.session(.endSession(session.id, timestamp)))
     }
 }
 

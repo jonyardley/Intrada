@@ -3,13 +3,12 @@ use leptos_router::{hooks::use_params, params::Params};
 use shared::GoalStatus;
 
 use crate::components::{Header, Main, H2};
-use crate::hooks::use_core;
-use shared::Event;
+use crate::hooks::{nothing_event, use_core};
 
 #[component]
 pub fn Goal() -> impl IntoView {
     let params = use_params::<GoalParams>();
-    let (view, _) = use_core(Event::Nothing);
+    let (view, _) = use_core(nothing_event());
 
     let goal = move || {
         let params = params.get().ok()?;
@@ -48,13 +47,13 @@ pub fn Goal() -> impl IntoView {
                                 <H2 text="Dates".to_string() />
                                 <div class="grid grid-cols-2 gap-4">
                                     <div>
-                                        <p class="font-medium">Start Date</p>
+                                        <p class="text-sm font-medium text-gray-500">"Start Date"</p>
                                         <p class="text-gray-700">
                                             {goal.start_date.unwrap_or_else(|| "Not set".to_string())}
                                         </p>
                                     </div>
                                     <div>
-                                        <p class="font-medium">Target Date</p>
+                                        <p class="text-sm font-medium text-gray-500">"Target Date"</p>
                                         <p class="text-gray-700">
                                             {goal.target_date.unwrap_or_else(|| "Not set".to_string())}
                                         </p>
@@ -63,61 +62,23 @@ pub fn Goal() -> impl IntoView {
                             </div>
 
                             <div>
-                                <H2 text="Tempo Target".to_string() />
+                                <H2 text="Studies".to_string() />
                                 <p class="text-gray-700">
-                                    {if let Some(tempo) = goal.tempo_target {
-                                        format!("{tempo} BPM")
-                                    } else {
-                                        "No tempo target set".to_string()
-                                    }}
+                                    {format!("{} studies linked", goal.study_ids.len())}
                                 </p>
-                            </div>
-
-                            <div>
-                                <H2 text="Associated Studies".to_string() />
-                                <div class="mt-4 space-y-4">
-                                    {move || {
-                                        view.get()
-                                            .studies
-                                            .into_iter()
-                                            .filter(|study| goal.study_ids.contains(&study.id))
-                                            .map(|study| {
-                                                view! {
-                                                    <div class="flex items-center gap-2">
-                                                        <svg
-                                                            xmlns="http://www.w3.org/2000/svg"
-                                                            class="size-5 text-gray-400"
-                                                            fill="none"
-                                                            viewBox="0 0 24 24"
-                                                            stroke="currentColor"
-                                                            stroke-width="2"
-                                                        >
-                                                            <path
-                                                                stroke-linecap="round"
-                                                                stroke-linejoin="round"
-                                                                d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                                                            />
-                                                        </svg>
-                                                        <span class="text-gray-700">{study.name}</span>
-                                                    </div>
-                                                }
-                                            })
-                                            .collect::<Vec<_>>()
-                                    }}
-                                </div>
                             </div>
                         </div>
                     </Main>
                 }
-                    .into_view()
+                    .into_any()
             } else {
                 view! {
                     <Header title="Goal Not Found".to_string() />
                     <Main>
-                        <p class="text-gray-700">"We couldn't find that goal"</p>
+                        <p>"Goal not found"</p>
                     </Main>
                 }
-                    .into_view()
+                    .into_any()
             }
         }}
     }

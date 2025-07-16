@@ -52,7 +52,11 @@ pub mod uniffi_ffi {
             let core = Core::<Chopin>::new().bridge::<BincodeFfiFormat>(move |effect_bytes| {
                 match effect_bytes {
                     Ok(effect) => shell.process_effects(effect),
-                    Err(e) => panic!("{e}"),
+                    Err(e) => {
+                        log::error!("FFI bridge error: {e}");
+                        // Return empty effects instead of panicking
+                        shell.process_effects(vec![]);
+                    }
                 }
             });
 
@@ -63,7 +67,11 @@ pub mod uniffi_ffi {
         pub fn update(&self, data: &[u8]) -> Vec<u8> {
             match self.core.update(data) {
                 Ok(effects) => effects,
-                Err(e) => panic!("{e}"),
+                Err(e) => {
+                    log::error!("FFI update error: {e}");
+                    // Return empty effects instead of panicking
+                    vec![]
+                }
             }
         }
 
@@ -71,7 +79,11 @@ pub mod uniffi_ffi {
         pub fn resolve(&self, effect_id: u32, data: &[u8]) -> Vec<u8> {
             match self.core.resolve(EffectId(effect_id), data) {
                 Ok(effects) => effects,
-                Err(e) => panic!("{e}"),
+                Err(e) => {
+                    log::error!("FFI resolve error: {e}");
+                    // Return empty effects instead of panicking
+                    vec![]
+                }
             }
         }
 
@@ -79,7 +91,11 @@ pub mod uniffi_ffi {
         pub fn view(&self) -> Vec<u8> {
             match self.core.view() {
                 Ok(view) => view,
-                Err(e) => panic!("{e}"),
+                Err(e) => {
+                    log::error!("FFI view error: {e}");
+                    // Return empty view instead of panicking
+                    vec![]
+                }
             }
         }
     }
@@ -121,12 +137,13 @@ pub mod wasm_ffi {
             let core = Core::<Chopin>::new().bridge::<BincodeFfiFormat>(move |effect_bytes| {
                 match effect_bytes {
                     Ok(bytes) => {
-                        callback
-                            .call1(&JsValue::NULL, &JsValue::from(bytes))
-                            .expect("Could not call JS callback");
+                        if let Err(e) = callback.call1(&JsValue::NULL, &JsValue::from(bytes)) {
+                            log::error!("Failed to call JS callback: {e:?}");
+                        }
                     }
                     Err(e) => {
-                        panic!("{e}");
+                        log::error!("WASM FFI bridge error: {e}");
+                        // Continue execution instead of panicking
                     }
                 }
             });
@@ -137,21 +154,30 @@ pub mod wasm_ffi {
         pub fn update(&self, data: &[u8]) -> Vec<u8> {
             match self.core.update(data) {
                 Ok(effects) => effects,
-                Err(e) => panic!("{e}"),
+                Err(e) => {
+                    log::error!("WASM FFI update error: {e}");
+                    vec![]
+                }
             }
         }
 
         pub fn resolve(&self, effect_id: u32, data: &[u8]) -> Vec<u8> {
             match self.core.resolve(EffectId(effect_id), data) {
                 Ok(effects) => effects,
-                Err(e) => panic!("{e}"),
+                Err(e) => {
+                    log::error!("WASM FFI resolve error: {e}");
+                    vec![]
+                }
             }
         }
 
         pub fn view(&self) -> Vec<u8> {
             match self.core.view() {
                 Ok(view) => view,
-                Err(e) => panic!("{e}"),
+                Err(e) => {
+                    log::error!("WASM FFI view error: {e}");
+                    vec![]
+                }
             }
         }
     }

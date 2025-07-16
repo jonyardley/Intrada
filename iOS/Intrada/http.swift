@@ -13,6 +13,10 @@ func requestHttp(_ request: HttpRequest) async -> Result<HttpResponse, HttpError
     for header in request.headers {
         req.addValue(header.value, forHTTPHeaderField: header.name)
     }
+    
+    if !request.body.isEmpty {
+        req.httpBody = Data(request.body)
+    }
 
     do {
         let (data, response) = try await URLSession.shared.data(for: req)

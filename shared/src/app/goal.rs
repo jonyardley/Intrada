@@ -1,4 +1,7 @@
 use crate::app::model::Model;
+use crate::HttpResult;
+use crux_core::Command;
+use crux_http::command::Http;
 use facet::Facet;
 use serde::{Deserialize, Serialize};
 
@@ -21,6 +24,21 @@ pub struct PracticeGoal {
     pub target_date: Option<String>,
     pub study_ids: Vec<String>,
     pub tempo_target: Option<u32>,
+}
+
+#[derive(Facet, Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[repr(C)]
+pub enum GoalEvent {
+    FetchGoals,
+    #[serde(skip)]
+    #[facet(skip)]
+    SetGoals(HttpResult<crux_http::Response<Vec<PracticeGoal>>, crux_http::HttpError>),
+    UpdateGoals(Vec<PracticeGoal>),
+    AddGoal(PracticeGoal),
+    #[serde(skip)]
+    #[facet(skip)]
+    GoalCreated(HttpResult<crux_http::Response<PracticeGoal>, crux_http::HttpError>),
+    EditGoal(PracticeGoal),
 }
 
 impl PracticeGoal {
@@ -60,6 +78,60 @@ pub fn add_study_to_goal(goal_id: &str, study_id: &str, model: &mut Model) {
             goal.study_ids.push(study_id.to_string());
         }
     }
+}
+
+pub fn handle_event(event: GoalEvent, model: &mut Model) -> Command<super::Effect, super::Event> {
+    match event {
+        GoalEvent::FetchGoals => {
+            return Http::get("http://localhost:3000/goals")
+                .expect_json()
+                .build()
+                .map(Into::into)
+                .then_send(|response| super::Event::Goal(GoalEvent::SetGoals(response)));
+        }
+        GoalEvent::SetGoals(HttpResult::Ok(mut response)) => {
+            let goals = response.take_body().unwrap();
+            return Command::event(super::Event::Goal(GoalEvent::UpdateGoals(goals)));
+        }
+        GoalEvent::SetGoals(HttpResult::Err(e)) => {
+            eprintln!("Failed to fetch goals: {e:?}");
+            // TODO: Add proper error handling - show error to user
+        }
+        GoalEvent::UpdateGoals(goals) => model.goals = goals,
+        GoalEvent::AddGoal(goal) => {
+            // Transform PracticeGoal to the format the server expects
+            let create_request = serde_json::json!({
+                "name": goal.name,
+                "description": goal.description,
+                "target_date": goal.target_date,
+                "study_ids": goal.study_ids,
+                "tempo_target": goal.tempo_target
+            });
+
+            let json_string =
+                serde_json::to_string(&create_request).expect("Failed to serialize JSON");
+            eprintln!("Creating goal with JSON: {json_string}");
+
+            return Http::post("http://localhost:3000/goals")
+                .header("Content-Type", "application/json")
+                .body(json_string)
+                .expect_json::<PracticeGoal>()
+                .build()
+                .map(Into::into)
+                .then_send(|response| super::Event::Goal(GoalEvent::GoalCreated(response)));
+        }
+        GoalEvent::GoalCreated(HttpResult::Ok(mut response)) => {
+            let created_goal = response.take_body().unwrap();
+            add_goal(created_goal, model);
+        }
+        GoalEvent::GoalCreated(HttpResult::Err(e)) => {
+            eprintln!("Failed to create goal: {e:?}");
+            // TODO: Add proper error handling - show error to user
+        }
+        GoalEvent::EditGoal(goal) => edit_goal(goal, model),
+    }
+
+    crux_core::render::render()
 }
 
 // *************

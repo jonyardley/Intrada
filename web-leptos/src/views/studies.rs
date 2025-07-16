@@ -1,12 +1,11 @@
 use leptos::prelude::*;
 
 use crate::components::{Header, Main};
-use crate::hooks::use_core;
-use shared::Event;
+use crate::hooks::{nothing_event, use_core};
 
 #[component]
 pub fn Studies() -> impl IntoView {
-    let (view, _) = use_core(Event::Nothing);
+    let (view, _) = use_core(nothing_event());
 
     view! {
         <Header title="Studies".to_string() />

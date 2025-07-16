@@ -1,0 +1,42 @@
+name: 'Setup Cargo Tools'
+description: 'Installs and caches cargo tools like nextest, trunk, cargo-swift'
+inputs:
+  tools:
+    description: 'Comma-separated list of tools: nextest,trunk,cargo-swift'
+    required: false
+    default: 'nextest'
+runs:
+  using: 'composite'
+  steps:
+    - name: Cache cargo tools
+      uses: actions/cache@v4
+      id: cache-tools
+      with:
+        path: ~/.cargo/bin
+        key: cargo-tools-${{ runner.os }}-${{ inputs.tools }}-v2
+        restore-keys: |
+          cargo-tools-${{ runner.os }}-
+
+    - name: Install cargo-nextest
+      if: contains(inputs.tools, 'nextest')
+      shell: bash
+      run: |
+        if ! command -v cargo-nextest &> /dev/null; then
+          cargo install cargo-nextest --locked
+        fi
+
+    - name: Install trunk
+      if: contains(inputs.tools, 'trunk')
+      shell: bash
+      run: |
+        if ! command -v trunk &> /dev/null; then
+          cargo install trunk --locked
+        fi
+
+    - name: Install cargo-swift
+      if: contains(inputs.tools, 'cargo-swift')
+      shell: bash
+      run: |
+        if ! command -v cargo-swift &> /dev/null; then
+          cargo install cargo-swift --locked
+        fi

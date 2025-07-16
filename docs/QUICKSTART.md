@@ -1,84 +1,126 @@
-# Intrada Appwrite Quick Start
+# Intrada - Quick Start Guide
 
-## TL;DR - One Command Setup
+Get up and running with the Intrada music practice application in minutes.
 
-```bash
-make setup
-```
+## Prerequisites
 
-That's it! This command will:
-- ✅ Start all Appwrite services
-- ✅ Create the database and collections
-- ✅ Deploy the complete schema
-- ✅ Configure environment files
-- ✅ Update iOS configuration
-- ✅ Verify everything works
+- **Rust** (1.80 or later) - [Install Rust](https://rustup.rs/)
+- **Node.js** (18 or later) - [Install Node.js](https://nodejs.org/)
+- **PostgreSQL** - [Install PostgreSQL](https://www.postgresql.org/download/)
+- **Xcode** (for iOS development) - [Install Xcode](https://developer.apple.com/xcode/)
 
-## First Time Setup
+## Quick Setup
 
-1. **Run the automation:**
-   ```bash
-   make setup
-   ```
-
-2. **When prompted, create your API key:**
-   - Open: http://localhost/console
-   - Create account/login
-   - Create project: `intrada-dev`
-   - Create API key with database permissions
-   - Paste the key when prompted
-
-3. **Done!** Your environment is ready.
-
-## Daily Usage
+### 1. Clone and Install Dependencies
 
 ```bash
-# Start everything
-make start
-
-# Check status
-make status
-
-# Stop everything
-make stop
-
-# Complete reset (careful!)
-make teardown
+git clone <repository-url>
+cd Intrada
+cargo build
 ```
 
-## What Gets Created
+### 2. Database Setup
 
-- **Project:** `intrada-dev`
-- **Database:** `intrada_db`
-- **Collections:** `goals`, `studies`, `sessions`, `study_sessions`
-- **Configuration:** `.env.local`
-- **iOS Config:** `iOS/Intrada/Config.plist`
+```bash
+# Start PostgreSQL (method varies by OS)
+# macOS with Homebrew:
+brew services start postgresql
+
+# Create database
+createdb intrada
+
+# Set environment variable
+export DATABASE_URL="postgresql://localhost/intrada"
+```
+
+### 3. Start the Server
+
+```bash
+cd server
+cargo run
+```
+
+The server will start on `http://localhost:3000`
+
+### 4. Run the Web Application
+
+```bash
+cd web-leptos
+npm install
+npm run dev
+```
+
+Open `http://localhost:8080` in your browser.
+
+### 5. Run the iOS Application
+
+```bash
+cd iOS
+open Intrada.xcodeproj
+```
+
+Build and run from Xcode.
+
+## Project Structure
+
+```
+Intrada/
+├── shared/           # Core business logic (Rust)
+├── server/           # Backend API (Rust + PostgreSQL)
+├── web-leptos/       # Web frontend (Leptos)
+├── iOS/              # iOS app (Swift + SwiftUI)
+└── docs/             # Documentation
+```
+
+## Common Commands
+
+```bash
+# Run all tests
+cargo test
+
+# Generate type bindings
+./typegen.sh
+
+# Format code
+cargo fmt
+
+# Run linter
+cargo clippy
+
+# Build for production
+cargo build --release
+```
+
+## Next Steps
+
+- Read the [Local Development Guide](LOCAL_DEVELOPMENT.md) for detailed setup
+- Check the [Architecture Overview](../CLAUDE.md) to understand the codebase
+- See [Deployment Guide](DEPLOYMENT.md) for production setup
 
 ## Troubleshooting
 
-**Collections not showing?** This is normal - they may take a moment to appear in the API. The deployment logs will show success.
+### Common Issues
 
-**API key not working?** Run `make setup` again - it will detect and fix issues.
+**Database Connection Failed**
+- Ensure PostgreSQL is running
+- Check `DATABASE_URL` environment variable
+- Verify database exists: `createdb intrada`
 
-**Need to start over?** Run `make teardown` then `make setup`.
+**Type Generation Errors**
+- Run `cargo build` in the `shared/` directory first
+- Ensure all dependencies are installed
 
-## Advanced Usage
+**iOS Build Issues**
+- Update Xcode to latest version
+- Clean build folder: Product → Clean Build Folder
+- Reset simulator if needed
 
-```bash
-# Run with specific API key
-./scripts/setup-appwrite-complete.sh "your-api-key-here"
+## Getting Help
 
-# Just tear down
-./scripts/teardown-local-appwrite.sh
-
-# Test connection
-make test
-```
-
-## CI/CD
-
-GitHub Actions workflow included at `.github/workflows/appwrite-setup.yml`
+- Review the [documentation](README.md)
+- Check existing [issues](https://github.com/your-org/intrada/issues)
+- Create a new issue if needed
 
 ---
 
-**🎉 Happy coding!** Your Appwrite environment is now fully automated and ready to use. 
+*This quickstart gets you running locally. For production deployment, see the [Deployment Guide](DEPLOYMENT.md).*
