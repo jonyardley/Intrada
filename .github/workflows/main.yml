@@ -275,16 +275,19 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: server-binary
-          path: ./server/
+          path: ./
 
-      - name: Make binary executable
-        run: chmod +x ./server/intrada-server
+      - name: Copy binary to server directory for Docker context
+        run: |
+          cp intrada-server ./server/
+          chmod +x ./server/intrada-server
 
       - name: Setup flyctl
         uses: superfly/flyctl-actions/setup-flyctl@master
 
       - name: Deploy to Fly.io
         run: |
-          flyctl deploy --remote-only --dockerfile ./server/Dockerfile.optimized --config ./server/fly.toml
+          cd server
+          flyctl deploy --remote-only --dockerfile ./Dockerfile.optimized --config ./fly.toml
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
