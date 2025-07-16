@@ -44,8 +44,8 @@ cargo build
 After changing shared types, regenerate platform bindings:
 
 ```bash
-# Generate Swift/Java bindings
-./typegen.sh
+# Generate Swift/Java bindings and build all types
+./build-and-typegen.sh
 ```
 
 ### 3. Update Platforms
@@ -53,8 +53,9 @@ After changing shared types, regenerate platform bindings:
 Update platform-specific code to use new functionality:
 
 ```bash
-# iOS
+# iOS - Generate Xcode project first
 cd iOS
+xcodegen  # Generate Xcode project from project.yml
 open Intrada.xcodeproj
 # Update Swift code to use new types
 
@@ -69,10 +70,11 @@ cd web-leptos
 # Start server
 cd server && cargo run
 
-# Start web app
-cd web-leptos && npm run dev
+# Start web app (CSS build required first)
+cd web-leptos && npm run build:css && npm run dev
 
-# Build iOS app in Xcode
+# Build iOS app - use helper script
+cd iOS && ./build-and-run.sh
 ```
 
 ### 5. Deploy Changes
@@ -82,7 +84,7 @@ cd web-leptos && npm run dev
 cd server && fly deploy
 
 # Deploy web app (if needed)
-cd web-leptos && npm run build
+cd web-leptos && npm run build:css && npm run build
 ```
 
 ## Code Organization
@@ -98,21 +100,25 @@ cd web-leptos && npm run build
 
 ### Server (`server/`)
 
-- **`main.rs`**: Server entry point and routing
+- **`main.rs`**: Server entry point and routing (PostgreSQL + Axum)
 - **`goals.rs`**: Goal API endpoints
-- **`migrations/`**: Database migrations
+- **`migrations/`**: PostgreSQL database migrations
 
 ### iOS (`iOS/`)
 
+- **`project.yml`**: XcodeGen configuration (run `xcodegen` to generate .xcodeproj)
 - **`core.swift`**: Swift wrapper around Rust core
 - **`http.swift`**: HTTP client implementation
 - **`*View.swift`**: SwiftUI views
+- **`build-and-run.sh`**: Helper script to build and run iOS app
 
 ### Web (`web-leptos/`)
 
 - **`main.rs`**: Web app entry point
 - **`components/`**: Reusable Leptos components
 - **`views/`**: Page-level components
+- **`package.json`**: Contains `build:css` and `dev` scripts
+- **`tailwind.config.js`**: Tailwind CSS configuration
 
 ## Type-State Pattern
 

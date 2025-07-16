@@ -47,6 +47,23 @@ pub use model::*;
 pub mod dev;
 pub use dev::{set_dev_data, DevEvent};
 
+pub mod utils;
+pub use utils::{
+    generate_id, handle_http_error, handle_operation_result, is_valid_id, short_id,
+    validate_and_log,
+};
+
+pub mod http_utils;
+pub use http_utils::{delete_request, get_request, post_json_request, put_json_request, ApiConfig};
+
+pub mod repository;
+pub use repository::{GoalRepository, Repository, SessionRepository, StudyRepository};
+
+#[cfg(test)]
+pub mod test_utils;
+#[cfg(test)]
+pub use test_utils::*;
+
 // *************
 // EVENTS
 // *************

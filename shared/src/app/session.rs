@@ -6,6 +6,56 @@ use crux_core::Command;
 use facet::Facet;
 use serde::{Deserialize, Serialize};
 
+/// Macro to simplify session data access patterns.
+///
+/// # Purpose
+/// This macro provides a unified way to access data fields from a `PracticeSession` enum,
+/// regardless of its state (`NotStarted`, `Started`, or `Ended`).
+///
+/// # Parameters
+/// - `$session`: The `PracticeSession` instance to access.
+/// - `$accessor`: The method or field to access on the `data` field of the session.
+///
+/// # Example
+/// ```
+/// let session = PracticeSession::Started(started_session);
+/// let goal_ids = session_data_access!(session, goal_ids);
+/// ```
+macro_rules! session_data_access {
+    ($session:expr, $accessor:ident) => {
+        match $session {
+            PracticeSession::NotStarted(s) => s.data.$accessor(),
+            PracticeSession::Started(s) => s.data.$accessor(),
+            PracticeSession::Ended(s) => s.data.$accessor(),
+        }
+    };
+}
+
+/// Macro to simplify mutable session data access patterns.
+///
+/// # Purpose
+/// This macro provides a convenient way to access mutable fields of the `data` property
+/// within different states of a `PracticeSession` (e.g., `NotStarted`, `Started`, `Ended`).
+///
+/// # Parameters
+/// - `$session`: The `PracticeSession` instance to access.
+/// - `$accessor`: The name of the method or field to access on the `data` property.
+///
+/// # Example
+/// ```
+/// let mut session = PracticeSession::Started(started_session);
+/// session_data_access_mut!(session, some_mutable_field) = new_value;
+/// ```
+macro_rules! session_data_access_mut {
+    ($session:expr, $accessor:ident) => {
+        match $session {
+            PracticeSession::NotStarted(s) => s.data.$accessor(),
+            PracticeSession::Started(s) => s.data.$accessor(),
+            PracticeSession::Ended(s) => s.data.$accessor(),
+        }
+    };
+}
+
 // Common session data that all session states share
 #[derive(Facet, Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct SessionData {
@@ -51,7 +101,7 @@ pub enum SessionEvent {
 impl SessionData {
     pub fn new(goal_ids: Vec<String>, intention: String) -> Self {
         Self {
-            id: uuid::Uuid::new_v4().to_string(),
+            id: crate::app::generate_id(),
             goal_ids,
             intention,
             notes: None,
@@ -192,53 +242,29 @@ impl PracticeSession {
         Self::NotStarted(NotStartedSession::new(goal_ids, intention))
     }
 
-    // Delegate common methods to the SessionData through the variants
+    // Delegate common methods to the SessionData through the variants using macros
     pub fn id(&self) -> &str {
-        match self {
-            PracticeSession::NotStarted(s) => s.data.id(),
-            PracticeSession::Started(s) => s.data.id(),
-            PracticeSession::Ended(s) => s.data.id(),
-        }
+        session_data_access!(self, id)
     }
 
     pub fn goal_ids(&self) -> &Vec<String> {
-        match self {
-            PracticeSession::NotStarted(s) => s.data.goal_ids(),
-            PracticeSession::Started(s) => s.data.goal_ids(),
-            PracticeSession::Ended(s) => s.data.goal_ids(),
-        }
+        session_data_access!(self, goal_ids)
     }
 
     pub fn intention(&self) -> &String {
-        match self {
-            PracticeSession::NotStarted(s) => s.data.intention(),
-            PracticeSession::Started(s) => s.data.intention(),
-            PracticeSession::Ended(s) => s.data.intention(),
-        }
+        session_data_access!(self, intention)
     }
 
     pub fn notes(&self) -> &Option<String> {
-        match self {
-            PracticeSession::NotStarted(s) => s.data.notes(),
-            PracticeSession::Started(s) => s.data.notes(),
-            PracticeSession::Ended(s) => s.data.notes(),
-        }
+        session_data_access!(self, notes)
     }
 
     pub fn study_sessions(&self) -> &Vec<StudySession> {
-        match self {
-            PracticeSession::NotStarted(s) => s.data.study_sessions(),
-            PracticeSession::Started(s) => s.data.study_sessions(),
-            PracticeSession::Ended(s) => s.data.study_sessions(),
-        }
+        session_data_access!(self, study_sessions)
     }
 
     pub fn study_sessions_mut(&mut self) -> &mut Vec<StudySession> {
-        match self {
-            PracticeSession::NotStarted(s) => s.data.study_sessions_mut(),
-            PracticeSession::Started(s) => s.data.study_sessions_mut(),
-            PracticeSession::Ended(s) => s.data.study_sessions_mut(),
-        }
+        session_data_access_mut!(self, study_sessions_mut)
     }
 
     pub fn start(&mut self, timestamp: String) -> Result<(), SessionError> {
@@ -419,15 +445,11 @@ pub fn end_session(
 
 pub fn edit_session_notes(session_id: &str, notes: String, model: &mut Model) {
     if let Some(session) = model.sessions.iter_mut().find(|s| s.id() == session_id) {
-        match session {
-            PracticeSession::NotStarted(s) => *s.data.notes_mut() = Some(notes),
-            PracticeSession::Started(s) => *s.data.notes_mut() = Some(notes),
-            PracticeSession::Ended(s) => *s.data.notes_mut() = Some(notes),
-        }
+        *session_data_access_mut!(session, notes_mut) = Some(notes);
     }
 }
 
-// Clean implementation using the SessionData
+// Clean implementation using the SessionData and macros
 pub fn edit_session_fields(
     session_id: &str,
     goal_ids: Vec<String>,
@@ -436,23 +458,9 @@ pub fn edit_session_fields(
     model: &mut Model,
 ) {
     if let Some(session) = model.sessions.iter_mut().find(|s| s.id() == session_id) {
-        match session {
-            PracticeSession::NotStarted(s) => {
-                *s.data.goal_ids_mut() = goal_ids;
-                *s.data.intention_mut() = intention;
-                *s.data.notes_mut() = notes;
-            }
-            PracticeSession::Started(s) => {
-                *s.data.goal_ids_mut() = goal_ids;
-                *s.data.intention_mut() = intention;
-                *s.data.notes_mut() = notes;
-            }
-            PracticeSession::Ended(s) => {
-                *s.data.goal_ids_mut() = goal_ids;
-                *s.data.intention_mut() = intention;
-                *s.data.notes_mut() = notes;
-            }
-        }
+        *session_data_access_mut!(session, goal_ids_mut) = goal_ids;
+        *session_data_access_mut!(session, intention_mut) = intention;
+        *session_data_access_mut!(session, notes_mut) = notes;
     }
 }
 

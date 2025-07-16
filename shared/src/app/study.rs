@@ -1,4 +1,5 @@
 use crate::app::model::Model;
+use crate::app::repository::Repository;
 use crate::app::study_session::StudySession;
 use crux_core::Command;
 use facet::Facet;
@@ -22,7 +23,7 @@ pub enum StudyEvent {
 impl Study {
     pub fn new(name: String, description: Option<String>) -> Self {
         Self {
-            id: uuid::Uuid::new_v4().to_string(),
+            id: crate::app::generate_id(),
             name,
             description,
         }
@@ -39,14 +40,13 @@ impl Study {
 }
 
 pub fn add_study(study: Study, model: &mut Model) {
-    model.studies.push(study);
+    let mut repo = model.studies();
+    repo.add(study);
 }
 
 pub fn edit_study(study: Study, model: &mut Model) {
-    let index = model.studies.iter().position(|e| e.id == study.id);
-    if let Some(index) = index {
-        model.studies[index] = study;
-    }
+    let mut repo = model.studies();
+    repo.update(study);
 }
 
 pub fn handle_event(event: StudyEvent, model: &mut Model) -> Command<super::Effect, super::Event> {

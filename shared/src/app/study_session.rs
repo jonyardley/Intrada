@@ -24,7 +24,7 @@ pub enum StudySessionEvent {
 impl StudySession {
     pub fn new(study_id: String, session_id: String) -> Self {
         Self {
-            id: uuid::Uuid::new_v4().to_string(),
+            id: crate::app::generate_id(),
             study_id,
             session_id,
             score: None,

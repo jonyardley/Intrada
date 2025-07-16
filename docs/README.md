@@ -20,10 +20,10 @@ Welcome to the Intrada documentation! This directory contains all the guides and
 
 ```bash
 # Build everything
-make build
+cargo build --workspace
 
 # Test everything  
-make test
+cargo test --workspace
 
 # Generate types
 ./typegen.sh
@@ -32,7 +32,7 @@ make test
 cd server && cargo run
 
 # Start web app
-cd web-leptos && trunk serve
+cd web-leptos && npm run build:css && npm run dev
 ```
 
 ## Need Help?
