@@ -22,10 +22,11 @@ pub fn short_id(id: &str) -> String {
 }
 
 /// Centralized HTTP error handling
-pub fn handle_http_error(error: HttpError, operation: &str) {
+pub fn handle_http_error(error: HttpError, operation: &str) -> Result<(), HttpError> {
     log::error!("HTTP {operation} failed: {error:?}");
     // TODO: In a real implementation, this would dispatch an error event
     // that the UI can handle to show user-friendly error messages
+    Err(error)
 }
 
 /// Centralized operation result handling
