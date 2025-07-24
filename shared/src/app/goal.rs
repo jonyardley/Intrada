@@ -39,6 +39,9 @@ pub enum GoalEvent {
     #[facet(skip)]
     GoalCreated(HttpResult<crux_http::Response<PracticeGoal>, crux_http::HttpError>),
     EditGoal(PracticeGoal),
+    #[serde(skip)]
+    #[facet(skip)]
+    GoalUpdated(HttpResult<crux_http::Response<PracticeGoal>, crux_http::HttpError>),
 }
 
 impl PracticeGoal {
@@ -128,7 +131,38 @@ pub fn handle_event(event: GoalEvent, model: &mut Model) -> Command<super::Effec
             eprintln!("Failed to create goal: {e:?}");
             // TODO: Add proper error handling - show error to user
         }
-        GoalEvent::EditGoal(goal) => edit_goal(goal, model),
+        GoalEvent::EditGoal(goal) => {
+            // Update goal locally and on server
+            let update_request = serde_json::json!({
+                "name": goal.name,
+                "description": goal.description,
+                "status": goal.status,
+                "start_date": goal.start_date,
+                "target_date": goal.target_date,
+                "study_ids": goal.study_ids,
+                "tempo_target": goal.tempo_target
+            });
+
+            let json_string =
+                serde_json::to_string(&update_request).expect("Failed to serialize JSON");
+            eprintln!("Updating goal with JSON: {json_string}");
+
+            return Http::put(format!("http://localhost:3000/goals/{}", goal.id))
+                .header("Content-Type", "application/json")
+                .body(json_string)
+                .expect_json::<PracticeGoal>()
+                .build()
+                .map(Into::into)
+                .then_send(|response| super::Event::Goal(GoalEvent::GoalUpdated(response)));
+        }
+        GoalEvent::GoalUpdated(HttpResult::Ok(mut response)) => {
+            let updated_goal = response.take_body().unwrap();
+            edit_goal(updated_goal, model);
+        }
+        GoalEvent::GoalUpdated(HttpResult::Err(e)) => {
+            eprintln!("Failed to update goal: {e:?}");
+            // TODO: Add proper error handling - show error to user
+        }
     }
 
     crux_core::render::render()

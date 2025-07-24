@@ -109,7 +109,15 @@ pub fn handle_event(event: StudyEvent, model: &mut Model) -> Command<super::Effe
         }
         StudyEvent::EditStudy(study) => edit_study(study, model),
         StudyEvent::AddStudyToGoal { goal_id, study_id } => {
+            // First update the local model for immediate UI response
             super::goal::add_study_to_goal(&goal_id, &study_id, model);
+
+            // Then persist the change to the server by triggering a goal update
+            if let Some(updated_goal) = model.goals.iter().find(|g| g.id == goal_id).cloned() {
+                return Command::event(super::Event::Goal(super::goal::GoalEvent::EditGoal(
+                    updated_goal,
+                )));
+            }
         }
     }
 
