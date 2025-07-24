@@ -3,6 +3,7 @@ use serde::Serialize;
 use serde_json::json;
 use sqlx::PgPool;
 use std::net::SocketAddr;
+use tower_http::cors::{Any, CorsLayer};
 
 mod goals;
 mod studies;
@@ -50,6 +51,12 @@ async fn main() {
         .route("/health", get(health))
         .merge(goals::routes())
         .merge(studies::routes())
+        .layer(
+            CorsLayer::new()
+                .allow_origin(Any)
+                .allow_methods(Any)
+                .allow_headers(Any),
+        )
         .with_state(pool);
 
     let port = std::env::var("PORT")

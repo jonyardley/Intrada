@@ -74,9 +74,9 @@ struct GoalFormView: View {
           }) {
             HStack {
               Image(systemName: "plus.circle.fill")
-                .foregroundColor(Color(red: 79/255, green: 70/255, blue: 229/255))
+                .foregroundColor(Theme.Colors.primary)
               Text("Add New Study")
-                .foregroundColor(Color(red: 79/255, green: 70/255, blue: 229/255))
+                .foregroundColor(Theme.Colors.primary)
             }
           }
           .sheet(isPresented: $showStudyForm) {
@@ -129,45 +129,35 @@ struct GoalFormView: View {
   }
   
   private func saveGoal() {
-    validationErrors.removeAll()
+    let validator = GoalFormValidator(
+      name: name,
+      description: description,
+      tempoTarget: tempoTarget
+    )
     
-    // Compile-time validation of required fields
-    let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-    guard !trimmedName.isEmpty else {
-      validationErrors.append("Name cannot be empty")
-      return
-    }
+    let result = validator.validate()
+    validationErrors = result.errors
     
-    // Validate tempo if provided  
-    let tempoValue: UInt32? = {
-      guard !tempoTarget.isEmpty else { return nil }
-      guard let tempo = UInt32(tempoTarget), tempo > 0 && tempo <= 300 else {
-        validationErrors.append("Tempo must be between 1-300 BPM")
-        return nil
-      }
-      return tempo
-    }()
+    guard result.isValid else { return }
     
-    // Return early if validation failed
-    if !validationErrors.isEmpty {
-      return
-    }
+    // Parse tempo if provided
+    let tempoValue: UInt32? = tempoTarget.isEmpty ? nil : UInt32(tempoTarget)
     
-    // Validate date format
+    // Format date
     let dateFormatter = DateFormatter()
     dateFormatter.dateFormat = "yyyy-MM-dd"
     let targetDateString = dateFormatter.string(from: targetDate)
     
-    // Create goal with validated inputs - no runtime crashes possible!
+    // Create goal with validated inputs
     let goal = PracticeGoal(
       id: existingGoal?.id ?? UUID().uuidString,
-      name: trimmedName, // Guaranteed non-empty
+      name: name.trimmingCharacters(in: .whitespacesAndNewlines),
       description: description.isEmpty ? nil : description,
       status: existingGoal?.status ?? .notStarted,
       startDate: existingGoal?.startDate,
-      targetDate: targetDateString, // Guaranteed valid format
+      targetDate: targetDateString,
       studyIds: Array(selectedStudies),
-      tempoTarget: tempoValue // Guaranteed valid or nil
+      tempoTarget: tempoValue
     )
     
     // Update core

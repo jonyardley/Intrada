@@ -32,19 +32,7 @@ class Core: ObservableObject {
             if !isPreview {
                 print("Warning: Core returned empty or too-small view data, using default ViewModel")
             }
-            self.view = ViewModel(
-                goals: [],
-                studies: [],
-                sessions: [],
-                activeSession: nil,
-                currentSession: nil,
-                hasActiveSession: false,
-                canStartSession: false,
-                canEndSession: false,
-                isSessionRunning: false,
-                isSessionEnded: false,
-                currentSessionElapsedTime: nil
-            )
+            self.view = Self.createDefaultViewModel()
         } else {
             do {
                 self.view = try .bincodeDeserialize(input: bytes)
@@ -52,19 +40,7 @@ class Core: ObservableObject {
                 if !isPreview {
                     print("Warning: Failed to deserialize existing data, starting with fresh state: \(error)")
                 }
-                self.view = ViewModel(
-                    goals: [],
-                    studies: [],
-                    sessions: [],
-                    activeSession: nil,
-                    currentSession: nil,
-                    hasActiveSession: false,
-                    canStartSession: false,
-                    canEndSession: false,
-                    isSessionRunning: false,
-                    isSessionEnded: false,
-                    currentSessionElapsedTime: nil
-                )
+                self.view = Self.createDefaultViewModel()
             }
         }
         
@@ -86,6 +62,22 @@ class Core: ObservableObject {
             }
         }
         }
+    }
+    
+    private static func createDefaultViewModel() -> ViewModel {
+        ViewModel(
+            goals: [],
+            studies: [],
+            sessions: [],
+            activeSession: nil,
+            currentSession: nil,
+            hasActiveSession: false,
+            canStartSession: false,
+            canEndSession: false,
+            isSessionRunning: false,
+            isSessionEnded: false,
+            currentSessionElapsedTime: nil
+        )
     }
 
     func update(_ event: Event) {
@@ -112,19 +104,7 @@ class Core: ObservableObject {
                     if !isPreview {
                         print("Warning: Core returned empty or too-small view data, using default ViewModel")
                     }
-                    self.view = ViewModel(
-                        goals: [],
-                        studies: [],
-                        sessions: [],
-                        activeSession: nil,
-                        currentSession: nil,
-                        hasActiveSession: false,
-                        canStartSession: false,
-                        canEndSession: false,
-                        isSessionRunning: false,
-                        isSessionEnded: false,
-                        currentSessionElapsedTime: nil
-                    )
+                    self.view = Self.createDefaultViewModel()
                 } else {
                     do {
                         self.view = try .bincodeDeserialize(input: bytes)
@@ -132,19 +112,7 @@ class Core: ObservableObject {
                         if !isPreview {
                             print("Warning: Failed to deserialize view update: \(error)")
                         }
-                        self.view = ViewModel(
-                            goals: [],
-                            studies: [],
-                            sessions: [],
-                            activeSession: nil,
-                            currentSession: nil,
-                            hasActiveSession: false,
-                            canStartSession: false,
-                            canEndSession: false,
-                            isSessionRunning: false,
-                            isSessionEnded: false,
-                            currentSessionElapsedTime: nil
-                        )
+                        self.view = Self.createDefaultViewModel()
                     }
                 }
             }

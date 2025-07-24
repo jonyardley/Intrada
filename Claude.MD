@@ -70,7 +70,7 @@ We're building intelligent tools that transform practice from routine into a del
    cd iOS && ./build-and-run.sh
    
    # Web-Leptos App
-   cd web-leptos && cargo build && cargo test
+   cd web-leptos && npm run build:css && cargo build && cargo test
    
    # Server (if applicable)
    cd server && cargo build && cargo test
@@ -101,7 +101,7 @@ echo "4️⃣ Running type generation..."
 ./build-and-typegen.sh || exit 1
 
 echo "5️⃣ Testing web-leptos..."
-cd web-leptos && cargo build && cargo test || exit 1
+cd web-leptos && npm run build:css && cargo build && cargo test || exit 1
 cd ..
 
 echo "6️⃣ Testing iOS app..."

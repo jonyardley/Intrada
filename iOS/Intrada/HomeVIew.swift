@@ -13,17 +13,17 @@ struct HomeView: View {
     
     var body: some View {
         NavigationView {
-            VStack(spacing: 20) {
+            VStack(spacing: Theme.Spacing.xl) {
                 Spacer()
                 
                 Text("Welcome to Intrada")
                     .font(.system(size: 24, weight: .bold))
-                    .foregroundColor(.primary)
+                    .foregroundColor(Theme.Colors.text)
                     .multilineTextAlignment(.center)
 
                 Text("Let's Rachmaninov")
                     .font(.system(size: 34, weight: .bold))
-                    .foregroundColor(Color(red: 79/255, green: 70/255, blue: 229/255))
+                    .foregroundColor(Theme.Colors.primary)
                     .multilineTextAlignment(.center)
 
                 Spacer()

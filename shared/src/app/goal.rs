@@ -1,7 +1,7 @@
 use crate::app::model::Model;
+use crate::app::repository::Repository;
 use crate::HttpResult;
 use crux_core::Command;
-use crux_http::command::Http;
 use facet::Facet;
 use serde::{Deserialize, Serialize};
 
@@ -53,7 +53,7 @@ impl PracticeGoal {
         tempo_target: Option<u32>,
     ) -> Self {
         Self {
-            id: uuid::Uuid::new_v4().to_string(),
+            id: crate::app::generate_id(),
             name,
             description,
             status: GoalStatus::NotStarted,
@@ -66,17 +66,18 @@ impl PracticeGoal {
 }
 
 pub fn add_goal(goal: PracticeGoal, model: &mut Model) {
-    model.goals.push(goal);
+    let mut repo = model.goals();
+    repo.add(goal);
 }
 
 pub fn edit_goal(updated_goal: PracticeGoal, model: &mut Model) {
-    if let Some(goal) = model.goals.iter_mut().find(|g| g.id == updated_goal.id) {
-        *goal = updated_goal;
-    }
+    let mut repo = model.goals();
+    repo.update(updated_goal);
 }
 
 pub fn add_study_to_goal(goal_id: &str, study_id: &str, model: &mut Model) {
-    if let Some(goal) = model.goals.iter_mut().find(|g| g.id == goal_id) {
+    let mut repo = model.goals();
+    if let Some(goal) = repo.find_mut_by_id(goal_id) {
         if !goal.study_ids.contains(&study_id.to_string()) {
             goal.study_ids.push(study_id.to_string());
         }
@@ -86,19 +87,17 @@ pub fn add_study_to_goal(goal_id: &str, study_id: &str, model: &mut Model) {
 pub fn handle_event(event: GoalEvent, model: &mut Model) -> Command<super::Effect, super::Event> {
     match event {
         GoalEvent::FetchGoals => {
-            return Http::get("http://localhost:3000/goals")
-                .expect_json()
-                .build()
-                .map(Into::into)
-                .then_send(|response| super::Event::Goal(GoalEvent::SetGoals(response)));
+            let api = crate::app::ApiConfig::default();
+            return api.get("/goals", |response| {
+                super::Event::Goal(GoalEvent::SetGoals(response))
+            });
         }
         GoalEvent::SetGoals(HttpResult::Ok(mut response)) => {
             let goals = response.take_body().unwrap();
             return Command::event(super::Event::Goal(GoalEvent::UpdateGoals(goals)));
         }
         GoalEvent::SetGoals(HttpResult::Err(e)) => {
-            eprintln!("Failed to fetch goals: {e:?}");
-            // TODO: Add proper error handling - show error to user
+            let _ = crate::app::handle_http_error(e, "fetch goals");
         }
         GoalEvent::UpdateGoals(goals) => model.goals = goals,
         GoalEvent::AddGoal(goal) => {
@@ -111,25 +110,17 @@ pub fn handle_event(event: GoalEvent, model: &mut Model) -> Command<super::Effec
                 "tempo_target": goal.tempo_target
             });
 
-            let json_string =
-                serde_json::to_string(&create_request).expect("Failed to serialize JSON");
-            eprintln!("Creating goal with JSON: {json_string}");
-
-            return Http::post("http://localhost:3000/goals")
-                .header("Content-Type", "application/json")
-                .body(json_string)
-                .expect_json::<PracticeGoal>()
-                .build()
-                .map(Into::into)
-                .then_send(|response| super::Event::Goal(GoalEvent::GoalCreated(response)));
+            let api = crate::app::ApiConfig::default();
+            return api.post("/goals", &create_request, |response| {
+                super::Event::Goal(GoalEvent::GoalCreated(response))
+            });
         }
         GoalEvent::GoalCreated(HttpResult::Ok(mut response)) => {
             let created_goal = response.take_body().unwrap();
             add_goal(created_goal, model);
         }
         GoalEvent::GoalCreated(HttpResult::Err(e)) => {
-            eprintln!("Failed to create goal: {e:?}");
-            // TODO: Add proper error handling - show error to user
+            let _ = crate::app::handle_http_error(e, "create goal");
         }
         GoalEvent::EditGoal(goal) => {
             // Update goal locally and on server

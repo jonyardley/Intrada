@@ -20,16 +20,16 @@ struct SessionsView: View {
     }
     
     private var completedSessions: [PracticeSessionView] {
-        core.view.sessions.filter { 
-            $0.isEnded
-        }
+        core.view.sessions.filter { $0.isEnded }
     }
     
     var body: some View {
         NavigationStack(path: $navigationPath) {
             ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    headerView
+                VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
+                    ListHeader(title: "Your Sessions") {
+                        showingAddForm = true
+                    }
                     
                     if let activeSession = activeSession {
                         ActiveSessionView(
@@ -37,7 +37,7 @@ struct SessionsView: View {
                             core: core,
                             onSessionEnd: handleSessionEnd
                         )
-                        .padding(.horizontal)
+                        .padding(.horizontal, Theme.Spacing.lg)
                         .onTapGesture {
                             navigationPath.append(activeSession.id)
                         }
@@ -45,7 +45,7 @@ struct SessionsView: View {
                     
                     sessionsListView
                 }
-                .padding(.vertical)
+                .padding(.vertical, Theme.Spacing.lg)
             }
             .navigationTitle("Sessions")
             .navigationBarTitleDisplayMode(.inline)
@@ -75,42 +75,19 @@ struct SessionsView: View {
         }
     }
     
-    private var headerView: some View {
-        HStack {
-            Text("Your Sessions")
-                .font(.largeTitle)
-                .fontWeight(.bold)
-            
-            Spacer()
-            
-            Button(action: { showingAddForm = true }) {
-                Image(systemName: "plus.circle.fill")
-                    .font(.title)
-            }
-        }
-        .padding(.horizontal)
-    }
-    
     private var sessionsListView: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            
-            Text("Recent practice sessions")
-                .font(.title2)
-                .fontWeight(.semibold)
-                .padding(.horizontal)
-                .padding(.top)
+        VStack(alignment: .leading, spacing: Theme.Spacing.md) {
+            SectionHeader(title: "Recent practice sessions")
             
             if completedSessions.isEmpty {
-                Text("No sessions yet")
-                    .foregroundColor(.gray)
-                    .padding(.horizontal)
+                EmptyStateView(message: "No sessions yet")
             } else {
                 ForEach(completedSessions, id: \.id) { session in
                     NavigationLink {
                         SessionDetailView(core: core, sessionId: session.id)
                     } label: {
                         SessionRow(session: session)
-                            .padding(.horizontal)
+                            .padding(.horizontal, Theme.Spacing.lg)
                     }
                     .buttonStyle(PlainButtonStyle())
                 }
@@ -195,61 +172,37 @@ struct SessionRow: View {
     let session: PracticeSessionView
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(session.intention)
-                .font(.headline)
-            
-            if let notes = session.notes, !notes.isEmpty {
-                Text(notes)
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
-            }
-            
-            HStack {
-                if let startTime = session.startTime {
-                    HStack(spacing: 4) {
-                        Image(systemName: "calendar")
-                            .foregroundColor(.accentColor)
-                        Text(formatDateAndTime(startTime))
-                            .font(.caption)
-                            .foregroundColor(.gray)
+        GenericRow {
+            VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
+                Text(session.intention)
+                    .font(Theme.Typography.headline)
+                
+                if let notes = session.notes, !notes.isEmpty {
+                    Text(notes)
+                        .font(Theme.Typography.subheadline)
+                        .foregroundColor(Theme.Colors.textSecondary)
+                }
+                
+                HStack {
+                    if let startTime = session.startTime {
+                        HStack(spacing: Theme.Spacing.xs) {
+                            Image(systemName: "calendar")
+                                .foregroundColor(Theme.Colors.primary)
+                            Text(DateFormatter.formatDateAndTime(startTime))
+                                .font(Theme.Typography.caption)
+                                .foregroundColor(Theme.Colors.textSecondary)
+                        }
+                    }
+                    
+                    Spacer()
+                    
+                    if let duration = session.duration {
+                        Text(duration)
+                            .badgeStyle(color: Theme.Colors.textSecondary)
                     }
                 }
-                
-                Spacer()
-                
-                if let duration = session.duration {
-                    Text(duration)
-                        .font(.caption)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.gray.opacity(0.2))
-                        .cornerRadius(8)
-                }
             }
         }
-        .padding()
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.gray.opacity(0.1))
-        .cornerRadius(10)
-    }
-    
-    private func formatDateAndTime(_ dateString: String) -> String {
-        let formatter = ISO8601DateFormatter()
-        if let date = formatter.date(from: dateString) {
-            let calendar = Calendar.current
-            let displayFormatter = DateFormatter()
-            
-            if calendar.isDateInToday(date) {
-                displayFormatter.dateFormat = "'Today at' h:mm a"
-            } else if calendar.isDateInYesterday(date) {
-                displayFormatter.dateFormat = "'Yesterday at' h:mm a"
-            } else {
-                displayFormatter.dateFormat = "MMM d, yyyy 'at' h:mm a"
-            }
-            return displayFormatter.string(from: date)
-        }
-        return dateString
     }
 }
 
