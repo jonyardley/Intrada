@@ -1,10 +1,4 @@
-use axum::{
-    extract::State,
-    http::StatusCode,
-    response::Json,
-    routing::{get, post},
-    Router,
-};
+use axum::{extract::State, http::StatusCode, response::Json, routing::get, Router};
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, Pool, Postgres};
 
@@ -34,11 +28,9 @@ pub struct Study {
     pub description: Option<String>,
 }
 
-
 // Routes
 pub fn routes() -> Router<DbPool> {
-    Router::new()
-        .route("/studies", get(get_studies).post(create_study))
+    Router::new().route("/studies", get(get_studies).post(create_study))
 }
 
 // Create a new study
