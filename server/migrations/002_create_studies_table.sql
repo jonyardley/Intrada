@@ -1,8 +1,7 @@
--- Create studies table
-CREATE TABLE studies (
-    id VARCHAR(255) PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    description TEXT,
+CREATE TABLE IF NOT EXISTS studies (
+    id VARCHAR PRIMARY KEY,
+    name VARCHAR NOT NULL,
+    description VARCHAR,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

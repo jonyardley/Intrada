@@ -5,6 +5,7 @@
 # Build outputs
 **/dist
 **/build
+build/
 **/public/build
 **/public/dist
 **/public/target

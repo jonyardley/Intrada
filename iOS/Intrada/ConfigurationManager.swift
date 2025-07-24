@@ -26,5 +26,12 @@ class ConfigurationManager {
         return getString(for: key) ?? defaultValue
     }
     
+    func getServerEndpoint() -> String {
+        // Try environment variable first, then plist, then default
+        if let envValue = ProcessInfo.processInfo.environment["INTRADA_SERVER_ENDPOINT"] {
+            return envValue
+        }
+        return getString(for: "ServerEndpoint", defaultValue: "http://localhost:3000")
+    }
 
 } 

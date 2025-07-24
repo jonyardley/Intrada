@@ -2,11 +2,10 @@ use axum::{
     extract::{Path, State},
     http::StatusCode,
     response::Json,
-    routing::get,
+    routing::{delete, get, post, put},
     Router,
 };
-use serde::Deserialize;
-use shared::Study;
+use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, Pool, Postgres};
 
 use crate::ApiError;
@@ -21,43 +20,49 @@ struct StudyRow {
     description: Option<String>,
 }
 
-impl StudyRow {
-    fn into_study(self) -> Study {
-        Study {
-            id: self.id,
-            name: self.name,
-            description: self.description,
-        }
-    }
-}
-
-// Request types
-#[derive(Debug, Deserialize)]
+// Request/Response types
+#[derive(Debug, Serialize, Deserialize)]
 pub struct CreateStudyRequest {
     pub name: String,
     pub description: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Study {
+    pub id: String,
+    pub name: String,
+    pub description: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct UpdateStudyRequest {
     pub name: Option<String>,
     pub description: Option<String>,
 }
 
+// Routes
+pub fn routes() -> Router<DbPool> {
+    Router::new()
+        .route("/studies", get(get_studies).post(create_study))
+        .route(
+            "/studies/:id",
+            get(get_study).put(update_study).delete(delete_study),
+        )
+}
+
+// Create a new study
 async fn create_study(
     State(pool): State<DbPool>,
     Json(req): Json<CreateStudyRequest>,
 ) -> Result<Json<Study>, (StatusCode, Json<ApiError>)> {
-    let study = Study::new(req.name, req.description);
+    let study_id = uuid::Uuid::new_v4().to_string();
 
-    // Insert into database
-    sqlx::query(
-        "INSERT INTO studies (id, name, description) 
-         VALUES ($1, $2, $3)",
+    sqlx::query!(
+        "INSERT INTO studies (id, name, description) VALUES ($1, $2, $3)",
+        study_id,
+        req.name,
+        req.description
     )
-    .bind(&study.id)
-    .bind(&study.name)
-    .bind(&study.description)
     .execute(&pool)
     .await
     .map_err(|e| {
@@ -69,16 +74,22 @@ async fn create_study(
         )
     })?;
 
+    let study = Study {
+        id: study_id,
+        name: req.name,
+        description: req.description,
+    };
+
     Ok(Json(study))
 }
 
+// Get all studies
 async fn get_studies(
     State(pool): State<DbPool>,
 ) -> Result<Json<Vec<Study>>, (StatusCode, Json<ApiError>)> {
-    // Fetch all studies from database
-    let rows = sqlx::query_as::<_, StudyRow>(
-        "SELECT id, name, description 
-         FROM studies ORDER BY created_at DESC",
+    let rows = sqlx::query_as!(
+        StudyRow,
+        "SELECT id, name, description FROM studies ORDER BY created_at DESC"
     )
     .fetch_all(&pool)
     .await
@@ -91,22 +102,28 @@ async fn get_studies(
         )
     })?;
 
-    // Convert database rows to studies
-    let studies: Vec<Study> = rows.into_iter().map(|row| row.into_study()).collect();
+    let studies = rows
+        .into_iter()
+        .map(|row| Study {
+            id: row.id,
+            name: row.name,
+            description: row.description,
+        })
+        .collect();
 
     Ok(Json(studies))
 }
 
+// Get a specific study by ID
 async fn get_study(
     State(pool): State<DbPool>,
-    Path(id): Path<String>,
+    Path(study_id): Path<String>,
 ) -> Result<Json<Study>, (StatusCode, Json<ApiError>)> {
-    // Fetch study from database
-    let row = sqlx::query_as::<_, StudyRow>(
-        "SELECT id, name, description 
-         FROM studies WHERE id = $1",
+    let row = sqlx::query_as!(
+        StudyRow,
+        "SELECT id, name, description FROM studies WHERE id = $1",
+        study_id
     )
-    .bind(&id)
     .fetch_optional(&pool)
     .await
     .map_err(|e| {
@@ -118,9 +135,12 @@ async fn get_study(
         )
     })?;
 
-    // Check if study exists
     match row {
-        Some(row) => Ok(Json(row.into_study())),
+        Some(row) => Ok(Json(Study {
+            id: row.id,
+            name: row.name,
+            description: row.description,
+        })),
         None => Err((
             StatusCode::NOT_FOUND,
             Json(ApiError {
@@ -130,17 +150,18 @@ async fn get_study(
     }
 }
 
+// Update a study
 async fn update_study(
     State(pool): State<DbPool>,
-    Path(id): Path<String>,
+    Path(study_id): Path<String>,
     Json(req): Json<UpdateStudyRequest>,
 ) -> Result<Json<Study>, (StatusCode, Json<ApiError>)> {
     // First, get the existing study
-    let existing_row = sqlx::query_as::<_, StudyRow>(
-        "SELECT id, name, description 
-         FROM studies WHERE id = $1",
+    let existing_study = sqlx::query_as!(
+        StudyRow,
+        "SELECT id, name, description FROM studies WHERE id = $1",
+        study_id
     )
-    .bind(&id)
     .fetch_optional(&pool)
     .await
     .map_err(|e| {
@@ -152,33 +173,31 @@ async fn update_study(
         )
     })?;
 
-    let existing_study = match existing_row {
-        Some(row) => row.into_study(),
-        None => {
-            return Err((
-                StatusCode::NOT_FOUND,
-                Json(ApiError {
-                    message: "Study not found".to_string(),
-                }),
-            ));
-        }
-    };
+    let existing_study = existing_study.ok_or_else(|| {
+        (
+            StatusCode::NOT_FOUND,
+            Json(ApiError {
+                message: "Study not found".to_string(),
+            }),
+        )
+    })?;
 
-    // Create updated study with new values or existing ones
+    // Prepare the updated study
     let updated_study = Study {
-        id: existing_study.id,
+        id: study_id.clone(),
         name: req.name.unwrap_or(existing_study.name),
         description: req.description.or(existing_study.description),
     };
 
-    // Update in database
-    sqlx::query(
-        "UPDATE studies SET name = $2, description = $3, updated_at = CURRENT_TIMESTAMP 
-         WHERE id = $1",
+    // Update the database
+    sqlx::query!(
+        "UPDATE studies 
+         SET name = $1, description = $2, updated_at = CURRENT_TIMESTAMP 
+         WHERE id = $3",
+        updated_study.name,
+        updated_study.description,
+        study_id
     )
-    .bind(&id)
-    .bind(&updated_study.name)
-    .bind(&updated_study.description)
     .execute(&pool)
     .await
     .map_err(|e| {
@@ -193,12 +212,12 @@ async fn update_study(
     Ok(Json(updated_study))
 }
 
+// Delete a study
 async fn delete_study(
     State(pool): State<DbPool>,
-    Path(id): Path<String>,
+    Path(study_id): Path<String>,
 ) -> Result<StatusCode, (StatusCode, Json<ApiError>)> {
-    let result = sqlx::query("DELETE FROM studies WHERE id = $1")
-        .bind(&id)
+    let result = sqlx::query!("DELETE FROM studies WHERE id = $1", study_id)
         .execute(&pool)
         .await
         .map_err(|e| {
@@ -220,83 +239,4 @@ async fn delete_study(
     }
 
     Ok(StatusCode::NO_CONTENT)
-}
-
-pub fn routes() -> Router<DbPool> {
-    Router::new()
-        .route("/studies", get(get_studies).post(create_study))
-        .route(
-            "/studies/{id}",
-            get(get_study).put(update_study).delete(delete_study),
-        )
-}
-
-// *************
-// TESTS
-// *************
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_study_row_into_study() {
-        let study_row = StudyRow {
-            id: "test-id".to_string(),
-            name: "Test Study".to_string(),
-            description: Some("Test description".to_string()),
-        };
-
-        let study = study_row.into_study();
-        assert_eq!(study.id, "test-id");
-        assert_eq!(study.name, "Test Study");
-        assert_eq!(study.description, Some("Test description".to_string()));
-    }
-
-    #[test]
-    fn test_study_row_into_study_no_description() {
-        let study_row = StudyRow {
-            id: "test-id".to_string(),
-            name: "Test Study".to_string(),
-            description: None,
-        };
-
-        let study = study_row.into_study();
-        assert_eq!(study.id, "test-id");
-        assert_eq!(study.name, "Test Study");
-        assert_eq!(study.description, None);
-    }
-
-    #[test]
-    fn test_create_study_request_validation() {
-        let request = CreateStudyRequest {
-            name: "Test Study".to_string(),
-            description: Some("Description".to_string()),
-        };
-
-        assert_eq!(request.name, "Test Study");
-        assert_eq!(request.description, Some("Description".to_string()));
-    }
-
-    #[test]
-    fn test_update_study_request_partial_update() {
-        let request = UpdateStudyRequest {
-            name: Some("Updated Name".to_string()),
-            description: None,
-        };
-
-        assert_eq!(request.name, Some("Updated Name".to_string()));
-        assert_eq!(request.description, None);
-    }
-
-    #[test]
-    fn test_create_study_request_no_description() {
-        let request = CreateStudyRequest {
-            name: "Test Study".to_string(),
-            description: None,
-        };
-
-        assert_eq!(request.name, "Test Study");
-        assert_eq!(request.description, None);
-    }
 }

@@ -193,6 +193,13 @@ echo "✅ All validations passed!"
 - **Environment Files**: `.env.local` for local configuration
 - **Hot Reload**: Development servers with live reloading
 
+### Environment Variables
+- **INTRADA_SERVER_ENDPOINT**: Server endpoint URL (default: `http://localhost:3000`)
+  - Used by iOS app via `ConfigurationManager.getServerEndpoint()`
+  - Used by Rust shared code via `ApiConfig::from_env()`
+- **WORKSPACE_PATH**: Full path to the project workspace (for buildServer.json)
+- **BUILD_ROOT**: Xcode build output directory (for buildServer.json)
+
 ### Deployment
 - **Environment Parity**: Same server configuration across all environments
 - **Automated**: CI/CD handles deployments

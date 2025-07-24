@@ -7,7 +7,7 @@ use leptos_router::{
 };
 use log::info;
 use reactive_stores::Store;
-use shared::{DevEvent, Event};
+use shared::{DevEvent, Event, GoalEvent, StudyEvent};
 use wasm_bindgen::JsCast;
 use web_leptos::GlobalState;
 use web_sys::HtmlElement;
@@ -28,6 +28,12 @@ pub fn App() -> impl IntoView {
     global_state
         .core
         .process_event(Event::Dev(DevEvent::SetDevData));
+    global_state
+        .core
+        .process_event(Event::Goal(GoalEvent::FetchGoals));
+    global_state
+        .core
+        .process_event(Event::Study(StudyEvent::FetchStudies));
     provide_context(Store::new(global_state));
 
     view! {
