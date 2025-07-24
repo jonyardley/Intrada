@@ -1,7 +1,9 @@
 use crate::app::model::Model;
 use crate::app::repository::Repository;
 use crate::app::study_session::StudySession;
+use crate::HttpResult;
 use crux_core::Command;
+use crux_http::command::Http;
 use facet::Facet;
 use serde::{Deserialize, Serialize};
 
@@ -15,9 +17,20 @@ pub struct Study {
 #[derive(Facet, Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[repr(C)]
 pub enum StudyEvent {
+    FetchStudies,
+    #[serde(skip)]
+    #[facet(skip)]
+    SetStudies(HttpResult<crux_http::Response<Vec<Study>>, crux_http::HttpError>),
+    UpdateStudies(Vec<Study>),
     AddStudy(Study),
+    #[serde(skip)]
+    #[facet(skip)]
+    StudyCreated(HttpResult<crux_http::Response<Study>, crux_http::HttpError>),
     EditStudy(Study),
-    AddStudyToGoal { goal_id: String, study_id: String },
+    AddStudyToGoal {
+        goal_id: String,
+        study_id: String,
+    },
 }
 
 impl Study {
@@ -51,7 +64,49 @@ pub fn edit_study(study: Study, model: &mut Model) {
 
 pub fn handle_event(event: StudyEvent, model: &mut Model) -> Command<super::Effect, super::Event> {
     match event {
-        StudyEvent::AddStudy(study) => add_study(study, model),
+        StudyEvent::FetchStudies => {
+            return Http::get("http://localhost:3000/studies")
+                .expect_json()
+                .build()
+                .map(Into::into)
+                .then_send(|response| super::Event::Study(StudyEvent::SetStudies(response)));
+        }
+        StudyEvent::SetStudies(HttpResult::Ok(mut response)) => {
+            let studies = response.take_body().unwrap();
+            return Command::event(super::Event::Study(StudyEvent::UpdateStudies(studies)));
+        }
+        StudyEvent::SetStudies(HttpResult::Err(e)) => {
+            eprintln!("Failed to fetch studies: {e:?}");
+            // TODO: Add proper error handling - show error to user
+        }
+        StudyEvent::UpdateStudies(studies) => model.studies = studies,
+        StudyEvent::AddStudy(study) => {
+            // Transform Study to the format the server expects
+            let create_request = serde_json::json!({
+                "name": study.name,
+                "description": study.description
+            });
+
+            let json_string =
+                serde_json::to_string(&create_request).expect("Failed to serialize JSON");
+            eprintln!("Creating study with JSON: {json_string}");
+
+            return Http::post("http://localhost:3000/studies")
+                .header("Content-Type", "application/json")
+                .body(json_string)
+                .expect_json::<Study>()
+                .build()
+                .map(Into::into)
+                .then_send(|response| super::Event::Study(StudyEvent::StudyCreated(response)));
+        }
+        StudyEvent::StudyCreated(HttpResult::Ok(mut response)) => {
+            let created_study = response.take_body().unwrap();
+            add_study(created_study, model);
+        }
+        StudyEvent::StudyCreated(HttpResult::Err(e)) => {
+            eprintln!("Failed to create study: {e:?}");
+            // TODO: Add proper error handling - show error to user
+        }
         StudyEvent::EditStudy(study) => edit_study(study, model),
         StudyEvent::AddStudyToGoal { goal_id, study_id } => {
             super::goal::add_study_to_goal(&goal_id, &study_id, model);

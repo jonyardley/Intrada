@@ -3,8 +3,10 @@ use serde::Serialize;
 use serde_json::json;
 use sqlx::PgPool;
 use std::net::SocketAddr;
+use tower_http::cors::{Any, CorsLayer};
 
 mod goals;
+mod studies;
 
 #[derive(Debug, Serialize)]
 pub struct ApiError {
@@ -48,6 +50,13 @@ async fn main() {
         )
         .route("/health", get(health))
         .merge(goals::routes())
+        .merge(studies::routes())
+        .layer(
+            CorsLayer::new()
+                .allow_origin(Any)
+                .allow_methods(Any)
+                .allow_headers(Any),
+        )
         .with_state(pool);
 
     let port = std::env::var("PORT")
@@ -124,7 +133,9 @@ mod tests {
     #[test]
     fn test_router_creation() {
         // Test that we can create a router without panicking
-        let router = Router::new().merge(goals::routes());
+        let router = Router::new()
+            .merge(goals::routes())
+            .merge(studies::routes());
 
         // This is a basic smoke test - the router should be created successfully
         // In a real integration test, we'd test the actual routes
