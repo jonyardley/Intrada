@@ -31,12 +31,22 @@ struct StudiesView: View {
                         .fontWeight(.semibold)
                         .padding(.horizontal)
                     
-                    ForEach(core.view.studies, id: \.id) { study in
-                        NavigationLink(destination: StudyDetailView(core: core, study: study)) {
-                            StudyCard(study: study)
-                                .padding(.horizontal)
+                    if core.view.studies.isEmpty {
+                        Text("No studies yet")
+                            .foregroundColor(.gray)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding()
+                            .background(Color.gray.opacity(0.1))
+                            .cornerRadius(8)
+                            .padding(.horizontal)
+                    } else {
+                        ForEach(core.view.studies, id: \.id) { study in
+                            NavigationLink(destination: StudyDetailView(core: core, study: study)) {
+                                StudyCard(study: study)
+                                    .padding(.horizontal)
+                            }
+                            .buttonStyle(PlainButtonStyle())
                         }
-                        .buttonStyle(PlainButtonStyle())
                     }
                 }
             }

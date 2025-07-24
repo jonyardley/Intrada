@@ -154,9 +154,11 @@ mod tests {
             .process_event(Event::Study(StudyEvent::AddStudy(new_study.clone())));
         assert!(!effects.is_empty());
 
-        // Check that the study was added
+        // Check that an HTTP effect was generated (study creation now requires server interaction)
+        // The study will be added to the model after the server responds successfully
         let view_model = global_state.core.view();
-        assert!(view_model.studies.iter().any(|s| s.id == new_study.id));
+        // The study is not immediately added due to server persistence
+        assert_eq!(view_model.studies.len(), 0);
     }
 
     // Note: App component test removed because it requires WASM environment
