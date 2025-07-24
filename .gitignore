@@ -43,3 +43,5 @@ iOS/Intrada/Config.plist
 *.db
 *.db-shm
 *.db-wal
+
+.DS_Store
