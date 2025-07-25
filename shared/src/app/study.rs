@@ -3,7 +3,6 @@ use crate::app::repository::Repository;
 use crate::app::study_session::StudySession;
 use crate::HttpResult;
 use crux_core::Command;
-use crux_http::command::Http;
 use facet::Facet;
 use serde::{Deserialize, Serialize};
 
@@ -65,19 +64,17 @@ pub fn edit_study(study: Study, model: &mut Model) {
 pub fn handle_event(event: StudyEvent, model: &mut Model) -> Command<super::Effect, super::Event> {
     match event {
         StudyEvent::FetchStudies => {
-            return Http::get("http://localhost:3000/studies")
-                .expect_json()
-                .build()
-                .map(Into::into)
-                .then_send(|response| super::Event::Study(StudyEvent::SetStudies(response)));
+            let api = crate::app::ApiConfig::default();
+            return api.get("/studies", |response| {
+                super::Event::Study(StudyEvent::SetStudies(response))
+            });
         }
         StudyEvent::SetStudies(HttpResult::Ok(mut response)) => {
             let studies = response.take_body().unwrap();
             return Command::event(super::Event::Study(StudyEvent::UpdateStudies(studies)));
         }
         StudyEvent::SetStudies(HttpResult::Err(e)) => {
-            eprintln!("Failed to fetch studies: {e:?}");
-            // TODO: Add proper error handling - show error to user
+            let _ = crate::app::handle_http_error(e, "fetch studies");
         }
         StudyEvent::UpdateStudies(studies) => model.studies = studies,
         StudyEvent::AddStudy(study) => {
@@ -87,25 +84,17 @@ pub fn handle_event(event: StudyEvent, model: &mut Model) -> Command<super::Effe
                 "description": study.description
             });
 
-            let json_string =
-                serde_json::to_string(&create_request).expect("Failed to serialize JSON");
-            eprintln!("Creating study with JSON: {json_string}");
-
-            return Http::post("http://localhost:3000/studies")
-                .header("Content-Type", "application/json")
-                .body(json_string)
-                .expect_json::<Study>()
-                .build()
-                .map(Into::into)
-                .then_send(|response| super::Event::Study(StudyEvent::StudyCreated(response)));
+            let api = crate::app::ApiConfig::default();
+            return api.post("/studies", &create_request, |response| {
+                super::Event::Study(StudyEvent::StudyCreated(response))
+            });
         }
         StudyEvent::StudyCreated(HttpResult::Ok(mut response)) => {
             let created_study = response.take_body().unwrap();
             add_study(created_study, model);
         }
         StudyEvent::StudyCreated(HttpResult::Err(e)) => {
-            eprintln!("Failed to create study: {e:?}");
-            // TODO: Add proper error handling - show error to user
+            let _ = crate::app::handle_http_error(e, "create study");
         }
         StudyEvent::EditStudy(study) => edit_study(study, model),
         StudyEvent::AddStudyToGoal { goal_id, study_id } => {

@@ -17,7 +17,7 @@ pub struct GlobalState {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use shared::{DevEvent, Event};
+    use shared::Event;
 
     #[test]
     fn test_global_state_default() {
@@ -49,14 +49,14 @@ mod tests {
         let state = GlobalState::default();
 
         // Test that we can access the core and process events
-        let effects = state.core.process_event(Event::Dev(DevEvent::Nothing));
+        let effects = state.core.process_event(Event::FetchAll);
         assert!(!effects.is_empty());
     }
 
     #[test]
     fn test_global_state_with_dev_data() {
         let state = GlobalState::default();
-        state.core.process_event(Event::Dev(DevEvent::SetDevData));
+        state.core.process_event(Event::FetchAll);
 
         // After setting dev data, should have some content
         let view_model = state.core.view();

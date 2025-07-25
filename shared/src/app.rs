@@ -44,9 +44,6 @@ pub use session::{
 pub mod model;
 pub use model::*;
 
-pub mod dev;
-pub use dev::{set_dev_data, DevEvent};
-
 pub mod utils;
 pub use utils::{
     generate_id, handle_http_error, handle_operation_result, is_valid_id, short_id,
@@ -75,7 +72,7 @@ pub enum Event {
     Study(StudyEvent),
     Session(SessionEvent),
     StudySession(StudySessionEvent),
-    Dev(DevEvent),
+    FetchAll,
 }
 
 #[effect(facet_typegen)]
@@ -110,7 +107,14 @@ impl App for Chopin {
             Event::StudySession(study_session_event) => {
                 study_session::handle_event(study_session_event, model)
             }
-            Event::Dev(dev_event) => dev::handle_event(dev_event, model),
+            Event::FetchAll => {
+                // Orchestrate all fetch operations by dispatching individual fetch events
+                Command::all(vec![
+                    Command::event(Event::Goal(GoalEvent::FetchGoals)),
+                    Command::event(Event::Study(StudyEvent::FetchStudies)),
+                    Command::event(Event::Session(SessionEvent::FetchSessions)),
+                ])
+            }
         }
     }
 
