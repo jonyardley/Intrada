@@ -7,10 +7,12 @@ use std::sync::Arc;
 use tower_http::cors::{Any, CorsLayer};
 
 use goals::GoalRepository;
+use sessions::SessionRepository;
 use studies::StudyRepository;
 
 mod goals;
 mod repository;
+mod sessions;
 mod studies;
 
 #[derive(Debug, Serialize)]
@@ -46,7 +48,8 @@ async fn main() {
 
     // Create repositories
     let goal_repo = Arc::new(GoalRepository::new(pool.clone()));
-    let study_repo = Arc::new(StudyRepository::new(pool));
+    let study_repo = Arc::new(StudyRepository::new(pool.clone()));
+    let session_repo = Arc::new(SessionRepository::new(pool));
 
     let health = || async { Json(json!({ "status": "ok" })) };
 
@@ -60,6 +63,7 @@ async fn main() {
         .route("/health", get(health))
         .nest("/api", goals::routes().with_state(goal_repo))
         .nest("/api", studies::routes().with_state(study_repo))
+        .nest("/api", sessions::routes().with_state(session_repo))
         .layer(
             CorsLayer::new()
                 .allow_origin(Any)

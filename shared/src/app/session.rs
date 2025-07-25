@@ -84,6 +84,24 @@ pub fn session_view_model(session: &PracticeSession) -> PracticeSessionView {
 #[derive(Facet, Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[repr(C)]
 pub enum SessionEvent {
+    FetchSessions,
+    #[serde(skip)]
+    #[facet(skip)]
+    SetSessions(
+        crate::HttpResult<crux_http::Response<Vec<PracticeSessionView>>, crux_http::HttpError>,
+    ),
+    CreateSession(PracticeSession),
+    #[serde(skip)]
+    #[facet(skip)]
+    SessionCreated(
+        crate::HttpResult<crux_http::Response<PracticeSessionView>, crux_http::HttpError>,
+    ),
+    UpdateSession(PracticeSession),
+    #[serde(skip)]
+    #[facet(skip)]
+    SessionUpdated(
+        crate::HttpResult<crux_http::Response<PracticeSessionView>, crux_http::HttpError>,
+    ),
     AddSession(PracticeSession),
     EditSessionFields {
         session_id: String,
@@ -93,8 +111,16 @@ pub enum SessionEvent {
     },
     SetActiveSession(String),
     StartSession(String, String),
+    #[serde(skip)]
+    #[facet(skip)]
+    SessionStarted(
+        crate::HttpResult<crux_http::Response<PracticeSessionView>, crux_http::HttpError>,
+    ),
     UnsetActiveSession,
     EndSession(String, String),
+    #[serde(skip)]
+    #[facet(skip)]
+    SessionEnded(crate::HttpResult<crux_http::Response<PracticeSessionView>, crux_http::HttpError>),
     EditSessionNotes(String, String),
 }
 
@@ -464,18 +490,106 @@ pub fn edit_session_fields(
     }
 }
 
-/// Helper function to handle session operation results
-fn handle_session_result(result: Result<(), SessionError>, operation: &str) {
-    if let Err(e) = result {
-        log::error!("Failed to {operation} session: {e}");
-    }
-}
-
 pub fn handle_event(
     event: SessionEvent,
     model: &mut Model,
 ) -> Command<super::Effect, super::Event> {
     match event {
+        SessionEvent::FetchSessions => {
+            let api = crate::app::ApiConfig::default();
+            return api.get("/sessions", |response| {
+                super::Event::Session(SessionEvent::SetSessions(response))
+            });
+        }
+        SessionEvent::SetSessions(crate::HttpResult::Ok(mut response)) => {
+            let _session_views = response.take_body().unwrap();
+            // TODO: Convert PracticeSessionView back to PracticeSession
+            // This is a limitation - we may need to store session views differently
+            // or restructure the data flow to handle this properly
+        }
+        SessionEvent::SetSessions(crate::HttpResult::Err(e)) => {
+            let _ = crate::app::handle_http_error(e, "fetch sessions");
+        }
+
+        SessionEvent::CreateSession(session) => {
+            // Transform PracticeSession to create request format
+            let create_request = serde_json::json!({
+                "goal_ids": session.goal_ids(),
+                "intention": session.intention(),
+                "notes": session.notes()
+            });
+
+            let api = crate::app::ApiConfig::default();
+            return api.post("/sessions", &create_request, |response| {
+                super::Event::Session(SessionEvent::SessionCreated(response))
+            });
+        }
+        SessionEvent::SessionCreated(crate::HttpResult::Ok(mut response)) => {
+            let _session_view = response.take_body().unwrap();
+            // TODO: Convert view back to session and add to model
+            // This requires implementing conversion logic
+        }
+        SessionEvent::SessionCreated(crate::HttpResult::Err(e)) => {
+            let _ = crate::app::handle_http_error(e, "create session");
+        }
+
+        SessionEvent::UpdateSession(session) => {
+            let api = crate::app::ApiConfig::default();
+            return api.put(
+                &format!("/sessions/{}", session.id()),
+                &session_view_model(&session),
+                |response| super::Event::Session(SessionEvent::SessionUpdated(response)),
+            );
+        }
+        SessionEvent::SessionUpdated(crate::HttpResult::Ok(mut response)) => {
+            let _session_view = response.take_body().unwrap();
+            // TODO: Convert view back to session and update in model
+        }
+        SessionEvent::SessionUpdated(crate::HttpResult::Err(e)) => {
+            let _ = crate::app::handle_http_error(e, "update session");
+        }
+
+        SessionEvent::StartSession(session_id, timestamp) => {
+            let start_request = serde_json::json!({
+                "start_time": timestamp
+            });
+
+            let api = crate::app::ApiConfig::default();
+            return api.post(
+                &format!("/sessions/{session_id}/start"),
+                &start_request,
+                |response| super::Event::Session(SessionEvent::SessionStarted(response)),
+            );
+        }
+        SessionEvent::SessionStarted(crate::HttpResult::Ok(mut response)) => {
+            let _session_view = response.take_body().unwrap();
+            // TODO: Update local session state
+        }
+        SessionEvent::SessionStarted(crate::HttpResult::Err(e)) => {
+            let _ = crate::app::handle_http_error(e, "start session");
+        }
+
+        SessionEvent::EndSession(session_id, timestamp) => {
+            let end_request = serde_json::json!({
+                "end_time": timestamp
+            });
+
+            let api = crate::app::ApiConfig::default();
+            return api.post(
+                &format!("/sessions/{session_id}/end"),
+                &end_request,
+                |response| super::Event::Session(SessionEvent::SessionEnded(response)),
+            );
+        }
+        SessionEvent::SessionEnded(crate::HttpResult::Ok(mut response)) => {
+            let _session_view = response.take_body().unwrap();
+            // TODO: Update local session state
+        }
+        SessionEvent::SessionEnded(crate::HttpResult::Err(e)) => {
+            let _ = crate::app::handle_http_error(e, "end session");
+        }
+
+        // Local-only events (backward compatibility)
         SessionEvent::AddSession(session) => add_session(session, model),
         SessionEvent::EditSessionFields {
             session_id,
@@ -484,12 +598,6 @@ pub fn handle_event(
             notes,
         } => edit_session_fields(&session_id, goal_ids, intention, notes, model),
         SessionEvent::SetActiveSession(session_id) => set_active_session(session_id, model),
-        SessionEvent::StartSession(session_id, timestamp) => {
-            handle_session_result(start_session(&session_id, timestamp, model), "start");
-        }
-        SessionEvent::EndSession(session_id, timestamp) => {
-            handle_session_result(end_session(&session_id, timestamp, model), "end");
-        }
         SessionEvent::UnsetActiveSession => remove_active_session(model),
         SessionEvent::EditSessionNotes(session_id, notes) => {
             edit_session_notes(&session_id, notes, model);

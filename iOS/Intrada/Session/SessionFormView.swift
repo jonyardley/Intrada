@@ -105,7 +105,7 @@ struct SessionFormView: View {
                         let notStartedSession = NotStartedSession(data: sessionData)
                         let session = PracticeSession.notStarted(notStartedSession)
                         
-                        core.update(.session(.addSession(session)))
+                        core.update(.session(.createSession(session)))
                         isPresented = false
                         onSessionCreated?(sessionId)
                     }
