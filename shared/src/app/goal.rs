@@ -33,12 +33,14 @@ pub enum GoalEvent {
     #[serde(skip)]
     #[facet(skip)]
     SetGoals(HttpResult<crux_http::Response<Vec<PracticeGoal>>, crux_http::HttpError>),
-    UpdateGoals(Vec<PracticeGoal>),
-    AddGoal(PracticeGoal),
+    CreateGoal(PracticeGoal),
     #[serde(skip)]
     #[facet(skip)]
     GoalCreated(HttpResult<crux_http::Response<PracticeGoal>, crux_http::HttpError>),
-    EditGoal(PracticeGoal),
+    UpdateGoal(PracticeGoal),
+    #[serde(skip)]
+    #[facet(skip)]
+    GoalUpdated(HttpResult<crux_http::Response<PracticeGoal>, crux_http::HttpError>),
 }
 
 impl PracticeGoal {
@@ -91,13 +93,13 @@ pub fn handle_event(event: GoalEvent, model: &mut Model) -> Command<super::Effec
         }
         GoalEvent::SetGoals(HttpResult::Ok(mut response)) => {
             let goals = response.take_body().unwrap();
-            return Command::event(super::Event::Goal(GoalEvent::UpdateGoals(goals)));
+            model.goals = goals;
         }
         GoalEvent::SetGoals(HttpResult::Err(e)) => {
             let _ = crate::app::handle_http_error(e, "fetch goals");
         }
-        GoalEvent::UpdateGoals(goals) => model.goals = goals,
-        GoalEvent::AddGoal(goal) => {
+
+        GoalEvent::CreateGoal(goal) => {
             // Transform PracticeGoal to the format the server expects
             let create_request = serde_json::json!({
                 "name": goal.name,
@@ -119,7 +121,20 @@ pub fn handle_event(event: GoalEvent, model: &mut Model) -> Command<super::Effec
         GoalEvent::GoalCreated(HttpResult::Err(e)) => {
             let _ = crate::app::handle_http_error(e, "create goal");
         }
-        GoalEvent::EditGoal(goal) => edit_goal(goal, model),
+
+        GoalEvent::UpdateGoal(goal) => {
+            let api = crate::app::ApiConfig::default();
+            return api.put("/goals", &goal, |response| {
+                super::Event::Goal(GoalEvent::GoalUpdated(response))
+            });
+        }
+        GoalEvent::GoalUpdated(HttpResult::Ok(mut response)) => {
+            let updated_goal = response.take_body().unwrap();
+            edit_goal(updated_goal, model);
+        }
+        GoalEvent::GoalUpdated(HttpResult::Err(e)) => {
+            let _ = crate::app::handle_http_error(e, "update goal");
+        }
     }
 
     crux_core::render::render()

@@ -3,9 +3,14 @@ use serde::Serialize;
 use serde_json::json;
 use sqlx::PgPool;
 use std::net::SocketAddr;
+use std::sync::Arc;
 use tower_http::cors::{Any, CorsLayer};
 
+use goals::GoalRepository;
+use studies::StudyRepository;
+
 mod goals;
+mod repository;
 mod studies;
 
 #[derive(Debug, Serialize)]
@@ -39,6 +44,10 @@ async fn main() {
 
     let pool = setup_database().await.expect("Failed to setup database");
 
+    // Create repositories
+    let goal_repo = Arc::new(GoalRepository::new(pool.clone()));
+    let study_repo = Arc::new(StudyRepository::new(pool));
+
     let health = || async { Json(json!({ "status": "ok" })) };
 
     let app = Router::new()
@@ -49,15 +58,14 @@ async fn main() {
             }),
         )
         .route("/health", get(health))
-        .merge(goals::routes())
-        .merge(studies::routes())
+        .nest("/api", goals::routes().with_state(goal_repo))
+        .nest("/api", studies::routes().with_state(study_repo))
         .layer(
             CorsLayer::new()
                 .allow_origin(Any)
                 .allow_methods(Any)
                 .allow_headers(Any),
-        )
-        .with_state(pool);
+        );
 
     let port = std::env::var("PORT")
         .unwrap_or_else(|_| "3000".to_string())
@@ -132,13 +140,13 @@ mod tests {
 
     #[test]
     fn test_router_creation() {
-        // Test that we can create a router without panicking
-        let router = Router::new()
-            .merge(goals::routes())
-            .merge(studies::routes());
+        // Test that we can create individual routers without panicking
+        let goals_router = goals::routes();
+        let studies_router = studies::routes();
 
-        // This is a basic smoke test - the router should be created successfully
-        // In a real integration test, we'd test the actual routes
-        assert!(format!("{router:?}").contains("Router"));
+        // This is a basic smoke test - the routers should be created successfully
+        // In a real integration test, we'd test the actual routes with repositories
+        assert!(format!("{goals_router:?}").contains("Router"));
+        assert!(format!("{studies_router:?}").contains("Router"));
     }
 }
