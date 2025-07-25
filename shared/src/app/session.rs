@@ -17,7 +17,7 @@ use serde::{Deserialize, Serialize};
 /// - `$accessor`: The method or field to access on the `data` field of the session.
 ///
 /// # Example
-/// ```
+/// ```ignore
 /// let session = PracticeSession::Started(started_session);
 /// let goal_ids = session_data_access!(session, goal_ids);
 /// ```
@@ -42,7 +42,7 @@ macro_rules! session_data_access {
 /// - `$accessor`: The name of the method or field to access on the `data` property.
 ///
 /// # Example
-/// ```
+/// ```ignore
 /// let mut session = PracticeSession::Started(started_session);
 /// session_data_access_mut!(session, some_mutable_field) = new_value;
 /// ```
@@ -78,6 +78,34 @@ pub fn session_view_model(session: &PracticeSession) -> PracticeSessionView {
         start_time: session.start_time().map(std::string::ToString::to_string),
         end_time: session.end_time().map(std::string::ToString::to_string),
         is_ended: session.is_ended(),
+    }
+}
+
+pub fn session_from_view_model(view: PracticeSessionView) -> PracticeSession {
+    let session_data = SessionData {
+        id: view.id,
+        goal_ids: view.goal_ids,
+        intention: view.intention,
+        notes: view.notes,
+        study_sessions: view.study_sessions,
+    };
+
+    match view.state {
+        SessionState::NotStarted => {
+            PracticeSession::NotStarted(NotStartedSession { data: session_data })
+        }
+        SessionState::Started { start_time } => PracticeSession::Started(StartedSession {
+            data: session_data,
+            start_time,
+        }),
+        SessionState::Ended {
+            start_time,
+            end_time,
+        } => PracticeSession::Ended(EndedSession {
+            data: session_data,
+            start_time,
+            end_time,
+        }),
     }
 }
 
@@ -502,10 +530,11 @@ pub fn handle_event(
             });
         }
         SessionEvent::SetSessions(crate::HttpResult::Ok(mut response)) => {
-            let _session_views = response.take_body().unwrap();
-            // TODO: Convert PracticeSessionView back to PracticeSession
-            // This is a limitation - we may need to store session views differently
-            // or restructure the data flow to handle this properly
+            let session_views = response.take_body().unwrap();
+            model.sessions = session_views
+                .into_iter()
+                .map(session_from_view_model)
+                .collect();
         }
         SessionEvent::SetSessions(crate::HttpResult::Err(e)) => {
             let _ = crate::app::handle_http_error(e, "fetch sessions");
@@ -525,9 +554,9 @@ pub fn handle_event(
             });
         }
         SessionEvent::SessionCreated(crate::HttpResult::Ok(mut response)) => {
-            let _session_view = response.take_body().unwrap();
-            // TODO: Convert view back to session and add to model
-            // This requires implementing conversion logic
+            let session_view = response.take_body().unwrap();
+            let session = session_from_view_model(session_view);
+            add_session(session, model);
         }
         SessionEvent::SessionCreated(crate::HttpResult::Err(e)) => {
             let _ = crate::app::handle_http_error(e, "create session");
@@ -542,8 +571,14 @@ pub fn handle_event(
             );
         }
         SessionEvent::SessionUpdated(crate::HttpResult::Ok(mut response)) => {
-            let _session_view = response.take_body().unwrap();
-            // TODO: Convert view back to session and update in model
+            let session_view = response.take_body().unwrap();
+            let updated_session = session_from_view_model(session_view);
+            let session_id = updated_session.id().to_string();
+
+            if let Some(existing_session) = model.sessions.iter_mut().find(|s| s.id() == session_id)
+            {
+                *existing_session = updated_session;
+            }
         }
         SessionEvent::SessionUpdated(crate::HttpResult::Err(e)) => {
             let _ = crate::app::handle_http_error(e, "update session");
@@ -562,8 +597,15 @@ pub fn handle_event(
             );
         }
         SessionEvent::SessionStarted(crate::HttpResult::Ok(mut response)) => {
-            let _session_view = response.take_body().unwrap();
-            // TODO: Update local session state
+            let session_view = response.take_body().unwrap();
+            let updated_session = session_from_view_model(session_view);
+            let session_id = updated_session.id().to_string();
+
+            if let Some(existing_session) = model.sessions.iter_mut().find(|s| s.id() == session_id)
+            {
+                *existing_session = updated_session;
+                set_active_session(session_id, model);
+            }
         }
         SessionEvent::SessionStarted(crate::HttpResult::Err(e)) => {
             let _ = crate::app::handle_http_error(e, "start session");
@@ -582,8 +624,21 @@ pub fn handle_event(
             );
         }
         SessionEvent::SessionEnded(crate::HttpResult::Ok(mut response)) => {
-            let _session_view = response.take_body().unwrap();
-            // TODO: Update local session state
+            let session_view = response.take_body().unwrap();
+            let updated_session = session_from_view_model(session_view);
+            let session_id = updated_session.id().to_string();
+
+            if let Some(existing_session) = model.sessions.iter_mut().find(|s| s.id() == session_id)
+            {
+                *existing_session = updated_session;
+
+                // Remove from active session if this was the active session
+                if let Some(active_session) = &model.active_session {
+                    if active_session.id == session_id {
+                        remove_active_session(model);
+                    }
+                }
+            }
         }
         SessionEvent::SessionEnded(crate::HttpResult::Err(e)) => {
             let _ = crate::app::handle_http_error(e, "end session");
@@ -729,6 +784,41 @@ fn test_calculate_duration_function() {
 
     let duration = calculate_duration("2025-05-01T12:00:00Z", "2025-05-01T13:15:00Z");
     assert_eq!(duration, Some("75m".to_string()));
+}
+
+#[test]
+fn test_session_view_model_conversion() {
+    // Test NotStarted session
+    let session = PracticeSession::new(vec!["Goal 1".to_string()], "Test intention".to_string());
+    let view = session_view_model(&session);
+    let converted_back = session_from_view_model(view);
+
+    assert_eq!(session.id(), converted_back.id());
+    assert_eq!(session.goal_ids(), converted_back.goal_ids());
+    assert_eq!(session.intention(), converted_back.intention());
+    assert!(matches!(converted_back, PracticeSession::NotStarted(_)));
+
+    // Test Started session
+    let mut session =
+        PracticeSession::new(vec!["Goal 1".to_string()], "Test intention".to_string());
+    session.start("2025-05-01T12:00:00Z".to_string()).unwrap();
+    let view = session_view_model(&session);
+    let converted_back = session_from_view_model(view);
+
+    assert_eq!(session.id(), converted_back.id());
+    assert_eq!(session.start_time(), converted_back.start_time());
+    assert!(matches!(converted_back, PracticeSession::Started(_)));
+
+    // Test Ended session
+    session.end("2025-05-01T12:30:00Z".to_string()).unwrap();
+    let view = session_view_model(&session);
+    let converted_back = session_from_view_model(view);
+
+    assert_eq!(session.id(), converted_back.id());
+    assert_eq!(session.start_time(), converted_back.start_time());
+    assert_eq!(session.end_time(), converted_back.end_time());
+    assert_eq!(session.duration(), converted_back.duration());
+    assert!(matches!(converted_back, PracticeSession::Ended(_)));
 }
 
 #[test]
