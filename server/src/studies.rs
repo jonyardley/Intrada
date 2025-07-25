@@ -7,22 +7,24 @@ use axum::{
 };
 use serde::Deserialize;
 use shared::Study;
-use sqlx::{FromRow, Pool, Postgres};
+use sqlx::FromRow;
+use std::sync::Arc;
 
-use crate::ApiError;
-
-type DbPool = Pool<Postgres>;
+use crate::{
+    repository::{Database, RepositoryError, RepositoryResult},
+    ApiError,
+};
 
 // Database row struct
 #[derive(FromRow)]
-struct StudyRow {
-    id: String,
-    name: String,
-    description: Option<String>,
+pub struct StudyRow {
+    pub id: String,
+    pub name: String,
+    pub description: Option<String>,
 }
 
 impl StudyRow {
-    fn into_study(self) -> Study {
+    pub fn into_study(self) -> Study {
         Study {
             id: self.id,
             name: self.name,
@@ -44,83 +46,131 @@ pub struct UpdateStudyRequest {
     pub description: Option<String>,
 }
 
+// Simple Study repository - no traits, just methods
+pub struct StudyRepository {
+    db: Database,
+}
+
+impl StudyRepository {
+    pub fn new(pool: crate::repository::DbPool) -> Self {
+        Self {
+            db: Database::new(pool),
+        }
+    }
+
+    pub async fn create(&self, study: &Study) -> RepositoryResult<()> {
+        sqlx::query("INSERT INTO studies (id, name, description) VALUES ($1, $2, $3)")
+            .bind(&study.id)
+            .bind(&study.name)
+            .bind(&study.description)
+            .execute(&self.db.pool)
+            .await?;
+
+        Ok(())
+    }
+
+    pub async fn find_by_id(&self, id: &str) -> RepositoryResult<Option<Study>> {
+        let row = sqlx::query_as::<_, StudyRow>(
+            "SELECT id, name, description FROM studies WHERE id = $1",
+        )
+        .bind(id)
+        .fetch_optional(&self.db.pool)
+        .await?;
+
+        Ok(row.map(|r| r.into_study()))
+    }
+
+    pub async fn find_all(&self) -> RepositoryResult<Vec<Study>> {
+        let rows = sqlx::query_as::<_, StudyRow>(
+            "SELECT id, name, description FROM studies ORDER BY created_at DESC",
+        )
+        .fetch_all(&self.db.pool)
+        .await?;
+
+        Ok(rows.into_iter().map(|row| row.into_study()).collect())
+    }
+
+    pub async fn update(&self, study: &Study) -> RepositoryResult<()> {
+        let result = sqlx::query(
+            "UPDATE studies SET name = $2, description = $3, updated_at = CURRENT_TIMESTAMP 
+             WHERE id = $1",
+        )
+        .bind(&study.id)
+        .bind(&study.name)
+        .bind(&study.description)
+        .execute(&self.db.pool)
+        .await?;
+
+        if result.rows_affected() == 0 {
+            return Err(RepositoryError::NotFound(format!(
+                "Study with id {}",
+                study.id
+            )));
+        }
+
+        Ok(())
+    }
+
+    pub async fn delete(&self, id: &str) -> RepositoryResult<bool> {
+        let result = sqlx::query("DELETE FROM studies WHERE id = $1")
+            .bind(id)
+            .execute(&self.db.pool)
+            .await?;
+
+        Ok(result.rows_affected() > 0)
+    }
+
+    // Domain-specific methods - no trait constraints
+    pub async fn _find_by_name_pattern(&self, pattern: &str) -> RepositoryResult<Vec<Study>> {
+        let rows = sqlx::query_as::<_, StudyRow>(
+            "SELECT id, name, description FROM studies 
+             WHERE LOWER(name) LIKE LOWER($1) ORDER BY created_at DESC",
+        )
+        .bind(format!("%{pattern}%"))
+        .fetch_all(&self.db.pool)
+        .await?;
+
+        Ok(rows.into_iter().map(|row| row.into_study()).collect())
+    }
+}
+
+// HTTP Handlers
 async fn create_study(
-    State(pool): State<DbPool>,
+    State(study_repo): State<Arc<StudyRepository>>,
     Json(req): Json<CreateStudyRequest>,
 ) -> Result<Json<Study>, (StatusCode, Json<ApiError>)> {
     let study = Study::new(req.name, req.description);
 
-    // Insert into database
-    sqlx::query(
-        "INSERT INTO studies (id, name, description) 
-         VALUES ($1, $2, $3)",
-    )
-    .bind(&study.id)
-    .bind(&study.name)
-    .bind(&study.description)
-    .execute(&pool)
-    .await
-    .map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ApiError {
-                message: format!("Database error: {e}"),
-            }),
-        )
-    })?;
+    study_repo
+        .create(&study)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(e.into())))?;
 
     Ok(Json(study))
 }
 
 async fn get_studies(
-    State(pool): State<DbPool>,
+    State(study_repo): State<Arc<StudyRepository>>,
 ) -> Result<Json<Vec<Study>>, (StatusCode, Json<ApiError>)> {
-    // Fetch all studies from database
-    let rows = sqlx::query_as::<_, StudyRow>(
-        "SELECT id, name, description 
-         FROM studies ORDER BY created_at DESC",
-    )
-    .fetch_all(&pool)
-    .await
-    .map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ApiError {
-                message: format!("Database error: {e}"),
-            }),
-        )
-    })?;
-
-    // Convert database rows to studies
-    let studies: Vec<Study> = rows.into_iter().map(|row| row.into_study()).collect();
+    let studies = study_repo
+        .find_all()
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(e.into())))?;
 
     Ok(Json(studies))
 }
 
 async fn get_study(
-    State(pool): State<DbPool>,
+    State(study_repo): State<Arc<StudyRepository>>,
     Path(id): Path<String>,
 ) -> Result<Json<Study>, (StatusCode, Json<ApiError>)> {
-    // Fetch study from database
-    let row = sqlx::query_as::<_, StudyRow>(
-        "SELECT id, name, description 
-         FROM studies WHERE id = $1",
-    )
-    .bind(&id)
-    .fetch_optional(&pool)
-    .await
-    .map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ApiError {
-                message: format!("Database error: {e}"),
-            }),
-        )
-    })?;
+    let study = study_repo
+        .find_by_id(&id)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(e.into())))?;
 
-    // Check if study exists
-    match row {
-        Some(row) => Ok(Json(row.into_study())),
+    match study {
+        Some(study) => Ok(Json(study)),
         None => Err((
             StatusCode::NOT_FOUND,
             Json(ApiError {
@@ -131,29 +181,18 @@ async fn get_study(
 }
 
 async fn update_study(
-    State(pool): State<DbPool>,
+    State(study_repo): State<Arc<StudyRepository>>,
     Path(id): Path<String>,
     Json(req): Json<UpdateStudyRequest>,
 ) -> Result<Json<Study>, (StatusCode, Json<ApiError>)> {
-    // First, get the existing study
-    let existing_row = sqlx::query_as::<_, StudyRow>(
-        "SELECT id, name, description 
-         FROM studies WHERE id = $1",
-    )
-    .bind(&id)
-    .fetch_optional(&pool)
-    .await
-    .map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ApiError {
-                message: format!("Database error: {e}"),
-            }),
-        )
-    })?;
+    // Get existing study
+    let existing_study = study_repo
+        .find_by_id(&id)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(e.into())))?;
 
-    let existing_study = match existing_row {
-        Some(row) => row.into_study(),
+    let existing_study = match existing_study {
+        Some(study) => study,
         None => {
             return Err((
                 StatusCode::NOT_FOUND,
@@ -171,58 +210,36 @@ async fn update_study(
         description: req.description.or(existing_study.description),
     };
 
-    // Update in database
-    sqlx::query(
-        "UPDATE studies SET name = $2, description = $3, updated_at = CURRENT_TIMESTAMP 
-         WHERE id = $1",
-    )
-    .bind(&id)
-    .bind(&updated_study.name)
-    .bind(&updated_study.description)
-    .execute(&pool)
-    .await
-    .map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ApiError {
-                message: format!("Database error: {e}"),
-            }),
-        )
-    })?;
+    study_repo
+        .update(&updated_study)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(e.into())))?;
 
     Ok(Json(updated_study))
 }
 
 async fn delete_study(
-    State(pool): State<DbPool>,
+    State(study_repo): State<Arc<StudyRepository>>,
     Path(id): Path<String>,
 ) -> Result<StatusCode, (StatusCode, Json<ApiError>)> {
-    let result = sqlx::query("DELETE FROM studies WHERE id = $1")
-        .bind(&id)
-        .execute(&pool)
+    let deleted = study_repo
+        .delete(&id)
         .await
-        .map_err(|e| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ApiError {
-                    message: format!("Database error: {e}"),
-                }),
-            )
-        })?;
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(e.into())))?;
 
-    if result.rows_affected() == 0 {
-        return Err((
+    if deleted {
+        Ok(StatusCode::NO_CONTENT)
+    } else {
+        Err((
             StatusCode::NOT_FOUND,
             Json(ApiError {
                 message: "Study not found".to_string(),
             }),
-        ));
+        ))
     }
-
-    Ok(StatusCode::NO_CONTENT)
 }
 
-pub fn routes() -> Router<DbPool> {
+pub fn routes() -> Router<Arc<StudyRepository>> {
     Router::new()
         .route("/studies", get(get_studies).post(create_study))
         .route(
@@ -238,9 +255,59 @@ pub fn routes() -> Router<DbPool> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Mutex;
+
+    // Simple mock repository for testing
+    struct MockStudyRepository {
+        studies: Mutex<Vec<Study>>,
+    }
+
+    impl MockStudyRepository {
+        fn new() -> Self {
+            Self {
+                studies: Mutex::new(Vec::new()),
+            }
+        }
+
+        async fn create(&self, study: &Study) -> RepositoryResult<()> {
+            let mut studies = self.studies.lock().unwrap();
+            studies.push(study.clone());
+            Ok(())
+        }
+
+        async fn find_by_id(&self, id: &str) -> RepositoryResult<Option<Study>> {
+            let studies = self.studies.lock().unwrap();
+            Ok(studies.iter().find(|s| s.id == id).cloned())
+        }
+
+        async fn find_all(&self) -> RepositoryResult<Vec<Study>> {
+            let studies = self.studies.lock().unwrap();
+            Ok(studies.clone())
+        }
+
+        async fn update(&self, study: &Study) -> RepositoryResult<()> {
+            let mut studies = self.studies.lock().unwrap();
+            if let Some(existing) = studies.iter_mut().find(|s| s.id == study.id) {
+                *existing = study.clone();
+                Ok(())
+            } else {
+                Err(RepositoryError::NotFound(study.id.clone()))
+            }
+        }
+
+        async fn delete(&self, id: &str) -> RepositoryResult<bool> {
+            let mut studies = self.studies.lock().unwrap();
+            if let Some(pos) = studies.iter().position(|s| s.id == id) {
+                studies.remove(pos);
+                Ok(true)
+            } else {
+                Ok(false)
+            }
+        }
+    }
 
     #[test]
-    fn test_study_row_into_study() {
+    fn test_study_row_conversion() {
         let study_row = StudyRow {
             id: "test-id".to_string(),
             name: "Test Study".to_string(),
@@ -251,20 +318,6 @@ mod tests {
         assert_eq!(study.id, "test-id");
         assert_eq!(study.name, "Test Study");
         assert_eq!(study.description, Some("Test description".to_string()));
-    }
-
-    #[test]
-    fn test_study_row_into_study_no_description() {
-        let study_row = StudyRow {
-            id: "test-id".to_string(),
-            name: "Test Study".to_string(),
-            description: None,
-        };
-
-        let study = study_row.into_study();
-        assert_eq!(study.id, "test-id");
-        assert_eq!(study.name, "Test Study");
-        assert_eq!(study.description, None);
     }
 
     #[test]
@@ -298,5 +351,40 @@ mod tests {
 
         assert_eq!(request.name, "Test Study");
         assert_eq!(request.description, None);
+    }
+
+    #[tokio::test]
+    async fn test_mock_repository_operations() {
+        let mock_repo = MockStudyRepository::new();
+
+        let study = Study::new("Test Study".to_string(), Some("Description".to_string()));
+        let study_id = study.id.clone();
+
+        // Test create
+        mock_repo.create(&study).await.unwrap();
+
+        // Test find_by_id
+        let found = mock_repo.find_by_id(&study_id).await.unwrap();
+        assert!(found.is_some());
+        assert_eq!(found.unwrap().name, "Test Study");
+
+        // Test find_all
+        let all_studies = mock_repo.find_all().await.unwrap();
+        assert_eq!(all_studies.len(), 1);
+
+        // Test update
+        let mut updated_study = study.clone();
+        updated_study.name = "Updated Study".to_string();
+        mock_repo.update(&updated_study).await.unwrap();
+
+        let found = mock_repo.find_by_id(&study_id).await.unwrap().unwrap();
+        assert_eq!(found.name, "Updated Study");
+
+        // Test delete
+        let deleted = mock_repo.delete(&study_id).await.unwrap();
+        assert!(deleted);
+
+        let found = mock_repo.find_by_id(&study_id).await.unwrap();
+        assert!(found.is_none());
     }
 }

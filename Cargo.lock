@@ -2058,6 +2058,7 @@ name = "intrada-server"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "async-trait",
  "axum",
  "chrono",
  "dotenvy",
@@ -2065,6 +2066,7 @@ dependencies = [
  "serde_json",
  "shared",
  "sqlx",
+ "thiserror 1.0.69",
  "tokio",
  "tower",
  "tower-http",

@@ -21,4 +21,6 @@ anyhow = "1.0"
 uuid = { version = "1.7", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 dotenvy = "0.15"
+async-trait = "0.1"
+thiserror = "1.0"
 shared = { path = "../shared" }
