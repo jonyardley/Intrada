@@ -41,9 +41,9 @@ struct StudyFormView: View {
                     )
                     
                     if existingStudy != nil {
-                        core.update(.study(.editStudy(study)))
+                        core.update(.study(.updateStudy(study)))
                     } else {
-                        core.update(.study(.addStudy(study)))
+                        core.update(.study(.createStudy(study)))
                     }
                     dismiss()
                 }

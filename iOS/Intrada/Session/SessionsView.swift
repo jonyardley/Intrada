@@ -31,6 +31,29 @@ struct SessionsView: View {
                         showingAddForm = true
                     }
                     
+                    // Debug information
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Debug Info:")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                        Text("Sessions count: \(core.view.sessions.count)")
+                            .font(.caption)
+                        Text("Completed sessions: \(completedSessions.count)")
+                            .font(.caption)
+                        Text("Active session: \(activeSession != nil ? "Yes" : "No")")
+                            .font(.caption)
+                        if let error = core.view.lastError {
+                            Text("Last error: \(error)")
+                                .font(.caption)
+                                .foregroundColor(.red)
+                        } else {
+                            Text("No errors")
+                                .font(.caption)
+                                .foregroundColor(.green)
+                        }
+                    }
+                    .padding(.horizontal, Theme.Spacing.lg)
+                    
                     if let activeSession = activeSession {
                         ActiveSessionView(
                             session: activeSession,
@@ -79,10 +102,10 @@ struct SessionsView: View {
         VStack(alignment: .leading, spacing: Theme.Spacing.md) {
             SectionHeader(title: "Recent practice sessions")
             
-            if completedSessions.isEmpty {
+            if core.view.sessions.isEmpty {
                 EmptyStateView(message: "No sessions yet")
             } else {
-                ForEach(completedSessions, id: \.id) { session in
+                ForEach(core.view.sessions, id: \.id) { session in
                     NavigationLink {
                         SessionDetailView(core: core, sessionId: session.id)
                     } label: {

@@ -11,6 +11,7 @@ pub struct Model {
     pub studies: Vec<Study>,
     pub sessions: Vec<PracticeSession>,
     pub active_session: Option<ActiveSession>,
+    pub last_error: Option<String>,
 }
 
 impl Model {}
@@ -30,6 +31,7 @@ pub struct ViewModel {
     pub is_session_running: bool,
     pub is_session_ended: bool,
     pub current_session_elapsed_time: Option<String>, // e.g. "01:23:45"
+    pub last_error: Option<String>,
 }
 
 impl ViewModel {
@@ -38,6 +40,7 @@ impl ViewModel {
         studies: Vec<Study>,
         sessions: Vec<PracticeSessionView>,
         active_session: Option<ActiveSession>,
+        last_error: Option<String>,
     ) -> Self {
         // Find current session
         let current_session = if let Some(active_session) = &active_session {
@@ -89,6 +92,7 @@ impl ViewModel {
             is_session_running,
             is_session_ended,
             current_session_elapsed_time,
+            last_error,
         }
     }
 }

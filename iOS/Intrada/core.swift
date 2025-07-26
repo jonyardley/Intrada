@@ -74,11 +74,13 @@ class Core: ObservableObject {
             canEndSession: false,
             isSessionRunning: false,
             isSessionEnded: false,
-            currentSessionElapsedTime: nil
+            currentSessionElapsedTime: nil,
+            lastError: nil
         )
     }
 
     func update(_ event: Event) {
+        print("🔄 Processing event: \(event)")
         do {
             let effects = [UInt8](core.update(Data(try event.bincodeSerialize())))
 
@@ -115,9 +117,11 @@ class Core: ObservableObject {
                 }
             }
         case let .http(req):
+            print("🌐 Making HTTP request: \(req.method) \(req.url)")
             Task {
                 do {
                     let response = try await requestHttp(req).get()
+                    print("✅ HTTP request successful: \(req.method) \(req.url)")
                     
                     let effects = [UInt8](core.resolve(
                         request.id,
@@ -129,6 +133,7 @@ class Core: ObservableObject {
                         processEffect(request)
                     }
                 } catch {
+                    print("❌ HTTP request failed: \(req.method) \(req.url) - Error: \(error)")
                     if !isPreview {
                         print("Warning: Failed to handle HTTP effect: \(error)")
                     }

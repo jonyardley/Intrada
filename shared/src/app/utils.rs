@@ -1,3 +1,5 @@
+use crate::app::{Effect, Event};
+use crux_core::Command;
 /// Utility functions for common operations across the application
 use crux_http::HttpError;
 use uuid::Uuid;
@@ -21,12 +23,38 @@ pub fn short_id(id: &str) -> String {
     }
 }
 
-/// Centralized HTTP error handling
-pub fn handle_http_error(error: HttpError, operation: &str) -> Result<(), HttpError> {
+/// Centralized HTTP error handling - now dispatches error events
+pub fn handle_http_error(error: HttpError, operation: &str) -> Command<Effect, Event> {
+    let user_friendly_message = match &error {
+        HttpError::Io(_) => {
+            format!("Network error during {operation}. Please check your connection.")
+        }
+        HttpError::Http {
+            code,
+            message: _,
+            body,
+        } => {
+            let status_code: u16 = (*code).into();
+            if status_code == 404 {
+                format!("Resource not found during {operation}")
+            } else if status_code >= 500 {
+                format!("Server error during {operation}. Please try again later.")
+            } else if status_code >= 400 {
+                let body_text = body
+                    .as_ref()
+                    .and_then(|b| String::from_utf8(b.clone()).ok())
+                    .unwrap_or_else(|| "Invalid request".to_string());
+                format!("Client error during {operation}: {body_text}")
+            } else {
+                format!("HTTP error during {operation}: {code}")
+            }
+        }
+        HttpError::Json(_) => format!("Data format error during {operation}"),
+        _ => format!("Unknown error during {operation}"),
+    };
+
     log::error!("HTTP {operation} failed: {error:?}");
-    // TODO: In a real implementation, this would dispatch an error event
-    // that the UI can handle to show user-friendly error messages
-    Err(error)
+    Command::event(Event::Error(user_friendly_message))
 }
 
 /// Centralized operation result handling

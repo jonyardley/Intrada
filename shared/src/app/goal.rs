@@ -87,7 +87,7 @@ pub fn handle_event(event: GoalEvent, model: &mut Model) -> Command<super::Effec
     match event {
         GoalEvent::FetchGoals => {
             let api = crate::app::ApiConfig::default();
-            return api.get("/goals", |response| {
+            return api.get("/api/goals", |response| {
                 super::Event::Goal(GoalEvent::SetGoals(response))
             });
         }
@@ -96,7 +96,7 @@ pub fn handle_event(event: GoalEvent, model: &mut Model) -> Command<super::Effec
             model.goals = goals;
         }
         GoalEvent::SetGoals(HttpResult::Err(e)) => {
-            let _ = crate::app::handle_http_error(e, "fetch goals");
+            return crate::app::handle_http_error(e, "fetch goals");
         }
 
         GoalEvent::CreateGoal(goal) => {
@@ -110,30 +110,32 @@ pub fn handle_event(event: GoalEvent, model: &mut Model) -> Command<super::Effec
             });
 
             let api = crate::app::ApiConfig::default();
-            return api.post("/goals", &create_request, |response| {
+            return api.post("/api/goals", &create_request, |response| {
                 super::Event::Goal(GoalEvent::GoalCreated(response))
             });
         }
         GoalEvent::GoalCreated(HttpResult::Ok(mut response)) => {
-            let created_goal = response.take_body().unwrap();
-            add_goal(created_goal, model);
+            let _created_goal = response.take_body().unwrap();
+            // Refresh the entire goals list from server after creation
+            return Command::event(super::Event::Goal(GoalEvent::FetchGoals));
         }
         GoalEvent::GoalCreated(HttpResult::Err(e)) => {
-            let _ = crate::app::handle_http_error(e, "create goal");
+            return crate::app::handle_http_error(e, "create goal");
         }
 
         GoalEvent::UpdateGoal(goal) => {
             let api = crate::app::ApiConfig::default();
-            return api.put("/goals", &goal, |response| {
+            return api.put("/api/goals", &goal, |response| {
                 super::Event::Goal(GoalEvent::GoalUpdated(response))
             });
         }
         GoalEvent::GoalUpdated(HttpResult::Ok(mut response)) => {
-            let updated_goal = response.take_body().unwrap();
-            edit_goal(updated_goal, model);
+            let _updated_goal = response.take_body().unwrap();
+            // Refresh the entire goals list from server after update
+            return Command::event(super::Event::Goal(GoalEvent::FetchGoals));
         }
         GoalEvent::GoalUpdated(HttpResult::Err(e)) => {
-            let _ = crate::app::handle_http_error(e, "update goal");
+            return crate::app::handle_http_error(e, "update goal");
         }
     }
 

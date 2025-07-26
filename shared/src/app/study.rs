@@ -21,11 +21,14 @@ pub enum StudyEvent {
     #[facet(skip)]
     SetStudies(HttpResult<crux_http::Response<Vec<Study>>, crux_http::HttpError>),
     UpdateStudies(Vec<Study>),
-    AddStudy(Study),
+    CreateStudy(Study),
     #[serde(skip)]
     #[facet(skip)]
     StudyCreated(HttpResult<crux_http::Response<Study>, crux_http::HttpError>),
-    EditStudy(Study),
+    UpdateStudy(Study),
+    #[serde(skip)]
+    #[facet(skip)]
+    StudyUpdated(HttpResult<crux_http::Response<Study>, crux_http::HttpError>),
     AddStudyToGoal {
         goal_id: String,
         study_id: String,
@@ -65,7 +68,7 @@ pub fn handle_event(event: StudyEvent, model: &mut Model) -> Command<super::Effe
     match event {
         StudyEvent::FetchStudies => {
             let api = crate::app::ApiConfig::default();
-            return api.get("/studies", |response| {
+            return api.get("/api/studies", |response| {
                 super::Event::Study(StudyEvent::SetStudies(response))
             });
         }
@@ -74,10 +77,10 @@ pub fn handle_event(event: StudyEvent, model: &mut Model) -> Command<super::Effe
             return Command::event(super::Event::Study(StudyEvent::UpdateStudies(studies)));
         }
         StudyEvent::SetStudies(HttpResult::Err(e)) => {
-            let _ = crate::app::handle_http_error(e, "fetch studies");
+            return crate::app::handle_http_error(e, "fetch studies");
         }
         StudyEvent::UpdateStudies(studies) => model.studies = studies,
-        StudyEvent::AddStudy(study) => {
+        StudyEvent::CreateStudy(study) => {
             // Transform Study to the format the server expects
             let create_request = serde_json::json!({
                 "name": study.name,
@@ -85,18 +88,39 @@ pub fn handle_event(event: StudyEvent, model: &mut Model) -> Command<super::Effe
             });
 
             let api = crate::app::ApiConfig::default();
-            return api.post("/studies", &create_request, |response| {
+            return api.post("/api/studies", &create_request, |response| {
                 super::Event::Study(StudyEvent::StudyCreated(response))
             });
         }
         StudyEvent::StudyCreated(HttpResult::Ok(mut response)) => {
-            let created_study = response.take_body().unwrap();
-            add_study(created_study, model);
+            let _created_study = response.take_body().unwrap();
+            // Refresh the entire studies list from server after creation
+            return Command::event(super::Event::Study(StudyEvent::FetchStudies));
         }
         StudyEvent::StudyCreated(HttpResult::Err(e)) => {
-            let _ = crate::app::handle_http_error(e, "create study");
+            return crate::app::handle_http_error(e, "create study");
         }
-        StudyEvent::EditStudy(study) => edit_study(study, model),
+        StudyEvent::UpdateStudy(study) => {
+            let update_request = serde_json::json!({
+                "name": study.name,
+                "description": study.description
+            });
+
+            let api = crate::app::ApiConfig::default();
+            return api.put(
+                &format!("/studies/{}", study.id),
+                &update_request,
+                |response| super::Event::Study(StudyEvent::StudyUpdated(response)),
+            );
+        }
+        StudyEvent::StudyUpdated(HttpResult::Ok(mut response)) => {
+            let _updated_study = response.take_body().unwrap();
+            // Refresh the entire studies list from server after update
+            return Command::event(super::Event::Study(StudyEvent::FetchStudies));
+        }
+        StudyEvent::StudyUpdated(HttpResult::Err(e)) => {
+            return crate::app::handle_http_error(e, "update study");
+        }
         StudyEvent::AddStudyToGoal { goal_id, study_id } => {
             super::goal::add_study_to_goal(&goal_id, &study_id, model);
         }

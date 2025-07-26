@@ -150,6 +150,7 @@ pub enum SessionEvent {
     #[facet(skip)]
     SessionEnded(crate::HttpResult<crux_http::Response<PracticeSessionView>, crux_http::HttpError>),
     EditSessionNotes(String, String),
+    RemoveSession(String),
 }
 
 impl SessionData {
@@ -448,11 +449,38 @@ pub fn add_session(session: PracticeSession, model: &mut Model) {
     // Add the session to the model
     model.sessions.push(session);
 
-    // Set as active if there's no current active session
-    // This ensures new sessions become active when no session is currently active
-    if model.active_session.is_none() {
+    // Auto-activate logic: Set as active if there's no current active session
+    // OR if the current active session is not NotStarted (can't be practiced)
+    let should_activate = model.active_session.is_none() || !can_start_active_session(model);
+
+    if should_activate {
         set_active_session(session_id, model);
     }
+}
+
+/// Remove a session from the model and handle active session cleanup
+pub fn remove_session(session_id: &str, model: &mut Model) -> bool {
+    let was_active = is_session_active(session_id, model);
+
+    // Remove the session
+    let original_len = model.sessions.len();
+    model.sessions.retain(|s| s.id() != session_id);
+    let was_removed = model.sessions.len() < original_len;
+
+    if was_removed && was_active {
+        // If we removed the active session, try to activate another NotStarted session
+        let next_available = get_available_sessions(model)
+            .first()
+            .map(|s| s.id().to_string());
+
+        if let Some(next_id) = next_available {
+            set_active_session(next_id, model);
+        } else {
+            remove_active_session(model);
+        }
+    }
+
+    was_removed
 }
 
 pub fn set_active_session(session_id: String, model: &mut Model) {
@@ -463,14 +491,63 @@ pub fn remove_active_session(model: &mut Model) {
     model.active_session = None;
 }
 
+/// Get the currently active session, if any
+pub fn get_active_session(model: &Model) -> Option<&PracticeSession> {
+    if let Some(active) = &model.active_session {
+        model.sessions.iter().find(|s| s.id() == active.id)
+    } else {
+        None
+    }
+}
+
+/// Get the currently active session mutably, if any
+pub fn get_active_session_mut(model: &mut Model) -> Option<&mut PracticeSession> {
+    if let Some(active) = &model.active_session {
+        let active_id = active.id.clone();
+        model.sessions.iter_mut().find(|s| s.id() == active_id)
+    } else {
+        None
+    }
+}
+
+/// Check if a specific session is the active session
+pub fn is_session_active(session_id: &str, model: &Model) -> bool {
+    model
+        .active_session
+        .as_ref()
+        .map(|active| active.id == session_id)
+        .unwrap_or(false)
+}
+
+/// Get all sessions that can be made active (NotStarted sessions)
+pub fn get_available_sessions(model: &Model) -> Vec<&PracticeSession> {
+    model
+        .sessions
+        .iter()
+        .filter(|s| matches!(s, PracticeSession::NotStarted(_)))
+        .collect()
+}
+
+/// Check if the active session can be started (exists and is NotStarted)
+pub fn can_start_active_session(model: &Model) -> bool {
+    get_active_session(model)
+        .map(|session| matches!(session, PracticeSession::NotStarted(_)))
+        .unwrap_or(false)
+}
+
 pub fn start_session(
     session_id: &str,
     timestamp: String,
     model: &mut Model,
 ) -> Result<(), SessionError> {
+    // Validate that the session being started is the active session
+    if !is_session_active(session_id, model) {
+        return Err(SessionError::NotActive);
+    }
+
     if let Some(session) = get_session_by_id(session_id, model) {
         session.start(timestamp)?;
-        set_active_session(session_id.to_string(), model);
+        // Session remains active after starting
         Ok(())
     } else {
         Err(SessionError::NotFound)
@@ -525,7 +602,7 @@ pub fn handle_event(
     match event {
         SessionEvent::FetchSessions => {
             let api = crate::app::ApiConfig::default();
-            return api.get("/sessions", |response| {
+            return api.get("/api/sessions", |response| {
                 super::Event::Session(SessionEvent::SetSessions(response))
             });
         }
@@ -537,7 +614,7 @@ pub fn handle_event(
                 .collect();
         }
         SessionEvent::SetSessions(crate::HttpResult::Err(e)) => {
-            let _ = crate::app::handle_http_error(e, "fetch sessions");
+            return crate::app::handle_http_error(e, "fetch sessions");
         }
 
         SessionEvent::CreateSession(session) => {
@@ -549,39 +626,34 @@ pub fn handle_event(
             });
 
             let api = crate::app::ApiConfig::default();
-            return api.post("/sessions", &create_request, |response| {
+            return api.post("/api/sessions", &create_request, |response| {
                 super::Event::Session(SessionEvent::SessionCreated(response))
             });
         }
         SessionEvent::SessionCreated(crate::HttpResult::Ok(mut response)) => {
-            let session_view = response.take_body().unwrap();
-            let session = session_from_view_model(session_view);
-            add_session(session, model);
+            let _session_view = response.take_body().unwrap();
+            // Refresh the entire sessions list from server after creation
+            return Command::event(super::Event::Session(SessionEvent::FetchSessions));
         }
         SessionEvent::SessionCreated(crate::HttpResult::Err(e)) => {
-            let _ = crate::app::handle_http_error(e, "create session");
+            return crate::app::handle_http_error(e, "create session");
         }
 
         SessionEvent::UpdateSession(session) => {
             let api = crate::app::ApiConfig::default();
             return api.put(
-                &format!("/sessions/{}", session.id()),
+                &format!("/api/sessions/{}", session.id()),
                 &session_view_model(&session),
                 |response| super::Event::Session(SessionEvent::SessionUpdated(response)),
             );
         }
         SessionEvent::SessionUpdated(crate::HttpResult::Ok(mut response)) => {
-            let session_view = response.take_body().unwrap();
-            let updated_session = session_from_view_model(session_view);
-            let session_id = updated_session.id().to_string();
-
-            if let Some(existing_session) = model.sessions.iter_mut().find(|s| s.id() == session_id)
-            {
-                *existing_session = updated_session;
-            }
+            let _session_view = response.take_body().unwrap();
+            // Refresh the entire sessions list from server after update
+            return Command::event(super::Event::Session(SessionEvent::FetchSessions));
         }
         SessionEvent::SessionUpdated(crate::HttpResult::Err(e)) => {
-            let _ = crate::app::handle_http_error(e, "update session");
+            return crate::app::handle_http_error(e, "update session");
         }
 
         SessionEvent::StartSession(session_id, timestamp) => {
@@ -591,24 +663,18 @@ pub fn handle_event(
 
             let api = crate::app::ApiConfig::default();
             return api.post(
-                &format!("/sessions/{session_id}/start"),
+                &format!("/api/sessions/{session_id}/start"),
                 &start_request,
                 |response| super::Event::Session(SessionEvent::SessionStarted(response)),
             );
         }
         SessionEvent::SessionStarted(crate::HttpResult::Ok(mut response)) => {
-            let session_view = response.take_body().unwrap();
-            let updated_session = session_from_view_model(session_view);
-            let session_id = updated_session.id().to_string();
-
-            if let Some(existing_session) = model.sessions.iter_mut().find(|s| s.id() == session_id)
-            {
-                *existing_session = updated_session;
-                set_active_session(session_id, model);
-            }
+            let _session_view = response.take_body().unwrap();
+            // Refresh the entire sessions list from server after starting
+            return Command::event(super::Event::Session(SessionEvent::FetchSessions));
         }
         SessionEvent::SessionStarted(crate::HttpResult::Err(e)) => {
-            let _ = crate::app::handle_http_error(e, "start session");
+            return crate::app::handle_http_error(e, "start session");
         }
 
         SessionEvent::EndSession(session_id, timestamp) => {
@@ -618,30 +684,18 @@ pub fn handle_event(
 
             let api = crate::app::ApiConfig::default();
             return api.post(
-                &format!("/sessions/{session_id}/end"),
+                &format!("/api/sessions/{session_id}/end"),
                 &end_request,
                 |response| super::Event::Session(SessionEvent::SessionEnded(response)),
             );
         }
         SessionEvent::SessionEnded(crate::HttpResult::Ok(mut response)) => {
-            let session_view = response.take_body().unwrap();
-            let updated_session = session_from_view_model(session_view);
-            let session_id = updated_session.id().to_string();
-
-            if let Some(existing_session) = model.sessions.iter_mut().find(|s| s.id() == session_id)
-            {
-                *existing_session = updated_session;
-
-                // Remove from active session if this was the active session
-                if let Some(active_session) = &model.active_session {
-                    if active_session.id == session_id {
-                        remove_active_session(model);
-                    }
-                }
-            }
+            let _session_view = response.take_body().unwrap();
+            // Refresh the entire sessions list from server after ending
+            return Command::event(super::Event::Session(SessionEvent::FetchSessions));
         }
         SessionEvent::SessionEnded(crate::HttpResult::Err(e)) => {
-            let _ = crate::app::handle_http_error(e, "end session");
+            return crate::app::handle_http_error(e, "end session");
         }
 
         // Local-only events (backward compatibility)
@@ -656,6 +710,9 @@ pub fn handle_event(
         SessionEvent::UnsetActiveSession => remove_active_session(model),
         SessionEvent::EditSessionNotes(session_id, notes) => {
             edit_session_notes(&session_id, notes, model);
+        }
+        SessionEvent::RemoveSession(session_id) => {
+            remove_session(&session_id, model);
         }
     }
 
@@ -819,6 +876,107 @@ fn test_session_view_model_conversion() {
     assert_eq!(session.end_time(), converted_back.end_time());
     assert_eq!(session.duration(), converted_back.duration());
     assert!(matches!(converted_back, PracticeSession::Ended(_)));
+}
+
+#[test]
+fn test_active_session_helpers() {
+    let mut model = Model::default();
+
+    // Test no active session initially
+    assert!(get_active_session(&model).is_none());
+    assert!(!can_start_active_session(&model));
+    assert_eq!(get_available_sessions(&model).len(), 0);
+
+    // Add a session - should become active automatically
+    let session1 = PracticeSession::new(vec!["Goal 1".to_string()], "Session 1".to_string());
+    let session1_id = session1.id().to_string();
+    add_session(session1, &mut model);
+
+    assert!(is_session_active(&session1_id, &model));
+    assert!(can_start_active_session(&model));
+    assert_eq!(get_available_sessions(&model).len(), 1);
+
+    // Add another session - first should remain active
+    let session2 = PracticeSession::new(vec!["Goal 2".to_string()], "Session 2".to_string());
+    let session2_id = session2.id().to_string();
+    add_session(session2, &mut model);
+
+    assert!(is_session_active(&session1_id, &model));
+    assert!(!is_session_active(&session2_id, &model));
+    assert_eq!(get_available_sessions(&model).len(), 2);
+}
+
+#[test]
+fn test_start_session_validation() {
+    let mut model = Model::default();
+
+    // Create two sessions
+    let session1 = PracticeSession::new(vec!["Goal 1".to_string()], "Session 1".to_string());
+    let session1_id = session1.id().to_string();
+    let session2 = PracticeSession::new(vec!["Goal 2".to_string()], "Session 2".to_string());
+    let session2_id = session2.id().to_string();
+
+    add_session(session1, &mut model);
+    add_session(session2, &mut model);
+
+    // First session should be active
+    assert!(is_session_active(&session1_id, &model));
+
+    // Should be able to start active session
+    assert!(start_session(&session1_id, "2025-05-01T12:00:00Z".to_string(), &mut model).is_ok());
+
+    // Should NOT be able to start non-active session
+    assert!(matches!(
+        start_session(&session2_id, "2025-05-01T12:00:00Z".to_string(), &mut model),
+        Err(SessionError::NotActive)
+    ));
+}
+
+#[test]
+fn test_remove_session_active_handling() {
+    let mut model = Model::default();
+
+    // Add two sessions
+    let session1 = PracticeSession::new(vec!["Goal 1".to_string()], "Session 1".to_string());
+    let session1_id = session1.id().to_string();
+    let session2 = PracticeSession::new(vec!["Goal 2".to_string()], "Session 2".to_string());
+    let session2_id = session2.id().to_string();
+
+    add_session(session1, &mut model);
+    add_session(session2, &mut model);
+
+    // First should be active
+    assert!(is_session_active(&session1_id, &model));
+
+    // Remove active session - second should become active
+    assert!(remove_session(&session1_id, &mut model));
+    assert!(is_session_active(&session2_id, &model));
+
+    // Remove last session - no active session
+    assert!(remove_session(&session2_id, &mut model));
+    assert!(model.active_session.is_none());
+}
+
+#[test]
+fn test_auto_activate_when_current_not_startable() {
+    let mut model = Model::default();
+
+    // Add and start a session
+    let session1 = PracticeSession::new(vec!["Goal 1".to_string()], "Session 1".to_string());
+    let session1_id = session1.id().to_string();
+    add_session(session1, &mut model);
+    start_session(&session1_id, "2025-05-01T12:00:00Z".to_string(), &mut model).unwrap();
+
+    // Active session is now Started (not startable)
+    assert!(!can_start_active_session(&model));
+
+    // Add new session - should automatically become active since current isn't startable
+    let session2 = PracticeSession::new(vec!["Goal 2".to_string()], "Session 2".to_string());
+    let session2_id = session2.id().to_string();
+    add_session(session2, &mut model);
+
+    assert!(is_session_active(&session2_id, &model));
+    assert!(can_start_active_session(&model));
 }
 
 #[test]

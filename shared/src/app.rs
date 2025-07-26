@@ -73,6 +73,8 @@ pub enum Event {
     Session(SessionEvent),
     StudySession(StudySessionEvent),
     FetchAll,
+    Error(String),
+    ClearError,
 }
 
 #[effect(facet_typegen)]
@@ -115,6 +117,14 @@ impl App for Chopin {
                     Command::event(Event::Session(SessionEvent::FetchSessions)),
                 ])
             }
+            Event::Error(error_message) => {
+                model.last_error = Some(error_message);
+                Command::done()
+            }
+            Event::ClearError => {
+                model.last_error = None;
+                Command::done()
+            }
         }
     }
 
@@ -130,6 +140,7 @@ impl App for Chopin {
             model.studies.clone(),
             session_views,
             model.active_session.clone(),
+            model.last_error.clone(),
         )
     }
 }
