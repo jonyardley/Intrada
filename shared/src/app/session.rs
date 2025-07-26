@@ -694,7 +694,7 @@ pub fn handle_event(
                 model.last_error = Some(format!("Failed to start session: {e:?}"));
                 return crux_core::render::render();
             }
-            
+
             // Trigger background sync
             let start_request = serde_json::json!({ "start_time": timestamp });
             let api = crate::app::ApiConfig::default();
@@ -710,7 +710,7 @@ pub fn handle_event(
                 model.last_error = Some(format!("Failed to end session: {e:?}"));
                 return crux_core::render::render();
             }
-            
+
             // Trigger background sync
             let end_request = serde_json::json!({ "end_time": timestamp });
             let api = crate::app::ApiConfig::default();

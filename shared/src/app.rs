@@ -131,11 +131,18 @@ impl App for Chopin {
                 model.last_error = None;
                 Command::done()
             }
-            Event::ReconcileFromLocal { goals, studies, sessions } => {
+            Event::ReconcileFromLocal {
+                goals,
+                studies,
+                sessions,
+            } => {
                 // Update model with local data - used on app start and after local changes
                 model.goals = goals;
                 model.studies = studies;
-                model.sessions = sessions.into_iter().map(session::session_from_view_model).collect();
+                model.sessions = sessions
+                    .into_iter()
+                    .map(session::session_from_view_model)
+                    .collect();
                 crux_core::render::render()
             }
             Event::SyncPendingChanges => {
