@@ -105,9 +105,15 @@ struct SessionFormView: View {
                         let notStartedSession = NotStartedSession(data: sessionData)
                         let session = PracticeSession.notStarted(notStartedSession)
                         
+                        print("🆕 SessionFormView: Creating session with ID: \(sessionId)")
                         core.update(.session(.createSession(session)))
                         isPresented = false
-                        onSessionCreated?(sessionId)
+                        
+                        // Add a longer delay to allow the session to sync back from the server
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                            print("🚀 SessionFormView: Triggering navigation to session: \(sessionId)")
+                            onSessionCreated?(sessionId)
+                        }
                     }
                 }
                     .disabled(intention.isEmpty)

@@ -15,8 +15,8 @@ struct SessionsView: View {
     @State private var sessionToReflect: PracticeSessionView?
     @State private var navigationPath = NavigationPath()
     
-    private var activeSession: PracticeSessionView? {
-        core.view.currentSession
+    private var practiceQueueSessions: [PracticeSessionView] {
+        core.view.sessions.filter { !$0.isEnded }
     }
     
     private var completedSessions: [PracticeSessionView] {
@@ -31,42 +31,20 @@ struct SessionsView: View {
                         showingAddForm = true
                     }
                     
-                    // Debug information
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Debug Info:")
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                        Text("Sessions count: \(core.view.sessions.count)")
-                            .font(.caption)
-                        Text("Completed sessions: \(completedSessions.count)")
-                            .font(.caption)
-                        Text("Active session: \(activeSession != nil ? "Yes" : "No")")
-                            .font(.caption)
-                        if let error = core.view.lastError {
-                            Text("Last error: \(error)")
-                                .font(.caption)
-                                .foregroundColor(.red)
-                        } else {
-                            Text("No errors")
-                                .font(.caption)
-                                .foregroundColor(.green)
-                        }
-                    }
-                    .padding(.horizontal, Theme.Spacing.lg)
-                    
-                    if let activeSession = activeSession {
-                        ActiveSessionView(
-                            session: activeSession,
-                            core: core,
-                            onSessionEnd: handleSessionEnd
-                        )
-                        .padding(.horizontal, Theme.Spacing.lg)
-                        .onTapGesture {
-                            navigationPath.append(activeSession.id)
-                        }
+                    // Practice Queue Section
+                    if !practiceQueueSessions.isEmpty {
+                        practiceQueueSectionView
                     }
                     
-                    sessionsListView
+                    // Completed Sessions Section
+                    if !completedSessions.isEmpty {
+                        completedSessionsSectionView
+                    }
+                    
+                    // Empty state when no sessions exist
+                    if core.view.sessions.isEmpty {
+                        EmptyStateView(message: "No sessions yet")
+                    }
                 }
                 .padding(.vertical, Theme.Spacing.lg)
             }
@@ -75,7 +53,10 @@ struct SessionsView: View {
             .sheet(isPresented: $showingAddForm) {
                 SessionFormView(
                     core: core,
-                    isPresented: $showingAddForm
+                    isPresented: $showingAddForm,
+                    onSessionCreated: { sessionId in
+                        navigationPath.append(sessionId)
+                    }
                 )
             }
             .sheet(isPresented: $showingReflectionForm) {
@@ -89,7 +70,7 @@ struct SessionsView: View {
             }
             .navigationDestination(for: String.self) { sessionId in
                 if let session = core.view.sessions.first(where: { $0.id == sessionId }),
-                   case .started(_) = session.state {
+                   case .started = session.state {
                     ActiveSessionDetailView(core: core, sessionId: sessionId)
                 } else {
                     SessionDetailView(core: core, sessionId: sessionId)
@@ -98,22 +79,37 @@ struct SessionsView: View {
         }
     }
     
-    private var sessionsListView: some View {
+    private var practiceQueueSectionView: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.md) {
-            SectionHeader(title: "Recent practice sessions")
+            SectionHeader(title: "Practice Queue")
             
-            if core.view.sessions.isEmpty {
-                EmptyStateView(message: "No sessions yet")
-            } else {
-                ForEach(core.view.sessions, id: \.id) { session in
-                    NavigationLink {
-                        SessionDetailView(core: core, sessionId: session.id)
-                    } label: {
-                        SessionRow(session: session)
-                            .padding(.horizontal, Theme.Spacing.lg)
+            ForEach(practiceQueueSessions, id: \.id) { session in
+                SessionRowWithActions(
+                    session: session,
+                    core: core,
+                    onSessionEnd: handleSessionEnd,
+                    onTap: {
+                        print("🖱️ SessionsView: Tapped on session \(session.id): \(session.intention)")
+                        navigationPath.append(session.id)
                     }
-                    .buttonStyle(PlainButtonStyle())
+                )
+                .padding(.horizontal, Theme.Spacing.lg)
+            }
+        }
+    }
+    
+    private var completedSessionsSectionView: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.md) {
+            SectionHeader(title: "Completed Sessions")
+            
+            ForEach(completedSessions, id: \.id) { session in
+                NavigationLink {
+                    SessionDetailView(core: core, sessionId: session.id)
+                } label: {
+                    SessionRow(session: session)
+                        .padding(.horizontal, Theme.Spacing.lg)
                 }
+                .buttonStyle(PlainButtonStyle())
             }
         }
     }
@@ -124,69 +120,99 @@ struct SessionsView: View {
     }
 }
 
-struct ActiveSessionView: View {
+struct SessionRowWithActions: View {
     let session: PracticeSessionView
     @ObservedObject var core: Core
     let onSessionEnd: (PracticeSessionView) -> Void
+    let onTap: () -> Void
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Active Session")
-                .font(.title2)
-                .fontWeight(.semibold)
-            
-            VStack(alignment: .leading, spacing: 8) {
-                Text(session.intention)
-                    .font(.headline)
-                
-                if let notes = session.notes, !notes.isEmpty {
-                    Text(notes)
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-                }
-                
+        GenericRow {
+            VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
                 HStack {
-                    if core.view.isSessionRunning, let session = core.view.currentSession {
-                        DynamicTimerView(session: session, fontSize: .title3, textColor: .blue)
-                    } else {
-                        Text("Ready?")
-                            .font(.title3)
-                            .foregroundColor(.gray)
+                    // Tappable content area
+                    VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
+                        Text(session.intention)
+                            .font(Theme.Typography.headline)
+                        
+                        if let notes = session.notes, !notes.isEmpty {
+                            Text(notes)
+                                .font(Theme.Typography.subheadline)
+                                .foregroundColor(Theme.Colors.textSecondary)
+                        }
+                        
+                        HStack {
+                            if let startTime = session.startTime {
+                                HStack(spacing: Theme.Spacing.xs) {
+                                    Image(systemName: "calendar")
+                                        .foregroundColor(Theme.Colors.primary)
+                                    Text(DateFormatter.formatDateAndTime(startTime))
+                                        .font(Theme.Typography.caption)
+                                        .foregroundColor(Theme.Colors.textSecondary)
+                                }
+                            }
+                            
+                            Spacer()
+                            
+                            if let duration = session.duration {
+                                Text(duration)
+                                    .badgeStyle(color: Theme.Colors.textSecondary)
+                            }
+                        }
+                    }
+                    .onTapGesture {
+                        onTap()
                     }
                     
                     Spacer()
                     
-                    if core.view.isSessionRunning {
-                        NavigationLink(destination: ActiveSessionDetailView(core: core, sessionId: session.id)) {
-                            Text("View Session")
-                                .font(.subheadline)
-                                .foregroundColor(.blue)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .background(Color.blue.opacity(0.1))
-                                .cornerRadius(6)
-                        }
-                    } else if core.view.canStartSession {
-                        Button {
-                            let startTime = Date().ISO8601Format()
-                            core.update(.session(.startSession(session.id, startTime)))
-                        } label: {
-                            HStack(spacing: 4) {
-                                Image(systemName: "play.fill")
-                                Text("Start Session")
-                            }
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 8)
-                            .background(Color.accentColor)
-                            .cornerRadius(8)
-                        }
-                    }
+                    // State transition button (not affected by tap gesture)
+                    stateTransitionButton
                 }
             }
-            .padding()
-            .background(Color.blue.opacity(0.1))
-            .cornerRadius(10)
+        }
+    }
+    
+    @ViewBuilder
+    private var stateTransitionButton: some View {
+        switch session.state {
+        case .notStarted:
+            Button {
+                let startTime = Date().ISO8601Format()
+                print("▶️ SessionsView: Starting session \(session.id) at \(startTime)")
+                core.update(.session(.startSession(session.id, startTime)))
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "play.fill")
+                    Text("Start")
+                }
+                .foregroundColor(.white)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Color.accentColor)
+                .cornerRadius(6)
+            }
+            
+        case .started:
+            Button {
+                let endTime = Date().ISO8601Format()
+                core.update(.session(.endSession(session.id, endTime)))
+                onSessionEnd(session)
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "stop.fill")
+                    Text("End")
+                }
+                .foregroundColor(.white)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Color.red)
+                .cornerRadius(6)
+            }
+            
+        case .ended:
+            // No action button for ended sessions
+            EmptyView()
         }
     }
 }

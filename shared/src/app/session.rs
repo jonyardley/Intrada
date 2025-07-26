@@ -137,20 +137,23 @@ pub enum SessionEvent {
         intention: String,
         notes: Option<String>,
     },
-    SetActiveSession(String),
     StartSession(String, String),
     #[serde(skip)]
     #[facet(skip)]
     SessionStarted(
         crate::HttpResult<crux_http::Response<PracticeSessionView>, crux_http::HttpError>,
     ),
-    UnsetActiveSession,
     EndSession(String, String),
     #[serde(skip)]
     #[facet(skip)]
     SessionEnded(crate::HttpResult<crux_http::Response<PracticeSessionView>, crux_http::HttpError>),
     EditSessionNotes(String, String),
     RemoveSession(String),
+    // Optimistic local events
+    CreateSessionOptimistic(PracticeSession),
+    UpdateSessionOptimistic(PracticeSession),
+    StartSessionOptimistic(String, String),
+    EndSessionOptimistic(String, String),
 }
 
 impl SessionData {
@@ -285,11 +288,6 @@ pub struct PracticeSessionView {
     pub start_time: Option<String>,
     pub end_time: Option<String>,
     pub is_ended: bool,
-}
-
-#[derive(Facet, Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
-pub struct ActiveSession {
-    pub id: String,
 }
 
 impl PracticeSession {
@@ -444,83 +442,39 @@ fn get_session_by_id<'a>(
 }
 
 pub fn add_session(session: PracticeSession, model: &mut Model) {
-    let session_id = session.id().to_string();
-
-    // Add the session to the model
+    // Simply add the session to the model
+    // No need for active session logic - sessions start as NotStarted
     model.sessions.push(session);
-
-    // Auto-activate logic: Set as active if there's no current active session
-    // OR if the current active session is not NotStarted (can't be practiced)
-    let should_activate = model.active_session.is_none() || !can_start_active_session(model);
-
-    if should_activate {
-        set_active_session(session_id, model);
-    }
 }
 
-/// Remove a session from the model and handle active session cleanup
+/// Remove a session from the model
 pub fn remove_session(session_id: &str, model: &mut Model) -> bool {
-    let was_active = is_session_active(session_id, model);
-
     // Remove the session
     let original_len = model.sessions.len();
     model.sessions.retain(|s| s.id() != session_id);
-    let was_removed = model.sessions.len() < original_len;
-
-    if was_removed && was_active {
-        // If we removed the active session, try to activate another NotStarted session
-        let next_available = get_available_sessions(model)
-            .first()
-            .map(|s| s.id().to_string());
-
-        if let Some(next_id) = next_available {
-            set_active_session(next_id, model);
-        } else {
-            remove_active_session(model);
-        }
-    }
-
-    was_removed
+    model.sessions.len() < original_len
 }
 
-pub fn set_active_session(session_id: String, model: &mut Model) {
-    model.active_session = Some(ActiveSession { id: session_id });
+/// Get the currently started session, if any
+pub fn get_started_session(model: &Model) -> Option<&PracticeSession> {
+    model.sessions.iter().find(|s| s.is_active())
 }
 
-pub fn remove_active_session(model: &mut Model) {
-    model.active_session = None;
+/// Get the currently started session mutably, if any
+pub fn get_started_session_mut(model: &mut Model) -> Option<&mut PracticeSession> {
+    model.sessions.iter_mut().find(|s| s.is_active())
 }
 
-/// Get the currently active session, if any
-pub fn get_active_session(model: &Model) -> Option<&PracticeSession> {
-    if let Some(active) = &model.active_session {
-        model.sessions.iter().find(|s| s.id() == active.id)
-    } else {
-        None
-    }
-}
-
-/// Get the currently active session mutably, if any
-pub fn get_active_session_mut(model: &mut Model) -> Option<&mut PracticeSession> {
-    if let Some(active) = &model.active_session {
-        let active_id = active.id.clone();
-        model.sessions.iter_mut().find(|s| s.id() == active_id)
-    } else {
-        None
-    }
-}
-
-/// Check if a specific session is the active session
-pub fn is_session_active(session_id: &str, model: &Model) -> bool {
+/// Check if a specific session is currently started
+pub fn is_session_started(session_id: &str, model: &Model) -> bool {
     model
-        .active_session
-        .as_ref()
-        .map(|active| active.id == session_id)
-        .unwrap_or(false)
+        .sessions
+        .iter()
+        .any(|s| s.id() == session_id && s.is_active())
 }
 
-/// Get all sessions that can be made active (NotStarted sessions)
-pub fn get_available_sessions(model: &Model) -> Vec<&PracticeSession> {
+/// Get all not started sessions
+pub fn get_not_started_sessions(model: &Model) -> Vec<&PracticeSession> {
     model
         .sessions
         .iter()
@@ -528,11 +482,13 @@ pub fn get_available_sessions(model: &Model) -> Vec<&PracticeSession> {
         .collect()
 }
 
-/// Check if the active session can be started (exists and is NotStarted)
-pub fn can_start_active_session(model: &Model) -> bool {
-    get_active_session(model)
-        .map(|session| matches!(session, PracticeSession::NotStarted(_)))
-        .unwrap_or(false)
+/// Get all ended sessions
+pub fn get_ended_sessions(model: &Model) -> Vec<&PracticeSession> {
+    model
+        .sessions
+        .iter()
+        .filter(|s| matches!(s, PracticeSession::Ended(_)))
+        .collect()
 }
 
 pub fn start_session(
@@ -540,14 +496,18 @@ pub fn start_session(
     timestamp: String,
     model: &mut Model,
 ) -> Result<(), SessionError> {
-    // Validate that the session being started is the active session
-    if !is_session_active(session_id, model) {
-        return Err(SessionError::NotActive);
+    // Ensure only one session can be started at a time
+    // If there's already a started session, end it first
+    if let Some(current_started) = get_started_session_mut(model) {
+        let current_id = current_started.id().to_string();
+        if current_id != session_id {
+            // End the currently started session
+            current_started.end(timestamp.clone())?;
+        }
     }
 
     if let Some(session) = get_session_by_id(session_id, model) {
         session.start(timestamp)?;
-        // Session remains active after starting
         Ok(())
     } else {
         Err(SessionError::NotFound)
@@ -561,13 +521,6 @@ pub fn end_session(
 ) -> Result<(), SessionError> {
     if let Some(session) = get_session_by_id(session_id, model) {
         session.end(timestamp)?;
-
-        // Remove from active session if this was the active session
-        if let Some(active_session) = &model.active_session {
-            if active_session.id == session_id {
-                remove_active_session(model);
-            }
-        }
         Ok(())
     } else {
         Err(SessionError::NotFound)
@@ -706,13 +659,66 @@ pub fn handle_event(
             intention,
             notes,
         } => edit_session_fields(&session_id, goal_ids, intention, notes, model),
-        SessionEvent::SetActiveSession(session_id) => set_active_session(session_id, model),
-        SessionEvent::UnsetActiveSession => remove_active_session(model),
         SessionEvent::EditSessionNotes(session_id, notes) => {
             edit_session_notes(&session_id, notes, model);
         }
         SessionEvent::RemoveSession(session_id) => {
             remove_session(&session_id, model);
+        }
+
+        // Optimistic local events - apply immediately, trigger sync later
+        SessionEvent::CreateSessionOptimistic(session) => {
+            add_session(session.clone(), model);
+            // Trigger background sync
+            let api = crate::app::ApiConfig::default();
+            return api.post("/api/sessions", &session_view_model(&session), |response| {
+                super::Event::Session(SessionEvent::SessionCreated(response))
+            });
+        }
+        SessionEvent::UpdateSessionOptimistic(session) => {
+            // Update local session by ID
+            if let Some(existing) = model.sessions.iter_mut().find(|s| s.id() == session.id()) {
+                *existing = session.clone();
+            }
+            // Trigger background sync
+            let api = crate::app::ApiConfig::default();
+            return api.put(
+                &format!("/api/sessions/{}", session.id()),
+                &session_view_model(&session),
+                |response| super::Event::Session(SessionEvent::SessionUpdated(response)),
+            );
+        }
+        SessionEvent::StartSessionOptimistic(session_id, timestamp) => {
+            // Apply optimistically to local model
+            if let Err(e) = start_session(&session_id, timestamp.clone(), model) {
+                model.last_error = Some(format!("Failed to start session: {e:?}"));
+                return crux_core::render::render();
+            }
+            
+            // Trigger background sync
+            let start_request = serde_json::json!({ "start_time": timestamp });
+            let api = crate::app::ApiConfig::default();
+            return api.post(
+                &format!("/api/sessions/{session_id}/start"),
+                &start_request,
+                |response| super::Event::Session(SessionEvent::SessionStarted(response)),
+            );
+        }
+        SessionEvent::EndSessionOptimistic(session_id, timestamp) => {
+            // Apply optimistically to local model
+            if let Err(e) = end_session(&session_id, timestamp.clone(), model) {
+                model.last_error = Some(format!("Failed to end session: {e:?}"));
+                return crux_core::render::render();
+            }
+            
+            // Trigger background sync
+            let end_request = serde_json::json!({ "end_time": timestamp });
+            let api = crate::app::ApiConfig::default();
+            return api.post(
+                &format!("/api/sessions/{session_id}/end"),
+                &end_request,
+                |response| super::Event::Session(SessionEvent::SessionEnded(response)),
+            );
         }
     }
 
@@ -759,8 +765,8 @@ fn test_end_session() {
 
     // Verify session is active
     assert!(model.sessions[0].is_active());
-    assert!(model.active_session.is_some());
-    assert_eq!(model.active_session.as_ref().unwrap().id, session_id);
+    assert!(get_started_session(&model).is_some());
+    assert_eq!(get_started_session(&model).unwrap().id(), session_id);
 
     // End the session 30 minutes later
     end_session(&session_id, "2025-05-01T12:30:00Z".to_string(), &mut model).unwrap();
@@ -769,7 +775,7 @@ fn test_end_session() {
     assert_eq!(model.sessions.len(), 1);
     assert_eq!(model.sessions[0].duration(), Some("30m".to_string())); // Now returns Option<String>
     assert!(model.sessions[0].is_ended());
-    assert!(model.active_session.is_none());
+    assert!(get_started_session(&model).is_none());
 }
 
 #[test]
@@ -879,35 +885,35 @@ fn test_session_view_model_conversion() {
 }
 
 #[test]
-fn test_active_session_helpers() {
+fn test_session_helpers() {
     let mut model = Model::default();
 
-    // Test no active session initially
-    assert!(get_active_session(&model).is_none());
-    assert!(!can_start_active_session(&model));
-    assert_eq!(get_available_sessions(&model).len(), 0);
+    // Test no started session initially
+    assert!(get_started_session(&model).is_none());
+    assert_eq!(get_not_started_sessions(&model).len(), 0);
+    assert_eq!(get_ended_sessions(&model).len(), 0);
 
-    // Add a session - should become active automatically
+    // Add a session - starts as NotStarted
     let session1 = PracticeSession::new(vec!["Goal 1".to_string()], "Session 1".to_string());
     let session1_id = session1.id().to_string();
     add_session(session1, &mut model);
 
-    assert!(is_session_active(&session1_id, &model));
-    assert!(can_start_active_session(&model));
-    assert_eq!(get_available_sessions(&model).len(), 1);
+    assert!(!is_session_started(&session1_id, &model));
+    assert_eq!(get_not_started_sessions(&model).len(), 1);
+    assert_eq!(get_ended_sessions(&model).len(), 0);
 
-    // Add another session - first should remain active
+    // Add another session - both are NotStarted
     let session2 = PracticeSession::new(vec!["Goal 2".to_string()], "Session 2".to_string());
     let session2_id = session2.id().to_string();
     add_session(session2, &mut model);
 
-    assert!(is_session_active(&session1_id, &model));
-    assert!(!is_session_active(&session2_id, &model));
-    assert_eq!(get_available_sessions(&model).len(), 2);
+    assert!(!is_session_started(&session1_id, &model));
+    assert!(!is_session_started(&session2_id, &model));
+    assert_eq!(get_not_started_sessions(&model).len(), 2);
 }
 
 #[test]
-fn test_start_session_validation() {
+fn test_one_session_in_play() {
     let mut model = Model::default();
 
     // Create two sessions
@@ -919,21 +925,25 @@ fn test_start_session_validation() {
     add_session(session1, &mut model);
     add_session(session2, &mut model);
 
-    // First session should be active
-    assert!(is_session_active(&session1_id, &model));
-
-    // Should be able to start active session
+    // Start first session
     assert!(start_session(&session1_id, "2025-05-01T12:00:00Z".to_string(), &mut model).is_ok());
+    assert!(is_session_started(&session1_id, &model));
+    assert!(get_started_session(&model).is_some());
 
-    // Should NOT be able to start non-active session
-    assert!(matches!(
-        start_session(&session2_id, "2025-05-01T12:00:00Z".to_string(), &mut model),
-        Err(SessionError::NotActive)
-    ));
+    // Starting second session should automatically end the first
+    assert!(start_session(&session2_id, "2025-05-01T12:01:00Z".to_string(), &mut model).is_ok());
+    assert!(!is_session_started(&session1_id, &model));
+    assert!(is_session_started(&session2_id, &model));
+    assert!(model
+        .sessions
+        .iter()
+        .find(|s| s.id() == session1_id)
+        .unwrap()
+        .is_ended());
 }
 
 #[test]
-fn test_remove_session_active_handling() {
+fn test_remove_session() {
     let mut model = Model::default();
 
     // Add two sessions
@@ -944,21 +954,20 @@ fn test_remove_session_active_handling() {
 
     add_session(session1, &mut model);
     add_session(session2, &mut model);
+    assert_eq!(model.sessions.len(), 2);
 
-    // First should be active
-    assert!(is_session_active(&session1_id, &model));
-
-    // Remove active session - second should become active
+    // Remove first session
     assert!(remove_session(&session1_id, &mut model));
-    assert!(is_session_active(&session2_id, &model));
+    assert_eq!(model.sessions.len(), 1);
+    assert_eq!(model.sessions[0].id(), session2_id);
 
-    // Remove last session - no active session
+    // Remove last session
     assert!(remove_session(&session2_id, &mut model));
-    assert!(model.active_session.is_none());
+    assert_eq!(model.sessions.len(), 0);
 }
 
 #[test]
-fn test_auto_activate_when_current_not_startable() {
+fn test_multiple_sessions_coexist() {
     let mut model = Model::default();
 
     // Add and start a session
@@ -967,16 +976,18 @@ fn test_auto_activate_when_current_not_startable() {
     add_session(session1, &mut model);
     start_session(&session1_id, "2025-05-01T12:00:00Z".to_string(), &mut model).unwrap();
 
-    // Active session is now Started (not startable)
-    assert!(!can_start_active_session(&model));
+    // Session1 is now started
+    assert!(is_session_started(&session1_id, &model));
 
-    // Add new session - should automatically become active since current isn't startable
+    // Add new session - both sessions coexist
     let session2 = PracticeSession::new(vec!["Goal 2".to_string()], "Session 2".to_string());
-    let session2_id = session2.id().to_string();
+    let _session2_id = session2.id().to_string();
     add_session(session2, &mut model);
 
-    assert!(is_session_active(&session2_id, &model));
-    assert!(can_start_active_session(&model));
+    // Both sessions exist, session1 is still started, session2 is not started
+    assert_eq!(model.sessions.len(), 2);
+    assert!(is_session_started(&session1_id, &model));
+    assert_eq!(get_not_started_sessions(&model).len(), 1);
 }
 
 #[test]

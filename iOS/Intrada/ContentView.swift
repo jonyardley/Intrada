@@ -10,6 +10,11 @@ import SwiftUI
 
 struct ContentView: View {
     @ObservedObject var core: Core
+    
+    init(core: Core) {
+        self.core = core
+        print("🎯 ContentView init called")
+    }
   
     var body: some View {
         NavigationStack {

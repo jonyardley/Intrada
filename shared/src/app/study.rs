@@ -33,6 +33,12 @@ pub enum StudyEvent {
         goal_id: String,
         study_id: String,
     },
+    // Optimistic local events
+    CreateStudyOptimistic(Study),
+    UpdateStudyOptimistic(Study),
+    // Backward compatibility - local-only events
+    AddStudy(Study),
+    EditStudy(Study),
 }
 
 impl Study {
@@ -124,6 +130,28 @@ pub fn handle_event(event: StudyEvent, model: &mut Model) -> Command<super::Effe
         StudyEvent::AddStudyToGoal { goal_id, study_id } => {
             super::goal::add_study_to_goal(&goal_id, &study_id, model);
         }
+
+        // Optimistic local events - apply immediately, trigger sync later
+        StudyEvent::CreateStudyOptimistic(study) => {
+            add_study(study.clone(), model);
+            // Trigger background sync
+            let api = crate::app::ApiConfig::default();
+            return api.post("/api/studies", &study, |response| {
+                super::Event::Study(StudyEvent::StudyCreated(response))
+            });
+        }
+        StudyEvent::UpdateStudyOptimistic(study) => {
+            edit_study(study.clone(), model);
+            // Trigger background sync
+            let api = crate::app::ApiConfig::default();
+            return api.put("/api/studies", &study, |response| {
+                super::Event::Study(StudyEvent::StudyUpdated(response))
+            });
+        }
+
+        // Backward compatibility - local-only events
+        StudyEvent::AddStudy(study) => add_study(study, model),
+        StudyEvent::EditStudy(study) => edit_study(study, model),
     }
 
     crux_core::render::render()

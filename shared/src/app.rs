@@ -36,9 +36,8 @@ pub use study_session::{add_study_session, update_study_session, StudySession, S
 
 pub mod session;
 pub use session::{
-    add_session, edit_session_fields, edit_session_notes, end_session, remove_active_session,
-    set_active_session, start_session, ActiveSession, PracticeSession, PracticeSessionView,
-    SessionEvent, SessionState,
+    add_session, edit_session_fields, edit_session_notes, end_session, remove_session,
+    start_session, PracticeSession, PracticeSessionView, SessionEvent, SessionState,
 };
 
 pub mod model;
@@ -75,6 +74,13 @@ pub enum Event {
     FetchAll,
     Error(String),
     ClearError,
+    // Local store reconciliation events
+    ReconcileFromLocal {
+        goals: Vec<PracticeGoal>,
+        studies: Vec<Study>,
+        sessions: Vec<PracticeSessionView>,
+    },
+    SyncPendingChanges,
 }
 
 #[effect(facet_typegen)]
@@ -125,6 +131,18 @@ impl App for Chopin {
                 model.last_error = None;
                 Command::done()
             }
+            Event::ReconcileFromLocal { goals, studies, sessions } => {
+                // Update model with local data - used on app start and after local changes
+                model.goals = goals;
+                model.studies = studies;
+                model.sessions = sessions.into_iter().map(session::session_from_view_model).collect();
+                crux_core::render::render()
+            }
+            Event::SyncPendingChanges => {
+                // Trigger sync of all pending changes to server
+                // This will be handled by the iOS layer - just acknowledge here
+                crux_core::render::render()
+            }
         }
     }
 
@@ -139,7 +157,6 @@ impl App for Chopin {
             model.goals.clone(),
             model.studies.clone(),
             session_views,
-            model.active_session.clone(),
             model.last_error.clone(),
         )
     }

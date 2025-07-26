@@ -1,6 +1,4 @@
-use crate::app::{
-    ActiveSession, PracticeGoal, PracticeSession, PracticeSessionView, SessionState, Study,
-};
+use crate::app::{PracticeGoal, PracticeSession, PracticeSessionView, SessionState, Study};
 use chrono::{DateTime, Utc};
 use facet::Facet;
 use serde::{Deserialize, Serialize};
@@ -10,7 +8,6 @@ pub struct Model {
     pub goals: Vec<PracticeGoal>,
     pub studies: Vec<Study>,
     pub sessions: Vec<PracticeSession>,
-    pub active_session: Option<ActiveSession>,
     pub last_error: Option<String>,
 }
 
@@ -22,10 +19,9 @@ pub struct ViewModel {
     pub goals: Vec<PracticeGoal>,
     pub studies: Vec<Study>,
     pub sessions: Vec<PracticeSessionView>,
-    pub active_session: Option<ActiveSession>,
     // Session state computed properties (replaces SessionManager)
     pub current_session: Option<PracticeSessionView>,
-    pub has_active_session: bool,
+    pub has_active_session: bool, // Note: "active" means currently started session
     pub can_start_session: bool,
     pub can_end_session: bool,
     pub is_session_running: bool,
@@ -39,15 +35,13 @@ impl ViewModel {
         goals: Vec<PracticeGoal>,
         studies: Vec<Study>,
         sessions: Vec<PracticeSessionView>,
-        active_session: Option<ActiveSession>,
         last_error: Option<String>,
     ) -> Self {
-        // Find current session
-        let current_session = if let Some(active_session) = &active_session {
-            sessions.iter().find(|s| s.id == active_session.id).cloned()
-        } else {
-            None
-        };
+        // Find current session (the one that is started)
+        let current_session = sessions
+            .iter()
+            .find(|s| matches!(s.state, SessionState::Started { .. }))
+            .cloned();
 
         let has_active_session = current_session.is_some();
 
@@ -84,7 +78,6 @@ impl ViewModel {
             goals,
             studies,
             sessions,
-            active_session,
             current_session,
             has_active_session,
             can_start_session,

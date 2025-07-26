@@ -41,6 +41,12 @@ pub enum GoalEvent {
     #[serde(skip)]
     #[facet(skip)]
     GoalUpdated(HttpResult<crux_http::Response<PracticeGoal>, crux_http::HttpError>),
+    // Optimistic local events
+    CreateGoalOptimistic(PracticeGoal),
+    UpdateGoalOptimistic(PracticeGoal),
+    // Backward compatibility - local-only events
+    AddGoal(PracticeGoal),
+    EditGoal(PracticeGoal),
 }
 
 impl PracticeGoal {
@@ -137,6 +143,28 @@ pub fn handle_event(event: GoalEvent, model: &mut Model) -> Command<super::Effec
         GoalEvent::GoalUpdated(HttpResult::Err(e)) => {
             return crate::app::handle_http_error(e, "update goal");
         }
+
+        // Optimistic local events - apply immediately, trigger sync later
+        GoalEvent::CreateGoalOptimistic(goal) => {
+            add_goal(goal.clone(), model);
+            // Trigger background sync
+            let api = crate::app::ApiConfig::default();
+            return api.post("/api/goals", &goal, |response| {
+                super::Event::Goal(GoalEvent::GoalCreated(response))
+            });
+        }
+        GoalEvent::UpdateGoalOptimistic(goal) => {
+            edit_goal(goal.clone(), model);
+            // Trigger background sync
+            let api = crate::app::ApiConfig::default();
+            return api.put("/api/goals", &goal, |response| {
+                super::Event::Goal(GoalEvent::GoalUpdated(response))
+            });
+        }
+
+        // Backward compatibility - local-only events
+        GoalEvent::AddGoal(goal) => add_goal(goal, model),
+        GoalEvent::EditGoal(goal) => edit_goal(goal, model),
     }
 
     crux_core::render::render()
