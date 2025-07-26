@@ -116,7 +116,7 @@ struct SessionDetailView: View {
             }
             .foregroundColor(.green)
             
-        case .started:
+        case .started(_):
             Button {
                 let endTime = Date().ISO8601Format()
                 core.update(.session(.endSession(session.id, endTime)))
@@ -129,7 +129,19 @@ struct SessionDetailView: View {
             }
             .foregroundColor(.red)
             
-        case .ended:
+        case .pendingReflection(_, _):
+            Button {
+                // Show reflection form
+                showingReflectionForm = true
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "square.and.pencil")
+                    Text("Complete Reflection")
+                }
+            }
+            .foregroundColor(.orange)
+            
+        case .ended(_, _):
             // No action button for ended sessions, just show completed status
             EmptyView()
         }
@@ -162,9 +174,11 @@ struct SessionDetailView: View {
         switch state {
         case .notStarted:
             return "circle"
-        case .started:
+        case .started(_):
             return "play.circle.fill"
-        case .ended:
+        case .pendingReflection(_, _):
+            return "pause.circle.fill"
+        case .ended(_, _):
             return "checkmark.circle.fill"
         }
     }
@@ -173,9 +187,11 @@ struct SessionDetailView: View {
         switch state {
         case .notStarted:
             return .orange
-        case .started:
+        case .started(_):
             return .green
-        case .ended:
+        case .pendingReflection(_, _):
+            return .orange
+        case .ended(_, _):
             return .blue
         }
     }
@@ -184,9 +200,11 @@ struct SessionDetailView: View {
         switch state {
         case .notStarted:
             return "Ready to start"
-        case .started:
+        case .started(_):
             return "In progress"
-        case .ended:
+        case .pendingReflection(_, _):
+            return "Waiting for reflection"
+        case .ended(_, _):
             return "Completed"
         }
     }

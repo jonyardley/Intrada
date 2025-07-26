@@ -26,6 +26,7 @@ macro_rules! session_data_access {
         match $session {
             PracticeSession::NotStarted(s) => s.data.$accessor(),
             PracticeSession::Started(s) => s.data.$accessor(),
+            PracticeSession::PendingReflection(s) => s.data.$accessor(),
             PracticeSession::Ended(s) => s.data.$accessor(),
         }
     };
@@ -51,6 +52,7 @@ macro_rules! session_data_access_mut {
         match $session {
             PracticeSession::NotStarted(s) => s.data.$accessor(),
             PracticeSession::Started(s) => s.data.$accessor(),
+            PracticeSession::PendingReflection(s) => s.data.$accessor(),
             PracticeSession::Ended(s) => s.data.$accessor(),
         }
     };
@@ -98,6 +100,14 @@ pub fn session_from_view_model(view: PracticeSessionView) -> PracticeSession {
             data: session_data,
             start_time,
         }),
+        SessionState::PendingReflection {
+            start_time,
+            end_time,
+        } => PracticeSession::PendingReflection(PendingReflectionSession {
+            data: session_data,
+            start_time,
+            end_time,
+        }),
         SessionState::Ended {
             start_time,
             end_time,
@@ -112,48 +122,35 @@ pub fn session_from_view_model(view: PracticeSessionView) -> PracticeSession {
 #[derive(Facet, Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[repr(C)]
 pub enum SessionEvent {
-    FetchSessions,
+    // Background sync events (internal only)
     #[serde(skip)]
     #[facet(skip)]
-    SetSessions(
+    SyncSessions,
+    #[serde(skip)]
+    #[facet(skip)]
+    SessionsSynced(
         crate::HttpResult<crux_http::Response<Vec<PracticeSessionView>>, crux_http::HttpError>,
     ),
+    #[serde(skip)]
+    #[facet(skip)]
+    SessionSynced(
+        crate::HttpResult<crux_http::Response<PracticeSessionView>, crux_http::HttpError>,
+    ),
+
+    // Optimistic user actions (all immediate, sync in background)
     CreateSession(PracticeSession),
-    #[serde(skip)]
-    #[facet(skip)]
-    SessionCreated(
-        crate::HttpResult<crux_http::Response<PracticeSessionView>, crux_http::HttpError>,
-    ),
     UpdateSession(PracticeSession),
-    #[serde(skip)]
-    #[facet(skip)]
-    SessionUpdated(
-        crate::HttpResult<crux_http::Response<PracticeSessionView>, crux_http::HttpError>,
-    ),
-    AddSession(PracticeSession),
+    StartSession(String, String),
+    EndSession(String, String),
+    CompleteReflection(String),
     EditSessionFields {
         session_id: String,
         goal_ids: Vec<String>,
         intention: String,
         notes: Option<String>,
     },
-    StartSession(String, String),
-    #[serde(skip)]
-    #[facet(skip)]
-    SessionStarted(
-        crate::HttpResult<crux_http::Response<PracticeSessionView>, crux_http::HttpError>,
-    ),
-    EndSession(String, String),
-    #[serde(skip)]
-    #[facet(skip)]
-    SessionEnded(crate::HttpResult<crux_http::Response<PracticeSessionView>, crux_http::HttpError>),
     EditSessionNotes(String, String),
     RemoveSession(String),
-    // Optimistic local events
-    CreateSessionOptimistic(PracticeSession),
-    UpdateSessionOptimistic(PracticeSession),
-    StartSessionOptimistic(String, String),
-    EndSessionOptimistic(String, String),
 }
 
 impl SessionData {
@@ -209,6 +206,13 @@ pub struct StartedSession {
 }
 
 #[derive(Facet, Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct PendingReflectionSession {
+    pub data: SessionData,
+    pub start_time: String,
+    pub end_time: String,
+}
+
+#[derive(Facet, Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct EndedSession {
     pub data: SessionData,
     pub start_time: String,
@@ -220,6 +224,7 @@ pub struct EndedSession {
 pub enum PracticeSession {
     NotStarted(NotStartedSession),
     Started(StartedSession),
+    PendingReflection(PendingReflectionSession),
     Ended(EndedSession),
 }
 
@@ -247,11 +252,25 @@ impl StartedSession {
         self.data.id()
     }
 
-    pub fn end(self, end_time: String) -> EndedSession {
-        EndedSession {
+    pub fn end(self, end_time: String) -> PendingReflectionSession {
+        PendingReflectionSession {
             data: self.data,
             start_time: self.start_time,
             end_time,
+        }
+    }
+}
+
+impl PendingReflectionSession {
+    pub fn id(&self) -> &str {
+        self.data.id()
+    }
+
+    pub fn complete_reflection(self) -> EndedSession {
+        EndedSession {
+            data: self.data,
+            start_time: self.start_time,
+            end_time: self.end_time,
         }
     }
 }
@@ -269,6 +288,10 @@ pub enum SessionState {
     NotStarted,
     Started {
         start_time: String,
+    },
+    PendingReflection {
+        start_time: String,
+        end_time: String,
     },
     Ended {
         start_time: String,
@@ -333,6 +356,10 @@ impl PracticeSession {
                 *self = PracticeSession::Started(session);
                 Err(SessionError::AlreadyStarted)
             }
+            PracticeSession::PendingReflection(session) => {
+                *self = PracticeSession::PendingReflection(session);
+                Err(SessionError::AlreadyEnded)
+            }
             PracticeSession::Ended(session) => {
                 *self = PracticeSession::Ended(session);
                 Err(SessionError::AlreadyEnded)
@@ -346,11 +373,39 @@ impl PracticeSession {
             PracticeSession::NotStarted(NotStartedSession::new(vec![], String::new())),
         ) {
             PracticeSession::Started(session) => {
-                *self = PracticeSession::Ended(session.end(timestamp));
+                *self = PracticeSession::PendingReflection(session.end(timestamp));
                 Ok(())
             }
             PracticeSession::NotStarted(session) => {
                 *self = PracticeSession::NotStarted(session);
+                Err(SessionError::NotActive)
+            }
+            PracticeSession::PendingReflection(session) => {
+                *self = PracticeSession::PendingReflection(session);
+                Err(SessionError::AlreadyEnded)
+            }
+            PracticeSession::Ended(session) => {
+                *self = PracticeSession::Ended(session);
+                Err(SessionError::AlreadyEnded)
+            }
+        }
+    }
+
+    pub fn complete_reflection(&mut self) -> Result<(), SessionError> {
+        match std::mem::replace(
+            self,
+            PracticeSession::NotStarted(NotStartedSession::new(vec![], String::new())),
+        ) {
+            PracticeSession::PendingReflection(session) => {
+                *self = PracticeSession::Ended(session.complete_reflection());
+                Ok(())
+            }
+            PracticeSession::NotStarted(session) => {
+                *self = PracticeSession::NotStarted(session);
+                Err(SessionError::NotActive)
+            }
+            PracticeSession::Started(session) => {
+                *self = PracticeSession::Started(session);
                 Err(SessionError::NotActive)
             }
             PracticeSession::Ended(session) => {
@@ -373,6 +428,7 @@ impl PracticeSession {
     pub fn start_time(&self) -> Option<&str> {
         match self {
             PracticeSession::Started(session) => Some(session.start_time.as_str()),
+            PracticeSession::PendingReflection(session) => Some(session.start_time.as_str()),
             PracticeSession::Ended(session) => Some(session.start_time.as_str()),
             PracticeSession::NotStarted(_) => None,
         }
@@ -380,6 +436,7 @@ impl PracticeSession {
 
     pub fn end_time(&self) -> Option<&str> {
         match self {
+            PracticeSession::PendingReflection(session) => Some(session.end_time.as_str()),
             PracticeSession::Ended(session) => Some(session.end_time.as_str()),
             PracticeSession::NotStarted(_) | PracticeSession::Started(_) => None,
         }
@@ -387,6 +444,9 @@ impl PracticeSession {
 
     pub fn duration(&self) -> Option<String> {
         match self {
+            PracticeSession::PendingReflection(session) => {
+                calculate_duration(session.start_time.as_str(), session.end_time.as_str())
+            }
             PracticeSession::Ended(session) => {
                 calculate_duration(session.start_time.as_str(), session.end_time.as_str())
             }
@@ -399,6 +459,10 @@ impl PracticeSession {
             PracticeSession::NotStarted(_) => SessionState::NotStarted,
             PracticeSession::Started(s) => SessionState::Started {
                 start_time: s.start_time.clone(),
+            },
+            PracticeSession::PendingReflection(s) => SessionState::PendingReflection {
+                start_time: s.start_time.clone(),
+                end_time: s.end_time.clone(),
             },
             PracticeSession::Ended(s) => SessionState::Ended {
                 start_time: s.start_time.clone(),
@@ -527,6 +591,15 @@ pub fn end_session(
     }
 }
 
+pub fn complete_reflection(session_id: &str, model: &mut Model) -> Result<(), SessionError> {
+    if let Some(session) = get_session_by_id(session_id, model) {
+        session.complete_reflection()?;
+        Ok(())
+    } else {
+        Err(SessionError::NotFound)
+    }
+}
+
 pub fn edit_session_notes(session_id: &str, notes: String, model: &mut Model) {
     if let Some(session) = model.sessions.iter_mut().find(|s| s.id() == session_id) {
         *session_data_access_mut!(session, notes_mut) = Some(notes);
@@ -553,142 +626,60 @@ pub fn handle_event(
     model: &mut Model,
 ) -> Command<super::Effect, super::Event> {
     match event {
-        SessionEvent::FetchSessions => {
+        // Background sync events (internal only)
+        SessionEvent::SyncSessions => {
             let api = crate::app::ApiConfig::default();
             return api.get("/api/sessions", |response| {
-                super::Event::Session(SessionEvent::SetSessions(response))
+                super::Event::Session(SessionEvent::SessionsSynced(response))
             });
         }
-        SessionEvent::SetSessions(crate::HttpResult::Ok(mut response)) => {
+        SessionEvent::SessionsSynced(crate::HttpResult::Ok(mut response)) => {
             let session_views = response.take_body().unwrap();
-            model.sessions = session_views
-                .into_iter()
-                .map(session_from_view_model)
-                .collect();
+            // Merge server sessions with local sessions, preserving local changes
+            merge_sessions_from_server(session_views, model);
         }
-        SessionEvent::SetSessions(crate::HttpResult::Err(e)) => {
-            return crate::app::handle_http_error(e, "fetch sessions");
+        SessionEvent::SessionsSynced(crate::HttpResult::Err(_e)) => {
+            // Silently fail background sync - user doesn't need to know
+            // Could add sync status to model if we want to show sync state later
+        }
+        SessionEvent::SessionSynced(crate::HttpResult::Ok(_response)) => {
+            // Individual session synced successfully - nothing to do
+        }
+        SessionEvent::SessionSynced(crate::HttpResult::Err(_e)) => {
+            // Individual session sync failed - could retry or show status
         }
 
+        // Optimistic user actions (all immediate, sync in background)
         SessionEvent::CreateSession(session) => {
-            // Transform PracticeSession to create request format
+            // Apply immediately to local model
+            add_session(session.clone(), model);
+
+            // Trigger background sync
             let create_request = serde_json::json!({
                 "goal_ids": session.goal_ids(),
                 "intention": session.intention(),
                 "notes": session.notes()
             });
-
             let api = crate::app::ApiConfig::default();
             return api.post("/api/sessions", &create_request, |response| {
-                super::Event::Session(SessionEvent::SessionCreated(response))
+                super::Event::Session(SessionEvent::SessionSynced(response))
             });
         }
-        SessionEvent::SessionCreated(crate::HttpResult::Ok(mut response)) => {
-            let _session_view = response.take_body().unwrap();
-            // Refresh the entire sessions list from server after creation
-            return Command::event(super::Event::Session(SessionEvent::FetchSessions));
-        }
-        SessionEvent::SessionCreated(crate::HttpResult::Err(e)) => {
-            return crate::app::handle_http_error(e, "create session");
-        }
-
         SessionEvent::UpdateSession(session) => {
-            let api = crate::app::ApiConfig::default();
-            return api.put(
-                &format!("/api/sessions/{}", session.id()),
-                &session_view_model(&session),
-                |response| super::Event::Session(SessionEvent::SessionUpdated(response)),
-            );
-        }
-        SessionEvent::SessionUpdated(crate::HttpResult::Ok(mut response)) => {
-            let _session_view = response.take_body().unwrap();
-            // Refresh the entire sessions list from server after update
-            return Command::event(super::Event::Session(SessionEvent::FetchSessions));
-        }
-        SessionEvent::SessionUpdated(crate::HttpResult::Err(e)) => {
-            return crate::app::handle_http_error(e, "update session");
-        }
-
-        SessionEvent::StartSession(session_id, timestamp) => {
-            let start_request = serde_json::json!({
-                "start_time": timestamp
-            });
-
-            let api = crate::app::ApiConfig::default();
-            return api.post(
-                &format!("/api/sessions/{session_id}/start"),
-                &start_request,
-                |response| super::Event::Session(SessionEvent::SessionStarted(response)),
-            );
-        }
-        SessionEvent::SessionStarted(crate::HttpResult::Ok(mut response)) => {
-            let _session_view = response.take_body().unwrap();
-            // Refresh the entire sessions list from server after starting
-            return Command::event(super::Event::Session(SessionEvent::FetchSessions));
-        }
-        SessionEvent::SessionStarted(crate::HttpResult::Err(e)) => {
-            return crate::app::handle_http_error(e, "start session");
-        }
-
-        SessionEvent::EndSession(session_id, timestamp) => {
-            let end_request = serde_json::json!({
-                "end_time": timestamp
-            });
-
-            let api = crate::app::ApiConfig::default();
-            return api.post(
-                &format!("/api/sessions/{session_id}/end"),
-                &end_request,
-                |response| super::Event::Session(SessionEvent::SessionEnded(response)),
-            );
-        }
-        SessionEvent::SessionEnded(crate::HttpResult::Ok(mut response)) => {
-            let _session_view = response.take_body().unwrap();
-            // Refresh the entire sessions list from server after ending
-            return Command::event(super::Event::Session(SessionEvent::FetchSessions));
-        }
-        SessionEvent::SessionEnded(crate::HttpResult::Err(e)) => {
-            return crate::app::handle_http_error(e, "end session");
-        }
-
-        // Local-only events (backward compatibility)
-        SessionEvent::AddSession(session) => add_session(session, model),
-        SessionEvent::EditSessionFields {
-            session_id,
-            goal_ids,
-            intention,
-            notes,
-        } => edit_session_fields(&session_id, goal_ids, intention, notes, model),
-        SessionEvent::EditSessionNotes(session_id, notes) => {
-            edit_session_notes(&session_id, notes, model);
-        }
-        SessionEvent::RemoveSession(session_id) => {
-            remove_session(&session_id, model);
-        }
-
-        // Optimistic local events - apply immediately, trigger sync later
-        SessionEvent::CreateSessionOptimistic(session) => {
-            add_session(session.clone(), model);
-            // Trigger background sync
-            let api = crate::app::ApiConfig::default();
-            return api.post("/api/sessions", &session_view_model(&session), |response| {
-                super::Event::Session(SessionEvent::SessionCreated(response))
-            });
-        }
-        SessionEvent::UpdateSessionOptimistic(session) => {
-            // Update local session by ID
+            // Apply immediately to local model
             if let Some(existing) = model.sessions.iter_mut().find(|s| s.id() == session.id()) {
                 *existing = session.clone();
             }
+
             // Trigger background sync
             let api = crate::app::ApiConfig::default();
             return api.put(
                 &format!("/api/sessions/{}", session.id()),
                 &session_view_model(&session),
-                |response| super::Event::Session(SessionEvent::SessionUpdated(response)),
+                |response| super::Event::Session(SessionEvent::SessionSynced(response)),
             );
         }
-        SessionEvent::StartSessionOptimistic(session_id, timestamp) => {
+        SessionEvent::StartSession(session_id, timestamp) => {
             // Apply optimistically to local model
             if let Err(e) = start_session(&session_id, timestamp.clone(), model) {
                 model.last_error = Some(format!("Failed to start session: {e:?}"));
@@ -701,11 +692,11 @@ pub fn handle_event(
             return api.post(
                 &format!("/api/sessions/{session_id}/start"),
                 &start_request,
-                |response| super::Event::Session(SessionEvent::SessionStarted(response)),
+                |response| super::Event::Session(SessionEvent::SessionSynced(response)),
             );
         }
-        SessionEvent::EndSessionOptimistic(session_id, timestamp) => {
-            // Apply optimistically to local model
+        SessionEvent::EndSession(session_id, timestamp) => {
+            // Apply optimistically to local model - transitions to PendingReflection
             if let Err(e) = end_session(&session_id, timestamp.clone(), model) {
                 model.last_error = Some(format!("Failed to end session: {e:?}"));
                 return crux_core::render::render();
@@ -717,12 +708,101 @@ pub fn handle_event(
             return api.post(
                 &format!("/api/sessions/{session_id}/end"),
                 &end_request,
-                |response| super::Event::Session(SessionEvent::SessionEnded(response)),
+                |response| super::Event::Session(SessionEvent::SessionSynced(response)),
             );
+        }
+        SessionEvent::CompleteReflection(session_id) => {
+            // Apply optimistically to local model - transitions PendingReflection to Ended
+            if let Err(e) = complete_reflection(&session_id, model) {
+                model.last_error = Some(format!("Failed to complete reflection: {e:?}"));
+                return crux_core::render::render();
+            }
+
+            // Trigger background sync
+            if let Some(session) = model.sessions.iter().find(|s| s.id() == session_id) {
+                let api = crate::app::ApiConfig::default();
+                return api.put(
+                    &format!("/api/sessions/{}", session.id()),
+                    &session_view_model(session),
+                    |response| super::Event::Session(SessionEvent::SessionSynced(response)),
+                );
+            }
+        }
+        SessionEvent::EditSessionFields {
+            session_id,
+            goal_ids,
+            intention,
+            notes,
+        } => {
+            // Apply immediately to local model
+            edit_session_fields(
+                &session_id,
+                goal_ids.clone(),
+                intention.clone(),
+                notes.clone(),
+                model,
+            );
+
+            // Trigger background sync
+            if let Some(session) = model.sessions.iter().find(|s| s.id() == session_id) {
+                let api = crate::app::ApiConfig::default();
+                return api.put(
+                    &format!("/api/sessions/{}", session.id()),
+                    &session_view_model(session),
+                    |response| super::Event::Session(SessionEvent::SessionSynced(response)),
+                );
+            }
+        }
+        SessionEvent::EditSessionNotes(session_id, notes) => {
+            // Apply immediately to local model
+            edit_session_notes(&session_id, notes.clone(), model);
+
+            // Trigger background sync
+            if let Some(session) = model.sessions.iter().find(|s| s.id() == session_id) {
+                let api = crate::app::ApiConfig::default();
+                return api.put(
+                    &format!("/api/sessions/{}", session.id()),
+                    &session_view_model(session),
+                    |response| super::Event::Session(SessionEvent::SessionSynced(response)),
+                );
+            }
+        }
+        SessionEvent::RemoveSession(session_id) => {
+            // Apply immediately to local model
+            remove_session(&session_id, model);
+
+            // Trigger background sync
+            let api = crate::app::ApiConfig::default();
+            return api.delete(&format!("/api/sessions/{session_id}"), |response| {
+                super::Event::Session(SessionEvent::SessionSynced(response))
+            });
         }
     }
 
     crux_core::render::render()
+}
+
+// Helper function to merge server sessions with local sessions
+fn merge_sessions_from_server(server_sessions: Vec<PracticeSessionView>, model: &mut Model) {
+    // Simple merge strategy: server sessions override local ones with same ID
+    // More sophisticated conflict resolution could be added here
+    let server_session_ids: std::collections::HashSet<String> =
+        server_sessions.iter().map(|s| s.id.clone()).collect();
+
+    // Keep local sessions that don't exist on server (likely new/pending sync)
+    model
+        .sessions
+        .retain(|local_session| !server_session_ids.contains(local_session.id()));
+
+    // Add/update with server sessions
+    for server_session in server_sessions {
+        let session = session_from_view_model(server_session);
+        if let Some(existing_pos) = model.sessions.iter().position(|s| s.id() == session.id()) {
+            model.sessions[existing_pos] = session;
+        } else {
+            model.sessions.push(session);
+        }
+    }
 }
 
 // *************

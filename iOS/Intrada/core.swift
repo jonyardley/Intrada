@@ -154,6 +154,8 @@ class Core: ObservableObject {
             return .notStarted(NotStartedSession(data: sessionData))
         case .started(let startTime):
             return .started(StartedSession(data: sessionData, startTime: startTime))
+        case .pendingReflection(let startTime, let endTime):
+            return .pendingReflection(PendingReflectionSession(data: sessionData, startTime: startTime, endTime: endTime))
         case .ended(let startTime, let endTime):
             return .ended(EndedSession(data: sessionData, startTime: startTime, endTime: endTime))
         }
@@ -214,6 +216,19 @@ class Core: ObservableObject {
                 duration: nil,
                 startTime: started.startTime,
                 endTime: nil,
+                isEnded: false
+            )
+        case .pendingReflection(let pendingReflection):
+            return PracticeSessionView(
+                id: pendingReflection.data.id,
+                goalIds: pendingReflection.data.goalIds,
+                intention: pendingReflection.data.intention,
+                state: .pendingReflection(start_time: pendingReflection.startTime, end_time: pendingReflection.endTime),
+                notes: pendingReflection.data.notes,
+                studySessions: pendingReflection.data.studySessions,
+                duration: calculateDuration(startTime: pendingReflection.startTime, endTime: pendingReflection.endTime),
+                startTime: pendingReflection.startTime,
+                endTime: pendingReflection.endTime,
                 isEnded: false
             )
         case .ended(let ended):

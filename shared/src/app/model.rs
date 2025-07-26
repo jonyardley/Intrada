@@ -64,6 +64,10 @@ impl ViewModel {
                 SessionState::Started { start_time } => {
                     Some(calculate_elapsed_time_from_start(start_time))
                 }
+                SessionState::PendingReflection {
+                    start_time,
+                    end_time,
+                } => Some(calculate_elapsed_time_between(start_time, end_time)),
                 SessionState::Ended {
                     start_time,
                     end_time,

@@ -29,24 +29,25 @@ pub struct PracticeGoal {
 #[derive(Facet, Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[repr(C)]
 pub enum GoalEvent {
-    FetchGoals,
+    // Background sync events (internal only)
     #[serde(skip)]
     #[facet(skip)]
-    SetGoals(HttpResult<crux_http::Response<Vec<PracticeGoal>>, crux_http::HttpError>),
+    SyncGoals,
+    #[serde(skip)]
+    #[facet(skip)]
+    GoalsSynced(HttpResult<crux_http::Response<Vec<PracticeGoal>>, crux_http::HttpError>),
+    #[serde(skip)]
+    #[facet(skip)]
+    GoalSynced(HttpResult<crux_http::Response<PracticeGoal>, crux_http::HttpError>),
+
+    // Optimistic user actions (all immediate, sync in background)
     CreateGoal(PracticeGoal),
-    #[serde(skip)]
-    #[facet(skip)]
-    GoalCreated(HttpResult<crux_http::Response<PracticeGoal>, crux_http::HttpError>),
     UpdateGoal(PracticeGoal),
-    #[serde(skip)]
-    #[facet(skip)]
-    GoalUpdated(HttpResult<crux_http::Response<PracticeGoal>, crux_http::HttpError>),
-    // Optimistic local events
-    CreateGoalOptimistic(PracticeGoal),
-    UpdateGoalOptimistic(PracticeGoal),
-    // Backward compatibility - local-only events
-    AddGoal(PracticeGoal),
-    EditGoal(PracticeGoal),
+    RemoveGoal(String),
+    AddStudyToGoal {
+        goal_id: String,
+        study_id: String,
+    },
 }
 
 impl PracticeGoal {
@@ -91,22 +92,34 @@ pub fn add_study_to_goal(goal_id: &str, study_id: &str, model: &mut Model) {
 
 pub fn handle_event(event: GoalEvent, model: &mut Model) -> Command<super::Effect, super::Event> {
     match event {
-        GoalEvent::FetchGoals => {
+        // Background sync events (internal only)
+        GoalEvent::SyncGoals => {
             let api = crate::app::ApiConfig::default();
             return api.get("/api/goals", |response| {
-                super::Event::Goal(GoalEvent::SetGoals(response))
+                super::Event::Goal(GoalEvent::GoalsSynced(response))
             });
         }
-        GoalEvent::SetGoals(HttpResult::Ok(mut response)) => {
-            let goals = response.take_body().unwrap();
-            model.goals = goals;
+        GoalEvent::GoalsSynced(HttpResult::Ok(mut response)) => {
+            let server_goals = response.take_body().unwrap();
+            // Merge server goals with local goals, preserving local changes
+            merge_goals_from_server(server_goals, model);
         }
-        GoalEvent::SetGoals(HttpResult::Err(e)) => {
-            return crate::app::handle_http_error(e, "fetch goals");
+        GoalEvent::GoalsSynced(HttpResult::Err(_e)) => {
+            // Silently fail background sync - user doesn't need to know
+        }
+        GoalEvent::GoalSynced(HttpResult::Ok(_response)) => {
+            // Individual goal synced successfully - nothing to do
+        }
+        GoalEvent::GoalSynced(HttpResult::Err(_e)) => {
+            // Individual goal sync failed - could retry or show status
         }
 
+        // Optimistic user actions (all immediate, sync in background)
         GoalEvent::CreateGoal(goal) => {
-            // Transform PracticeGoal to the format the server expects
+            // Apply immediately to local model
+            add_goal(goal.clone(), model);
+
+            // Trigger background sync
             let create_request = serde_json::json!({
                 "name": goal.name,
                 "description": goal.description,
@@ -114,60 +127,67 @@ pub fn handle_event(event: GoalEvent, model: &mut Model) -> Command<super::Effec
                 "study_ids": goal.study_ids,
                 "tempo_target": goal.tempo_target
             });
-
             let api = crate::app::ApiConfig::default();
             return api.post("/api/goals", &create_request, |response| {
-                super::Event::Goal(GoalEvent::GoalCreated(response))
+                super::Event::Goal(GoalEvent::GoalSynced(response))
             });
         }
-        GoalEvent::GoalCreated(HttpResult::Ok(mut response)) => {
-            let _created_goal = response.take_body().unwrap();
-            // Refresh the entire goals list from server after creation
-            return Command::event(super::Event::Goal(GoalEvent::FetchGoals));
-        }
-        GoalEvent::GoalCreated(HttpResult::Err(e)) => {
-            return crate::app::handle_http_error(e, "create goal");
-        }
-
         GoalEvent::UpdateGoal(goal) => {
-            let api = crate::app::ApiConfig::default();
-            return api.put("/api/goals", &goal, |response| {
-                super::Event::Goal(GoalEvent::GoalUpdated(response))
-            });
-        }
-        GoalEvent::GoalUpdated(HttpResult::Ok(mut response)) => {
-            let _updated_goal = response.take_body().unwrap();
-            // Refresh the entire goals list from server after update
-            return Command::event(super::Event::Goal(GoalEvent::FetchGoals));
-        }
-        GoalEvent::GoalUpdated(HttpResult::Err(e)) => {
-            return crate::app::handle_http_error(e, "update goal");
-        }
-
-        // Optimistic local events - apply immediately, trigger sync later
-        GoalEvent::CreateGoalOptimistic(goal) => {
-            add_goal(goal.clone(), model);
-            // Trigger background sync
-            let api = crate::app::ApiConfig::default();
-            return api.post("/api/goals", &goal, |response| {
-                super::Event::Goal(GoalEvent::GoalCreated(response))
-            });
-        }
-        GoalEvent::UpdateGoalOptimistic(goal) => {
+            // Apply immediately to local model
             edit_goal(goal.clone(), model);
+
             // Trigger background sync
             let api = crate::app::ApiConfig::default();
-            return api.put("/api/goals", &goal, |response| {
-                super::Event::Goal(GoalEvent::GoalUpdated(response))
+            return api.put(&format!("/api/goals/{}", goal.id), &goal, |response| {
+                super::Event::Goal(GoalEvent::GoalSynced(response))
             });
         }
+        GoalEvent::RemoveGoal(goal_id) => {
+            // Apply immediately to local model
+            model.goals.retain(|g| g.id != goal_id);
 
-        // Backward compatibility - local-only events
-        GoalEvent::AddGoal(goal) => add_goal(goal, model),
-        GoalEvent::EditGoal(goal) => edit_goal(goal, model),
+            // Trigger background sync
+            let api = crate::app::ApiConfig::default();
+            return api.delete(&format!("/api/goals/{goal_id}"), |response| {
+                super::Event::Goal(GoalEvent::GoalSynced(response))
+            });
+        }
+        GoalEvent::AddStudyToGoal { goal_id, study_id } => {
+            // Apply immediately to local model
+            add_study_to_goal(&goal_id, &study_id, model);
+
+            // Trigger background sync
+            if let Some(goal) = model.goals.iter().find(|g| g.id == goal_id) {
+                let api = crate::app::ApiConfig::default();
+                return api.put(&format!("/api/goals/{}", goal.id), goal, |response| {
+                    super::Event::Goal(GoalEvent::GoalSynced(response))
+                });
+            }
+        }
     }
 
     crux_core::render::render()
+}
+
+// Helper function to merge server goals with local goals
+fn merge_goals_from_server(server_goals: Vec<PracticeGoal>, model: &mut Model) {
+    // Simple merge strategy: server goals override local ones with same ID
+    let server_goal_ids: std::collections::HashSet<String> =
+        server_goals.iter().map(|g| g.id.clone()).collect();
+
+    // Keep local goals that don't exist on server (likely new/pending sync)
+    model
+        .goals
+        .retain(|local_goal| !server_goal_ids.contains(&local_goal.id));
+
+    // Add/update with server goals
+    for server_goal in server_goals {
+        if let Some(existing_pos) = model.goals.iter().position(|g| g.id == server_goal.id) {
+            model.goals[existing_pos] = server_goal;
+        } else {
+            model.goals.push(server_goal);
+        }
+    }
 }
 
 // *************

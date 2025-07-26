@@ -138,6 +138,11 @@ impl SessionRepository {
                 Some(s.start_time.clone()),
                 Some(s.end_time.clone()),
             ),
+            PracticeSession::PendingReflection(s) => (
+                "PendingReflection".to_string(),
+                Some(s.start_time.clone()),
+                Some(s.end_time.clone()),
+            ),
         };
 
         Ok((goal_ids_json, state_str, start_time, end_time))

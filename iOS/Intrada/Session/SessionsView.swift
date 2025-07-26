@@ -70,8 +70,16 @@ struct SessionsView: View {
             }
             .navigationDestination(for: String.self) { sessionId in
                 if let session = core.view.sessions.first(where: { $0.id == sessionId }),
-                   case .started = session.state {
+                   case .started(_) = session.state {
                     ActiveSessionDetailView(core: core, sessionId: sessionId)
+                } else if let session = core.view.sessions.first(where: { $0.id == sessionId }),
+                         case .pendingReflection(_, _) = session.state {
+                    // For PendingReflection, show the reflection form immediately
+                    SessionReflectionForm(
+                        sessionId: sessionId,
+                        core: core,
+                        isPresented: .constant(true)
+                    )
                 } else {
                     SessionDetailView(core: core, sessionId: sessionId)
                 }
@@ -180,7 +188,14 @@ struct SessionRowWithActions: View {
             Button {
                 let startTime = Date().ISO8601Format()
                 print("▶️ SessionsView: Starting session \(session.id) at \(startTime)")
+                print("📊 Current session state before: \(session.state)")
+                
+                // Use local event for immediate UI update, then optimistic sync
                 core.update(.session(.startSession(session.id, startTime)))
+                print("📊 Session count after update: \(core.view.sessions.count)")
+                
+                // Immediately navigate to active session
+                onTap()
             } label: {
                 HStack(spacing: 4) {
                     Image(systemName: "play.fill")
@@ -193,11 +208,12 @@ struct SessionRowWithActions: View {
                 .cornerRadius(6)
             }
             
-        case .started:
+        case .started(_):
             Button {
                 let endTime = Date().ISO8601Format()
                 core.update(.session(.endSession(session.id, endTime)))
-                onSessionEnd(session)
+                // Don't call onSessionEnd here - let the UI handle PendingReflection state
+                onTap() // Navigate to show reflection form
             } label: {
                 HStack(spacing: 4) {
                     Image(systemName: "stop.fill")
@@ -210,7 +226,23 @@ struct SessionRowWithActions: View {
                 .cornerRadius(6)
             }
             
-        case .ended:
+        case .pendingReflection(_, _):
+            Button {
+                // Navigate to reflection form
+                onTap()
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "square.and.pencil")
+                    Text("Reflect")
+                }
+                .foregroundColor(.white)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Color.orange)
+                .cornerRadius(6)
+            }
+            
+        case .ended(_, _):
             // No action button for ended sessions
             EmptyView()
         }

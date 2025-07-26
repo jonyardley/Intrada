@@ -116,11 +116,11 @@ impl App for Chopin {
                 study_session::handle_event(study_session_event, model)
             }
             Event::FetchAll => {
-                // Orchestrate all fetch operations by dispatching individual fetch events
+                // Orchestrate all sync operations by dispatching individual sync events
                 Command::all(vec![
-                    Command::event(Event::Goal(GoalEvent::FetchGoals)),
-                    Command::event(Event::Study(StudyEvent::FetchStudies)),
-                    Command::event(Event::Session(SessionEvent::FetchSessions)),
+                    Command::event(Event::Goal(GoalEvent::SyncGoals)),
+                    Command::event(Event::Study(StudyEvent::SyncStudies)),
+                    Command::event(Event::Session(SessionEvent::SyncSessions)),
                 ])
             }
             Event::Error(error_message) => {

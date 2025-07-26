@@ -146,7 +146,9 @@ private struct SessionStateView: View {
             return "circle"
         case .started:
             return "play.circle.fill"
-        case .ended:
+        case .pendingReflection(_, _):
+            return "pause.circle.fill"
+        case .ended(_, _):
             return "checkmark.circle.fill"
         }
     }
@@ -157,7 +159,9 @@ private struct SessionStateView: View {
             return .gray
         case .started:
             return .green
-        case .ended:
+        case .pendingReflection(_, _):
+            return .orange
+        case .ended(_, _):
             return .blue
         }
     }
@@ -168,7 +172,9 @@ private struct SessionStateView: View {
             return "Ready to start"
         case .started:
             return "In progress"
-        case .ended:
+        case .pendingReflection(_, _):
+            return "Waiting for reflection"
+        case .ended(_, _):
             return "Completed"
         }
     }
