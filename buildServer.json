@@ -12,8 +12,8 @@
 	"argv": [
 		"/opt/homebrew/bin/xcode-build-server"
 	],
-	"workspace": "/Users/jonyardley/Dev/Intrada/iOS/Intrada.xcodeproj/project.xcworkspace",
-	"build_root": "/Users/jonyardley/Library/Developer/Xcode/DerivedData/Intrada-ebspjvtwctcluvdfppcvyxvmwqmk",
+	"workspace": "/Users/jonyardley/Dev/intrada/iOS/Intrada.xcodeproj/project.xcworkspace",
+	"build_root": "/Users/jonyardley/Library/Developer/Xcode/DerivedData/Intrada-erkteydoveerehbmbxmynpeozxmf",
 	"scheme": "Intrada",
 	"kind": "xcode",
 	"env": {

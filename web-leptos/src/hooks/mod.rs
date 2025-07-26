@@ -3,7 +3,7 @@ use reactive_stores::Store;
 
 use crate::core;
 use crate::GlobalState;
-use shared::{DevEvent, Event, ViewModel};
+use shared::{Event, ViewModel};
 
 pub fn use_core(initial_event: Event) -> (ReadSignal<ViewModel>, WriteSignal<Event>) {
     let state = expect_context::<Store<GlobalState>>().get_untracked();
@@ -18,7 +18,13 @@ pub fn use_core(initial_event: Event) -> (ReadSignal<ViewModel>, WriteSignal<Eve
     (view, set_event)
 }
 
-// Helper function to create a Nothing event
+// Helper function to create a FetchAll event
+#[allow(dead_code)]
+pub fn fetch_all_event() -> Event {
+    Event::FetchAll
+}
+
+// Temporary compatibility function
 pub fn nothing_event() -> Event {
-    Event::Dev(DevEvent::Nothing)
+    Event::FetchAll
 }

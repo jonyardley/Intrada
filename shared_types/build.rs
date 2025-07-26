@@ -10,10 +10,12 @@ fn main() -> anyhow::Result<()> {
     println!("cargo:rerun-if-changed=../shared");
 
     let mut typegen = TypeGen::new();
-
     typegen.register_app::<Chopin>()?;
 
     let output_root = PathBuf::from("./generated");
+
+    // Create the output directory if it doesn't exist
+    std::fs::create_dir_all(&output_root)?;
 
     // Generate Swift types for iOS (data structures, events, etc.)
     typegen.swift("SharedTypes", output_root.join("swift"))?;

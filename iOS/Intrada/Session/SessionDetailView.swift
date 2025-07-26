@@ -8,6 +8,7 @@ struct SessionDetailView: View {
     @State private var showingEditForm = false
     @State private var showingReflectionForm = false
     @State private var showingError = false
+    @State private var isLoading = false
     
 
     private var session: PracticeSessionView? {
@@ -30,7 +31,10 @@ struct SessionDetailView: View {
                 }
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
+                    ToolbarItemGroup(placement: .navigationBarTrailing) {
+                        // State transition button
+                        stateTransitionButton(for: session)
+                        
                         Button("Edit") {
                             showingEditForm = true
                         }
@@ -50,11 +54,42 @@ struct SessionDetailView: View {
                         isPresented: $showingReflectionForm
                     )
                 }
+            } else if isLoading {
+                VStack(spacing: 16) {
+                    ProgressView()
+                    Text("Loading session...")
+                        .foregroundColor(.gray)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 Color.clear
                     .onAppear {
                         showingError = true
                     }
+            }
+        }
+        .onAppear {
+            if session == nil {
+                isLoading = true
+                print("🔍 SessionDetailView: Looking for session with ID: \(sessionId)")
+                print("🔍 SessionDetailView: Available sessions: \(core.view.sessions.map { "\($0.id): \($0.intention)" })")
+                
+                // Give the session time to load, then show error if still not found
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                    if session == nil {
+                        print("❌ SessionDetailView: Session \(sessionId) still not found after 3 seconds")
+                        isLoading = false
+                        showingError = true
+                    }
+                }
+            } else {
+                print("✅ SessionDetailView: Found session \(sessionId): \(session!.intention)")
+            }
+        }
+        .onChange(of: core.view.sessions.count) { _ in
+            // Session was loaded
+            if session != nil {
+                isLoading = false
             }
         }
         .alert("Session Not Found", isPresented: $showingError) {
@@ -66,13 +101,112 @@ struct SessionDetailView: View {
         }
     }
     
+    @ViewBuilder
+    private func stateTransitionButton(for session: PracticeSessionView) -> some View {
+        switch session.state {
+        case .notStarted:
+            Button {
+                let startTime = Date().ISO8601Format()
+                core.update(.session(.startSession(session.id, startTime)))
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "play.fill")
+                    Text("Start")
+                }
+            }
+            .foregroundColor(.green)
+            
+        case .started(_):
+            Button {
+                let endTime = Date().ISO8601Format()
+                core.update(.session(.endSession(session.id, endTime)))
+                handleSessionEnd(session)
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "stop.fill")
+                    Text("End")
+                }
+            }
+            .foregroundColor(.red)
+            
+        case .pendingReflection(_, _):
+            Button {
+                // Show reflection form
+                showingReflectionForm = true
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "square.and.pencil")
+                    Text("Complete Reflection")
+                }
+            }
+            .foregroundColor(.orange)
+            
+        case .ended(_, _):
+            // No action button for ended sessions, just show completed status
+            EmptyView()
+        }
+    }
+    
+    private func handleSessionEnd(_ session: PracticeSessionView) {
+        // Show reflection form when session ends
+        showingReflectionForm = true
+    }
+    
     private func sessionHeaderView(session: PracticeSessionView) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(session.intention)
                 .font(.title)
                 .fontWeight(.bold)
+            
+            // Session state indicator
+            HStack {
+                Image(systemName: sessionStateIcon(for: session.state))
+                    .foregroundColor(sessionStateColor(for: session.state))
+                Text(sessionStateDescription(for: session.state))
+                    .font(.subheadline)
+                    .foregroundColor(sessionStateColor(for: session.state))
+            }
         }
         .padding(.horizontal)
+    }
+    
+    private func sessionStateIcon(for state: SessionState) -> String {
+        switch state {
+        case .notStarted:
+            return "circle"
+        case .started(_):
+            return "play.circle.fill"
+        case .pendingReflection(_, _):
+            return "pause.circle.fill"
+        case .ended(_, _):
+            return "checkmark.circle.fill"
+        }
+    }
+    
+    private func sessionStateColor(for state: SessionState) -> Color {
+        switch state {
+        case .notStarted:
+            return .orange
+        case .started(_):
+            return .green
+        case .pendingReflection(_, _):
+            return .orange
+        case .ended(_, _):
+            return .blue
+        }
+    }
+    
+    private func sessionStateDescription(for state: SessionState) -> String {
+        switch state {
+        case .notStarted:
+            return "Ready to start"
+        case .started(_):
+            return "In progress"
+        case .pendingReflection(_, _):
+            return "Waiting for reflection"
+        case .ended(_, _):
+            return "Completed"
+        }
     }
     
     private func sessionSummaryView(session: PracticeSessionView) -> some View {
