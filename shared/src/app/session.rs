@@ -567,6 +567,8 @@ pub fn start_session(
         if current_id != session_id {
             // End the currently started session
             current_started.end(timestamp.clone())?;
+            // Complete reflection to fully end the session
+            current_started.complete_reflection()?;
         }
     }
 
@@ -851,6 +853,9 @@ fn test_end_session() {
     // End the session 30 minutes later
     end_session(&session_id, "2025-05-01T12:30:00Z".to_string(), &mut model).unwrap();
 
+    // Complete reflection to fully end the session
+    complete_reflection(&session_id, &mut model).unwrap();
+
     // Verify session exists and duration is calculated on-demand
     assert_eq!(model.sessions.len(), 1);
     assert_eq!(model.sessions[0].duration(), Some("30m".to_string())); // Now returns Option<String>
@@ -885,6 +890,9 @@ fn test_session_state_transitions() {
 
     // Test end
     assert!(session.end("2025-05-01T12:30:00Z".to_string()).is_ok());
+
+    // Complete reflection to fully end the session
+    assert!(session.complete_reflection().is_ok());
     assert!(session.is_ended());
     assert_eq!(session.end_time(), Some("2025-05-01T12:30:00Z"));
     assert_eq!(session.duration(), Some("30m".to_string()));
@@ -911,6 +919,9 @@ fn test_backward_compatibility() {
 
     // Test after ending
     session.end("2025-05-01T12:30:00Z".to_string()).unwrap();
+
+    // Complete reflection to fully end the session
+    session.complete_reflection().unwrap();
     assert!(matches!(session, PracticeSession::Ended(_)));
     assert_eq!(session.start_time(), Some("2025-05-01T12:00:00Z"));
     assert_eq!(session.end_time(), Some("2025-05-01T12:30:00Z"));
@@ -954,6 +965,9 @@ fn test_session_view_model_conversion() {
 
     // Test Ended session
     session.end("2025-05-01T12:30:00Z".to_string()).unwrap();
+
+    // Complete reflection to fully end the session
+    session.complete_reflection().unwrap();
     let view = session_view_model(&session);
     let converted_back = session_from_view_model(view);
 
@@ -1083,6 +1097,9 @@ fn test_edit_session_fields_preserves_state() {
     // Start and end the session to make it completed
     start_session(&session_id, "2025-05-01T12:00:00Z".to_string(), &mut model).unwrap();
     end_session(&session_id, "2025-05-01T12:30:00Z".to_string(), &mut model).unwrap();
+
+    // Complete reflection to fully end the session
+    complete_reflection(&session_id, &mut model).unwrap();
 
     // Verify the session is ended
     assert!(model.sessions[0].is_ended());
