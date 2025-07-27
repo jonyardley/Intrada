@@ -70,7 +70,7 @@ pub struct ApiConfig {
 impl Default for ApiConfig {
     fn default() -> Self {
         Self {
-            base_url: "http://localhost:3000".to_string(),
+            base_url: "http://127.0.0.1:3000".to_string(),
         }
     }
 }
@@ -127,8 +127,8 @@ mod tests {
     #[test]
     fn test_api_config_url() {
         let config = ApiConfig::default();
-        assert_eq!(config.url("/goals"), "http://localhost:3000/goals");
-        assert_eq!(config.url("goals"), "http://localhost:3000goals");
+        assert_eq!(config.url("/goals"), "http://127.0.0.1:3000/goals");
+        assert_eq!(config.url("goals"), "http://127.0.0.1:3000goals");
     }
 
     #[test]

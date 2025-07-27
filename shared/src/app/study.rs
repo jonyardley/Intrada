@@ -3,7 +3,6 @@ use crate::app::repository::Repository;
 use crate::app::study_session::StudySession;
 use crate::HttpResult;
 use crux_core::Command;
-use crux_http::command::Http;
 use facet::Facet;
 use serde::{Deserialize, Serialize};
 
@@ -17,20 +16,21 @@ pub struct Study {
 #[derive(Facet, Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[repr(C)]
 pub enum StudyEvent {
-    FetchStudies,
+    // Background sync events (internal only)
     #[serde(skip)]
     #[facet(skip)]
-    SetStudies(HttpResult<crux_http::Response<Vec<Study>>, crux_http::HttpError>),
-    UpdateStudies(Vec<Study>),
-    AddStudy(Study),
+    SyncStudies,
     #[serde(skip)]
     #[facet(skip)]
-    StudyCreated(HttpResult<crux_http::Response<Study>, crux_http::HttpError>),
-    EditStudy(Study),
-    AddStudyToGoal {
-        goal_id: String,
-        study_id: String,
-    },
+    StudiesSynced(HttpResult<crux_http::Response<Vec<Study>>, crux_http::HttpError>),
+    #[serde(skip)]
+    #[facet(skip)]
+    StudySynced(HttpResult<crux_http::Response<Study>, crux_http::HttpError>),
+
+    // Optimistic user actions (all immediate, sync in background)
+    CreateStudy(Study),
+    UpdateStudy(Study),
+    RemoveStudy(String),
 }
 
 impl Study {
@@ -64,56 +64,93 @@ pub fn edit_study(study: Study, model: &mut Model) {
 
 pub fn handle_event(event: StudyEvent, model: &mut Model) -> Command<super::Effect, super::Event> {
     match event {
-        StudyEvent::FetchStudies => {
-            return Http::get("http://localhost:3000/studies")
-                .expect_json()
-                .build()
-                .map(Into::into)
-                .then_send(|response| super::Event::Study(StudyEvent::SetStudies(response)));
+        // Background sync events (internal only)
+        StudyEvent::SyncStudies => {
+            let api = crate::app::ApiConfig::default();
+            return api.get("/api/studies", |response| {
+                super::Event::Study(StudyEvent::StudiesSynced(response))
+            });
         }
-        StudyEvent::SetStudies(HttpResult::Ok(mut response)) => {
-            let studies = response.take_body().unwrap();
-            return Command::event(super::Event::Study(StudyEvent::UpdateStudies(studies)));
+        StudyEvent::StudiesSynced(HttpResult::Ok(mut response)) => {
+            let server_studies = response.take_body().unwrap();
+            // Merge server studies with local studies, preserving local changes
+            merge_studies_from_server(server_studies, model);
         }
-        StudyEvent::SetStudies(HttpResult::Err(e)) => {
-            eprintln!("Failed to fetch studies: {e:?}");
-            // TODO: Add proper error handling - show error to user
+        StudyEvent::StudiesSynced(HttpResult::Err(_e)) => {
+            // Silently fail background sync - user doesn't need to know
         }
-        StudyEvent::UpdateStudies(studies) => model.studies = studies,
-        StudyEvent::AddStudy(study) => {
-            // Transform Study to the format the server expects
+        StudyEvent::StudySynced(HttpResult::Ok(_response)) => {
+            // Individual study synced successfully - nothing to do
+        }
+        StudyEvent::StudySynced(HttpResult::Err(_e)) => {
+            // Individual study sync failed - could retry or show status
+        }
+
+        // Optimistic user actions (all immediate, sync in background)
+        StudyEvent::CreateStudy(study) => {
+            // Apply immediately to local model
+            add_study(study.clone(), model);
+
+            // Trigger background sync
             let create_request = serde_json::json!({
                 "name": study.name,
                 "description": study.description
             });
+            let api = crate::app::ApiConfig::default();
+            return api.post("/api/studies", &create_request, |response| {
+                super::Event::Study(StudyEvent::StudySynced(response))
+            });
+        }
+        StudyEvent::UpdateStudy(study) => {
+            // Apply immediately to local model
+            edit_study(study.clone(), model);
 
-            let json_string =
-                serde_json::to_string(&create_request).expect("Failed to serialize JSON");
-            eprintln!("Creating study with JSON: {json_string}");
+            // Trigger background sync
+            let update_request = serde_json::json!({
+                "name": study.name,
+                "description": study.description
+            });
+            let api = crate::app::ApiConfig::default();
+            return api.put(
+                &format!("/api/studies/{}", study.id),
+                &update_request,
+                |response| super::Event::Study(StudyEvent::StudySynced(response)),
+            );
+        }
+        StudyEvent::RemoveStudy(study_id) => {
+            // Apply immediately to local model
+            model.studies.retain(|s| s.id != study_id);
 
-            return Http::post("http://localhost:3000/studies")
-                .header("Content-Type", "application/json")
-                .body(json_string)
-                .expect_json::<Study>()
-                .build()
-                .map(Into::into)
-                .then_send(|response| super::Event::Study(StudyEvent::StudyCreated(response)));
-        }
-        StudyEvent::StudyCreated(HttpResult::Ok(mut response)) => {
-            let created_study = response.take_body().unwrap();
-            add_study(created_study, model);
-        }
-        StudyEvent::StudyCreated(HttpResult::Err(e)) => {
-            eprintln!("Failed to create study: {e:?}");
-            // TODO: Add proper error handling - show error to user
-        }
-        StudyEvent::EditStudy(study) => edit_study(study, model),
-        StudyEvent::AddStudyToGoal { goal_id, study_id } => {
-            super::goal::add_study_to_goal(&goal_id, &study_id, model);
+            // Trigger background sync
+            let api = crate::app::ApiConfig::default();
+            return api.delete(&format!("/api/studies/{study_id}"), |response| {
+                super::Event::Study(StudyEvent::StudySynced(response))
+            });
         }
     }
 
     crux_core::render::render()
+}
+
+// Helper function to merge server studies with local studies
+fn merge_studies_from_server(server_studies: Vec<Study>, model: &mut Model) {
+    // Simple merge strategy: server studies override local ones with same ID
+    let server_study_ids: std::collections::HashSet<String> =
+        server_studies.iter().map(|s| s.id.clone()).collect();
+
+    // Keep local studies that don't exist on server (likely new/pending sync)
+    model
+        .studies
+        .retain(|local_study| !server_study_ids.contains(&local_study.id));
+
+    // Add/update with server studies
+    for server_study in server_studies {
+        if let Some(existing_pos) = model.studies.iter().position(|s| s.id == server_study.id) {
+            model.studies[existing_pos] = server_study;
+        } else {
+            model.studies.push(server_study);
+        }
+    }
 }
 
 // *************
