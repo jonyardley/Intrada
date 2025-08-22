@@ -150,7 +150,7 @@ jobs:
       - name: Build shared_types
         run: cargo build -p shared_types
 
-            - name: Generate Swift bindings
+      - name: Generate Swift bindings
         run: ./typegen.sh
 
       - name: Generate Xcode project
