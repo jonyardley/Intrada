@@ -5,10 +5,8 @@ use axum::{
     routing::get,
     Router,
 };
-use serde::{de::Error as DeError, Deserialize};
-use shared::session::{
-    session_view_model, EndedSession, NotStartedSession, SessionData, StartedSession,
-};
+use serde::Deserialize;
+use shared::session::{session_from_view_model, session_view_model, SessionState};
 use shared::{PracticeSession, PracticeSessionView};
 use sqlx::FromRow;
 use std::sync::Arc;
@@ -35,49 +33,36 @@ impl SessionRow {
     pub fn into_session(self) -> RepositoryResult<PracticeSession> {
         let goal_ids: Vec<String> = serde_json::from_str(&self.goal_ids)?;
 
-        let mut data = SessionData::new(goal_ids, self.intention);
-        // Set notes if present
-        if let Some(notes) = self.notes {
-            *data.notes_mut() = Some(notes);
-        }
-        // Note: We cannot restore the original ID due to private field access
-        // This is a design limitation that would require adding a new constructor to SessionData
-
-        let session = match self.session_state.as_str() {
-            "NotStarted" => PracticeSession::NotStarted(NotStartedSession { data }),
-            "Started" => {
-                let start_time = self.start_time.ok_or_else(|| {
-                    RepositoryError::Serialization(DeError::custom(
-                        "Started session missing start_time",
-                    ))
-                })?;
-                PracticeSession::Started(StartedSession { data, start_time })
-            }
-            "Ended" => {
-                let start_time = self.start_time.ok_or_else(|| {
-                    RepositoryError::Serialization(DeError::custom(
-                        "Ended session missing start_time",
-                    ))
-                })?;
-                let end_time = self.end_time.ok_or_else(|| {
-                    RepositoryError::Serialization(DeError::custom(
-                        "Ended session missing end_time",
-                    ))
-                })?;
-                PracticeSession::Ended(EndedSession {
-                    data,
-                    start_time,
-                    end_time,
-                })
-            }
-            _ => {
-                return Err(RepositoryError::Serialization(DeError::custom(format!(
-                    "Invalid session state: {}",
-                    self.session_state
-                ))))
-            }
+        // Create SessionData with the original database ID using the view model approach
+        let session_view = PracticeSessionView {
+            id: self.id,
+            goal_ids,
+            intention: self.intention,
+            state: match self.session_state.as_str() {
+                "NotStarted" => SessionState::NotStarted,
+                "Started" => SessionState::Started {
+                    start_time: self.start_time.clone().unwrap_or_default(),
+                },
+                "PendingReflection" => SessionState::PendingReflection {
+                    start_time: self.start_time.clone().unwrap_or_default(),
+                    end_time: self.end_time.clone().unwrap_or_default(),
+                },
+                "Ended" => SessionState::Ended {
+                    start_time: self.start_time.clone().unwrap_or_default(),
+                    end_time: self.end_time.clone().unwrap_or_default(),
+                },
+                _ => SessionState::NotStarted,
+            },
+            notes: self.notes.clone(),
+            study_sessions: Vec::new(),
+            duration: None,
+            start_time: self.start_time.clone(),
+            end_time: self.end_time.clone(),
+            is_ended: self.session_state == "Ended",
         };
 
+        // Use the existing session_from_view_model function to preserve the ID
+        let session = session_from_view_model(session_view);
         Ok(session)
     }
 }
