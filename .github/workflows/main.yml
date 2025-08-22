@@ -161,17 +161,50 @@ jobs:
           cd iOS
           xcodegen generate
 
+      - name: Install iOS 18.0 runtime (if needed)
+        run: |
+          # Try to install iOS 18.0 runtime, but don't fail if it's not available
+          if ! xcrun simctl list runtimes | grep -q "iOS 18.0"; then
+            echo "iOS 18.0 runtime not found, attempting to install..."
+            # This may not work on all CI runners, so we'll continue with available runtimes
+            sudo xcodebuild -downloadPlatform iOS -quiet || echo "Failed to download iOS 18.0, continuing with available runtimes"
+          else
+            echo "iOS 18.0 runtime already available"
+          fi
+
       - name: List available simulators
         run: xcrun simctl list devices available
 
       - name: Build iOS app
         run: |
           cd iOS
-          # Try multiple destination strategies for maximum compatibility
-          echo "Attempting iOS simulator build with multiple fallback strategies..."
+          # Try multiple destination strategies prioritizing iOS 17 compatibility
+          echo "Attempting iOS simulator build with iOS 17 compatible simulators..."
           
-          # Strategy 1: Try with a specific simulator name that's commonly available
+          # Strategy 1: Try with iPhone 15 on iOS 17
           if xcodebuild \
+            -project Intrada.xcodeproj \
+            -scheme Intrada \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'platform=iOS Simulator,name=iPhone 15,OS=17.0' \
+            -dry-run \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO &>/dev/null; then
+            
+            echo "Using iPhone 15 with iOS 17.0"
+            xcodebuild \
+              -project Intrada.xcodeproj \
+              -scheme Intrada \
+              -configuration Debug \
+              -sdk iphonesimulator \
+              -destination 'platform=iOS Simulator,name=iPhone 15,OS=17.0' \
+              clean build \
+              CODE_SIGNING_REQUIRED=NO \
+              CODE_SIGNING_ALLOWED=NO
+              
+          # Strategy 2: Try with iPhone 15 (any available iOS version)
+          elif xcodebuild \
             -project Intrada.xcodeproj \
             -scheme Intrada \
             -configuration Debug \
@@ -192,7 +225,7 @@ jobs:
               CODE_SIGNING_REQUIRED=NO \
               CODE_SIGNING_ALLOWED=NO
               
-          # Strategy 2: Try with iPhone 14 as fallback
+          # Strategy 3: Try with iPhone 14
           elif xcodebuild \
             -project Intrada.xcodeproj \
             -scheme Intrada \
@@ -214,12 +247,14 @@ jobs:
               CODE_SIGNING_REQUIRED=NO \
               CODE_SIGNING_ALLOWED=NO
               
-          # Strategy 3: Use any available iPhone simulator by ID
+          # Strategy 4: Find any iOS 17 compatible simulator
           else
-            echo "Finding any available iPhone simulator..."
-            SIMULATOR_ID=$(xcrun simctl list devices available | grep "iPhone" | head -1 | sed -n 's/.*(\([A-F0-9-]*\)).*/\1/p')
-            if [ ! -z "$SIMULATOR_ID" ]; then
-              echo "Using simulator ID: $SIMULATOR_ID"
+            echo "Finding any available iOS 17+ compatible iPhone simulator..."
+            # Look for iOS 17 simulators first
+            SIMULATOR_LINE=$(xcrun simctl list devices available | grep "iPhone" | grep -E "(17\.|18\.)" | head -1)
+            if [ ! -z "$SIMULATOR_LINE" ]; then
+              SIMULATOR_ID=$(echo "$SIMULATOR_LINE" | sed -n 's/.*(\([A-F0-9-]*\)).*/\1/p')
+              echo "Using iOS 17+ simulator ID: $SIMULATOR_ID"
               xcodebuild \
                 -project Intrada.xcodeproj \
                 -scheme Intrada \
@@ -230,8 +265,24 @@ jobs:
                 CODE_SIGNING_REQUIRED=NO \
                 CODE_SIGNING_ALLOWED=NO
             else
-              echo "ERROR: No iPhone simulators available"
-              exit 1
+              # Fallback to any iPhone simulator
+              echo "No iOS 17+ simulators found, trying any iPhone simulator..."
+              SIMULATOR_ID=$(xcrun simctl list devices available | grep "iPhone" | head -1 | sed -n 's/.*(\([A-F0-9-]*\)).*/\1/p')
+              if [ ! -z "$SIMULATOR_ID" ]; then
+                echo "Using fallback simulator ID: $SIMULATOR_ID"
+                xcodebuild \
+                  -project Intrada.xcodeproj \
+                  -scheme Intrada \
+                  -configuration Debug \
+                  -sdk iphonesimulator \
+                  -destination "id=$SIMULATOR_ID" \
+                  clean build \
+                  CODE_SIGNING_REQUIRED=NO \
+                  CODE_SIGNING_ALLOWED=NO
+              else
+                echo "ERROR: No iPhone simulators available"
+                exit 1
+              fi
             fi
           fi
 
