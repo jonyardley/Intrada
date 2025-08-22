@@ -13,8 +13,6 @@ targets:
     platform: iOS
     deploymentTarget: 18.0
     sources: [Intrada]
-    resources: 
-      - Intrada/Config.plist
     dependencies:
       - package: Shared
       - package: SharedTypes

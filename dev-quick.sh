@@ -1,24 +1,11 @@
 #!/bin/bash
+# Quick development startup script for Intrada
+set -e
 
-# Simple script to build and run the Intrada server
-# This script starts PostgreSQL via docker-compose and then runs the server
+echo "🚀 Intrada Quick Dev Start"
+echo "========================="
 
-set -e  # Exit on any error
-
-echo "🚀 Starting Intrada Server..."
-
-# Function to check if Docker is running
-check_docker() {
-    if ! docker info > /dev/null 2>&1; then
-        echo "❌ Docker is not running. Please start Docker and try again."
-        echo "   You can start Docker by:"
-        echo "   - Opening Docker Desktop application"
-        echo "   - Or running: open -a Docker"
-        exit 1
-    fi
-}
-
-# Function to start Docker if it's not running (macOS specific)
+# Function to ensure Docker is running (macOS specific)
 ensure_docker_running() {
     if ! docker info > /dev/null 2>&1; then
         echo "🐳 Docker is not running. Attempting to start Docker Desktop..."
@@ -41,16 +28,16 @@ ensure_docker_running() {
     fi
 }
 
-# Ensure Docker is running
+# Step 0: Ensure Docker is running
+echo "🔄 Checking Docker status..."
 ensure_docker_running
 
-# Start PostgreSQL database
-echo "📦 Starting PostgreSQL database..."
-docker-compose up -d
+# Step 1: Type generation
+echo "🔄 Running type generation..."
+./build-and-typegen.sh
 
-# Wait a moment for the database to be ready
-echo "⏳ Waiting for database to be ready..."
-sleep 3
+# Step 2: Start server in background
+echo "🔄 Starting server..."
 
 # Check if server is already running on port 3000
 if lsof -ti:3000 > /dev/null 2>&1; then
@@ -72,8 +59,21 @@ if lsof -ti:3000 > /dev/null 2>&1; then
     echo "✅ Existing server stopped"
 fi
 
-# Build and run the server
-echo "🔨 Building and running the server..."
-cargo run
+cd server
+cargo run > ../server.log 2>&1 &
+SERVER_PID=$!
+echo "✅ Server started (PID: $SERVER_PID)"
+cd ..
 
-echo "✅ Server startup complete!"
+# Wait for server to initialize
+sleep 3
+
+# Step 3: Build and run iOS app
+echo "🔄 Building and launching iOS app..."
+cd iOS
+./build-and-run.sh
+cd ..
+
+echo "✅ Development environment ready!"
+echo "📋 Server PID: $SERVER_PID (logs: tail -f server.log)"
+echo "📋 To stop server: kill $SERVER_PID"

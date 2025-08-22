@@ -32,7 +32,7 @@ log = "0.4"
 wasm-bindgen = "0.2.100"
 uuid = { version = "1.7.0", features = ["v4", "serde", "js"] }
 chrono = "0.4.41"
-facet = "0.27.16"
+facet = "0.28.0"
 
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
