@@ -158,14 +158,18 @@ jobs:
           cd iOS
           xcodegen generate
 
+      - name: List available simulators
+        run: xcrun simctl list devices available
+
       - name: Build iOS app
         run: |
           cd iOS
+          # Use generic destination that should work with any available iPhone simulator
           xcodebuild \
             -project Intrada.xcodeproj \
             -scheme Intrada \
             -configuration Debug \
-            -destination 'platform=iOS Simulator,name=iPhone 15 Pro,OS=18.0' \
+            -destination 'platform=iOS Simulator,OS=latest' \
             clean build \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
