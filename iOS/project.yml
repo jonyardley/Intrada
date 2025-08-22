@@ -11,7 +11,7 @@ targets:
   Intrada:
     type: application
     platform: iOS
-    deploymentTarget: 26.0
+    deploymentTarget: 18.0
     sources: [Intrada]
     resources: 
       - Intrada/Config.plist
