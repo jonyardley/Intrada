@@ -73,8 +73,8 @@ cd server && cargo run
 # Start web app (CSS build required first)
 cd web-leptos && npm run build:css && npm run dev
 
-# Build iOS app - use helper script
-cd iOS && ./build-and-run.sh
+# Build iOS app
+cd iOS && xcodegen && xcodebuild -project Intrada.xcodeproj -scheme Intrada -destination 'platform=iOS Simulator,name=iPhone 15 Pro,OS=latest' build
 ```
 
 ### 5. Deploy Changes
@@ -110,7 +110,6 @@ cd web-leptos && npm run build:css && npm run build
 - **`core.swift`**: Swift wrapper around Rust core
 - **`http.swift`**: HTTP client implementation
 - **`*View.swift`**: SwiftUI views
-- **`build-and-run.sh`**: Helper script to build and run iOS app
 
 ### Web (`web-leptos/`)
 

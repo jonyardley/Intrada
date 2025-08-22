@@ -76,8 +76,11 @@ git clone https://github.com/jonyardley/intrada.git
 cd intrada
 ./build-and-typegen.sh
 
-# Start development environment
-./dev-start.sh
+# Start server
+cd server && cargo run &
+
+# Start web app (in another terminal)
+cd web-leptos && npm install && npm run dev
 ```
 
 For detailed setup instructions, see **[docs/QUICKSTART.md](docs/QUICKSTART.md)**.
