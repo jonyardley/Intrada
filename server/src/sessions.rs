@@ -96,6 +96,11 @@ pub struct EndSessionRequest {
     pub end_time: String,
 }
 
+#[derive(Deserialize)]
+pub struct CompleteReflectionRequest {
+    pub notes: Option<String>,
+}
+
 // Simple Session repository - following goals/studies pattern
 pub struct SessionRepository {
     db: Database,
@@ -313,7 +318,7 @@ async fn get_session(
 async fn update_session(
     State(session_repo): State<Arc<SessionRepository>>,
     Path(id): Path<String>,
-    Json(_req): Json<UpdateSessionRequest>,
+    Json(req): Json<UpdateSessionRequest>,
 ) -> Result<Json<PracticeSessionView>, (StatusCode, Json<ApiError>)> {
     // Get existing session
     let existing_session = session_repo
@@ -321,7 +326,7 @@ async fn update_session(
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(e.into())))?;
 
-    let existing_session = match existing_session {
+    let mut session = match existing_session {
         Some(session) => session,
         None => {
             return Err((
@@ -333,21 +338,69 @@ async fn update_session(
         }
     };
 
-    // Update fields if provided (this is complex due to the type-state design)
-    // For now, we'll implement a basic update that preserves the session state
-    // but updates the core data fields
+    // Update fields if provided - update the session data in place
+    // This preserves the session state while updating the core data fields
+    if let Some(notes) = req.notes {
+        // Update notes in the session data
+        match &mut session {
+            PracticeSession::NotStarted(s) => {
+                *s.data.notes_mut() = Some(notes);
+            }
+            PracticeSession::Started(s) => {
+                *s.data.notes_mut() = Some(notes);
+            }
+            PracticeSession::PendingReflection(s) => {
+                *s.data.notes_mut() = Some(notes);
+            }
+            PracticeSession::Ended(s) => {
+                *s.data.notes_mut() = Some(notes);
+            }
+        }
+    }
 
-    // This requires implementing edit_session_fields logic here
-    // We'll need to modify the SessionData within the enum variants
-    // Due to the complexity of the type-state pattern, this may require
-    // a refactor of the session editing approach or additional helper methods
+    if let Some(intention) = req.intention {
+        // Update intention in the session data
+        match &mut session {
+            PracticeSession::NotStarted(s) => {
+                *s.data.intention_mut() = intention;
+            }
+            PracticeSession::Started(s) => {
+                *s.data.intention_mut() = intention;
+            }
+            PracticeSession::PendingReflection(s) => {
+                *s.data.intention_mut() = intention;
+            }
+            PracticeSession::Ended(s) => {
+                *s.data.intention_mut() = intention;
+            }
+        }
+    }
 
+    if let Some(goal_ids) = req.goal_ids {
+        // Update goal_ids in the session data
+        match &mut session {
+            PracticeSession::NotStarted(s) => {
+                *s.data.goal_ids_mut() = goal_ids;
+            }
+            PracticeSession::Started(s) => {
+                *s.data.goal_ids_mut() = goal_ids;
+            }
+            PracticeSession::PendingReflection(s) => {
+                *s.data.goal_ids_mut() = goal_ids;
+            }
+            PracticeSession::Ended(s) => {
+                *s.data.goal_ids_mut() = goal_ids;
+            }
+        }
+    }
+
+    // Save the updated session
     session_repo
-        .update(&existing_session)
+        .update(&session)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(e.into())))?;
 
-    Ok(Json(session_view_model(&existing_session)))
+    Ok(Json(session_view_model(&session)))
 }
 
 async fn start_session(
@@ -430,6 +483,64 @@ async fn end_session(
     Ok(Json(session_view_model(&session)))
 }
 
+async fn complete_reflection(
+    State(session_repo): State<Arc<SessionRepository>>,
+    Path(id): Path<String>,
+    Json(req): Json<CompleteReflectionRequest>,
+) -> Result<Json<PracticeSessionView>, (StatusCode, Json<ApiError>)> {
+    let session = session_repo
+        .find_by_id(&id)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(e.into())))?;
+
+    let mut session = match session {
+        Some(session) => session,
+        None => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(ApiError {
+                    message: "Session not found".to_string(),
+                }),
+            ));
+        }
+    };
+
+    // Update notes if provided
+    if let Some(notes) = req.notes {
+        match &mut session {
+            PracticeSession::NotStarted(s) => {
+                *s.data.notes_mut() = Some(notes);
+            }
+            PracticeSession::Started(s) => {
+                *s.data.notes_mut() = Some(notes);
+            }
+            PracticeSession::PendingReflection(s) => {
+                *s.data.notes_mut() = Some(notes);
+            }
+            PracticeSession::Ended(s) => {
+                *s.data.notes_mut() = Some(notes);
+            }
+        }
+    }
+
+    // Complete the reflection (transitions PendingReflection -> Ended)
+    session.complete_reflection().map_err(|e| {
+        (
+            StatusCode::BAD_REQUEST,
+            Json(ApiError {
+                message: e.to_string(),
+            }),
+        )
+    })?;
+
+    session_repo
+        .update(&session)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(e.into())))?;
+
+    Ok(Json(session_view_model(&session)))
+}
+
 async fn delete_session(
     State(session_repo): State<Arc<SessionRepository>>,
     Path(id): Path<String>,
@@ -460,6 +571,10 @@ pub fn routes() -> Router<Arc<SessionRepository>> {
         )
         .route("/sessions/{id}/start", axum::routing::post(start_session))
         .route("/sessions/{id}/end", axum::routing::post(end_session))
+        .route(
+            "/sessions/{id}/complete",
+            axum::routing::post(complete_reflection),
+        )
 }
 
 // *************
