@@ -167,16 +167,73 @@ jobs:
       - name: Build iOS app
         run: |
           cd iOS
-          # Build for iOS simulator - use the most compatible approach
-          xcodebuild \
+          # Try multiple destination strategies for maximum compatibility
+          echo "Attempting iOS simulator build with multiple fallback strategies..."
+          
+          # Strategy 1: Try with a specific simulator name that's commonly available
+          if xcodebuild \
             -project Intrada.xcodeproj \
             -scheme Intrada \
             -configuration Debug \
             -sdk iphonesimulator \
-            -destination 'generic/platform=iOS Simulator' \
-            clean build \
+            -destination 'platform=iOS Simulator,name=iPhone 15' \
+            -dry-run \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO
+            CODE_SIGNING_ALLOWED=NO &>/dev/null; then
+            
+            echo "Using iPhone 15 simulator"
+            xcodebuild \
+              -project Intrada.xcodeproj \
+              -scheme Intrada \
+              -configuration Debug \
+              -sdk iphonesimulator \
+              -destination 'platform=iOS Simulator,name=iPhone 15' \
+              clean build \
+              CODE_SIGNING_REQUIRED=NO \
+              CODE_SIGNING_ALLOWED=NO
+              
+          # Strategy 2: Try with iPhone 14 as fallback
+          elif xcodebuild \
+            -project Intrada.xcodeproj \
+            -scheme Intrada \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'platform=iOS Simulator,name=iPhone 14' \
+            -dry-run \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO &>/dev/null; then
+            
+            echo "Using iPhone 14 simulator"
+            xcodebuild \
+              -project Intrada.xcodeproj \
+              -scheme Intrada \
+              -configuration Debug \
+              -sdk iphonesimulator \
+              -destination 'platform=iOS Simulator,name=iPhone 14' \
+              clean build \
+              CODE_SIGNING_REQUIRED=NO \
+              CODE_SIGNING_ALLOWED=NO
+              
+          # Strategy 3: Use any available iPhone simulator by ID
+          else
+            echo "Finding any available iPhone simulator..."
+            SIMULATOR_ID=$(xcrun simctl list devices available | grep "iPhone" | head -1 | sed -n 's/.*(\([A-F0-9-]*\)).*/\1/p')
+            if [ ! -z "$SIMULATOR_ID" ]; then
+              echo "Using simulator ID: $SIMULATOR_ID"
+              xcodebuild \
+                -project Intrada.xcodeproj \
+                -scheme Intrada \
+                -configuration Debug \
+                -sdk iphonesimulator \
+                -destination "id=$SIMULATOR_ID" \
+                clean build \
+                CODE_SIGNING_REQUIRED=NO \
+                CODE_SIGNING_ALLOWED=NO
+            else
+              echo "ERROR: No iPhone simulators available"
+              exit 1
+            fi
+          fi
 
   # PARKED - Web build job disabled while Leptos web app development is paused
   # web:
