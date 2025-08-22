@@ -82,6 +82,7 @@ impl ApiConfig {
     }
 }
 
+impl ApiConfig {
     /// Constructs a full URL from a path
     pub fn url(&self, path: &str) -> String {
         format!("{}{}", self.base_url, path)
