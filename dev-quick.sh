@@ -32,6 +32,19 @@ ensure_docker_running() {
 echo "🔄 Checking Docker status..."
 ensure_docker_running
 
+# Step 0.5: Ensure PostgreSQL database is running
+echo "🔄 Starting PostgreSQL database..."
+cd server
+if docker-compose up -d; then
+    echo "✅ PostgreSQL database started"
+    echo "⏳ Waiting for database to be ready..."
+    sleep 5
+else
+    echo "❌ Failed to start PostgreSQL database"
+    exit 1
+fi
+cd ..
+
 # Step 1: Type generation
 echo "🔄 Running type generation..."
 ./build-and-typegen.sh
