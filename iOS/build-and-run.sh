@@ -1,8 +1,8 @@
 #!/bin/bash
 set -e
 
-# Auto-detect the iPhone 16 simulator device ID
-DEVICE_ID=$(xcrun simctl list devices | grep "iPhone 16 (" | grep -v Plus | grep -v Pro | head -1 | grep -o '([A-F0-9-]*)' | tr -d '()')
+# Auto-detect the iPhone 16 simulator device ID (prefer iOS 26)
+DEVICE_ID=$(xcrun simctl list devices | grep -A 20 "iOS 26" | grep "iPhone 16 (" | grep -v Plus | grep -v Pro | head -1 | grep -o '([A-F0-9-]*)' | tr -d '()')
 BUNDLE_ID="com.jonyardley.Intrada"
 
 if [ -z "$DEVICE_ID" ]; then
@@ -16,7 +16,7 @@ echo "🏗️  Building app..."
 xcodebuild -project Intrada.xcodeproj \
            -scheme Intrada \
            -configuration Debug \
-           -destination 'platform=iOS Simulator,name=iPhone 16' \
+           -destination "id=$DEVICE_ID" \
            -sdk iphonesimulator \
            build -quiet
 
