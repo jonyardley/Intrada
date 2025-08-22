@@ -48,14 +48,14 @@ cargo xtask rebuild --logs
 **💡 Pro Tip**: Add a shell alias for shorter commands:
 ```bash
 # Add to your shell config (~/.bashrc, ~/.zshrc, ~/.config/fish/config.fish):
-alias cx="cargo xtask"
+alias xt="cargo xtask"
 
 # Then use the shorter syntax:
-cx setup                      # instead of: cargo xtask setup
-cx start --logs               # instead of: cargo xtask start --logs
-cx rebuild --logs             # instead of: cargo xtask rebuild --logs
-cx doctor                     # instead of: cargo xtask doctor
-cx clean all                  # instead of: cargo xtask clean all
+xt setup                      # instead of: cargo xtask setup
+xt start --logs               # instead of: cargo xtask start --logs
+xt rebuild --logs             # instead of: cargo xtask rebuild --logs
+xt doctor                     # instead of: cargo xtask doctor
+xt clean all                  # instead of: cargo xtask clean all
 ```
 
 **🚀 Quick Setup with Alias:**
@@ -63,9 +63,9 @@ cx clean all                  # instead of: cargo xtask clean all
 # Clone and setup with alias
 git clone https://github.com/jonyardley/intrada.git
 cd intrada
-alias cx="cargo xtask"       # Add this to your shell config for persistence
-cx setup                     # One-time setup
-cx start --logs              # Start development with live logs
+alias xt="cargo xtask"       # Add this to your shell config for persistence
+xt setup                     # One-time setup
+xt start --logs              # Start development with live logs
 ```
 
 ### Option 2: Manual Setup

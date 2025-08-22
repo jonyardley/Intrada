@@ -18,12 +18,12 @@ cargo xtask --help
 **💡 Pro Tip**: Add a shell alias for shorter commands:
 ```bash
 # Add to your ~/.bashrc, ~/.zshrc, or equivalent:
-alias cx="cargo xtask"
+alias xt="cargo xtask"
 
 # Then use the shorter syntax:
-cx --help
-cx setup
-cx start --logs
+xt --help
+xt setup
+xt start --logs
 ```
 
 ## Usage
@@ -31,19 +31,19 @@ cx start --logs
 ### Quick Start
 ```bash
 # Initial setup (first time only)
-cargo xtask setup    # or: cx setup
+cargo xtask setup    # or: xt setup
 
 # Start development environment
-cargo xtask start    # or: cx start
+cargo xtask start    # or: xt start
 
 # Start with live log streaming
-cargo xtask start --logs    # or: cx start --logs
+cargo xtask start --logs    # or: xt start --logs
 
 # Quick start (skip type generation)
-cargo xtask quick --logs    # or: cx quick --logs
+cargo xtask quick --logs    # or: xt quick --logs
 
 # Clean rebuild and start (when you need a fresh build)
-cargo xtask rebuild --logs  # or: cx rebuild --logs
+cargo xtask rebuild --logs  # or: xt rebuild --logs
 ```
 
 ### Database Management
@@ -217,7 +217,7 @@ This approach replaces multiple shell scripts with a unified cargo-xtask interfa
 - **Cross-platform**: Rust-based, works on any platform
 - **Type-safe**: Compile-time validation of command structure
 - **Zero installation**: No need to install CLI tools, just use cargo
-- **Shell alias friendly**: Use `alias cx="cargo xtask"` for shorter commands
+- **Shell alias friendly**: Use `alias xt="cargo xtask"` for shorter commands
 
 ## Core Development
 
