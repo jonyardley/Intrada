@@ -106,6 +106,9 @@ jobs:
         with:
           xcode-version: '16.0'
 
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_16.0.app/Contents/Developer
+
       - name: Setup Rust
         uses: ./.github/actions/setup-rust
         with:
@@ -164,12 +167,13 @@ jobs:
       - name: Build iOS app
         run: |
           cd iOS
-          # Use generic destination that should work with any available iPhone simulator
+          # Build for iOS simulator - use the most compatible approach
           xcodebuild \
             -project Intrada.xcodeproj \
             -scheme Intrada \
             -configuration Debug \
-            -destination 'platform=iOS Simulator,OS=latest' \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
             clean build \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
