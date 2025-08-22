@@ -81,13 +81,13 @@ jobs:
         run: cargo nextest run --workspace
 
       - name: Build release server binary
-        run: cargo build --release --bin intrada-server
+        run: cargo build --release --bin server
 
       - name: Upload server binary
         uses: actions/upload-artifact@v4
         with:
           name: server-binary
-          path: target/release/intrada-server
+          path: target/release/server
           retention-days: 1
 
   # iOS build - only when iOS code changes
@@ -150,7 +150,7 @@ jobs:
       - name: Build shared_types
         run: cargo build -p shared_types
 
-      - name: Generate Swift bindings
+            - name: Generate Swift bindings
         run: ./typegen.sh
 
       - name: Generate Xcode project
@@ -165,7 +165,7 @@ jobs:
             -project Intrada.xcodeproj \
             -scheme Intrada \
             -configuration Debug \
-            -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=latest' \
+            -destination 'platform=iOS Simulator,name=iPhone 15 Pro,OS=18.0' \
             clean build \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
@@ -279,8 +279,8 @@ jobs:
 
       - name: Copy binary to server directory for Docker context
         run: |
-          cp intrada-server ./server/
-          chmod +x ./server/intrada-server
+          cp server ./server/
+          chmod +x ./server/server
 
       - name: Setup flyctl
         uses: superfly/flyctl-actions/setup-flyctl@master

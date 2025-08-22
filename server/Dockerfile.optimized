@@ -11,9 +11,9 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 # Copy the pre-built binary directly
-COPY intrada-server /usr/local/bin/intrada-server
+COPY server /usr/local/bin/server
 
 # Ensure binary is executable
-RUN chmod +x /usr/local/bin/intrada-server
+RUN chmod +x /usr/local/bin/server
 
-ENTRYPOINT ["/usr/local/bin/intrada-server"]
+ENTRYPOINT ["/usr/local/bin/server"]
