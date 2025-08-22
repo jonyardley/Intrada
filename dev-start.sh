@@ -84,6 +84,27 @@ fi
 
 # Step 2: Start the server in background
 print_step "Starting server..."
+
+# Check if server is already running on port 3000
+if lsof -ti:3000 > /dev/null 2>&1; then
+    EXISTING_PID=$(lsof -ti:3000)
+    print_warning "Server is already running on port 3000 (PID: $EXISTING_PID)"
+    print_step "Stopping existing server..."
+    kill $EXISTING_PID 2>/dev/null || true
+    
+    # Wait a moment for the process to stop
+    sleep 2
+    
+    # Check if it's still running and force kill if necessary
+    if kill -0 $EXISTING_PID 2>/dev/null; then
+        print_step "Force stopping server..."
+        kill -9 $EXISTING_PID 2>/dev/null || true
+        sleep 1
+    fi
+    
+    print_success "Existing server stopped"
+fi
+
 cd server
 
 # Check if server binary exists
@@ -109,6 +130,8 @@ else
 fi
 
 cd ..
+
+
 
 # Step 3: Build and run iOS app
 print_step "Building and launching iOS app..."

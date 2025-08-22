@@ -38,6 +38,27 @@ echo "🔄 Running type generation..."
 
 # Step 2: Start server in background
 echo "🔄 Starting server..."
+
+# Check if server is already running on port 3000
+if lsof -ti:3000 > /dev/null 2>&1; then
+    EXISTING_PID=$(lsof -ti:3000)
+    echo "⚠️  Server is already running on port 3000 (PID: $EXISTING_PID)"
+    echo "🔄 Stopping existing server..."
+    kill $EXISTING_PID 2>/dev/null || true
+    
+    # Wait a moment for the process to stop
+    sleep 2
+    
+    # Check if it's still running and force kill if necessary
+    if kill -0 $EXISTING_PID 2>/dev/null; then
+        echo "🔄 Force stopping server..."
+        kill -9 $EXISTING_PID 2>/dev/null || true
+        sleep 1
+    fi
+    
+    echo "✅ Existing server stopped"
+fi
+
 cd server
 cargo run > ../server.log 2>&1 &
 SERVER_PID=$!
