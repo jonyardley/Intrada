@@ -841,8 +841,10 @@ fn build_and_run_ios() -> Result<()> {
             // Extract UUID from parentheses
             line.split('(').nth(1)?.split(')').next()
         })
-        .unwrap_or("booted")
-        .to_string();
+        .map(|s| s.to_string())
+        .ok_or_else(|| {
+            anyhow::anyhow!("No iPhone simulator found. Please install iOS simulators via Xcode.")
+        })?;
 
     print_info(&format!("Using simulator: {simulator_id}"));
 
@@ -871,23 +873,56 @@ fn build_and_run_ios() -> Result<()> {
         .args(["simctl", "boot", &simulator_id])
         .output();
 
-    // Install app (assuming build output location)
-    let _ = Command::new("xcrun")
-        .args([
-            "simctl",
-            "install",
-            &simulator_id,
-            "build/Release-iphonesimulator/Intrada.app",
-        ])
-        .current_dir("iOS")
-        .output();
+    // Give simulator time to boot
+    thread::sleep(Duration::from_secs(3));
 
-    // Launch app
-    run_command(
-        "xcrun",
-        &["simctl", "launch", &simulator_id, bundle_id],
-        None,
-    )?;
+    // Find the built app bundle in DerivedData (like build-and-run.sh does)
+    let home_dir = std::env::var("HOME").unwrap_or_default();
+    let derived_data_path = format!("{home_dir}/Library/Developer/Xcode/DerivedData");
+
+    let app_path = std::fs::read_dir(&derived_data_path)
+        .ok()
+        .and_then(|entries| {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_dir() && path.file_name()?.to_str()?.starts_with("Intrada-") {
+                    let app_path = path.join("Build/Products/Debug-iphonesimulator/Intrada.app");
+                    if app_path.exists() {
+                        return Some(app_path);
+                    }
+                }
+            }
+            None
+        });
+
+    if let Some(app_path) = app_path {
+        print_info(&format!("Found app at: {}", app_path.display()));
+
+        // Install the app on the simulator
+        print_info("Installing app on simulator...");
+        run_command(
+            "xcrun",
+            &[
+                "simctl",
+                "install",
+                &simulator_id,
+                &app_path.to_string_lossy(),
+            ],
+            None,
+        )?;
+
+        // Give installation time to complete
+        thread::sleep(Duration::from_secs(2));
+
+        // Launch app
+        run_command(
+            "xcrun",
+            &["simctl", "launch", &simulator_id, bundle_id],
+            None,
+        )?;
+    } else {
+        anyhow::bail!("Could not find built Intrada.app bundle in DerivedData. Make sure the build completed successfully.");
+    }
 
     print_success("iOS app launched successfully");
     Ok(())

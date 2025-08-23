@@ -328,18 +328,18 @@ struct SessionsView: View {
                 }
             }
             .navigationDestination(for: String.self) { sessionId in
-                if let session = core.view.sessions.first(where: { $0.id == sessionId }),
-                   case .started(_) = session.state {
-                    ActiveSessionDetailView(core: core, sessionId: sessionId)
-                } else if let session = core.view.sessions.first(where: { $0.id == sessionId }),
-                         case .pendingReflection(_, _) = session.state {
-                    // For PendingReflection, show the reflection form immediately
-                    SessionReflectionForm(
-                        sessionId: sessionId,
-                        core: core,
-                        isPresented: .constant(true)
-                    )
+                if let session = core.view.sessions.first(where: { $0.id == sessionId }) {
+                    switch session.state {
+                    case .started(_), .pendingReflection(_, _):
+                        // Keep showing ActiveSessionDetailView for both started and pendingReflection states
+                        // This allows the reflection sheet to be properly presented from the active view
+                        ActiveSessionDetailView(core: core, sessionId: sessionId)
+                    default:
+                        // For notStarted and ended states, show SessionDetailView
+                        SessionDetailView(core: core, sessionId: sessionId)
+                    }
                 } else {
+                    // Fallback for unknown session
                     SessionDetailView(core: core, sessionId: sessionId)
                 }
             }
@@ -464,7 +464,8 @@ struct SessionRowWithActions: View {
         case .started(_):
             Button {
                 viewModel.endSession(session)
-                onTap() // Navigate to show reflection form
+                // Let the onSessionEnd callback handle the reflection form presentation
+                onSessionEnd(session)
             } label: {
                 HStack(spacing: 4) {
                     Image(systemName: "stop.fill")

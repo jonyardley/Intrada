@@ -48,6 +48,18 @@ struct ActiveSessionDetailView: View {
         } message: {
             Text(errorMessage)
         }
+        .onAppear {
+            // If session is already in pendingReflection state when view appears, show reflection form
+            if let session = session, case .pendingReflection(_, _) = session.state {
+                showingReflectionForm = true
+            }
+        }
+        .onChange(of: session?.state) { newState in
+            // Also handle state changes while the view is active
+            if let newState = newState, case .pendingReflection(_, _) = newState {
+                showingReflectionForm = true
+            }
+        }
     }
 }
 

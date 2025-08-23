@@ -109,11 +109,9 @@ struct SessionFormView: View {
                         core.update(.session(.createSession(session)))
                         isPresented = false
                         
-                        // Add a longer delay to allow the session to sync back from the server
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                            print("🚀 SessionFormView: Triggering navigation to session: \(sessionId)")
-                            onSessionCreated?(sessionId)
-                        }
+                        // Navigate immediately - session creation is optimistic and available instantly
+                        print("🚀 SessionFormView: Triggering navigation to session: \(sessionId)")
+                        onSessionCreated?(sessionId)
                     }
                 }
                     .disabled(intention.isEmpty)
