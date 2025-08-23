@@ -389,7 +389,8 @@ jobs:
 
       - name: Copy binary to server directory for Docker context
         run: |
-          cp server ./server/
+          ls -la  # Debug: show what was downloaded
+          cp server ./server/server
           chmod +x ./server/server
 
       - name: Setup flyctl
