@@ -114,11 +114,12 @@ impl GoalRepository {
     }
 
     pub async fn find_by_id(&self, id: &str) -> RepositoryResult<Option<PracticeGoal>> {
-        let row = sqlx::query_as::<_, GoalRow>(
+        let row = sqlx::query_as!(
+            GoalRow,
             "SELECT id, name, description, status, start_date, target_date, study_ids, tempo_target 
-             FROM goals WHERE id = $1"
+             FROM goals WHERE id = $1",
+            id
         )
-        .bind(id)
         .fetch_optional(&self.db.pool)
         .await?;
 
@@ -129,7 +130,8 @@ impl GoalRepository {
     }
 
     pub async fn find_all(&self) -> RepositoryResult<Vec<PracticeGoal>> {
-        let rows = sqlx::query_as::<_, GoalRow>(
+        let rows = sqlx::query_as!(
+            GoalRow,
             "SELECT id, name, description, status, start_date, target_date, study_ids, tempo_target 
              FROM goals ORDER BY created_at DESC"
         )
@@ -183,11 +185,13 @@ impl GoalRepository {
 
     // Domain-specific methods - no trait constraints
     pub async fn _find_by_status(&self, status: GoalStatus) -> RepositoryResult<Vec<PracticeGoal>> {
-        let rows = sqlx::query_as::<_, GoalRow>(
+        let status_str = Self::status_to_string(&status);
+        let rows = sqlx::query_as!(
+            GoalRow,
             "SELECT id, name, description, status, start_date, target_date, study_ids, tempo_target 
-             FROM goals WHERE status = $1 ORDER BY created_at DESC"
+             FROM goals WHERE status = $1 ORDER BY created_at DESC",
+            status_str
         )
-        .bind(Self::status_to_string(&status))
         .fetch_all(&self.db.pool)
         .await?;
 
@@ -199,11 +203,13 @@ impl GoalRepository {
     }
 
     pub async fn _find_by_study_id(&self, study_id: &str) -> RepositoryResult<Vec<PracticeGoal>> {
-        let rows = sqlx::query_as::<_, GoalRow>(
+        let study_pattern = format!("%\"{study_id}\"%");
+        let rows = sqlx::query_as!(
+            GoalRow,
             "SELECT id, name, description, status, start_date, target_date, study_ids, tempo_target 
-             FROM goals WHERE study_ids LIKE $1 ORDER BY created_at DESC"
+             FROM goals WHERE study_ids LIKE $1 ORDER BY created_at DESC",
+            study_pattern
         )
-        .bind(format!("%\"{study_id}\"%"))
         .fetch_all(&self.db.pool)
         .await?;
 

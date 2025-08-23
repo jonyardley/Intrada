@@ -129,14 +129,14 @@ echo "✅ All validations passed!"
 - **TypeScript**: Can generate TypeScript types for web (currently commented out)
 - **Process**: Run after making changes to shared Rust types to keep platform bindings in sync
 
-### Type-State State Machines
-- **Critical Pattern**: Use type-state pattern for state machines to catch invalid transitions at compile time
-- **Example**: `PracticeSession` enum with `NotStarted`, `Started`, and `Ended` variants
-- **Benefits**: Invalid state transitions become compile-time errors rather than runtime bugs
-- **iOS Safety**: The iOS app catches bad transitions at compile time, not runtime
-- **Implementation**: Each state is a distinct type with state-specific methods and data
-- **Pattern**: State-specific structs + enum wrapper + consuming transition methods
-- **Key Insight**: Invalid transitions like "start an already started session" are impossible to express
+### Session State Management
+- **Simple Pattern**: Use struct + state enum approach for clear, maintainable state management
+- **Example**: `PracticeSession` struct with `state: SessionState` field
+- **Benefits**: Runtime validation with simple, readable code that's consistent with other entities
+- **iOS Safety**: Clear error messages and proper validation prevent invalid user actions
+- **Implementation**: Single struct with state enum + validation methods
+- **Pattern**: Direct field access + runtime validation in transition methods  
+- **Key Insight**: Balance simplicity with safety - runtime validation is sufficient for user-driven state changes
 
 ### Event Structure Organization
 - **Domain-Specific Events**: Events are organized by domain within their respective modules
@@ -170,8 +170,8 @@ echo "✅ All validations passed!"
 - Use SwiftUI for all UI components
 - Leverage Swift's type system for safety
 - Keep platform-specific code minimal
-- **Error Handling**: Prefer `Result<T, E>` types over complex type-state patterns for compile-time safety
-- **Builder Pattern**: Use simple builder patterns with Result validation rather than verbose type-state builders
+- **Error Handling**: Use `Result<T, E>` types with clear error messages for validation
+- **Builder Pattern**: Use simple builder patterns with Result validation for clean APIs
 
 ### Web Code (Leptos)
 - Follow Leptos patterns and conventions
@@ -247,7 +247,7 @@ echo "✅ All validations passed!"
 - **Understand Context**: Always review existing patterns before suggesting changes
 - **Type Safety First**: Prefer solutions that leverage Rust's type system
 - **Follow Architecture**: Respect the Crux architecture and shared core principle
-- **Type-State Machines**: Maintain and extend type-state patterns for state management
+- **State Management**: Use simple struct + enum patterns for clear, maintainable state handling
 - **Server Aware**: Remember that data model changes need server updates
 - **Documentation**: Include or update documentation with code changes
 
@@ -304,12 +304,12 @@ echo "✅ All validations passed!"
 4. Update documentation if needed
 5. Deploy fix
 
-### Adding State Machines
-1. Define state variants as separate structs (e.g., `NotStartedSession`, `StartedSession`)
-2. Create main enum with variants wrapping the state structs
-3. Implement state-specific methods on each state struct
-4. Add transition methods that consume `self` and return next state
-5. Handle transitions in the main enum with `Result<(), &'static str>`
+### Adding State Management
+1. Define state variants in a simple enum (e.g., `SessionState::NotStarted`, `SessionState::Started`)
+2. Create main struct with `state` field containing the enum
+3. Implement validation methods that check current state before transitions
+4. Add transition methods that update the state field with proper validation
+5. Handle transitions with `Result<(), SessionError>` for clear error messages
 6. Write tests covering all valid and invalid transitions
 
 ## 🚀 Project Goals

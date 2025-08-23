@@ -1,0 +1,64 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, goal_ids, intention, notes, session_state, start_time, end_time, duration_in_seconds \n             FROM sessions WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "goal_ids",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "intention",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "notes",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "session_state",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "start_time",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "end_time",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 7,
+        "name": "duration_in_seconds",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "f0c262f01017c657a4e0f3ea52264b27a93ab9d712bb33613928eb5f69efe071"
+}

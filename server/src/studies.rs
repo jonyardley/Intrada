@@ -70,10 +70,11 @@ impl StudyRepository {
     }
 
     pub async fn find_by_id(&self, id: &str) -> RepositoryResult<Option<Study>> {
-        let row = sqlx::query_as::<_, StudyRow>(
+        let row = sqlx::query_as!(
+            StudyRow,
             "SELECT id, name, description FROM studies WHERE id = $1",
+            id
         )
-        .bind(id)
         .fetch_optional(&self.db.pool)
         .await?;
 
@@ -81,8 +82,9 @@ impl StudyRepository {
     }
 
     pub async fn find_all(&self) -> RepositoryResult<Vec<Study>> {
-        let rows = sqlx::query_as::<_, StudyRow>(
-            "SELECT id, name, description FROM studies ORDER BY created_at DESC",
+        let rows = sqlx::query_as!(
+            StudyRow,
+            "SELECT id, name, description FROM studies ORDER BY created_at DESC"
         )
         .fetch_all(&self.db.pool)
         .await?;
@@ -122,11 +124,13 @@ impl StudyRepository {
 
     // Domain-specific methods - no trait constraints
     pub async fn _find_by_name_pattern(&self, pattern: &str) -> RepositoryResult<Vec<Study>> {
-        let rows = sqlx::query_as::<_, StudyRow>(
+        let search_pattern = format!("%{pattern}%");
+        let rows = sqlx::query_as!(
+            StudyRow,
             "SELECT id, name, description FROM studies 
              WHERE LOWER(name) LIKE LOWER($1) ORDER BY created_at DESC",
+            search_pattern
         )
-        .bind(format!("%{pattern}%"))
         .fetch_all(&self.db.pool)
         .await?;
 

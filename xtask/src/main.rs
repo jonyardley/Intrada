@@ -40,6 +40,9 @@ enum Commands {
         #[arg(short, long)]
         logs: bool,
     },
+    /// SQLx operations
+    #[command(subcommand)]
+    Sqlx(SqlxCommands),
     /// Quick start (skip type generation)
     Quick {
         #[arg(short, long)]
@@ -160,18 +163,24 @@ enum IosCommands {
         /// Run on physical device instead of simulator
         #[arg(short, long)]
         device: bool,
+<<<<<<< HEAD
         /// Force regenerate Xcode project
         #[arg(long)]
         force_regen: bool,
+=======
+>>>>>>> e86d320f8773a6bb1b370b6c3131d92362690348
     },
     /// Rebuild and run iOS app
     Rebuild {
         /// Run on physical device instead of simulator
         #[arg(short, long)]
         device: bool,
+<<<<<<< HEAD
         /// Force regenerate Xcode project
         #[arg(long)]
         force_regen: bool,
+=======
+>>>>>>> e86d320f8773a6bb1b370b6c3131d92362690348
     },
     /// List available simulators
     Simulators,
@@ -189,6 +198,20 @@ enum LogCommands {
     All,
     /// Stream Docker logs
     Docker,
+}
+
+#[derive(Subcommand)]
+enum SqlxCommands {
+    /// Prepare SQLx query cache for offline compilation
+    Prepare,
+    /// Check if query cache is up to date
+    Check,
+    /// Start database for development
+    DbUp,
+    /// Stop database
+    DbDown,
+    /// Reset database and regenerate cache
+    Reset,
 }
 
 #[derive(Subcommand)]
@@ -241,6 +264,7 @@ fn main() {
         Commands::Quick { logs } => handle_quick(logs),
         Commands::Rebuild { logs } => handle_rebuild(logs),
         Commands::Logs(log_cmd) => handle_logs_command(log_cmd),
+        Commands::Sqlx(sqlx_cmd) => handle_sqlx_command(sqlx_cmd),
         Commands::Test(test_cmd) => handle_test_command(test_cmd),
         Commands::Clean(clean_cmd) => handle_clean_command(clean_cmd),
         Commands::Watch => handle_watch(),
@@ -470,6 +494,7 @@ fn handle_ios_command(cmd: IosCommands) -> Result<()> {
             )?;
             print_success("iOS app built");
         }
+<<<<<<< HEAD
         IosCommands::Run {
             device,
             force_regen,
@@ -502,6 +527,19 @@ fn handle_ios_command(cmd: IosCommands) -> Result<()> {
             } else {
                 rebuild_and_run_ios(force_regen)?;
             }
+=======
+        IosCommands::Run { device } => {
+            print_step("Running iOS app");
+            build_and_run_ios_with_target(device)?;
+        }
+        IosCommands::Start { device } => {
+            print_step("Building and running iOS app");
+            build_and_run_ios_with_target(device)?;
+        }
+        IosCommands::Rebuild { device } => {
+            print_step("Rebuilding and running iOS app");
+            rebuild_and_run_ios_with_target(device)?;
+>>>>>>> e86d320f8773a6bb1b370b6c3131d92362690348
         }
         IosCommands::Simulators => {
             print_step("Listing available simulators");
@@ -918,10 +956,14 @@ fn build_and_run_ios(force_regen: bool) -> Result<()> {
         })
         .map(|s| s.to_string())
         .ok_or_else(|| {
+<<<<<<< HEAD
             anyhow::anyhow!(
                 "No iPhone simulator found. Available simulators:\n{}\n\nPlease install iOS simulators via Xcode.",
                 simulator_output
             )
+=======
+            anyhow::anyhow!("No iPhone simulator found. Please install iOS simulators via Xcode.")
+>>>>>>> e86d320f8773a6bb1b370b6c3131d92362690348
         })?;
 
     print_info(&format!("Using simulator: {simulator_id}"));
@@ -969,6 +1011,7 @@ fn build_and_run_ios(force_regen: bool) -> Result<()> {
         .output();
 
     // Give simulator time to boot
+<<<<<<< HEAD
     thread::sleep(Duration::from_secs(2));
 
     // Find the built app bundle dynamically
@@ -990,18 +1033,63 @@ fn build_and_run_ios(force_regen: bool) -> Result<()> {
 
     // Give installation time to complete
     thread::sleep(Duration::from_secs(1));
+=======
+    thread::sleep(Duration::from_secs(3));
+>>>>>>> e86d320f8773a6bb1b370b6c3131d92362690348
 
-    // Launch app
-    run_command(
-        "xcrun",
-        &["simctl", "launch", &simulator_id, bundle_id],
-        None,
-    )?;
+    // Find the built app bundle in DerivedData (like build-and-run.sh does)
+    let home_dir = std::env::var("HOME").unwrap_or_default();
+    let derived_data_path = format!("{home_dir}/Library/Developer/Xcode/DerivedData");
+
+    let app_path = std::fs::read_dir(&derived_data_path)
+        .ok()
+        .and_then(|entries| {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_dir() && path.file_name()?.to_str()?.starts_with("Intrada-") {
+                    let app_path = path.join("Build/Products/Debug-iphonesimulator/Intrada.app");
+                    if app_path.exists() {
+                        return Some(app_path);
+                    }
+                }
+            }
+            None
+        });
+
+    if let Some(app_path) = app_path {
+        print_info(&format!("Found app at: {}", app_path.display()));
+
+        // Install the app on the simulator
+        print_info("Installing app on simulator...");
+        run_command(
+            "xcrun",
+            &[
+                "simctl",
+                "install",
+                &simulator_id,
+                &app_path.to_string_lossy(),
+            ],
+            None,
+        )?;
+
+        // Give installation time to complete
+        thread::sleep(Duration::from_secs(2));
+
+        // Launch app
+        run_command(
+            "xcrun",
+            &["simctl", "launch", &simulator_id, bundle_id],
+            None,
+        )?;
+    } else {
+        anyhow::bail!("Could not find built Intrada.app bundle in DerivedData. Make sure the build completed successfully.");
+    }
 
     print_success("iOS app launched successfully");
     Ok(())
 }
 
+<<<<<<< HEAD
 fn build_and_run_ios_on_device(force_regen: bool) -> Result<()> {
     ensure_in_project_root()?;
 
@@ -1013,6 +1101,30 @@ fn build_and_run_ios_on_device(force_regen: bool) -> Result<()> {
     } else {
         print_info("Using existing Xcode project (preserving manual team selection)");
     }
+=======
+fn build_and_run_ios_with_target(use_device: bool) -> Result<()> {
+    if use_device {
+        build_and_run_ios_on_device()
+    } else {
+        build_and_run_ios()
+    }
+}
+
+fn rebuild_and_run_ios_with_target(use_device: bool) -> Result<()> {
+    if use_device {
+        rebuild_and_run_ios_on_device()
+    } else {
+        rebuild_and_run_ios()
+    }
+}
+
+fn build_and_run_ios_on_device() -> Result<()> {
+    ensure_in_project_root()?;
+
+    // Generate Xcode project
+    print_step("Generating Xcode project");
+    run_command("xcodegen", &[], Some("iOS"))?;
+>>>>>>> e86d320f8773a6bb1b370b6c3131d92362690348
 
     // Get available devices
     print_step("Finding connected iOS device");
@@ -1032,6 +1144,7 @@ fn build_and_run_ios_on_device(force_regen: bool) -> Result<()> {
                 && line.contains(")")
         })
         .and_then(|line| {
+<<<<<<< HEAD
             // Extract device identifier from parentheses - it's the last UUID in the line
             if let Some(start) = line.rfind('(') {
                 if let Some(end) = line[start + 1..].find(')') {
@@ -1050,10 +1163,19 @@ fn build_and_run_ios_on_device(force_regen: bool) -> Result<()> {
                 "No connected iOS device found. Available devices:\n{}\n\nPlease connect an iOS device and ensure it's trusted.",
                 devices_output
             )
+=======
+            // Extract device identifier from parentheses
+            line.split('(').nth(1)?.split(')').next()
+        })
+        .map(|s| s.trim().to_string())
+        .ok_or_else(|| {
+            anyhow::anyhow!("No connected iOS device found. Please connect an iOS device and ensure it's trusted.")
+>>>>>>> e86d320f8773a6bb1b370b6c3131d92362690348
         })?;
 
     print_info(&format!("Using device: {device_id}"));
 
+<<<<<<< HEAD
     // Get development team automatically
     let team_id = get_development_team_id()?;
 
@@ -1124,13 +1246,34 @@ fn build_and_run_ios_on_device(force_regen: bool) -> Result<()> {
 
         anyhow::bail!("xcodebuild failed with exit code: {}", output.status);
     }
+=======
+    // Build the app for device
+    print_step("Building iOS app for device");
+    run_command(
+        "xcodebuild",
+        &[
+            "-project",
+            "Intrada.xcodeproj",
+            "-scheme",
+            "Intrada",
+            "-destination",
+            &format!("id={device_id}"),
+            "build",
+        ],
+        Some("iOS"),
+    )?;
+>>>>>>> e86d320f8773a6bb1b370b6c3131d92362690348
 
     print_success("iOS app built and should be installed on device");
     print_info("Note: The app should now be available on your connected device. You may need to manually launch it from the device's home screen.");
     Ok(())
 }
 
+<<<<<<< HEAD
 fn rebuild_and_run_ios_on_device(force_regen: bool) -> Result<()> {
+=======
+fn rebuild_and_run_ios_on_device() -> Result<()> {
+>>>>>>> e86d320f8773a6bb1b370b6c3131d92362690348
     ensure_in_project_root()?;
 
     // Clean first
@@ -1148,6 +1291,7 @@ fn rebuild_and_run_ios_on_device(force_regen: bool) -> Result<()> {
     )?;
 
     // Then build and run
+<<<<<<< HEAD
     build_and_run_ios_on_device(force_regen)
 }
 
@@ -1264,6 +1408,97 @@ fn get_development_team_id() -> Result<Option<String>> {
 
     print_warning("⚠️  No development team found. Using simulator-only signing.");
     Ok(None)
+=======
+    build_and_run_ios_on_device()
+}
+
+fn handle_sqlx_command(cmd: SqlxCommands) -> Result<()> {
+    ensure_in_project_root()?;
+
+    match cmd {
+        SqlxCommands::Prepare => {
+            print_step("Preparing SQLx query cache");
+
+            // Ensure database is running
+            print_info("Starting database...");
+            run_command("docker-compose", &["up", "-d"], Some("server"))?;
+
+            // Wait for database to be ready
+            print_info("Waiting for database to be ready...");
+            thread::sleep(Duration::from_secs(3));
+
+            // Set DATABASE_URL and prepare queries
+            let database_url = "postgresql://intrada:intrada@localhost:5432/intrada";
+            run_command_with_env(
+                "cargo",
+                &["sqlx", "prepare", "--workspace"],
+                None,
+                &[("DATABASE_URL", database_url)],
+            )?;
+
+            print_success("✅ SQLx query cache prepared! Please commit the .sqlx/ directory.");
+        }
+        SqlxCommands::Check => {
+            print_step("Checking SQLx query cache");
+
+            if !Path::new(".sqlx").exists() {
+                print_warning("⚠️  No SQLx query cache found. Run 'xt sqlx prepare' first.");
+                return Ok(());
+            }
+
+            // Check if offline mode works
+            run_command_with_env(
+                "cargo",
+                &["check", "--package", "server"],
+                None,
+                &[("SQLX_OFFLINE", "true")],
+            )?;
+
+            print_success("✅ SQLx query cache is valid!");
+        }
+        SqlxCommands::DbUp => {
+            print_step("Starting database");
+            run_command("docker-compose", &["up", "-d"], Some("server"))?;
+            print_success("✅ Database started");
+        }
+        SqlxCommands::DbDown => {
+            print_step("Stopping database");
+            run_command("docker-compose", &["down"], Some("server"))?;
+            print_success("✅ Database stopped");
+        }
+        SqlxCommands::Reset => {
+            print_step("Resetting database and regenerating SQLx cache");
+
+            // Stop and remove containers
+            run_command("docker-compose", &["down", "-v"], Some("server"))?;
+
+            // Start fresh
+            run_command("docker-compose", &["up", "-d"], Some("server"))?;
+
+            // Wait for database
+            print_info("Waiting for database to be ready...");
+            thread::sleep(Duration::from_secs(5));
+
+            // Remove old cache
+            if Path::new(".sqlx").exists() {
+                std::fs::remove_dir_all(".sqlx")?;
+            }
+
+            // Regenerate cache
+            let database_url = "postgresql://intrada:intrada@localhost:5432/intrada";
+            run_command_with_env(
+                "cargo",
+                &["sqlx", "prepare", "--workspace"],
+                None,
+                &[("DATABASE_URL", database_url)],
+            )?;
+
+            print_success("✅ Database reset and SQLx cache regenerated!");
+        }
+    }
+
+    Ok(())
+>>>>>>> e86d320f8773a6bb1b370b6c3131d92362690348
 }
 
 fn generate_type_bindings() -> Result<()> {
@@ -2297,6 +2532,35 @@ fn handle_doctor() -> Result<()> {
         }
         println!();
         print_info("💡 Fix the issues above and run 'cargo xtask doctor' again");
+    }
+
+    Ok(())
+}
+
+// Utility function to run commands with environment variables
+fn run_command_with_env(
+    cmd: &str,
+    args: &[&str],
+    working_dir: Option<&str>,
+    env_vars: &[(&str, &str)],
+) -> Result<()> {
+    let mut command = Command::new(cmd);
+    command.args(args);
+
+    if let Some(dir) = working_dir {
+        command.current_dir(dir);
+    }
+
+    for (key, value) in env_vars {
+        command.env(key, value);
+    }
+
+    let status = command
+        .status()
+        .context(format!("Failed to execute: {cmd}"))?;
+
+    if !status.success() {
+        anyhow::bail!("Command failed: {cmd} {}", args.join(" "));
     }
 
     Ok(())

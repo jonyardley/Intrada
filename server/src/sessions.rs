@@ -6,8 +6,8 @@ use axum::{
     Router,
 };
 use serde::Deserialize;
-use shared::session::{session_from_view_model, session_view_model, SessionState};
-use shared::{PracticeSession, PracticeSessionView};
+use shared::session::SessionState;
+use shared::PracticeSession;
 use sqlx::FromRow;
 use std::sync::Arc;
 
@@ -15,6 +15,9 @@ use crate::{
     repository::{Database, RepositoryError, RepositoryResult},
     ApiError,
 };
+
+// Type alias to simplify complex return type
+type SessionRowData = (String, String, Option<String>, Option<String>, Option<i32>);
 
 // Database row struct - flattened representation for storage
 #[derive(FromRow)]
@@ -27,6 +30,7 @@ pub struct SessionRow {
     pub session_state: String, // "NotStarted", "Started", "Ended"
     pub start_time: Option<String>,
     pub end_time: Option<String>,
+    pub duration_in_seconds: Option<i32>,
 }
 
 impl SessionRow {
@@ -34,7 +38,7 @@ impl SessionRow {
         let goal_ids: Vec<String> = serde_json::from_str(&self.goal_ids)?;
 
         // Create SessionData with the original database ID using the view model approach
-        let session_view = PracticeSessionView {
+        let session = PracticeSession {
             id: self.id,
             goal_ids,
             intention: self.intention,
@@ -70,19 +74,16 @@ impl SessionRow {
                             "Ended session missing end_time".to_string(),
                         )
                     })?,
+                    duration_in_seconds: self.duration_in_seconds.unwrap_or(0) as u32,
                 },
                 _ => SessionState::NotStarted,
             },
             notes: self.notes.clone(),
             study_sessions: Vec::new(),
-            duration: None,
-            start_time: self.start_time.clone(),
-            end_time: self.end_time.clone(),
-            is_ended: self.session_state == "Ended",
+            active_study_session_id: None,
         };
 
-        // Use the existing session_from_view_model function to preserve the ID
-        let session = session_from_view_model(session_view);
+        // Return the session directly
         Ok(session)
     }
 }
@@ -133,45 +134,60 @@ impl SessionRepository {
         }
     }
 
-    fn session_to_row_data(
-        session: &PracticeSession,
-    ) -> RepositoryResult<(String, String, Option<String>, Option<String>)> {
-        let goal_ids_json = serde_json::to_string(session.goal_ids())?;
+    fn session_to_row_data(session: &PracticeSession) -> RepositoryResult<SessionRowData> {
+        let goal_ids_json = serde_json::to_string(&session.goal_ids)?;
 
-        let (state_str, start_time, end_time) = match session {
-            PracticeSession::NotStarted(_) => ("NotStarted".to_string(), None, None),
-            PracticeSession::Started(s) => {
-                ("Started".to_string(), Some(s.start_time.clone()), None)
+        let (state_str, start_time, end_time, duration_in_seconds) = match &session.state {
+            SessionState::NotStarted => ("NotStarted".to_string(), None, None, None),
+            SessionState::Started { start_time } => {
+                ("Started".to_string(), Some(start_time.clone()), None, None)
             }
-            PracticeSession::Ended(s) => (
+            SessionState::Ended {
+                start_time,
+                end_time,
+                duration_in_seconds,
+            } => (
                 "Ended".to_string(),
-                Some(s.start_time.clone()),
-                Some(s.end_time.clone()),
+                Some(start_time.clone()),
+                Some(end_time.clone()),
+                Some(*duration_in_seconds as i32),
             ),
-            PracticeSession::PendingReflection(s) => (
+            SessionState::PendingReflection {
+                start_time,
+                end_time,
+            } => (
                 "PendingReflection".to_string(),
-                Some(s.start_time.clone()),
-                Some(s.end_time.clone()),
+                Some(start_time.clone()),
+                Some(end_time.clone()),
+                None,
             ),
         };
 
-        Ok((goal_ids_json, state_str, start_time, end_time))
+        Ok((
+            goal_ids_json,
+            state_str,
+            start_time,
+            end_time,
+            duration_in_seconds,
+        ))
     }
 
     pub async fn create(&self, session: &PracticeSession) -> RepositoryResult<()> {
-        let (goal_ids_json, state_str, start_time, end_time) = Self::session_to_row_data(session)?;
+        let (goal_ids_json, state_str, start_time, end_time, duration_in_seconds) =
+            Self::session_to_row_data(session)?;
 
         sqlx::query(
-            "INSERT INTO sessions (id, goal_ids, intention, notes, session_state, start_time, end_time) 
-             VALUES ($1, $2, $3, $4, $5, $6, $7)"
+            "INSERT INTO sessions (id, goal_ids, intention, notes, session_state, start_time, end_time, duration_in_seconds) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)"
         )
-        .bind(session.id())
+        .bind(&session.id)
         .bind(&goal_ids_json)
-        .bind(session.intention())
-        .bind(session.notes())
+        .bind(&session.intention)
+        .bind(&session.notes)
         .bind(&state_str)
         .bind(&start_time)
         .bind(&end_time)
+        .bind(duration_in_seconds)
         .execute(&self.db.pool)
         .await?;
 
@@ -179,11 +195,13 @@ impl SessionRepository {
     }
 
     pub async fn find_by_id(&self, id: &str) -> RepositoryResult<Option<PracticeSession>> {
-        let row = sqlx::query_as::<_, SessionRow>(
-            "SELECT id, goal_ids, intention, notes, session_state, start_time, end_time 
+        // Type-safe approach: Use sqlx! macro for compile-time verification
+        let row = sqlx::query_as!(
+            SessionRow,
+            "SELECT id, goal_ids, intention, notes, session_state, start_time, end_time, duration_in_seconds 
              FROM sessions WHERE id = $1",
+            id
         )
-        .bind(id)
         .fetch_optional(&self.db.pool)
         .await?;
 
@@ -194,9 +212,11 @@ impl SessionRepository {
     }
 
     pub async fn find_all(&self) -> RepositoryResult<Vec<PracticeSession>> {
-        let rows = sqlx::query_as::<_, SessionRow>(
-            "SELECT id, goal_ids, intention, notes, session_state, start_time, end_time 
-             FROM sessions ORDER BY created_at DESC",
+        // Type-safe approach: Use sqlx! macro for compile-time verification
+        let rows = sqlx::query_as!(
+            SessionRow,
+            "SELECT id, goal_ids, intention, notes, session_state, start_time, end_time, duration_in_seconds 
+             FROM sessions ORDER BY created_at DESC"
         )
         .fetch_all(&self.db.pool)
         .await?;
@@ -209,27 +229,29 @@ impl SessionRepository {
     }
 
     pub async fn update(&self, session: &PracticeSession) -> RepositoryResult<()> {
-        let (goal_ids_json, state_str, start_time, end_time) = Self::session_to_row_data(session)?;
+        let (goal_ids_json, state_str, start_time, end_time, duration_in_seconds) =
+            Self::session_to_row_data(session)?;
 
         let result = sqlx::query(
             "UPDATE sessions SET goal_ids = $2, intention = $3, notes = $4, session_state = $5, 
-             start_time = $6, end_time = $7, updated_at = CURRENT_TIMESTAMP 
+             start_time = $6, end_time = $7, duration_in_seconds = $8, updated_at = CURRENT_TIMESTAMP 
              WHERE id = $1",
         )
-        .bind(session.id())
+        .bind(&session.id)
         .bind(&goal_ids_json)
-        .bind(session.intention())
-        .bind(session.notes())
+        .bind(&session.intention)
+        .bind(&session.notes)
         .bind(&state_str)
         .bind(&start_time)
         .bind(&end_time)
+        .bind(duration_in_seconds)
         .execute(&self.db.pool)
         .await?;
 
         if result.rows_affected() == 0 {
             return Err(RepositoryError::NotFound(format!(
                 "Session with id {}",
-                session.id()
+                &session.id
             )));
         }
 
@@ -247,11 +269,13 @@ impl SessionRepository {
 
     // Domain-specific methods
     pub async fn _find_by_goal_id(&self, goal_id: &str) -> RepositoryResult<Vec<PracticeSession>> {
-        let rows = sqlx::query_as::<_, SessionRow>(
-            "SELECT id, goal_ids, intention, notes, session_state, start_time, end_time 
+        let goal_pattern = format!("%\"{goal_id}\"%");
+        let rows = sqlx::query_as!(
+            SessionRow,
+            "SELECT id, goal_ids, intention, notes, session_state, start_time, end_time, duration_in_seconds 
              FROM sessions WHERE goal_ids LIKE $1 ORDER BY created_at DESC",
+            goal_pattern
         )
-        .bind(format!("%\"{goal_id}\"%"))
         .fetch_all(&self.db.pool)
         .await?;
 
@@ -259,7 +283,7 @@ impl SessionRepository {
         for row in rows {
             let session = row.into_session()?;
             // Double-check the goal_id is actually in the list (not just substring match)
-            if session.goal_ids().contains(&goal_id.to_string()) {
+            if session.goal_ids.contains(&goal_id.to_string()) {
                 sessions.push(session);
             }
         }
@@ -267,11 +291,12 @@ impl SessionRepository {
     }
 
     pub async fn _find_by_state(&self, state: &str) -> RepositoryResult<Vec<PracticeSession>> {
-        let rows = sqlx::query_as::<_, SessionRow>(
-            "SELECT id, goal_ids, intention, notes, session_state, start_time, end_time 
+        let rows = sqlx::query_as!(
+            SessionRow,
+            "SELECT id, goal_ids, intention, notes, session_state, start_time, end_time, duration_in_seconds 
              FROM sessions WHERE session_state = $1 ORDER BY created_at DESC",
+            state
         )
-        .bind(state)
         .fetch_all(&self.db.pool)
         .await?;
 
@@ -283,39 +308,24 @@ impl SessionRepository {
     }
 }
 
-// Helper functions to update session fields across all states
+// Helper functions to update session fields - now simple direct access
 fn update_session_notes(session: &mut PracticeSession, notes: Option<String>) {
-    match session {
-        PracticeSession::NotStarted(s) => s.data.notes = notes,
-        PracticeSession::Started(s) => s.data.notes = notes,
-        PracticeSession::PendingReflection(s) => s.data.notes = notes,
-        PracticeSession::Ended(s) => s.data.notes = notes,
-    }
+    session.notes = notes;
 }
 
 fn update_session_intention(session: &mut PracticeSession, intention: String) {
-    match session {
-        PracticeSession::NotStarted(s) => s.data.intention = intention,
-        PracticeSession::Started(s) => s.data.intention = intention,
-        PracticeSession::PendingReflection(s) => s.data.intention = intention,
-        PracticeSession::Ended(s) => s.data.intention = intention,
-    }
+    session.intention = intention;
 }
 
 fn update_session_goal_ids(session: &mut PracticeSession, goal_ids: Vec<String>) {
-    match session {
-        PracticeSession::NotStarted(s) => s.data.goal_ids = goal_ids,
-        PracticeSession::Started(s) => s.data.goal_ids = goal_ids,
-        PracticeSession::PendingReflection(s) => s.data.goal_ids = goal_ids,
-        PracticeSession::Ended(s) => s.data.goal_ids = goal_ids,
-    }
+    session.goal_ids = goal_ids;
 }
 
 // HTTP Handlers
 async fn create_session(
     State(session_repo): State<Arc<SessionRepository>>,
     Json(req): Json<CreateSessionRequest>,
-) -> Result<Json<PracticeSessionView>, (StatusCode, Json<ApiError>)> {
+) -> Result<Json<PracticeSession>, (StatusCode, Json<ApiError>)> {
     let session = PracticeSession::new(req.goal_ids, req.intention);
 
     // Note: For now, we'll ignore the notes field in creation
@@ -327,33 +337,31 @@ async fn create_session(
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(e.into())))?;
 
-    Ok(Json(session_view_model(&session)))
+    Ok(Json(session))
 }
 
 async fn get_sessions(
     State(session_repo): State<Arc<SessionRepository>>,
-) -> Result<Json<Vec<PracticeSessionView>>, (StatusCode, Json<ApiError>)> {
+) -> Result<Json<Vec<PracticeSession>>, (StatusCode, Json<ApiError>)> {
     let sessions = session_repo
         .find_all()
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(e.into())))?;
 
-    let session_views: Vec<PracticeSessionView> = sessions.iter().map(session_view_model).collect();
-
-    Ok(Json(session_views))
+    Ok(Json(sessions))
 }
 
 async fn get_session(
     State(session_repo): State<Arc<SessionRepository>>,
     Path(id): Path<String>,
-) -> Result<Json<PracticeSessionView>, (StatusCode, Json<ApiError>)> {
+) -> Result<Json<PracticeSession>, (StatusCode, Json<ApiError>)> {
     let session = session_repo
         .find_by_id(&id)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(e.into())))?;
 
     match session {
-        Some(session) => Ok(Json(session_view_model(&session))),
+        Some(session) => Ok(Json(session)),
         None => Err((
             StatusCode::NOT_FOUND,
             Json(ApiError {
@@ -367,7 +375,7 @@ async fn update_session(
     State(session_repo): State<Arc<SessionRepository>>,
     Path(id): Path<String>,
     Json(req): Json<UpdateSessionRequest>,
-) -> Result<Json<PracticeSessionView>, (StatusCode, Json<ApiError>)> {
+) -> Result<Json<PracticeSession>, (StatusCode, Json<ApiError>)> {
     // Get existing session
     let existing_session = session_repo
         .find_by_id(&id)
@@ -405,14 +413,14 @@ async fn update_session(
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(e.into())))?;
 
-    Ok(Json(session_view_model(&session)))
+    Ok(Json(session))
 }
 
 async fn start_session(
     State(session_repo): State<Arc<SessionRepository>>,
     Path(id): Path<String>,
     Json(req): Json<StartSessionRequest>,
-) -> Result<Json<PracticeSessionView>, (StatusCode, Json<ApiError>)> {
+) -> Result<Json<PracticeSession>, (StatusCode, Json<ApiError>)> {
     let session = session_repo
         .find_by_id(&id)
         .await
@@ -445,14 +453,14 @@ async fn start_session(
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(e.into())))?;
 
-    Ok(Json(session_view_model(&session)))
+    Ok(Json(session))
 }
 
 async fn end_session(
     State(session_repo): State<Arc<SessionRepository>>,
     Path(id): Path<String>,
     Json(req): Json<EndSessionRequest>,
-) -> Result<Json<PracticeSessionView>, (StatusCode, Json<ApiError>)> {
+) -> Result<Json<PracticeSession>, (StatusCode, Json<ApiError>)> {
     let session = session_repo
         .find_by_id(&id)
         .await
@@ -485,14 +493,14 @@ async fn end_session(
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(e.into())))?;
 
-    Ok(Json(session_view_model(&session)))
+    Ok(Json(session))
 }
 
 async fn complete_reflection(
     State(session_repo): State<Arc<SessionRepository>>,
     Path(id): Path<String>,
     Json(req): Json<CompleteReflectionRequest>,
-) -> Result<Json<PracticeSessionView>, (StatusCode, Json<ApiError>)> {
+) -> Result<Json<PracticeSession>, (StatusCode, Json<ApiError>)> {
     let session = session_repo
         .find_by_id(&id)
         .await
@@ -530,7 +538,7 @@ async fn complete_reflection(
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(e.into())))?;
 
-    Ok(Json(session_view_model(&session)))
+    Ok(Json(session))
 }
 
 async fn delete_session(
@@ -599,7 +607,7 @@ mod tests {
 
         async fn find_by_id(&self, id: &str) -> RepositoryResult<Option<PracticeSession>> {
             let sessions = self.sessions.lock().unwrap();
-            Ok(sessions.iter().find(|s| s.id() == id).cloned())
+            Ok(sessions.iter().find(|s| s.id == *id).cloned())
         }
 
         async fn find_all(&self) -> RepositoryResult<Vec<PracticeSession>> {
@@ -609,17 +617,17 @@ mod tests {
 
         async fn update(&self, session: &PracticeSession) -> RepositoryResult<()> {
             let mut sessions = self.sessions.lock().unwrap();
-            if let Some(existing) = sessions.iter_mut().find(|s| s.id() == session.id()) {
+            if let Some(existing) = sessions.iter_mut().find(|s| s.id == session.id) {
                 *existing = session.clone();
                 Ok(())
             } else {
-                Err(RepositoryError::NotFound(session.id().to_string()))
+                Err(RepositoryError::NotFound(session.id.to_string()))
             }
         }
 
         async fn delete(&self, id: &str) -> RepositoryResult<bool> {
             let mut sessions = self.sessions.lock().unwrap();
-            if let Some(pos) = sessions.iter().position(|s| s.id() == id) {
+            if let Some(pos) = sessions.iter().position(|s| s.id == *id) {
                 sessions.remove(pos);
                 Ok(true)
             } else {
@@ -638,17 +646,18 @@ mod tests {
             session_state: "NotStarted".to_string(),
             start_time: None,
             end_time: None,
+            duration_in_seconds: None,
         };
 
         let session = session_row.into_session().unwrap();
         // Note: Due to SessionData constructor generating new IDs, we can't preserve the original ID
-        assert!(!session.id().is_empty());
+        assert!(!&session.id.is_empty());
         assert_eq!(
-            session.goal_ids(),
+            &session.goal_ids,
             &vec!["goal1".to_string(), "goal2".to_string()]
         );
-        assert_eq!(session.intention(), "Test intention");
-        assert!(matches!(session, PracticeSession::NotStarted(_)));
+        assert_eq!(&session.intention, "Test intention");
+        assert!(matches!(session.state, SessionState::NotStarted));
     }
 
     #[test]
@@ -661,12 +670,13 @@ mod tests {
             session_state: "Started".to_string(),
             start_time: Some("2025-01-01T12:00:00Z".to_string()),
             end_time: None,
+            duration_in_seconds: None,
         };
 
         let session = session_row.into_session().unwrap();
         // Note: Due to SessionData constructor generating new IDs, we can't preserve the original ID
-        assert!(!session.id().is_empty());
-        assert!(matches!(session, PracticeSession::Started(_)));
+        assert!(!&session.id.is_empty());
+        assert!(matches!(session.state, SessionState::Started { .. }));
         assert_eq!(session.start_time(), Some("2025-01-01T12:00:00Z"));
         assert_eq!(session.end_time(), None);
     }
@@ -681,12 +691,13 @@ mod tests {
             session_state: "Ended".to_string(),
             start_time: Some("2025-01-01T12:00:00Z".to_string()),
             end_time: Some("2025-01-01T13:00:00Z".to_string()),
+            duration_in_seconds: Some(3600),
         };
 
         let session = session_row.into_session().unwrap();
         // Note: Due to SessionData constructor generating new IDs, we can't preserve the original ID
-        assert!(!session.id().is_empty());
-        assert!(matches!(session, PracticeSession::Ended(_)));
+        assert!(!&session.id.is_empty());
+        assert!(matches!(session.state, SessionState::Ended { .. }));
         assert_eq!(session.start_time(), Some("2025-01-01T12:00:00Z"));
         assert_eq!(session.end_time(), Some("2025-01-01T13:00:00Z"));
         assert_eq!(session.duration(), Some("60m".to_string()));
@@ -710,15 +721,15 @@ mod tests {
         let mock_repo = MockSessionRepository::new();
 
         let session = PracticeSession::new(vec!["goal1".to_string()], "Test Session".to_string());
-        let session_id = session.id().to_string();
+        let session_id = &session.id.to_string();
 
         // Test create
         mock_repo.create(&session).await.unwrap();
 
         // Test find_by_id
-        let found = mock_repo.find_by_id(&session_id).await.unwrap();
+        let found = mock_repo.find_by_id(session_id).await.unwrap();
         assert!(found.is_some());
-        assert_eq!(found.unwrap().intention(), "Test Session");
+        assert_eq!(found.unwrap().intention, "Test Session");
 
         // Test find_all
         let all_sessions = mock_repo.find_all().await.unwrap();
@@ -731,14 +742,14 @@ mod tests {
             .unwrap();
         mock_repo.update(&updated_session).await.unwrap();
 
-        let found = mock_repo.find_by_id(&session_id).await.unwrap().unwrap();
+        let found = mock_repo.find_by_id(session_id).await.unwrap().unwrap();
         assert!(found.is_active());
 
         // Test delete
-        let deleted = mock_repo.delete(&session_id).await.unwrap();
+        let deleted = mock_repo.delete(session_id).await.unwrap();
         assert!(deleted);
 
-        let found = mock_repo.find_by_id(&session_id).await.unwrap();
+        let found = mock_repo.find_by_id(session_id).await.unwrap();
         assert!(found.is_none());
     }
 
@@ -746,12 +757,13 @@ mod tests {
     fn test_session_to_row_data() {
         let session = PracticeSession::new(vec!["goal1".to_string()], "Test".to_string());
 
-        let (goal_ids_json, state_str, start_time, end_time) =
+        let (goal_ids_json, state_str, start_time, end_time, duration_in_seconds) =
             SessionRepository::session_to_row_data(&session).unwrap();
 
         assert_eq!(goal_ids_json, r#"["goal1"]"#);
         assert_eq!(state_str, "NotStarted");
         assert_eq!(start_time, None);
         assert_eq!(end_time, None);
+        assert_eq!(duration_in_seconds, None);
     }
 }
