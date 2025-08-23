@@ -1,0 +1,62 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, name, description, status, start_date, target_date, study_ids, tempo_target \n             FROM goals ORDER BY created_at DESC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "status",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "start_date",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "target_date",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "study_ids",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "tempo_target",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      false,
+      true
+    ]
+  },
+  "hash": "15e0bc32dae28d2371530b82fed4e38cc6ba6dc1a178c1f8ea28335cf9c0fc78"
+}

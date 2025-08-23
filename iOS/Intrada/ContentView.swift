@@ -10,12 +10,12 @@ import SwiftUI
 
 struct ContentView: View {
     @ObservedObject var core: Core
-    
+
     init(core: Core) {
         self.core = core
         print("🎯 ContentView init called")
     }
-  
+
     var body: some View {
         NavigationStack {
             TabView {
@@ -35,7 +35,7 @@ struct ContentView: View {
                     .tabItem {
                         Label("Studies", systemImage: "music.quarternote.3")
                     }
-                
+
                 ProfileView()
                     .tabItem {
                         Label("Profile", systemImage: "person")

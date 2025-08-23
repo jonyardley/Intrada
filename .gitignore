@@ -45,4 +45,9 @@ iOS/Intrada/Config.plist
 *.db-wal
 
 .DS_Store
+
+# Log files
 *.log
+**/*.log
+server*.log
+*_debug.log

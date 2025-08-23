@@ -1,5 +1,0 @@
-   Compiling shared v0.1.0 (/Users/jonyardley/Dev/Intrada/shared)
-   Compiling intrada-server v0.1.0 (/Users/jonyardley/Dev/Intrada/server)
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 3.77s
-     Running `/Users/jonyardley/Dev/Intrada/target/debug/intrada-server`
-Server running on http://0.0.0.0:3000

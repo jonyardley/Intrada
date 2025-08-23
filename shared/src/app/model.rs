@@ -1,4 +1,4 @@
-use crate::app::{PracticeGoal, PracticeSession, PracticeSessionView, SessionState, Study};
+use crate::app::{PracticeGoal, PracticeSession, SessionState, Study};
 use chrono::{DateTime, Utc};
 use facet::Facet;
 use serde::{Deserialize, Serialize};
@@ -18,9 +18,9 @@ impl Model {}
 pub struct ViewModel {
     pub goals: Vec<PracticeGoal>,
     pub studies: Vec<Study>,
-    pub sessions: Vec<PracticeSessionView>,
+    pub sessions: Vec<PracticeSession>,
     // Session state computed properties (replaces SessionManager)
-    pub current_session: Option<PracticeSessionView>,
+    pub current_session: Option<PracticeSession>,
     pub has_active_session: bool, // Note: "active" means currently started session
     pub can_start_session: bool,
     pub can_end_session: bool,
@@ -34,7 +34,7 @@ impl ViewModel {
     pub fn new(
         goals: Vec<PracticeGoal>,
         studies: Vec<Study>,
-        sessions: Vec<PracticeSessionView>,
+        sessions: Vec<PracticeSession>,
         last_error: Option<String>,
     ) -> Self {
         // Find current session (the one that is started)
@@ -71,6 +71,7 @@ impl ViewModel {
                 SessionState::Ended {
                     start_time,
                     end_time,
+                    duration_in_seconds: _,
                 } => Some(calculate_elapsed_time_between(start_time, end_time)),
                 SessionState::NotStarted => None,
             }

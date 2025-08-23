@@ -106,7 +106,7 @@ pub fn create_ended_test_session(goal_ids: &[&str], intention: &str) -> Practice
 
 /// Helper to add a session to a model and return the session ID
 pub fn add_session_to_model(model: &mut Model, session: PracticeSession) -> String {
-    let session_id = session.id().to_string();
+    let session_id = session.id.clone();
     model.sessions.push(session);
     session_id
 }

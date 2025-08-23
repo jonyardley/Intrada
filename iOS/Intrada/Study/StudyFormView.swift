@@ -1,30 +1,30 @@
-import SwiftUI
 import SharedTypes
+import SwiftUI
 
 struct StudyFormView: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject var core: Core
     let existingStudy: Study?
-    
+
     @State private var name: String
     @State private var description: String
-    
+
     init(core: Core, existingStudy: Study? = nil) {
         self.core = core
         self.existingStudy = existingStudy
-        
+
         // Initialize state variables with existing study data if available
         _name = State(initialValue: existingStudy?.name ?? "")
         _description = State(initialValue: existingStudy?.description ?? "")
     }
-    
+
     var body: some View {
         NavigationView {
             Form {
                 Section(header: Text("Study Details")) {
                     TextField("Name", text: $name)
                     TextField("Description", text: $description, axis: .vertical)
-                        .lineLimit(3...6)
+                        .lineLimit(3 ... 6)
                 }
             }
             .navigationTitle(existingStudy == nil ? "New Study" : "Edit Study")
@@ -39,7 +39,7 @@ struct StudyFormView: View {
                         name: name,
                         description: description.isEmpty ? nil : description
                     )
-                    
+
                     if existingStudy != nil {
                         core.update(.study(.updateStudy(study)))
                     } else {
@@ -54,4 +54,4 @@ struct StudyFormView: View {
 
 #Preview {
     StudyFormView(core: Core())
-} 
+}

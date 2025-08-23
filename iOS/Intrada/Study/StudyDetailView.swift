@@ -1,65 +1,82 @@
-import SwiftUI
 import SharedTypes
+import SwiftUI
 
 struct StudyDetailView: View {
     @ObservedObject var core: Core
     let study: Study
     @State private var showingEditForm = false
-    
+
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                // Study Header
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(study.name)
-                        .font(.title)
-                        .fontWeight(.bold)
-                    
-                    if let description = study.description {
-                        Text(description)
-                            .font(.subheadline)
-                            .foregroundColor(.gray)
+            VStack(alignment: .leading, spacing: Theme.Spacing.extraLarge) {
+                // Study Header Card
+                Card {
+                    VStack(alignment: .leading, spacing: Theme.Spacing.medium) {
+                        Text(study.name)
+                            .font(Theme.Typography.title)
+                            .foregroundColor(Theme.Colors.text)
+
+                        if let description = study.description, !description.isEmpty {
+                            Text(description)
+                                .font(Theme.Typography.body)
+                                .foregroundColor(Theme.Colors.textSecondary)
+                        }
                     }
                 }
-                .padding(.horizontal)
-                
-                // Associated Goals
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Related Goals")
-                        .font(.headline)
-                    
+                .padding(.horizontal, Theme.Spacing.large)
+
+                // Related Goals Card
+                Card {
+                    VStack(alignment: .leading, spacing: Theme.Spacing.medium) {
+                        Text("Related Goals")
+                            .font(Theme.Typography.headline)
+                            .foregroundColor(Theme.Colors.text)
+
                     let goals = core.view.goals.filter { goal in
                         goal.studyIds.contains(study.id)
                     }
-                    
-                    if goals.isEmpty {
-                        Text("No goals associated")
-                            .foregroundColor(.gray)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding()
-                            .background(Color.gray.opacity(0.1))
-                            .cornerRadius(8)
-                    } else {
-                        ForEach(goals, id: \.id) { goal in
-                            NavigationLink(destination: GoalDetailView(core: core, goal: goal)) {
-                                HStack {
-                                    Text(goal.name)
-                                    Spacer()
-                                    if let description = goal.description {
-                                        Text(description)
-                                            .foregroundColor(.gray)
+
+                        if goals.isEmpty {
+                            Text("No goals associated")
+                                .font(Theme.Typography.body)
+                                .foregroundColor(Theme.Colors.textSecondary)
+                                .frame(maxWidth: .infinity, alignment: .center)
+                                .padding(Theme.Spacing.large)
+                        } else {
+                            LazyVStack(alignment: .leading, spacing: Theme.Spacing.small) {
+                                ForEach(goals, id: \.id) { goal in
+                                    NavigationLink(destination: GoalDetailView(core: core, goal: goal)) {
+                                        HStack {
+                                            VStack(alignment: .leading, spacing: Theme.Spacing.extraSmall) {
+                                                Text(goal.name)
+                                                    .font(Theme.Typography.subheadline)
+                                                    .foregroundColor(Theme.Colors.text)
+                                                
+                                                if let description = goal.description, !description.isEmpty {
+                                                    Text(description)
+                                                        .font(Theme.Typography.caption)
+                                                        .foregroundColor(Theme.Colors.textSecondary)
+                                                        .lineLimit(2)
+                                                }
+                                            }
+                                            
+                                            Spacer()
+                                            
+                                            Image(systemName: "chevron.right")
+                                                .font(.caption)
+                                                .foregroundColor(Theme.Colors.textTertiary)
+                                        }
+                                        .padding(.vertical, Theme.Spacing.extraSmall)
                                     }
+                                    .buttonStyle(PlainButtonStyle())
                                 }
-                                .padding()
-                                .background(Color.gray.opacity(0.1))
-                                .cornerRadius(8)
                             }
                         }
                     }
                 }
-                .padding(.horizontal)
+                .padding(.horizontal, Theme.Spacing.large)
             }
-            .padding(.vertical)
+            .padding(.vertical, Theme.Spacing.large)
         }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -84,4 +101,4 @@ struct StudyDetailView: View {
             description: "This is a sample study"
         )
     )
-} 
+}

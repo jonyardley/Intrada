@@ -16,17 +16,17 @@ struct ProfileView: View {
                                 .padding(25)
                                 .foregroundColor(.gray)
                         )
-                    
+
                     Text("User Name")
                         .font(.title2)
                         .fontWeight(.semibold)
-                    
+
                     Text("user@example.com")
                         .font(.subheadline)
                         .foregroundColor(.gray)
                 }
                 .padding()
-                
+
                 // Settings sections
                 VStack(spacing: 0) {
                     SettingsRow(icon: "person.fill", title: "Edit Profile")
@@ -38,7 +38,7 @@ struct ProfileView: View {
                 .background(Color.gray.opacity(0.1))
                 .cornerRadius(10)
                 .padding(.horizontal)
-                
+
                 // Sign out button
                 Button(action: {
                     // Add sign out action here
@@ -62,18 +62,18 @@ struct ProfileView: View {
 struct SettingsRow: View {
     let icon: String
     let title: String
-    
+
     var body: some View {
         HStack {
             Image(systemName: icon)
                 .foregroundColor(.gray)
                 .frame(width: 30)
-            
+
             Text(title)
                 .font(.body)
-            
+
             Spacer()
-            
+
             Image(systemName: "chevron.right")
                 .foregroundColor(.gray)
         }
@@ -84,4 +84,4 @@ struct SettingsRow: View {
 
 #Preview {
     ProfileView()
-} 
+}

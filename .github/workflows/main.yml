@@ -7,6 +7,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  SQLX_OFFLINE: true
 
 # Prevent concurrent runs on the same branch/PR
 concurrency:
@@ -135,18 +136,28 @@ jobs:
             /usr/local/Homebrew/Library/Taps
             /usr/local/Cellar/xcodegen
             /usr/local/bin/xcodegen
-          key: brew-tools-${{ runner.os }}-xcodegen-v2
+            /usr/local/Cellar/swiftlint
+            /usr/local/bin/swiftlint
+          key: brew-tools-${{ runner.os }}-xcodegen-swiftlint-v3
           restore-keys: |
+            brew-tools-${{ runner.os }}-xcodegen-swiftlint-
             brew-tools-${{ runner.os }}-xcodegen-
             brew-tools-${{ runner.os }}-
 
-      - name: Install xcodegen
+      - name: Install xcodegen and SwiftLint
         run: |
           if ! command -v xcodegen &> /dev/null; then
             echo "Installing xcodegen..."
             brew install xcodegen
           else
             echo "xcodegen already available"
+          fi
+          
+          if ! command -v swiftlint &> /dev/null; then
+            echo "Installing SwiftLint..."
+            brew install swiftlint
+          else
+            echo "SwiftLint already available"
           fi
 
       - name: Build iOS targets
@@ -182,6 +193,11 @@ jobs:
         run: |
           cd iOS
           xcodegen generate
+
+      - name: Run SwiftLint
+        run: |
+          echo "Running SwiftLint on iOS code..."
+          swiftlint lint iOS/Intrada --reporter github-actions-logging
 
       - name: Cache iOS runtimes and system caches
         uses: actions/cache@v4

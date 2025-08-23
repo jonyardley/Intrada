@@ -71,15 +71,7 @@ impl PracticeGoal {
     }
 }
 
-pub fn add_goal(goal: PracticeGoal, model: &mut Model) {
-    let mut repo = model.goals();
-    repo.add(goal);
-}
-
-pub fn edit_goal(updated_goal: PracticeGoal, model: &mut Model) {
-    let mut repo = model.goals();
-    repo.update(updated_goal);
-}
+// Note: add_goal and edit_goal removed - use model.goals().add() and model.goals().update() directly
 
 pub fn add_study_to_goal(goal_id: &str, study_id: &str, model: &mut Model) {
     let mut repo = model.goals();
@@ -117,7 +109,7 @@ pub fn handle_event(event: GoalEvent, model: &mut Model) -> Command<super::Effec
         // Optimistic user actions (all immediate, sync in background)
         GoalEvent::CreateGoal(goal) => {
             // Apply immediately to local model
-            add_goal(goal.clone(), model);
+            model.goals().add(goal.clone());
 
             // Trigger background sync
             let create_request = serde_json::json!({
@@ -134,7 +126,7 @@ pub fn handle_event(event: GoalEvent, model: &mut Model) -> Command<super::Effec
         }
         GoalEvent::UpdateGoal(goal) => {
             // Apply immediately to local model
-            edit_goal(goal.clone(), model);
+            model.goals().update(goal.clone());
 
             // Trigger background sync
             let api = crate::app::ApiConfig::default();
@@ -204,7 +196,7 @@ fn test_add_goal() {
         vec!["Study 1".to_string()],
         None,
     );
-    add_goal(goal, &mut model);
+    model.goals().add(goal);
     assert_eq!(model.goals.len(), 1);
 }
 
@@ -219,7 +211,7 @@ fn test_edit_goal() {
         None,
     );
     let goal_id = goal.id.clone();
-    add_goal(goal, &mut model);
+    model.goals().add(goal);
 
     let updated_goal = PracticeGoal {
         id: goal_id.clone(),
@@ -232,7 +224,7 @@ fn test_edit_goal() {
         tempo_target: Some(120),
     };
 
-    edit_goal(updated_goal, &mut model);
+    model.goals().update(updated_goal);
 
     let edited_goal = model.goals.iter().find(|g| g.id == goal_id).unwrap();
     assert_eq!(edited_goal.name, "Updated Goal");
@@ -255,6 +247,6 @@ fn test_add_study_to_goal() {
         None,
     );
     let goal_id = goal.id.clone();
-    add_goal(goal, &mut model);
+    model.goals().add(goal);
     add_study_to_goal(&goal_id, "Study 1", &mut model);
 }

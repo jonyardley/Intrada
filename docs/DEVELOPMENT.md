@@ -8,7 +8,7 @@ Intrada follows a **Rust-first, shared-core architecture** with these principles
 
 1. **Single Source of Truth**: All business logic lives in Rust (`shared/`)
 2. **Type-Driven Development**: Database schemas derive from Rust types
-3. **Type-State Machines**: Invalid state transitions are compile-time errors
+3. **State Validation**: Clear runtime validation prevents invalid state transitions
 4. **Cross-Platform Consistency**: Shared core ensures identical behavior across platforms
 
 ## Architecture Overview
@@ -48,7 +48,60 @@ After changing shared types, regenerate platform bindings:
 ./build-and-typegen.sh
 ```
 
-### 3. Update Platforms
+### 3. Code Quality & Linting
+
+The project enforces code quality through automated linting:
+
+#### Rust Linting
+```bash
+# Run Rust linting (clippy + formatting)
+cargo run --package xtask -- lint
+
+# Format Rust code
+cargo fmt --all
+```
+
+#### Swift Linting
+```bash
+# Run Swift linting (included in xt lint)
+cargo run --package xtask -- lint
+
+# Format Swift code only
+swiftformat iOS/Intrada
+```
+
+#### Pre-commit Hooks
+The project automatically runs linting checks before each commit:
+- **Rust files**: Runs `cargo fmt --check` and `cargo clippy`
+- **Swift files**: Runs `swiftlint` if available
+- **Server files**: Checks SQLx query cache is up to date
+
+Install SwiftLint for complete pre-commit coverage:
+```bash
+brew install swiftlint
+```
+
+If any checks fail, the commit will be rejected with helpful fix suggestions.
+
+#### SQLx Query Cache Management
+The project uses SQLx with offline compilation for CI/CD. When you modify SQL queries in server code:
+
+```bash
+# Update query cache after changing SQL queries
+cargo run --package xtask -- sqlx prepare
+
+# Check if cache is up to date
+cargo run --package xtask -- sqlx check
+
+# Database management
+cargo run --package xtask -- sqlx db-up    # Start PostgreSQL
+cargo run --package xtask -- sqlx db-down  # Stop PostgreSQL
+cargo run --package xtask -- sqlx reset    # Reset DB and regenerate cache
+```
+
+**Note**: The `.sqlx/` directory contains query cache files and must be committed to git for CI/CD to work.
+
+### 4. Update Platforms
 
 Update platform-specific code to use new functionality:
 
@@ -92,7 +145,7 @@ cd web-leptos && npm run build:css && npm run build
 ### Shared Core (`shared/`)
 
 - **`app/model.rs`**: Core data models
-- **`app/session.rs`**: Practice session logic with type-state pattern
+- **`app/session.rs`**: Practice session logic with simple state management
 - **`app/goal.rs`**: Goal management
 - **`app/study.rs`**: Study management
 - **`app/error.rs`**: Error handling types
@@ -119,31 +172,38 @@ cd web-leptos && npm run build:css && npm run build
 - **`package.json`**: Contains `build:css` and `dev` scripts
 - **`tailwind.config.js`**: Tailwind CSS configuration
 
-## Type-State Pattern
+## State Management Pattern
 
-Intrada uses type-state machines to prevent invalid state transitions:
+Intrada uses simple struct + enum patterns for clear state management:
 
 ```rust
-pub enum PracticeSession {
-    NotStarted(NotStartedSession),
-    Started(StartedSession),
-    Ended(EndedSession),
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct PracticeSession {
+    pub id: String,
+    pub goal_ids: Vec<String>,
+    pub intention: String,
+    pub notes: Option<String>,
+    pub state: SessionState,
 }
 
-impl NotStartedSession {
-    pub fn start(self, timestamp: String) -> StartedSession {
-        StartedSession {
-            data: self.data,
-            start_time: timestamp,
+impl PracticeSession {
+    pub fn start(&mut self, timestamp: String) -> Result<(), SessionError> {
+        match self.state {
+            SessionState::NotStarted => {
+                self.state = SessionState::Started { start_time: timestamp };
+                Ok(())
+            }
+            _ => Err(SessionError::AlreadyStarted)
         }
     }
 }
 ```
 
 **Benefits:**
-- Invalid transitions (e.g., starting an already started session) are compile-time errors
-- State-specific data is type-safe
-- Impossible states are unrepresentable
+- Invalid transitions return clear error messages for user feedback
+- Simple, readable code that's easy to maintain and extend
+- Consistent with other entities like Goal and Study
+- Direct field access like other entities in the codebase
 
 ## Error Handling
 
