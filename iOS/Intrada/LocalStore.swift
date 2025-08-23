@@ -105,7 +105,7 @@ class LocalStore: ObservableObject {
                 "startDate": goal.startDate ?? "",
                 "targetDate": goal.targetDate ?? "",
                 "studyIds": goal.studyIds,
-                "tempoTarget": goal.tempoTarget ?? 0,
+                "tempoTarget": goal.tempoTarget ?? 0
             ] as [String: Any]
         }
 
@@ -149,7 +149,7 @@ class LocalStore: ObservableObject {
             [
                 "id": study.id,
                 "name": study.name,
-                "description": study.description ?? "",
+                "description": study.description ?? ""
             ] as [String: Any]
         }
 
@@ -188,7 +188,7 @@ class LocalStore: ObservableObject {
                 "duration": extractDurationInSeconds(from: session.state) ?? 0,
                 "startTime": extractStartTime(from: session.state) ?? "",
                 "endTime": extractEndTime(from: session.state) ?? "",
-                "isEnded": isSessionEnded(session.state),
+                "isEnded": isSessionEnded(session.state)
             ] as [String: Any]
         }
 

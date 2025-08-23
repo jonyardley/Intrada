@@ -72,7 +72,7 @@ struct GoalFormValidator: FormValidator {
             FieldValidator.required(name, fieldName: "Name"),
             FieldValidator.maxLength(name, max: 100, fieldName: "Name"),
             FieldValidator.maxLength(description, max: 500, fieldName: "Description"),
-            FieldValidator.tempo(tempoTarget),
+            FieldValidator.tempo(tempoTarget)
         ]
 
         return FieldValidator.combine(results)
@@ -89,7 +89,7 @@ struct StudyFormValidator: FormValidator {
         let results = [
             FieldValidator.required(name, fieldName: "Name"),
             FieldValidator.maxLength(name, max: 100, fieldName: "Name"),
-            FieldValidator.maxLength(description, max: 500, fieldName: "Description"),
+            FieldValidator.maxLength(description, max: 500, fieldName: "Description")
         ]
 
         return FieldValidator.combine(results)
@@ -106,7 +106,7 @@ struct SessionFormValidator: FormValidator {
         let results = [
             FieldValidator.required(intention, fieldName: "Intention"),
             FieldValidator.maxLength(intention, max: 200, fieldName: "Intention"),
-            FieldValidator.maxLength(notes, max: 1000, fieldName: "Notes"),
+            FieldValidator.maxLength(notes, max: 1000, fieldName: "Notes")
         ]
 
         return FieldValidator.combine(results)

@@ -400,7 +400,7 @@ private struct SessionStateView: View {
             Circle()
                 .fill(stateColor)
                 .frame(width: 8, height: 8)
-            
+
             Text(stateText)
                 .font(Theme.Typography.caption)
                 .foregroundColor(Theme.Colors.textSecondary)

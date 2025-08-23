@@ -36,7 +36,7 @@ struct GoalDetailView: View {
                             if let targetDate = goal.targetDate, !targetDate.isEmpty {
                                 DetailRow(label: "Target Date", value: targetDate)
                             }
-                            
+
                             HStack {
                                 Text("Status")
                                     .font(Theme.Typography.subheadline)
@@ -44,7 +44,7 @@ struct GoalDetailView: View {
                                 Spacer()
                                 StatusBadge(status: goal.status)
                             }
-                            
+
                             if let tempoTarget = goal.tempoTarget, tempoTarget > 0 {
                                 DetailRow(label: "Target Tempo", value: "\(tempoTarget) BPM")
                             }
@@ -79,7 +79,7 @@ struct GoalDetailView: View {
                                                 Text(study.name)
                                                     .font(Theme.Typography.subheadline)
                                                     .foregroundColor(Theme.Colors.text)
-                                                
+
                                                 if let description = study.description, !description.isEmpty {
                                                     Text(description)
                                                         .font(Theme.Typography.caption)
@@ -87,9 +87,9 @@ struct GoalDetailView: View {
                                                         .lineLimit(2)
                                                 }
                                             }
-                                            
+
                                             Spacer()
-                                            
+
                                             Image(systemName: "chevron.right")
                                                 .font(.caption)
                                                 .foregroundColor(Theme.Colors.textTertiary)
@@ -125,7 +125,7 @@ struct GoalDetailView: View {
 private struct DetailRow: View {
     let label: String
     let value: String
-    
+
     var body: some View {
         HStack {
             Text(label)

@@ -51,7 +51,7 @@ struct StudyDetailView: View {
                                                 Text(goal.name)
                                                     .font(Theme.Typography.subheadline)
                                                     .foregroundColor(Theme.Colors.text)
-                                                
+
                                                 if let description = goal.description, !description.isEmpty {
                                                     Text(description)
                                                         .font(Theme.Typography.caption)
@@ -59,9 +59,9 @@ struct StudyDetailView: View {
                                                         .lineLimit(2)
                                                 }
                                             }
-                                            
+
                                             Spacer()
-                                            
+
                                             Image(systemName: "chevron.right")
                                                 .font(.caption)
                                                 .foregroundColor(Theme.Colors.textTertiary)

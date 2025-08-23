@@ -124,7 +124,6 @@ private struct SessionControlsView: View {
 
 // MARK: - Session Header View
 
-
 // MARK: - Session State View (Type-safe state display)
 
 private struct SessionStateView: View {
