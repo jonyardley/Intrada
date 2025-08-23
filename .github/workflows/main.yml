@@ -127,19 +127,26 @@ jobs:
             ~/Library/Caches/org.swift.swiftpm
             iOS/.build
 
-      - name: Cache Homebrew
+      - name: Cache Homebrew and tools
         uses: actions/cache@v4
         with:
           path: |
             ~/Library/Caches/Homebrew
             /usr/local/Homebrew/Library/Taps
-          key: brew-${{ runner.os }}-xcodegen
-          restore-keys: brew-${{ runner.os }}-
+            /usr/local/Cellar/xcodegen
+            /usr/local/bin/xcodegen
+          key: brew-tools-${{ runner.os }}-xcodegen-v2
+          restore-keys: |
+            brew-tools-${{ runner.os }}-xcodegen-
+            brew-tools-${{ runner.os }}-
 
       - name: Install xcodegen
         run: |
           if ! command -v xcodegen &> /dev/null; then
+            echo "Installing xcodegen..."
             brew install xcodegen
+          else
+            echo "xcodegen already available"
           fi
 
       - name: Build iOS targets
@@ -156,10 +163,36 @@ jobs:
       - name: Generate Swift bindings
         run: ./typegen.sh
 
+      - name: Cache Xcode DerivedData and SwiftPM
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Developer/Xcode/DerivedData
+            ~/Library/Caches/org.swift.swiftpm
+            ~/Library/Caches/SwiftPM
+            iOS/.swiftpm
+            iOS/build
+          key: xcode-build-${{ runner.os }}-${{ hashFiles('iOS/project.yml', 'iOS/**/*.swift') }}-v2
+          restore-keys: |
+            xcode-build-${{ runner.os }}-${{ hashFiles('iOS/project.yml') }}-
+            xcode-build-${{ runner.os }}-
+
       - name: Generate Xcode project
         run: |
           cd iOS
           xcodegen generate
+
+      - name: Cache iOS runtimes
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/com.apple.dt.Xcode
+            ~/Library/Developer/Xcode/iOS DeviceSupport
+            /Applications/Xcode_16.0.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Library/Developer/CoreSimulator/Profiles/Runtimes
+          key: ios-runtimes-${{ runner.os }}-xcode-16.0-v2
+          restore-keys: |
+            ios-runtimes-${{ runner.os }}-xcode-16.0-
+            ios-runtimes-${{ runner.os }}-
 
       - name: Install iOS 18.0 runtime (if needed)
         run: |
@@ -174,6 +207,17 @@ jobs:
 
       - name: List available simulators
         run: xcrun simctl list devices available
+
+      - name: Cache Xcode build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            iOS/build
+            ~/Library/Developer/Xcode/DerivedData/Intrada-*/Build
+          key: xcode-artifacts-${{ runner.os }}-${{ hashFiles('iOS/**/*.swift', 'shared/**/*.rs') }}-v2
+          restore-keys: |
+            xcode-artifacts-${{ runner.os }}-${{ hashFiles('iOS/**/*.swift') }}-
+            xcode-artifacts-${{ runner.os }}-
 
       - name: Build iOS app
         run: |
@@ -199,9 +243,11 @@ jobs:
               -configuration Debug \
               -sdk iphonesimulator \
               -destination 'platform=iOS Simulator,name=iPhone 15,OS=17.0' \
-              clean build \
+              build \
               CODE_SIGNING_REQUIRED=NO \
-              CODE_SIGNING_ALLOWED=NO
+              CODE_SIGNING_ALLOWED=NO \
+              ONLY_ACTIVE_ARCH=YES \
+              -quiet
               
           # Strategy 2: Try with iPhone 15 (any available iOS version)
           elif xcodebuild \
@@ -221,9 +267,11 @@ jobs:
               -configuration Debug \
               -sdk iphonesimulator \
               -destination 'platform=iOS Simulator,name=iPhone 15' \
-              clean build \
+              build \
               CODE_SIGNING_REQUIRED=NO \
-              CODE_SIGNING_ALLOWED=NO
+              CODE_SIGNING_ALLOWED=NO \
+              ONLY_ACTIVE_ARCH=YES \
+              -quiet
               
           # Strategy 3: Try with iPhone 14
           elif xcodebuild \
@@ -243,9 +291,11 @@ jobs:
               -configuration Debug \
               -sdk iphonesimulator \
               -destination 'platform=iOS Simulator,name=iPhone 14' \
-              clean build \
+              build \
               CODE_SIGNING_REQUIRED=NO \
-              CODE_SIGNING_ALLOWED=NO
+              CODE_SIGNING_ALLOWED=NO \
+              ONLY_ACTIVE_ARCH=YES \
+              -quiet
               
           # Strategy 4: Find any iOS 17 compatible simulator
           else
@@ -261,9 +311,11 @@ jobs:
                 -configuration Debug \
                 -sdk iphonesimulator \
                 -destination "id=$SIMULATOR_ID" \
-                clean build \
+                build \
                 CODE_SIGNING_REQUIRED=NO \
-                CODE_SIGNING_ALLOWED=NO
+                CODE_SIGNING_ALLOWED=NO \
+                ONLY_ACTIVE_ARCH=YES \
+                -quiet
             else
               # Fallback to any iPhone simulator
               echo "No iOS 17+ simulators found, trying any iPhone simulator..."
@@ -276,9 +328,11 @@ jobs:
                   -configuration Debug \
                   -sdk iphonesimulator \
                   -destination "id=$SIMULATOR_ID" \
-                  clean build \
+                  build \
                   CODE_SIGNING_REQUIRED=NO \
-                  CODE_SIGNING_ALLOWED=NO
+                  CODE_SIGNING_ALLOWED=NO \
+                  ONLY_ACTIVE_ARCH=YES \
+                  -quiet
               else
                 echo "ERROR: No iPhone simulators available"
                 exit 1
