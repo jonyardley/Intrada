@@ -97,19 +97,57 @@ start_ios() {
         SIMULATOR_ID="booted"
     fi
     
-    if [ "$SIMULATOR_ID" = "booted" ]; then
-        echo "📱 Using booted simulator"
-    else
-        echo "📱 Using simulator: $SIMULATOR_ID"
-        # Boot simulator if needed
+    # Boot simulator if needed and open Simulator app
+    if [ "$SIMULATOR_ID" != "booted" ]; then
+        echo "📱 Booting simulator: $SIMULATOR_ID"
         xcrun simctl boot "$SIMULATOR_ID" 2>/dev/null || true
+        sleep 2
+    else
+        echo "📱 Using currently booted simulator"
     fi
     
-    # Quick build the app (no clean)
-    xcodebuild -project Intrada.xcodeproj -scheme Intrada -destination "id=$SIMULATOR_ID" build
+    # Ensure Simulator app is open and visible
+    echo "📱 Opening Simulator app..."
+    open -a Simulator
+    sleep 2
+    
+    # Quick build the app (no clean) with proper settings
+    echo "🔨 Quick building iOS app..."
+    xcodebuild \
+        -project Intrada.xcodeproj \
+        -scheme Intrada \
+        -destination "id=$SIMULATOR_ID" \
+        -configuration Debug \
+        build \
+        CODE_SIGNING_REQUIRED=NO \
+        CODE_SIGNING_ALLOWED=NO \
+        ONLY_ACTIVE_ARCH=YES
+    
+    # Find and install the app bundle
+    APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData -name "Intrada.app" -path "*/Build/Products/Debug-iphonesimulator/*" | head -1)
+    
+    if [ -z "$APP_PATH" ]; then
+        echo "❌ Could not find built Intrada.app bundle"
+        cd ..
+        return 1
+    fi
+    
+    echo "📦 Found app at: $APP_PATH"
+    echo "📥 Installing app on simulator..."
+    xcrun simctl install "$SIMULATOR_ID" "$APP_PATH"
+    sleep 1
     
     # Launch app
-    xcrun simctl launch "$SIMULATOR_ID" com.jonyardley.Intrada
+    echo "🚀 Launching app..."
+    xcrun simctl launch "$SIMULATOR_ID" com.jonyardley.Intrada || {
+        echo "⚠️  App launch failed, but app should be installed"
+        echo "📱 You can manually tap the Intrada app icon in the Simulator"
+        cd ..
+        return 0
+    }
+    
+    # Bring Simulator to front
+    osascript -e 'tell application "Simulator" to activate' 2>/dev/null || true
     
     cd ..
     echo "✅ iOS app launched successfully"
