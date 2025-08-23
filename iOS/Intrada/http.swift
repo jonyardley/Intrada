@@ -7,29 +7,22 @@ enum HttpError: Error {
 }
 
 func requestHttp(_ request: HttpRequest) async -> Result<HttpResponse, HttpError> {
-    // TEMPORARY: Hardcode server URL to bypass Config.plist issue
     let serverBaseURL = "http://localhost:3000"
     
-    // Replace any external URLs with our local server
-    var finalURL = request.url
-    if request.url.contains("appwrite.io") || request.url.contains("fra.cloud") {
-        // Replace Appwrite URLs with local server endpoints
-        if request.url.contains("/databases/") {
-            finalURL = "\(serverBaseURL)/api/goals"  // Map database requests to goals endpoint
-        } else {
-            finalURL = "\(serverBaseURL)/api/goals"  // Default to goals endpoint
-        }
-    } else if request.url.hasPrefix("http://localhost:3000") {
-        finalURL = request.url  // Keep localhost URLs as-is
+    // Clean URL resolution: if it's already a full localhost URL, use as-is
+    // Otherwise, treat it as a relative path and prepend the server base URL
+    let finalURL: String
+    if request.url.hasPrefix("http://localhost:3000") {
+        finalURL = request.url
+    } else if request.url.hasPrefix("/") {
+        // Relative path - prepend server base URL
+        finalURL = "\(serverBaseURL)\(request.url)"
     } else {
-        finalURL = "\(serverBaseURL)/api/goals"  // Default fallback
+        // Assume it's a relative path without leading slash
+        finalURL = "\(serverBaseURL)/\(request.url)"
     }
     
-    print("🌐 HTTP Request Debug:")
-    print("   Original URL: \(request.url)")
-    print("   Server Base URL: \(serverBaseURL)")
-    print("   Final URL: \(finalURL)")
-    print("   Method: \(request.method)")
+    print("🌐 HTTP Request: \(request.method) \(finalURL)")
     
     var req = URLRequest(url: URL(string: finalURL)!)
     req.httpMethod = request.method

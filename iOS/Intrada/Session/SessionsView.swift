@@ -8,34 +8,266 @@
 import SwiftUI
 import SharedTypes
 
+// MARK: - Temporary inline ViewModels and Components (to be moved to separate files)
+
+/// Application-specific error types
+enum AppError: LocalizedError, Identifiable {
+    case networkError(String)
+    case validationError(String)
+    case coreError(String)
+    case unknown(String)
+    
+    var id: String {
+        switch self {
+        case .networkError(let msg): return "network_\(msg.hashValue)"
+        case .validationError(let msg): return "validation_\(msg.hashValue)"
+        case .coreError(let msg): return "core_\(msg.hashValue)"
+        case .unknown(let msg): return "unknown_\(msg.hashValue)"
+        }
+    }
+    
+    var errorDescription: String? {
+        switch self {
+        case .networkError(let message):
+            return "Network Error: \(message)"
+        case .validationError(let message):
+            return "Validation Error: \(message)"
+        case .coreError(let message):
+            return "Application Error: \(message)"
+        case .unknown(let message):
+            return "Unknown Error: \(message)"
+        }
+    }
+    
+    static func from(_ error: Error) -> AppError {
+        if let appError = error as? AppError {
+            return appError
+        }
+        return .unknown(error.localizedDescription)
+    }
+}
+
+/// Base view model with common state management patterns
+class BaseViewModel: ObservableObject {
+    @Published var isLoading = false
+    @Published var error: AppError?
+    @Published var showingError = false
+    
+    /// Handle async operations with loading and error states
+    @MainActor
+    func withLoadingState<T>(_ operation: @escaping () async throws -> T) async -> T? {
+        isLoading = true
+        error = nil
+        
+        do {
+            let result = try await operation()
+            isLoading = false
+            return result
+        } catch {
+            isLoading = false
+            self.error = AppError.from(error)
+            showingError = true
+            return nil
+        }
+    }
+    
+    /// Clear current error state
+    func clearError() {
+        error = nil
+        showingError = false
+    }
+}
+
+/// View model for session-related operations
+class SessionViewModel: BaseViewModel {
+    private let core: Core
+    
+    init(core: Core) {
+        self.core = core
+        super.init()
+    }
+    
+    // MARK: - Computed Properties
+    
+    @MainActor
+    var sessions: [PracticeSession] {
+        core.view.sessions
+    }
+    
+    @MainActor
+    var activeSessions: [PracticeSession] {
+        sessions.filter { session in
+            switch session.state {
+            case .notStarted, .started, .pendingReflection:
+                return true
+            case .ended:
+                return false
+            }
+        }
+    }
+    
+    @MainActor
+    var completedSessions: [PracticeSession] {
+        sessions.filter { session in
+            if case .ended = session.state {
+                return true
+            }
+            return false
+        }
+    }
+    
+    // MARK: - Actions
+    
+    @MainActor
+    func startSession(_ session: PracticeSession) {
+        let startTime = Date().ISO8601Format()
+        core.update(.session(.startSession(session.id, startTime)))
+    }
+    
+    @MainActor
+    func endSession(_ session: PracticeSession) {
+        let endTime = Date().ISO8601Format()
+        core.update(.session(.endSession(session.id, endTime)))
+    }
+    
+    @MainActor
+    func completeReflection(sessionId: String, notes: String?) {
+        core.update(.session(.completeWithNotes(sessionId, notes ?? "")))
+    }
+    
+    @MainActor
+    func createSession(goalIds: [String], intention: String) async {
+        await withLoadingState { [self] in
+            let sessionId = UUID().uuidString
+            let session = PracticeSession(
+                id: sessionId,
+                goalIds: goalIds,
+                intention: intention,
+                notes: nil,
+                studySessions: [],
+                activeStudySessionId: nil,
+                state: .notStarted
+            )
+            self.core.update(.session(.createSession(session)))
+        }
+    }
+    
+    // MARK: - Helper Methods
+    
+    func formatDuration(from state: SessionState) -> String? {
+        switch state {
+        case .ended(_, _, let durationInSeconds):
+            return formatDurationFromSeconds(durationInSeconds)
+        case .started(let startTime), .pendingReflection(let startTime, _):
+            if let duration = calculateDurationBetweenTimes(startTime: startTime, endTime: ISO8601DateFormatter().string(from: Date())) {
+                return duration
+            }
+            return nil
+        case .notStarted:
+            return nil
+        }
+    }
+    
+    private func formatDurationFromSeconds(_ seconds: UInt32) -> String {
+        let hours = seconds / 3600
+        let minutes = (seconds % 3600) / 60
+        let remainingSeconds = seconds % 60
+        
+        if hours > 0 {
+            return String(format: "%02d:%02d:%02d", hours, minutes, remainingSeconds)
+        } else {
+            return String(format: "%02d:%02d", minutes, remainingSeconds)
+        }
+    }
+    
+    private func calculateDurationBetweenTimes(startTime: String, endTime: String) -> String? {
+        let formatter = ISO8601DateFormatter()
+        guard let start = formatter.date(from: startTime),
+              let end = formatter.date(from: endTime) else {
+            return nil
+        }
+        
+        let duration = end.timeIntervalSince(start)
+        let seconds = UInt32(max(0, duration))
+        return formatDurationFromSeconds(seconds)
+    }
+}
+
+/// Reusable loading view component
+struct LoadingView: View {
+    let message: String
+    
+    init(_ message: String = "Loading...") {
+        self.message = message
+    }
+    
+    var body: some View {
+        VStack(spacing: 16) {
+            ProgressView()
+                .scaleEffect(1.2)
+            
+            Text(message)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(.systemBackground))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(message)
+    }
+}
+
+/// Loading overlay for existing content
+struct LoadingOverlay: View {
+    let isLoading: Bool
+    let message: String
+    
+    init(isLoading: Bool, message: String = "Loading...") {
+        self.isLoading = isLoading
+        self.message = message
+    }
+    
+    var body: some View {
+        if isLoading {
+            ZStack {
+                Color.black.opacity(0.3)
+                    .ignoresSafeArea()
+                
+                VStack(spacing: 12) {
+                    ProgressView()
+                        .scaleEffect(1.2)
+                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                    
+                    Text(message)
+                        .font(.subheadline)
+                        .foregroundColor(.white)
+                }
+                .padding(24)
+                .background(Color.black.opacity(0.8))
+                .cornerRadius(12)
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(message)
+        }
+    }
+}
+
+
+
 struct SessionsView: View {
     @ObservedObject var core: Core
+    @StateObject private var viewModel: SessionViewModel
     @State private var showingAddForm = false
     @State private var showingReflectionForm = false
     @State private var sessionToReflect: PracticeSession?
     @State private var navigationPath = NavigationPath()
     
-    private var practiceQueueSessions: [PracticeSession] {
-        core.view.sessions.filter { session in
-            switch session.state {
-            case .ended:
-                return false
-            default:
-                return true
-            }
-        }
+    init(core: Core) {
+        self.core = core
+        self._viewModel = StateObject(wrappedValue: SessionViewModel(core: core))
     }
     
-    private var completedSessions: [PracticeSession] {
-        core.view.sessions.filter { session in
-            switch session.state {
-            case .ended:
-                return true
-            default:
-                return false
-            }
-        }
-    }
+
     
     var body: some View {
         NavigationStack(path: $navigationPath) {
@@ -45,25 +277,38 @@ struct SessionsView: View {
                         showingAddForm = true
                     }
                     
-                    // Practice Queue Section
-                    if !practiceQueueSessions.isEmpty {
-                        practiceQueueSectionView
-                    }
-                    
-                    // Completed Sessions Section
-                    if !completedSessions.isEmpty {
-                        completedSessionsSectionView
-                    }
-                    
-                    // Empty state when no sessions exist
-                    if core.view.sessions.isEmpty {
-                        EmptyStateView(message: "No sessions yet")
+                    // Loading state
+                    if viewModel.isLoading {
+                        LoadingView("Loading sessions...")
+                    } else {
+                        // Practice Queue Section
+                        if !viewModel.activeSessions.isEmpty {
+                            practiceQueueSectionView
+                        }
+                        
+                        // Completed Sessions Section
+                        if !viewModel.completedSessions.isEmpty {
+                            completedSessionsSectionView
+                        }
+                        
+                        // Empty state when no sessions exist
+                        if viewModel.sessions.isEmpty {
+                            EmptyStateView(message: "No sessions yet. Tap the + button to start your first practice session.")
+                        }
                     }
                 }
                 .padding(.vertical, Theme.Spacing.lg)
             }
             .navigationTitle("Sessions")
             .navigationBarTitleDisplayMode(.inline)
+            .overlay(
+                LoadingOverlay(isLoading: viewModel.isLoading, message: "Loading sessions...")
+            )
+            .alert("Error", isPresented: $viewModel.showingError, presenting: viewModel.error) { error in
+                Button("OK") { viewModel.clearError() }
+            } message: { error in
+                Text(error.localizedDescription)
+            }
             .sheet(isPresented: $showingAddForm) {
                 SessionFormView(
                     core: core,
@@ -105,9 +350,10 @@ struct SessionsView: View {
         VStack(alignment: .leading, spacing: Theme.Spacing.md) {
             SectionHeader(title: "Practice Queue")
             
-            ForEach(practiceQueueSessions, id: \.id) { session in
+            ForEach(viewModel.activeSessions, id: \.id) { session in
                 SessionRowWithActions(
                     session: session,
+                    viewModel: viewModel,
                     core: core,
                     onSessionEnd: handleSessionEnd,
                     onTap: {
@@ -124,11 +370,11 @@ struct SessionsView: View {
         VStack(alignment: .leading, spacing: Theme.Spacing.md) {
             SectionHeader(title: "Completed Sessions")
             
-            ForEach(completedSessions, id: \.id) { session in
+            ForEach(viewModel.completedSessions, id: \.id) { session in
                 NavigationLink {
                     SessionDetailView(core: core, sessionId: session.id)
                 } label: {
-                    SessionRow(session: session)
+                    SessionRow(session: session, viewModel: viewModel)
                         .padding(.horizontal, Theme.Spacing.lg)
                 }
                 .buttonStyle(PlainButtonStyle())
@@ -144,6 +390,7 @@ struct SessionsView: View {
 
 struct SessionRowWithActions: View {
     let session: PracticeSession
+    let viewModel: SessionViewModel
     @ObservedObject var core: Core
     let onSessionEnd: (PracticeSession) -> Void
     let onTap: () -> Void
@@ -176,7 +423,7 @@ struct SessionRowWithActions: View {
                             
                             Spacer()
                             
-                            if let duration = calculateDuration(from: session.state) {
+                            if let duration = viewModel.formatDuration(from: session.state) {
                                 Text(duration)
                                     .badgeStyle(color: Theme.Colors.textSecondary)
                             }
@@ -200,15 +447,7 @@ struct SessionRowWithActions: View {
         switch session.state {
         case .notStarted:
             Button {
-                let startTime = Date().ISO8601Format()
-                print("▶️ SessionsView: Starting session \(session.id) at \(startTime)")
-                print("📊 Current session state before: \(session.state)")
-                
-                // Use local event for immediate UI update, then optimistic sync
-                core.update(.session(.startSession(session.id, startTime)))
-                print("📊 Session count after update: \(core.view.sessions.count)")
-                
-                // Immediately navigate to active session
+                viewModel.startSession(session)
                 onTap()
             } label: {
                 HStack(spacing: 4) {
@@ -224,9 +463,7 @@ struct SessionRowWithActions: View {
             
         case .started(_):
             Button {
-                let endTime = Date().ISO8601Format()
-                core.update(.session(.endSession(session.id, endTime)))
-                // Don't call onSessionEnd here - let the UI handle PendingReflection state
+                viewModel.endSession(session)
                 onTap() // Navigate to show reflection form
             } label: {
                 HStack(spacing: 4) {
@@ -265,6 +502,7 @@ struct SessionRowWithActions: View {
 
 struct SessionRow: View {
     let session: PracticeSession
+    let viewModel: SessionViewModel
     
     var body: some View {
         GenericRow {
@@ -291,7 +529,7 @@ struct SessionRow: View {
                     
                     Spacer()
                     
-                    if let duration = calculateDuration(from: session.state) {
+                    if let duration = viewModel.formatDuration(from: session.state) {
                         Text(duration)
                             .badgeStyle(color: Theme.Colors.textSecondary)
                     }
@@ -313,32 +551,6 @@ private func extractStartTime(from state: SessionState) -> String? {
     case .notStarted:
         return nil
     }
-}
-
-private func calculateDuration(from state: SessionState) -> String? {
-    switch state {
-    case .ended(_, _, let durationInSeconds):
-        let minutes = Double(durationInSeconds) / 60.0
-        return "\(Int(minutes.rounded()))m"
-    case .pendingReflection(let startTime, let endTime):
-        return calculateDurationBetweenTimes(startTime: startTime, endTime: endTime)
-    case .notStarted, .started:
-        return nil
-    }
-}
-
-private func calculateDurationBetweenTimes(startTime: String, endTime: String) -> String? {
-    let formatter = ISO8601DateFormatter()
-    formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-    
-    guard let start = formatter.date(from: startTime),
-          let end = formatter.date(from: endTime) else {
-        return nil
-    }
-    
-    let duration = end.timeIntervalSince(start)
-    let minutes = duration / 60.0
-    return "\(Int(minutes.rounded()))m"
 }
 
 #Preview {
