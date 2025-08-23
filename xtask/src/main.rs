@@ -147,11 +147,32 @@ enum IosCommands {
     /// Build iOS app
     Build,
     /// Run iOS app in simulator
-    Run,
+    Run {
+        /// Run on physical device instead of simulator
+        #[arg(short, long)]
+        device: bool,
+        /// Force regenerate Xcode project
+        #[arg(long)]
+        force_regen: bool,
+    },
     /// Build and run iOS app
-    Start,
+    Start {
+        /// Run on physical device instead of simulator
+        #[arg(short, long)]
+        device: bool,
+        /// Force regenerate Xcode project
+        #[arg(long)]
+        force_regen: bool,
+    },
     /// Rebuild and run iOS app
-    Rebuild,
+    Rebuild {
+        /// Run on physical device instead of simulator
+        #[arg(short, long)]
+        device: bool,
+        /// Force regenerate Xcode project
+        #[arg(long)]
+        force_regen: bool,
+    },
     /// List available simulators
     Simulators,
 }
@@ -449,17 +470,38 @@ fn handle_ios_command(cmd: IosCommands) -> Result<()> {
             )?;
             print_success("iOS app built");
         }
-        IosCommands::Run => {
+        IosCommands::Run {
+            device,
+            force_regen,
+        } => {
             print_step("Running iOS app");
-            build_and_run_ios()?;
+            if device {
+                build_and_run_ios_on_device(force_regen)?;
+            } else {
+                build_and_run_ios(force_regen)?;
+            }
         }
-        IosCommands::Start => {
+        IosCommands::Start {
+            device,
+            force_regen,
+        } => {
             print_step("Building and running iOS app");
-            build_and_run_ios()?;
+            if device {
+                build_and_run_ios_on_device(force_regen)?;
+            } else {
+                build_and_run_ios(force_regen)?;
+            }
         }
-        IosCommands::Rebuild => {
+        IosCommands::Rebuild {
+            device,
+            force_regen,
+        } => {
             print_step("Rebuilding and running iOS app");
-            rebuild_and_run_ios()?;
+            if device {
+                rebuild_and_run_ios_on_device(force_regen)?;
+            } else {
+                rebuild_and_run_ios(force_regen)?;
+            }
         }
         IosCommands::Simulators => {
             print_step("Listing available simulators");
@@ -819,12 +861,17 @@ fn build_and_run_server() -> Result<()> {
     Ok(())
 }
 
-fn build_and_run_ios() -> Result<()> {
+fn build_and_run_ios(force_regen: bool) -> Result<()> {
     ensure_in_project_root()?;
 
-    // Generate Xcode project
-    print_step("Generating Xcode project");
-    run_command("xcodegen", &[], Some("iOS"))?;
+    // Generate Xcode project if it doesn't exist or if forced
+    let project_path = std::path::Path::new("iOS/Intrada.xcodeproj");
+    if !project_path.exists() || force_regen {
+        print_step("Generating Xcode project");
+        run_command("xcodegen", &[], Some("iOS"))?;
+    } else {
+        print_info("Using existing Xcode project");
+    }
 
     // Get available simulators and use the first iPhone simulator
     print_step("Finding iOS simulator");
@@ -834,33 +881,83 @@ fn build_and_run_ios() -> Result<()> {
         .context("Failed to list simulators")?;
 
     let simulator_output = String::from_utf8_lossy(&output.stdout);
+
+    // First try to find a booted iPhone simulator
     let simulator_id = simulator_output
         .lines()
-        .find(|line| line.contains("iPhone") && line.contains("(") && line.contains(")"))
+        .find(|line| {
+            line.contains("iPhone") 
+                && line.contains("(Booted)") 
+                && line.contains("(") 
+                && line.contains(")")
+        })
+        .or_else(|| {
+            // If no booted iPhone found, find any available iPhone
+            simulator_output
+                .lines()
+                .find(|line| {
+                    line.contains("iPhone") 
+                        && (line.contains("(Shutdown)") || line.contains("(Available)"))
+                        && line.contains("(") 
+                        && line.contains(")")
+                })
+        })
         .and_then(|line| {
             // Extract UUID from parentheses
-            line.split('(').nth(1)?.split(')').next()
+            // Format: "    iPhone 16 Pro (F843202B-E893-4273-B932-B3C7FE27B2D8) (Booted)"
+            if let Some(start) = line.find('(') {
+                if let Some(end) = line[start + 1..].find(')') {
+                    let uuid = &line[start + 1..start + 1 + end];
+                    // Validate it looks like a UUID (36 chars with dashes)
+                    if uuid.len() == 36 && uuid.chars().filter(|&c| c == '-').count() == 4 {
+                        return Some(uuid);
+                    }
+                }
+            }
+            None
         })
-        .unwrap_or("booted")
-        .to_string();
+        .map(|s| s.to_string())
+        .ok_or_else(|| {
+            anyhow::anyhow!(
+                "No iPhone simulator found. Available simulators:\n{}\n\nPlease install iOS simulators via Xcode.",
+                simulator_output
+            )
+        })?;
 
     print_info(&format!("Using simulator: {simulator_id}"));
 
     // Build the app
     print_step("Building iOS app");
-    run_command(
-        "xcodebuild",
-        &[
-            "-project",
-            "Intrada.xcodeproj",
-            "-scheme",
-            "Intrada",
-            "-destination",
-            &format!("id={simulator_id}"),
-            "build",
-        ],
-        Some("iOS"),
-    )?;
+
+    // Get development team automatically
+    let team_id = get_development_team_id()?;
+    let destination = format!("id={simulator_id}");
+    let mut build_args = vec![
+        "-project",
+        "Intrada.xcodeproj",
+        "-scheme",
+        "Intrada",
+        "-destination",
+        &destination,
+    ];
+
+    // Add signing arguments if we have a team ID
+    let team_arg;
+    if let Some(ref team) = team_id {
+        team_arg = format!("DEVELOPMENT_TEAM={team}");
+        build_args.extend(&["CODE_SIGN_STYLE=Automatic", &team_arg]);
+    } else {
+        // For simulator, we can disable code signing
+        build_args.extend(&[
+            "CODE_SIGN_IDENTITY=",
+            "CODE_SIGNING_REQUIRED=NO",
+            "CODE_SIGNING_ALLOWED=NO",
+        ]);
+    }
+
+    build_args.push("build");
+
+    run_command("xcodebuild", &build_args, Some("iOS"))?;
 
     // Install and launch the app
     print_step("Installing and launching iOS app");
@@ -871,16 +968,28 @@ fn build_and_run_ios() -> Result<()> {
         .args(["simctl", "boot", &simulator_id])
         .output();
 
-    // Install app (assuming build output location)
-    let _ = Command::new("xcrun")
-        .args([
+    // Give simulator time to boot
+    thread::sleep(Duration::from_secs(2));
+
+    // Find the built app bundle dynamically
+    let app_path = find_built_app_bundle()?;
+    print_info(&format!("Found app at: {}", app_path.display()));
+
+    // Install the app on the simulator
+    print_info("Installing app on simulator...");
+    run_command(
+        "xcrun",
+        &[
             "simctl",
             "install",
             &simulator_id,
-            "build/Release-iphonesimulator/Intrada.app",
-        ])
-        .current_dir("iOS")
-        .output();
+            &app_path.to_string_lossy(),
+        ],
+        None,
+    )?;
+
+    // Give installation time to complete
+    thread::sleep(Duration::from_secs(1));
 
     // Launch app
     run_command(
@@ -891,6 +1000,270 @@ fn build_and_run_ios() -> Result<()> {
 
     print_success("iOS app launched successfully");
     Ok(())
+}
+
+fn build_and_run_ios_on_device(force_regen: bool) -> Result<()> {
+    ensure_in_project_root()?;
+
+    // Generate Xcode project if it doesn't exist or if forced
+    let project_path = std::path::Path::new("iOS/Intrada.xcodeproj");
+    if !project_path.exists() || force_regen {
+        print_step("Generating Xcode project");
+        run_command("xcodegen", &[], Some("iOS"))?;
+    } else {
+        print_info("Using existing Xcode project (preserving manual team selection)");
+    }
+
+    // Get available devices
+    print_step("Finding connected iOS device");
+    let output = Command::new("xcrun")
+        .args(["xctrace", "list", "devices"])
+        .output()
+        .context("Failed to list devices. Make sure Xcode command line tools are installed.")?;
+
+    let devices_output = String::from_utf8_lossy(&output.stdout);
+    let device_id = devices_output
+        .lines()
+        .find(|line| {
+            // Look for lines that contain iPhone/iPad and are not simulators
+            (line.contains("iPhone") || line.contains("iPad")) 
+                && !line.contains("Simulator")
+                && line.contains("(")
+                && line.contains(")")
+        })
+        .and_then(|line| {
+            // Extract device identifier from parentheses - it's the last UUID in the line
+            if let Some(start) = line.rfind('(') {
+                if let Some(end) = line[start + 1..].find(')') {
+                    let device_id = &line[start + 1..start + 1 + end];
+                    // Validate it looks like a device ID (long hex string)
+                    if device_id.len() >= 25 && device_id.chars().all(|c| c.is_ascii_hexdigit() || c == '-') {
+                        return Some(device_id);
+                    }
+                }
+            }
+            None
+        })
+        .map(|s| s.to_string())
+        .ok_or_else(|| {
+            anyhow::anyhow!(
+                "No connected iOS device found. Available devices:\n{}\n\nPlease connect an iOS device and ensure it's trusted.",
+                devices_output
+            )
+        })?;
+
+    print_info(&format!("Using device: {device_id}"));
+
+    // Get development team automatically
+    let team_id = get_development_team_id()?;
+
+    let destination = format!("id={device_id}");
+    let mut build_args = vec![
+        "-project",
+        "Intrada.xcodeproj",
+        "-scheme",
+        "Intrada",
+        "-destination",
+        &destination,
+    ];
+
+    // Add signing arguments for device deployment
+    build_args.push("CODE_SIGN_STYLE=Automatic");
+
+    let team_arg;
+    if let Some(team) = team_id {
+        // Use specific development team if found
+        team_arg = format!("DEVELOPMENT_TEAM={team}");
+        build_args.push(&team_arg);
+        print_info(&format!("Using development team: {team}"));
+    } else {
+        // Try automatic signing without specifying team - let Xcode figure it out
+        print_warning("⚠️  No development team certificates found. Trying automatic signing...");
+        print_info("💡 If this fails, you may need to:");
+        print_info("   1. Open iOS/Intrada.xcodeproj in Xcode");
+        print_info("   2. Select your development team in Signing & Capabilities");
+        print_info("   3. Ensure your device is registered and trusted");
+    }
+
+    build_args.push("build");
+
+    // Build the app for device
+    print_step("Building iOS app for device");
+
+    // Run xcodebuild and capture output for better error handling
+    let mut command = Command::new("xcodebuild");
+    command.args(&build_args).current_dir("iOS");
+
+    let output = command
+        .output()
+        .context("Failed to execute xcodebuild command")?;
+
+    if !output.status.success() {
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let combined_output = format!("{stdout}{stderr}");
+
+        // Check for signing-related errors
+        if combined_output.contains("requires a development team")
+            || combined_output.contains("development team")
+            || combined_output.contains("Signing for")
+        {
+            print_warning("❌ Device deployment failed: Development team required");
+            print_info("");
+            print_info("🔧 To fix this, you need to:");
+            print_info("   1. Get an Apple Developer account (free or paid)");
+            print_info("   2. Open iOS/Intrada.xcodeproj in Xcode");
+            print_info("   3. Select the 'Intrada' target");
+            print_info("   4. Go to 'Signing & Capabilities' tab");
+            print_info("   5. Check 'Automatically manage signing'");
+            print_info("   6. Select your Team from the dropdown");
+            print_info("   7. Ensure your device is connected and trusted");
+            print_info("");
+            print_info("💡 Alternatively, use simulator mode: xt ios start");
+        }
+
+        anyhow::bail!("xcodebuild failed with exit code: {}", output.status);
+    }
+
+    print_success("iOS app built and should be installed on device");
+    print_info("Note: The app should now be available on your connected device. You may need to manually launch it from the device's home screen.");
+    Ok(())
+}
+
+fn rebuild_and_run_ios_on_device(force_regen: bool) -> Result<()> {
+    ensure_in_project_root()?;
+
+    // Clean first
+    print_step("Cleaning iOS build artifacts");
+    run_command(
+        "xcodebuild",
+        &[
+            "-project",
+            "Intrada.xcodeproj",
+            "-scheme",
+            "Intrada",
+            "clean",
+        ],
+        Some("iOS"),
+    )?;
+
+    // Then build and run
+    build_and_run_ios_on_device(force_regen)
+}
+
+fn find_built_app_bundle() -> Result<std::path::PathBuf> {
+    // Try multiple possible locations for the built app
+    let possible_paths = [
+        // DerivedData location (most common)
+        {
+            let home = std::env::var("HOME").unwrap_or_default();
+            let derived_data = format!("{home}/Library/Developer/Xcode/DerivedData");
+
+            if let Ok(entries) = std::fs::read_dir(&derived_data) {
+                for entry in entries.flatten() {
+                    let path = entry.path();
+                    if path.is_dir()
+                        && path
+                            .file_name()
+                            .unwrap_or_default()
+                            .to_str()
+                            .unwrap_or_default()
+                            .starts_with("Intrada-")
+                    {
+                        let app_path =
+                            path.join("Build/Products/Debug-iphonesimulator/Intrada.app");
+                        if app_path.exists() {
+                            return Ok(app_path);
+                        }
+                    }
+                }
+            }
+            std::path::PathBuf::new() // Placeholder, won't be used
+        },
+        // Local build directory
+        std::path::Path::new("iOS/build/Debug-iphonesimulator/Intrada.app").to_path_buf(),
+        std::path::Path::new("iOS/build/Release-iphonesimulator/Intrada.app").to_path_buf(),
+        // Xcode's default build location
+        std::path::Path::new("iOS/Build/Products/Debug-iphonesimulator/Intrada.app").to_path_buf(),
+        std::path::Path::new("iOS/Build/Products/Release-iphonesimulator/Intrada.app")
+            .to_path_buf(),
+    ];
+
+    // Check each possible location
+    for path in &possible_paths[1..] {
+        // Skip the first one since we already handled DerivedData above
+        if path.exists() {
+            return Ok(path.clone());
+        }
+    }
+
+    // If none found, try to find any .app bundle in the iOS directory
+    if let Ok(entries) = std::fs::read_dir("iOS") {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                let app_path = path.join("Intrada.app");
+                if app_path.exists() {
+                    return Ok(app_path);
+                }
+            }
+        }
+    }
+
+    anyhow::bail!(
+        "Could not find built Intrada.app bundle. Tried locations:\n{}",
+        possible_paths
+            .iter()
+            .map(|p| format!("  - {}", p.display()))
+            .collect::<Vec<_>>()
+            .join("\n")
+    )
+}
+
+fn get_development_team_id() -> Result<Option<String>> {
+    // Try to get development team from security framework
+    let output = Command::new("security")
+        .args(["find-identity", "-v", "-p", "codesigning"])
+        .output();
+
+    if let Ok(output) = output {
+        let output_str = String::from_utf8_lossy(&output.stdout);
+
+        // Look for "iPhone Developer" or "Apple Development" certificates
+        for line in output_str.lines() {
+            if line.contains("iPhone Developer") || line.contains("Apple Development") {
+                // Extract team ID from certificate name
+                if let Some(start) = line.find('(') {
+                    if let Some(end) = line[start..].find(')') {
+                        let team_id = &line[start + 1..start + end];
+                        if team_id.len() == 10 && team_id.chars().all(|c| c.is_alphanumeric()) {
+                            print_info(&format!("Found development team: {team_id}"));
+                            return Ok(Some(team_id.to_string()));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Try to get from Xcode preferences
+    let home = std::env::var("HOME").unwrap_or_default();
+    let xcode_prefs = format!("{home}/Library/Preferences/com.apple.dt.Xcode.plist");
+
+    if Path::new(&xcode_prefs).exists() {
+        let output = Command::new("defaults")
+            .args(["read", &xcode_prefs, "DVTDeveloperAccountManager"])
+            .output();
+
+        if let Ok(output) = output {
+            let _output_str = String::from_utf8_lossy(&output.stdout);
+            // This is a complex plist structure, but we can try to extract team IDs
+            // For now, we'll skip this complex parsing
+        }
+    }
+
+    print_warning("⚠️  No development team found. Using simulator-only signing.");
+    Ok(None)
 }
 
 fn generate_type_bindings() -> Result<()> {
@@ -1346,7 +1719,7 @@ fn start_development_environment() -> Result<()> {
 
     // Build and launch iOS app
     print_step("Building and launching iOS app");
-    build_and_run_ios()?;
+    build_and_run_ios(false)?;
 
     print_info("Development environment is running!");
     print_info("📋 To stop services: intrada dev stop");
@@ -1393,7 +1766,7 @@ fn start_development_with_logs() -> Result<()> {
 
     // Build and launch iOS app
     print_step("Building and launching iOS app");
-    build_and_run_ios()?;
+    build_and_run_ios(false)?;
 
     // Start log streaming
     print_info("🔄 Starting log streaming - Press Ctrl+C to stop");
@@ -1491,7 +1864,7 @@ fn rebuild_and_run_server() -> Result<()> {
     Ok(())
 }
 
-fn rebuild_and_run_ios() -> Result<()> {
+fn rebuild_and_run_ios(force_regen: bool) -> Result<()> {
     ensure_in_project_root()?;
 
     print_info("📱 Rebuilding and running iOS app...");
@@ -1527,7 +1900,7 @@ fn rebuild_and_run_ios() -> Result<()> {
 
     // Step 5: Build and run iOS app
     print_step("Building and running iOS app");
-    build_and_run_ios()?;
+    build_and_run_ios(force_regen)?;
 
     print_success("✅ iOS app rebuilt and started!");
     Ok(())
