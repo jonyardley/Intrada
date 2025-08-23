@@ -45,7 +45,7 @@ struct SessionFormView: View {
                 
                 if let existingSession = existingSessionId.flatMap({ id in
                     core.view.sessions.first { $0.id == id }
-                }), existingSession.isEnded {
+                }), case .ended = existingSession.state {
                     Section(header: Text("Reflection Notes")) {
                         TextEditor(text: $notes)
                             .frame(minHeight: 100)
@@ -95,15 +95,15 @@ struct SessionFormView: View {
                     } else {
                         // Creating a new session - always starts as NotStarted
                         let sessionId = UUID().uuidString
-                        let sessionData = SessionData(
+                        let session = PracticeSession(
                             id: sessionId,
                             goalIds: Array(selectedGoals),
                             intention: intention,
                             notes: notes.isEmpty ? nil : notes,
-                            studySessions: []
+                            studySessions: [],
+                            activeStudySessionId: nil,
+                            state: .notStarted
                         )
-                        let notStartedSession = NotStartedSession(data: sessionData)
-                        let session = PracticeSession.notStarted(notStartedSession)
                         
                         print("🆕 SessionFormView: Creating session with ID: \(sessionId)")
                         core.update(.session(.createSession(session)))

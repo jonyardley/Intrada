@@ -177,6 +177,25 @@ impl<'a> SessionRepository<'a> {
             .collect()
     }
 
+    /// Find the currently active session (should only be one)
+    pub fn find_current_active(&self) -> Option<&PracticeSession> {
+        self.model.sessions.iter().find(|s| s.is_active())
+    }
+
+    /// Find the currently active session mutably (should only be one)
+    pub fn find_current_active_mut(&mut self) -> Option<&mut PracticeSession> {
+        self.model.sessions.iter_mut().find(|s| s.is_active())
+    }
+
+    /// Find not started sessions
+    pub fn find_not_started(&self) -> Vec<&PracticeSession> {
+        self.model
+            .sessions
+            .iter()
+            .filter(|s| matches!(s.state, crate::app::session::SessionState::NotStarted))
+            .collect()
+    }
+
     /// Find completed sessions
     pub fn find_completed(&self) -> Vec<&PracticeSession> {
         self.model
@@ -186,29 +205,34 @@ impl<'a> SessionRepository<'a> {
             .collect()
     }
 
+    /// Check if a specific session is currently started
+    pub fn is_session_active(&self, session_id: &str) -> bool {
+        self.model
+            .sessions
+            .iter()
+            .any(|s| s.id == session_id && s.is_active())
+    }
+
     /// Find sessions for a specific goal
     pub fn find_by_goal_id(&self, goal_id: &str) -> Vec<&PracticeSession> {
         self.model
             .sessions
             .iter()
-            .filter(|session| session.goal_ids().contains(&goal_id.to_string()))
+            .filter(|session| session.goal_ids.contains(&goal_id.to_string()))
             .collect()
     }
 }
 
 impl<'a> Repository<PracticeSession> for SessionRepository<'a> {
     fn find_by_id(&self, id: &str) -> Option<&PracticeSession> {
-        self.model
-            .sessions
-            .iter()
-            .find(|session| session.id() == id)
+        self.model.sessions.iter().find(|session| session.id == id)
     }
 
     fn find_mut_by_id(&mut self, id: &str) -> Option<&mut PracticeSession> {
         self.model
             .sessions
             .iter_mut()
-            .find(|session| session.id() == id)
+            .find(|session| session.id == id)
     }
 
     fn add(&mut self, entity: PracticeSession) {
@@ -216,7 +240,7 @@ impl<'a> Repository<PracticeSession> for SessionRepository<'a> {
     }
 
     fn update(&mut self, entity: PracticeSession) -> bool {
-        if let Some(session) = self.find_mut_by_id(entity.id()) {
+        if let Some(session) = self.find_mut_by_id(&entity.id) {
             *session = entity;
             true
         } else {
@@ -229,7 +253,7 @@ impl<'a> Repository<PracticeSession> for SessionRepository<'a> {
             .model
             .sessions
             .iter()
-            .position(|session| session.id() == id)
+            .position(|session| session.id == id)
         {
             Some(self.model.sessions.remove(pos))
         } else {
@@ -326,7 +350,7 @@ mod tests {
         let mut repo = model.sessions();
 
         let session = create_test_session(&["goal1"], "Test Session");
-        let session_id = session.id().to_string();
+        let session_id = session.id.clone();
 
         // Test add and find
         repo.add(session);

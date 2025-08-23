@@ -176,17 +176,17 @@ class LocalStore: ObservableObject {
     }
     
     /// Save sessions with type safety
-    func saveSessions(_ sessions: [PracticeSessionView]) {
+    func saveSessions(_ sessions: [PracticeSession]) {
         let sessionData = sessions.map { session in
             [
                 "id": session.id,
                 "goalIds": session.goalIds,
                 "intention": session.intention,
                 "notes": session.notes ?? "",
-                "duration": session.duration ?? "",
-                "startTime": session.startTime ?? "",
-                "endTime": session.endTime ?? "",
-                "isEnded": session.isEnded
+                "duration": extractDurationInSeconds(from: session.state) ?? 0,
+                "startTime": extractStartTime(from: session.state) ?? "",
+                "endTime": extractEndTime(from: session.state) ?? "",
+                "isEnded": isSessionEnded(session.state)
             ] as [String : Any]
         }
         
@@ -195,9 +195,10 @@ class LocalStore: ObservableObject {
     }
     
     /// Load sessions with type safety
-    func loadSessions() -> [PracticeSessionView] {
+    func loadSessions() -> [PracticeSession] {
         let sessionData: [[String: Any]] = loadJSONData(forKey: .sessions) ?? []
-        return sessionData.compactMap { dict in
+        
+        let sessions: [PracticeSession] = sessionData.compactMap { dict in
             guard let id = dict["id"] as? String,
                   let goalIds = dict["goalIds"] as? [String],
                   let intention = dict["intention"] as? String else {
@@ -205,25 +206,37 @@ class LocalStore: ObservableObject {
             }
             
             let notes = dict["notes"] as? String
-            let duration = dict["duration"] as? String
+            let durationInSeconds = dict["duration"] as? UInt32
             let startTime = dict["startTime"] as? String
             let endTime = dict["endTime"] as? String
             let isEnded = dict["isEnded"] as? Bool ?? false
             
-            // For now, create a simple session view - can be expanded later
-            return PracticeSessionView(
+            // Reconstruct session state from stored values
+            let state: SessionState
+            if isEnded, let startTime = startTime, !startTime.isEmpty, let endTime = endTime, !endTime.isEmpty {
+                let durationValue = durationInSeconds ?? 0
+                state = .ended(start_time: startTime, end_time: endTime, duration_in_seconds: durationValue)
+            } else if let startTime = startTime, !startTime.isEmpty, let endTime = endTime, !endTime.isEmpty {
+                // Session has both start and end time but is not marked as ended - must be pending reflection
+                state = .pendingReflection(start_time: startTime, end_time: endTime)
+            } else if let startTime = startTime, !startTime.isEmpty {
+                state = .started(start_time: startTime)
+            } else {
+                state = .notStarted
+            }
+            
+            return PracticeSession(
                 id: id,
                 goalIds: goalIds,
                 intention: intention,
-                state: .notStarted,
                 notes: notes?.isEmpty == true ? nil : notes,
                 studySessions: [],
-                duration: duration?.isEmpty == true ? nil : duration,
-                startTime: startTime?.isEmpty == true ? nil : startTime,
-                endTime: endTime?.isEmpty == true ? nil : endTime,
-                isEnded: isEnded
+                activeStudySessionId: nil,
+                state: state
             )
         }
+        
+        return sessions
     }
     
     // MARK: - Sync Management
@@ -407,19 +420,77 @@ extension LocalStore {
         }
     }
     
-    private func syncSessionsToCloudKit(_ sessions: [PracticeSessionView], database: CKDatabase) async throws {
+    private func syncSessionsToCloudKit(_ sessions: [PracticeSession], database: CKDatabase) async throws {
         for session in sessions {
             let record = CKRecord(recordType: "Session")
             record.setValue(session.id, forKey: "id")
             record.setValue(session.goalIds, forKey: "goalIds")
             record.setValue(session.intention, forKey: "intention")
             record.setValue(session.notes, forKey: "notes")
-            record.setValue(session.duration, forKey: "duration")
-            record.setValue(session.startTime, forKey: "startTime")
-            record.setValue(session.endTime, forKey: "endTime")
-            record.setValue(session.isEnded, forKey: "isEnded")
+            record.setValue(extractDurationInSeconds(from: session.state), forKey: "duration")
+            record.setValue(extractStartTime(from: session.state), forKey: "startTime")
+            record.setValue(extractEndTime(from: session.state), forKey: "endTime")
+            record.setValue(isSessionEnded(session.state), forKey: "isEnded")
             
             try await database.save(record)
         }
     }
+}
+
+// MARK: - Session State Helper Functions
+private func extractStartTime(from state: SessionState) -> String? {
+    switch state {
+    case .started(let startTime):
+        return startTime
+    case .pendingReflection(let startTime, _):
+        return startTime
+    case .ended(let startTime, _, _):
+        return startTime
+    case .notStarted:
+        return nil
+    }
+}
+
+private func extractEndTime(from state: SessionState) -> String? {
+    switch state {
+    case .pendingReflection(_, let endTime):
+        return endTime
+    case .ended(_, let endTime, _):
+        return endTime
+    case .started, .notStarted:
+        return nil
+    }
+}
+
+private func isSessionEnded(_ state: SessionState) -> Bool {
+    switch state {
+    case .ended:
+        return true
+    case .notStarted, .started, .pendingReflection:
+        return false
+    }
+}
+
+private func extractDurationInSeconds(from state: SessionState) -> UInt32? {
+    switch state {
+    case .ended(_, _, let durationInSeconds):
+        return durationInSeconds
+    case .pendingReflection(let startTime, let endTime):
+        return calculateDurationInSecondsBetweenTimes(startTime: startTime, endTime: endTime)
+    case .notStarted, .started:
+        return nil
+    }
+}
+
+private func calculateDurationInSecondsBetweenTimes(startTime: String, endTime: String) -> UInt32? {
+    let formatter = ISO8601DateFormatter()
+    formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    
+    guard let start = formatter.date(from: startTime),
+          let end = formatter.date(from: endTime) else {
+        return nil
+    }
+    
+    let duration = end.timeIntervalSince(start)
+    return UInt32(max(0, duration))
 } 

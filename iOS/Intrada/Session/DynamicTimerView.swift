@@ -2,14 +2,14 @@ import SwiftUI
 import SharedTypes
 
 struct DynamicTimerView: View {
-    let session: PracticeSessionView
+    let session: PracticeSession
     let fontSize: Font
     let textColor: Color
     
     @State private var currentTime = Date()
     @State private var timer: Timer?
     
-    init(session: PracticeSessionView, fontSize: Font = .title3, textColor: Color = .blue) {
+    init(session: PracticeSession, fontSize: Font = .title3, textColor: Color = .blue) {
         self.session = session
         self.fontSize = fontSize
         self.textColor = textColor
@@ -46,7 +46,20 @@ struct DynamicTimerView: View {
     }
     
     private func calculateElapsedTime() -> String {
-        guard let startTimeString = session.startTime else {
+        // Extract start time from session state
+        let startTimeString: String?
+        switch session.state {
+        case .started(let startTime):
+            startTimeString = startTime
+        case .pendingReflection(let startTime, _):
+            startTimeString = startTime
+        case .ended(let startTime, _, _):
+            startTimeString = startTime
+        case .notStarted:
+            startTimeString = nil
+        }
+        
+        guard let startTimeString = startTimeString else {
             return "00:00:00"
         }
         

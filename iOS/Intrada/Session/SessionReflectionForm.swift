@@ -7,7 +7,7 @@ struct SessionReflectionForm: View {
     @Binding var isPresented: Bool
     @State private var notes: String = ""
     
-    private var session: PracticeSessionView? {
+    private var session: PracticeSession? {
         core.view.sessions.first { $0.id == sessionId }
     }
     

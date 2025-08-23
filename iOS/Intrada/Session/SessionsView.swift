@@ -12,15 +12,29 @@ struct SessionsView: View {
     @ObservedObject var core: Core
     @State private var showingAddForm = false
     @State private var showingReflectionForm = false
-    @State private var sessionToReflect: PracticeSessionView?
+    @State private var sessionToReflect: PracticeSession?
     @State private var navigationPath = NavigationPath()
     
-    private var practiceQueueSessions: [PracticeSessionView] {
-        core.view.sessions.filter { !$0.isEnded }
+    private var practiceQueueSessions: [PracticeSession] {
+        core.view.sessions.filter { session in
+            switch session.state {
+            case .ended:
+                return false
+            default:
+                return true
+            }
+        }
     }
     
-    private var completedSessions: [PracticeSessionView] {
-        core.view.sessions.filter { $0.isEnded }
+    private var completedSessions: [PracticeSession] {
+        core.view.sessions.filter { session in
+            switch session.state {
+            case .ended:
+                return true
+            default:
+                return false
+            }
+        }
     }
     
     var body: some View {
@@ -122,16 +136,16 @@ struct SessionsView: View {
         }
     }
     
-    private func handleSessionEnd(_ session: PracticeSessionView) {
+    private func handleSessionEnd(_ session: PracticeSession) {
         sessionToReflect = session
         showingReflectionForm = true
     }
 }
 
 struct SessionRowWithActions: View {
-    let session: PracticeSessionView
+    let session: PracticeSession
     @ObservedObject var core: Core
-    let onSessionEnd: (PracticeSessionView) -> Void
+    let onSessionEnd: (PracticeSession) -> Void
     let onTap: () -> Void
     
     var body: some View {
@@ -150,7 +164,7 @@ struct SessionRowWithActions: View {
                         }
                         
                         HStack {
-                            if let startTime = session.startTime {
+                            if let startTime = extractStartTime(from: session.state) {
                                 HStack(spacing: Theme.Spacing.xs) {
                                     Image(systemName: "calendar")
                                         .foregroundColor(Theme.Colors.primary)
@@ -162,7 +176,7 @@ struct SessionRowWithActions: View {
                             
                             Spacer()
                             
-                            if let duration = session.duration {
+                            if let duration = calculateDuration(from: session.state) {
                                 Text(duration)
                                     .badgeStyle(color: Theme.Colors.textSecondary)
                             }
@@ -242,7 +256,7 @@ struct SessionRowWithActions: View {
                 .cornerRadius(6)
             }
             
-        case .ended(_, _):
+        case .ended(_, _, _):
             // No action button for ended sessions
             EmptyView()
         }
@@ -250,7 +264,7 @@ struct SessionRowWithActions: View {
 }
 
 struct SessionRow: View {
-    let session: PracticeSessionView
+    let session: PracticeSession
     
     var body: some View {
         GenericRow {
@@ -265,7 +279,7 @@ struct SessionRow: View {
                 }
                 
                 HStack {
-                    if let startTime = session.startTime {
+                    if let startTime = extractStartTime(from: session.state) {
                         HStack(spacing: Theme.Spacing.xs) {
                             Image(systemName: "calendar")
                                 .foregroundColor(Theme.Colors.primary)
@@ -277,7 +291,7 @@ struct SessionRow: View {
                     
                     Spacer()
                     
-                    if let duration = session.duration {
+                    if let duration = calculateDuration(from: session.state) {
                         Text(duration)
                             .badgeStyle(color: Theme.Colors.textSecondary)
                     }
@@ -287,7 +301,45 @@ struct SessionRow: View {
     }
 }
 
+// Helper function to extract start time from session state
+private func extractStartTime(from state: SessionState) -> String? {
+    switch state {
+    case .started(let startTime):
+        return startTime
+    case .pendingReflection(let startTime, _):
+        return startTime
+    case .ended(let startTime, _, _):
+        return startTime
+    case .notStarted:
+        return nil
+    }
+}
 
+private func calculateDuration(from state: SessionState) -> String? {
+    switch state {
+    case .ended(_, _, let durationInSeconds):
+        let minutes = Double(durationInSeconds) / 60.0
+        return "\(Int(minutes.rounded()))m"
+    case .pendingReflection(let startTime, let endTime):
+        return calculateDurationBetweenTimes(startTime: startTime, endTime: endTime)
+    case .notStarted, .started:
+        return nil
+    }
+}
+
+private func calculateDurationBetweenTimes(startTime: String, endTime: String) -> String? {
+    let formatter = ISO8601DateFormatter()
+    formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    
+    guard let start = formatter.date(from: startTime),
+          let end = formatter.date(from: endTime) else {
+        return nil
+    }
+    
+    let duration = end.timeIntervalSince(start)
+    let minutes = duration / 60.0
+    return "\(Int(minutes.rounded()))m"
+}
 
 #Preview {
     SessionsView(core: Core())

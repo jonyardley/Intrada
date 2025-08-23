@@ -140,30 +140,11 @@ class Core: ObservableObject {
     
 
     
-    private func sessionFromViewModel(_ sessionView: PracticeSessionView) -> PracticeSession {
-        let sessionData = SessionData(
-            id: sessionView.id,
-            goalIds: sessionView.goalIds,
-            intention: sessionView.intention,
-            notes: sessionView.notes,
-            studySessions: sessionView.studySessions
-        )
-        
-        switch sessionView.state {
-        case .notStarted:
-            return .notStarted(NotStartedSession(data: sessionData))
-        case .started(let startTime):
-            return .started(StartedSession(data: sessionData, startTime: startTime))
-        case .pendingReflection(let startTime, let endTime):
-            return .pendingReflection(PendingReflectionSession(data: sessionData, startTime: startTime, endTime: endTime))
-        case .ended(let startTime, let endTime):
-            return .ended(EndedSession(data: sessionData, startTime: startTime, endTime: endTime))
-        }
+    private func sessionFromViewModel(_ session: PracticeSession) -> PracticeSession {
+        return session
     }
 
     func update(_ event: Event) {
-        print("🔄 Processing event: \(event)")
-        
         do {
             let effects = [UInt8](core.update(Data(try event.bincodeSerialize())))
 
@@ -189,62 +170,9 @@ class Core: ObservableObject {
         dataStore.saveSessions(view.sessions)
     }
     
-    private func convertSessionToView(_ session: PracticeSession) -> PracticeSessionView {
-        // Convert PracticeSession to PracticeSessionView using the helper methods
-        switch session {
-        case .notStarted(let notStarted):
-            return PracticeSessionView(
-                id: notStarted.data.id,
-                goalIds: notStarted.data.goalIds,
-                intention: notStarted.data.intention,
-                state: .notStarted,
-                notes: notStarted.data.notes,
-                studySessions: notStarted.data.studySessions,
-                duration: nil,
-                startTime: nil,
-                endTime: nil,
-                isEnded: false
-            )
-        case .started(let started):
-            return PracticeSessionView(
-                id: started.data.id,
-                goalIds: started.data.goalIds,
-                intention: started.data.intention,
-                state: .started(start_time: started.startTime),
-                notes: started.data.notes,
-                studySessions: started.data.studySessions,
-                duration: nil,
-                startTime: started.startTime,
-                endTime: nil,
-                isEnded: false
-            )
-        case .pendingReflection(let pendingReflection):
-            return PracticeSessionView(
-                id: pendingReflection.data.id,
-                goalIds: pendingReflection.data.goalIds,
-                intention: pendingReflection.data.intention,
-                state: .pendingReflection(start_time: pendingReflection.startTime, end_time: pendingReflection.endTime),
-                notes: pendingReflection.data.notes,
-                studySessions: pendingReflection.data.studySessions,
-                duration: calculateDuration(startTime: pendingReflection.startTime, endTime: pendingReflection.endTime),
-                startTime: pendingReflection.startTime,
-                endTime: pendingReflection.endTime,
-                isEnded: false
-            )
-        case .ended(let ended):
-            return PracticeSessionView(
-                id: ended.data.id,
-                goalIds: ended.data.goalIds,
-                intention: ended.data.intention,
-                state: .ended(start_time: ended.startTime, end_time: ended.endTime),
-                notes: ended.data.notes,
-                studySessions: ended.data.studySessions,
-                duration: calculateDuration(startTime: ended.startTime, endTime: ended.endTime),
-                startTime: ended.startTime,
-                endTime: ended.endTime,
-                isEnded: true
-            )
-        }
+    private func convertSessionToView(_ session: PracticeSession) -> PracticeSession {
+        // No conversion needed - return session directly
+        return session
     }
     
     private func calculateDuration(startTime: String, endTime: String) -> String? {

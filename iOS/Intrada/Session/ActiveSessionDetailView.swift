@@ -9,7 +9,7 @@ struct ActiveSessionDetailView: View {
     @State private var showingError = false
     @State private var errorMessage = ""
     
-    private var session: PracticeSessionView? {
+    private var session: PracticeSession? {
         core.view.sessions.first(where: { $0.id == sessionId })
     }
     
@@ -53,7 +53,7 @@ struct ActiveSessionDetailView: View {
 
 // MARK: - Session Active View (Simplified)
 private struct SessionActiveView: View {
-    let session: PracticeSessionView
+    let session: PracticeSession
     @ObservedObject var core: Core
     let onSessionEnd: () -> Void
     let onError: (String) -> Void
@@ -112,7 +112,7 @@ private struct SessionControlsView: View {
 
 // MARK: - Session Header View
 private struct SessionHeaderView: View {
-    let session: PracticeSessionView
+    let session: PracticeSession
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -148,7 +148,7 @@ private struct SessionStateView: View {
             return "play.circle.fill"
         case .pendingReflection(_, _):
             return "pause.circle.fill"
-        case .ended(_, _):
+        case .ended(_, _, _):
             return "checkmark.circle.fill"
         }
     }
@@ -161,7 +161,7 @@ private struct SessionStateView: View {
             return .green
         case .pendingReflection(_, _):
             return .orange
-        case .ended(_, _):
+        case .ended(_, _, _):
             return .blue
         }
     }
@@ -174,7 +174,7 @@ private struct SessionStateView: View {
             return "In progress"
         case .pendingReflection(_, _):
             return "Waiting for reflection"
-        case .ended(_, _):
+        case .ended(_, _, _):
             return "Completed"
         }
     }
@@ -217,7 +217,7 @@ private struct SessionTimerView: View {
 
 // MARK: - Session Goals View
 private struct SessionGoalsView: View {
-    let session: PracticeSessionView
+    let session: PracticeSession
     let core: Core
     
     var body: some View {

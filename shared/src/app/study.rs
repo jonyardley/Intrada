@@ -1,5 +1,6 @@
 use crate::app::model::Model;
 use crate::app::repository::Repository;
+
 use crate::app::study_session::StudySession;
 use crate::HttpResult;
 use crux_core::Command;
@@ -46,21 +47,13 @@ impl Study {
         model
             .sessions
             .iter()
-            .flat_map(super::session::PracticeSession::study_sessions)
+            .flat_map(|s| &s.study_sessions)
             .filter(|session| session.study_id == self.id)
             .collect()
     }
 }
 
-pub fn add_study(study: Study, model: &mut Model) {
-    let mut repo = model.studies();
-    repo.add(study);
-}
-
-pub fn edit_study(study: Study, model: &mut Model) {
-    let mut repo = model.studies();
-    repo.update(study);
-}
+// Note: add_study and edit_study removed - use model.studies().add() and model.studies().update() directly
 
 pub fn handle_event(event: StudyEvent, model: &mut Model) -> Command<super::Effect, super::Event> {
     match event {
@@ -89,7 +82,7 @@ pub fn handle_event(event: StudyEvent, model: &mut Model) -> Command<super::Effe
         // Optimistic user actions (all immediate, sync in background)
         StudyEvent::CreateStudy(study) => {
             // Apply immediately to local model
-            add_study(study.clone(), model);
+            model.studies().add(study.clone());
 
             // Trigger background sync
             let create_request = serde_json::json!({
@@ -103,7 +96,7 @@ pub fn handle_event(event: StudyEvent, model: &mut Model) -> Command<super::Effe
         }
         StudyEvent::UpdateStudy(study) => {
             // Apply immediately to local model
-            edit_study(study.clone(), model);
+            model.studies().update(study.clone());
 
             // Trigger background sync
             let update_request = serde_json::json!({
@@ -161,7 +154,7 @@ fn merge_studies_from_server(server_studies: Vec<Study>, model: &mut Model) {
 fn test_add_study() {
     let mut model = Model::default();
     let study = Study::new("Study 1".to_string(), None);
-    add_study(study, &mut model);
+    model.studies().add(study);
     assert_eq!(model.studies.len(), 1);
 }
 
@@ -169,11 +162,11 @@ fn test_add_study() {
 fn test_edit_study() {
     let mut model = Model::default();
     let study = Study::new("Study 1".to_string(), None);
-    add_study(study.clone(), &mut model);
+    model.studies().add(study.clone());
 
     let mut edited_study = study;
     edited_study.name = "Study 2".to_string();
-    edit_study(edited_study, &mut model);
+    model.studies().update(edited_study);
 
     assert_eq!(model.studies.len(), 1);
     assert_eq!(model.studies[0].name, "Study 2");
@@ -186,23 +179,35 @@ fn test_study_sessions() {
     // Create a study
     let study = Study::new("Test Study".to_string(), None);
     let study_id = study.id.clone();
-    add_study(study.clone(), &mut model);
+    model.studies().add(study.clone());
 
     // Create a session
     let session = crate::app::session::PracticeSession::new(
         vec!["Goal 1".to_string()],
         "Test Session".to_string(),
     );
-    let session_id = session.id().to_string();
-    crate::app::session::add_session(session, &mut model);
+    let session_id = session.id.clone();
+    model.sessions().add(session);
 
     // Add study sessions
     let session1 =
         crate::app::study_session::StudySession::new(study_id.clone(), session_id.clone());
     let session2 =
         crate::app::study_session::StudySession::new(study_id.clone(), session_id.clone());
-    crate::app::study_session::add_study_session(session1, &mut model);
-    crate::app::study_session::add_study_session(session2, &mut model);
+    if let Some(practice_session) = model
+        .sessions
+        .iter_mut()
+        .find(|s| s.id == session1.session_id)
+    {
+        practice_session.push_study_session(session1);
+    }
+    if let Some(practice_session) = model
+        .sessions
+        .iter_mut()
+        .find(|s| s.id == session2.session_id)
+    {
+        practice_session.push_study_session(session2);
+    }
 
     // Test get_study_sessions
     let sessions = study.get_study_sessions(&model);

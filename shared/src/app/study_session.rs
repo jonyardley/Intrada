@@ -4,7 +4,9 @@ use facet::Facet;
 use serde::{Deserialize, Serialize};
 
 #[cfg(test)]
-use crate::app::session::{add_session, PracticeSession};
+use crate::app::repository::Repository;
+#[cfg(test)]
+use crate::app::session::PracticeSession;
 
 #[derive(Facet, Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
 pub struct StudySession {
@@ -32,31 +34,13 @@ impl StudySession {
     }
 }
 
-pub fn add_study_session(session: StudySession, model: &mut Model) {
-    if let Some(practice_session) = model
-        .sessions
-        .iter_mut()
-        .find(|s| s.id() == session.session_id)
-    {
-        practice_session.push_study_session(session);
-    }
-}
-
-pub fn update_study_session(session: StudySession, model: &mut Model) {
-    if let Some(practice_session) = model
-        .sessions
-        .iter_mut()
-        .find(|s| s.id() == session.session_id)
-    {
-        practice_session.update_study_session(session);
-    }
-}
+// Note: add_study_session and update_study_session removed - use direct repository access and method calls
 
 pub fn get_study_sessions<'a>(model: &'a Model, study_id: &str) -> Vec<&'a StudySession> {
     model
         .sessions
         .iter()
-        .flat_map(|session| session.study_sessions().iter())
+        .flat_map(|session| session.study_sessions.iter())
         .filter(|session| session.study_id == study_id)
         .collect()
 }
@@ -68,8 +52,8 @@ pub fn get_study_sessions_for_session<'a>(
     model
         .sessions
         .iter()
-        .find(|session| session.id() == session_id)
-        .map(|session| session.study_sessions().iter().collect())
+        .find(|session| session.id == session_id)
+        .map(|session| session.study_sessions.iter().collect())
         .unwrap_or_else(Vec::new)
 }
 
@@ -78,8 +62,24 @@ pub fn handle_event(
     model: &mut Model,
 ) -> Command<super::Effect, super::Event> {
     match event {
-        StudySessionEvent::AddStudySession(session) => add_study_session(session, model),
-        StudySessionEvent::UpdateStudySession(session) => update_study_session(session, model),
+        StudySessionEvent::AddStudySession(session) => {
+            if let Some(practice_session) = model
+                .sessions
+                .iter_mut()
+                .find(|s| s.id == session.session_id)
+            {
+                practice_session.push_study_session(session);
+            }
+        }
+        StudySessionEvent::UpdateStudySession(session) => {
+            if let Some(practice_session) = model
+                .sessions
+                .iter_mut()
+                .find(|s| s.id == session.session_id)
+            {
+                practice_session.update_study_session(session);
+            }
+        }
     }
 
     crux_core::render::render()
@@ -93,33 +93,51 @@ pub fn handle_event(
 fn test_add_study_session() {
     let mut model = Model::default();
     let session = PracticeSession::new(vec!["Goal 1".to_string()], "Intention 1".to_string());
-    let session_id = session.id().to_string();
-    add_session(session, &mut model);
+    let session_id = session.id.clone();
+    model.sessions().add(session);
 
     let study_session = StudySession::new("Study 1".to_string(), session_id);
-    add_study_session(study_session, &mut model);
+    if let Some(practice_session) = model
+        .sessions
+        .iter_mut()
+        .find(|s| s.id == study_session.session_id)
+    {
+        practice_session.push_study_session(study_session);
+    }
 
     let session = model.sessions.first().unwrap();
-    assert_eq!(session.study_sessions().len(), 1);
+    assert_eq!(session.study_sessions.len(), 1);
 }
 
 #[test]
 fn test_update_study_session() {
     let mut model = Model::default();
     let session = PracticeSession::new(vec!["Goal 1".to_string()], "Intention 1".to_string());
-    let session_id = session.id().to_string();
-    add_session(session, &mut model);
+    let session_id = session.id.clone();
+    model.sessions().add(session);
 
     let study_session = StudySession::new("Study 1".to_string(), session_id.clone());
     let session_id_copy = study_session.id.clone();
-    add_study_session(study_session, &mut model);
+    if let Some(practice_session) = model
+        .sessions
+        .iter_mut()
+        .find(|s| s.id == study_session.session_id)
+    {
+        practice_session.push_study_session(study_session);
+    }
 
     let mut updated_session = StudySession::new("Study 1".to_string(), session_id);
     updated_session.id = session_id_copy;
     updated_session.score = Some(8);
-    update_study_session(updated_session, &mut model);
+    if let Some(practice_session) = model
+        .sessions
+        .iter_mut()
+        .find(|s| s.id == updated_session.session_id)
+    {
+        practice_session.update_study_session(updated_session);
+    }
 
     let session = model.sessions.first().unwrap();
-    let study_session = session.study_sessions().first().unwrap();
+    let study_session = session.study_sessions.first().unwrap();
     assert_eq!(study_session.score, Some(8));
 }

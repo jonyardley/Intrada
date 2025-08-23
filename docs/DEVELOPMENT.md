@@ -8,7 +8,7 @@ Intrada follows a **Rust-first, shared-core architecture** with these principles
 
 1. **Single Source of Truth**: All business logic lives in Rust (`shared/`)
 2. **Type-Driven Development**: Database schemas derive from Rust types
-3. **Type-State Machines**: Invalid state transitions are compile-time errors
+3. **State Validation**: Clear runtime validation prevents invalid state transitions
 4. **Cross-Platform Consistency**: Shared core ensures identical behavior across platforms
 
 ## Architecture Overview
@@ -92,7 +92,7 @@ cd web-leptos && npm run build:css && npm run build
 ### Shared Core (`shared/`)
 
 - **`app/model.rs`**: Core data models
-- **`app/session.rs`**: Practice session logic with type-state pattern
+- **`app/session.rs`**: Practice session logic with simple state management
 - **`app/goal.rs`**: Goal management
 - **`app/study.rs`**: Study management
 - **`app/error.rs`**: Error handling types
@@ -119,31 +119,38 @@ cd web-leptos && npm run build:css && npm run build
 - **`package.json`**: Contains `build:css` and `dev` scripts
 - **`tailwind.config.js`**: Tailwind CSS configuration
 
-## Type-State Pattern
+## State Management Pattern
 
-Intrada uses type-state machines to prevent invalid state transitions:
+Intrada uses simple struct + enum patterns for clear state management:
 
 ```rust
-pub enum PracticeSession {
-    NotStarted(NotStartedSession),
-    Started(StartedSession),
-    Ended(EndedSession),
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct PracticeSession {
+    pub id: String,
+    pub goal_ids: Vec<String>,
+    pub intention: String,
+    pub notes: Option<String>,
+    pub state: SessionState,
 }
 
-impl NotStartedSession {
-    pub fn start(self, timestamp: String) -> StartedSession {
-        StartedSession {
-            data: self.data,
-            start_time: timestamp,
+impl PracticeSession {
+    pub fn start(&mut self, timestamp: String) -> Result<(), SessionError> {
+        match self.state {
+            SessionState::NotStarted => {
+                self.state = SessionState::Started { start_time: timestamp };
+                Ok(())
+            }
+            _ => Err(SessionError::AlreadyStarted)
         }
     }
 }
 ```
 
 **Benefits:**
-- Invalid transitions (e.g., starting an already started session) are compile-time errors
-- State-specific data is type-safe
-- Impossible states are unrepresentable
+- Invalid transitions return clear error messages for user feedback
+- Simple, readable code that's easy to maintain and extend
+- Consistent with other entities like Goal and Study
+- Direct field access like other entities in the codebase
 
 ## Error Handling
 

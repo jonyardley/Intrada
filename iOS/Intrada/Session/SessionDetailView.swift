@@ -11,7 +11,7 @@ struct SessionDetailView: View {
     @State private var isLoading = false
     
 
-    private var session: PracticeSessionView? {
+    private var session: PracticeSession? {
         core.view.sessions.first(where: { $0.id == sessionId })
 
     }
@@ -102,7 +102,7 @@ struct SessionDetailView: View {
     }
     
     @ViewBuilder
-    private func stateTransitionButton(for session: PracticeSessionView) -> some View {
+    private func stateTransitionButton(for session: PracticeSession) -> some View {
         switch session.state {
         case .notStarted:
             Button {
@@ -141,18 +141,18 @@ struct SessionDetailView: View {
             }
             .foregroundColor(.orange)
             
-        case .ended(_, _):
+        case .ended(_, _, _):
             // No action button for ended sessions, just show completed status
             EmptyView()
         }
     }
     
-    private func handleSessionEnd(_ session: PracticeSessionView) {
+    private func handleSessionEnd(_ session: PracticeSession) {
         // Show reflection form when session ends
         showingReflectionForm = true
     }
     
-    private func sessionHeaderView(session: PracticeSessionView) -> some View {
+    private func sessionHeaderView(session: PracticeSession) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(session.intention)
                 .font(.title)
@@ -178,7 +178,7 @@ struct SessionDetailView: View {
             return "play.circle.fill"
         case .pendingReflection(_, _):
             return "pause.circle.fill"
-        case .ended(_, _):
+        case .ended(_, _, _):
             return "checkmark.circle.fill"
         }
     }
@@ -191,7 +191,7 @@ struct SessionDetailView: View {
             return .green
         case .pendingReflection(_, _):
             return .orange
-        case .ended(_, _):
+        case .ended(_, _, _):
             return .blue
         }
     }
@@ -204,17 +204,17 @@ struct SessionDetailView: View {
             return "In progress"
         case .pendingReflection(_, _):
             return "Waiting for reflection"
-        case .ended(_, _):
+        case .ended(_, _, _):
             return "Completed"
         }
     }
     
-    private func sessionSummaryView(session: PracticeSessionView) -> some View {
+    private func sessionSummaryView(session: PracticeSession) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Session Summary")
                 .font(.headline)
             
-            if let duration = session.duration {
+            if let duration = calculateDuration(from: session.state) {
                 HStack {
                     Image(systemName: "clock")
                         .foregroundColor(.blue)
@@ -226,7 +226,7 @@ struct SessionDetailView: View {
         .padding(.horizontal)
     }
     
-    private func notesView(session: PracticeSessionView) -> some View {
+    private func notesView(session: PracticeSession) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Reflection notes")
                 .font(.headline)
@@ -258,35 +258,43 @@ struct SessionDetailView: View {
         .padding(.horizontal)
     }
     
-    private func sessionTimesView(session: PracticeSessionView) -> some View {
+    private func sessionTimesView(session: PracticeSession) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Session Times")
                 .font(.headline)
             
-            if let startTime = session.startTime {
+            // Extract times from session state
+            switch session.state {
+            case .started(let startTime):
                 HStack {
                     Image(systemName: "play.circle.fill")
                         .foregroundColor(.green)
                     Text(formatDateAndTime(startTime))
                         .font(.subheadline)
                 }
-            }
-            
-
-            
-            if let endTime = session.endTime {
+            case .pendingReflection(let startTime, let endTime), .ended(let startTime, let endTime, _):
+                HStack {
+                    Image(systemName: "play.circle.fill")
+                        .foregroundColor(.green)
+                    Text(formatDateAndTime(startTime))
+                        .font(.subheadline)
+                }
                 HStack {
                     Image(systemName: "stop.circle.fill")
                         .foregroundColor(.red)
                     Text(formatDateAndTime(endTime))
                         .font(.subheadline)
                 }
+            case .notStarted:
+                Text("Session not started yet")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
             }
         }
         .padding(.horizontal)
     }
     
-    private func relatedGoalsView(session: PracticeSessionView) -> some View {
+    private func relatedGoalsView(session: PracticeSession) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Related Goals")
                 .font(.headline)
@@ -371,6 +379,32 @@ struct SessionDetailView: View {
             return displayFormatter.string(from: date)
         }
         return dateString
+    }
+    
+    private func calculateDuration(from state: SessionState) -> String? {
+        switch state {
+        case .ended(_, _, let durationInSeconds):
+            let minutes = Double(durationInSeconds) / 60.0
+            return "\(Int(minutes.rounded()))m"
+        case .pendingReflection(let startTime, let endTime):
+            return calculateDurationBetweenTimes(startTime: startTime, endTime: endTime)
+        case .notStarted, .started:
+            return nil
+        }
+    }
+    
+    private func calculateDurationBetweenTimes(startTime: String, endTime: String) -> String? {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        
+        guard let start = formatter.date(from: startTime),
+              let end = formatter.date(from: endTime) else {
+            return nil
+        }
+        
+        let duration = end.timeIntervalSince(start)
+        let minutes = duration / 60.0
+        return "\(Int(minutes.rounded()))m"
     }
 }
 
