@@ -1,4 +1,4 @@
-name: CI/CD Pipeline
+name: CI/CD Pipeline (TESTING VERSION - Deploy on any branch)
 on:
   push:
     branches: [main]
@@ -461,16 +461,11 @@ jobs:
   deploy-server:
     runs-on: ubuntu-latest
     needs: [changes, test, check-previous]
+    # TESTING: Temporarily allowing deployment on any branch for testing
+    # Original restriction was: only main branch + specific conditions
     if: >
-      (github.ref == 'refs/heads/main' &&
-       github.event_name == 'push' &&
-       needs.changes.outputs.rust == 'true') ||
-      (github.ref == 'refs/heads/main' &&
-       github.run_attempt > 1) ||
-      (github.ref == 'refs/heads/main' &&
-       needs.check-previous.outputs.previous-failed == 'true') ||
-      (github.ref == 'refs/heads/main' &&
-       needs.check-previous.outputs.deploy-job-failed == 'true')
+      github.event_name == 'push' &&
+      needs.changes.outputs.rust == 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -480,20 +475,27 @@ jobs:
         with:
           name: server-binary
           path: ./
-        continue-on-error: true
-        
-      - name: Retry download if failed
-        if: failure()
-        uses: actions/download-artifact@v4
-        with:
-          name: server-binary
-          path: ./
+          # Ensure we're downloading from the same workflow run
+          github-token: ${{ github.token }}
 
       - name: Copy binary to server directory for Docker context
         run: |
-          ls -la  # Debug: show what was downloaded
+          echo "=== Debug: Artifact contents ==="
+          ls -la
+          echo "=== Debug: Server binary details ==="
+          if [ -f "server" ]; then
+            ls -la server
+            file server
+            echo "✅ Server binary downloaded successfully"
+          else
+            echo "❌ Server binary not found!"
+            exit 1
+          fi
+          
+          echo "=== Copying binary to server directory ==="
           cp server ./server/server
           chmod +x ./server/server
+          echo "✅ Binary copied and made executable"
 
       - name: Setup flyctl
         uses: superfly/flyctl-actions/setup-flyctl@master
@@ -501,6 +503,7 @@ jobs:
       - name: Deploy to Fly.io
         run: |
           cd server
+          echo "🚀 TESTING: Deploying from branch: ${{ github.ref_name }}"
           flyctl deploy --remote-only --dockerfile ./Dockerfile.optimized --config ./fly.toml
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
