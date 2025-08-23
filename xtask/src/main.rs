@@ -1162,23 +1162,35 @@ fn build_and_run_ios_on_device(force_regen: bool) -> Result<()> {
         let stderr = String::from_utf8_lossy(&output.stderr);
         let combined_output = format!("{stdout}{stderr}");
 
+        // Print the actual error for debugging
+        print_warning("❌ xcodebuild failed. Error details:");
+        println!("{combined_output}");
+
         // Check for signing-related errors
-        if combined_output.contains("requires a development team")
+        if combined_output.contains("No Account for Team")
+            || combined_output.contains("No profiles for")
+            || combined_output.contains("requires a development team")
             || combined_output.contains("development team")
             || combined_output.contains("Signing for")
         {
-            print_warning("❌ Device deployment failed: Development team required");
             print_info("");
-            print_info("🔧 To fix this, you need to:");
-            print_info("   1. Get an Apple Developer account (free or paid)");
-            print_info("   2. Open iOS/Intrada.xcodeproj in Xcode");
-            print_info("   3. Select the 'Intrada' target");
-            print_info("   4. Go to 'Signing & Capabilities' tab");
-            print_info("   5. Check 'Automatically manage signing'");
-            print_info("   6. Select your Team from the dropdown");
-            print_info("   7. Ensure your device is connected and trusted");
+            print_info("🔧 This is a code signing issue. To fix:");
+            print_info("   1. Open Xcode and go to Xcode → Settings → Accounts");
+            print_info("   2. Add your Apple ID if not already present");
+            print_info("   3. Open iOS/Intrada.xcodeproj in Xcode");
+            print_info("   4. Select the 'Intrada' target");
+            print_info("   5. Go to 'Signing & Capabilities' tab");
+            print_info("   6. Check 'Automatically manage signing'");
+            print_info("   7. Select your Team from the dropdown");
+            print_info("   8. Ensure your device is connected and trusted");
             print_info("");
             print_info("💡 Alternatively, use simulator mode: xt ios start");
+        } else if combined_output.contains("build failed") {
+            print_info("");
+            print_info("🔧 This appears to be a build error. Try:");
+            print_info("   1. Clean build: xt ios clean");
+            print_info("   2. Regenerate project: xt ios start -d --force-regen");
+            print_info("   3. Check the error details above");
         }
 
         anyhow::bail!("xcodebuild failed with exit code: {}", output.status);

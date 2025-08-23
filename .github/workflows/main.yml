@@ -20,6 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       previous-failed: ${{ steps.check.outputs.previous-failed }}
+      deploy-job-failed: ${{ steps.check.outputs.deploy-job-failed }}
     steps:
       - name: Check previous workflow status
         id: check
@@ -39,16 +40,23 @@ jobs:
               }
               
               console.log(`Checking workflow runs for branch: ${branch}`);
+              console.log(`Current run ID: ${context.runId}`);
+              console.log(`Current SHA: ${context.sha}`);
               
               const { data: runs } = await github.rest.actions.listWorkflowRuns({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 workflow_id: workflowFile,
-                per_page: 10,
+                per_page: 20,
                 branch: branch
               });
               
               console.log(`Found ${runs.workflow_runs.length} workflow runs`);
+              
+              // Log details of recent runs for debugging
+              runs.workflow_runs.slice(0, 5).forEach(run => {
+                console.log(`Run ${run.id}: ${run.head_sha.substring(0, 7)} - ${run.conclusion} - ${run.created_at}`);
+              });
               
               // Find the most recent completed run that's not the current one
               const previousRun = runs.workflow_runs.find(run => 
@@ -59,12 +67,44 @@ jobs:
               
               const failed = previousRun && previousRun.conclusion === 'failure';
               console.log(`Previous run (${previousRun?.id || 'none'}): ${previousRun?.conclusion || 'none'}`);
+              console.log(`Setting previous-failed to: ${failed.toString()}`);
+              
               core.setOutput('previous-failed', failed.toString());
+              
+              // Additional check: look for any failed deploy-server jobs in recent runs (last 5)
+              let deployJobFailed = false;
+              for (const run of runs.workflow_runs.slice(0, 5)) {
+                if (['success', 'failure', 'cancelled'].includes(run.conclusion)) {
+                  try {
+                    const { data: jobs } = await github.rest.actions.listJobsForWorkflowRun({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      run_id: run.id
+                    });
+                    
+                    const deployJob = jobs.jobs.find(job => job.name === 'deploy-server');
+                    if (deployJob && deployJob.conclusion === 'failure') {
+                      console.log(`Found failed deploy-server job in run ${run.id}`);
+                      deployJobFailed = true;
+                      break; // Found a recent failure, that's enough
+                    } else if (deployJob && deployJob.conclusion === 'success') {
+                      console.log(`Found successful deploy-server job in run ${run.id}, stopping search`);
+                      break; // Found a recent success, no need to re-run
+                    }
+                  } catch (jobError) {
+                    console.log(`Could not check jobs for run ${run.id}: ${jobError.message}`);
+                  }
+                }
+              }
+              
+              core.setOutput('deploy-job-failed', deployJobFailed.toString());
+              console.log(`Setting deploy-job-failed to: ${deployJobFailed.toString()}`)
               
             } catch (error) {
               console.log(`Error checking previous status: ${error.message}`);
               // Don't fail the job, just assume no previous failure
               core.setOutput('previous-failed', 'false');
+              core.setOutput('deploy-job-failed', 'false');
             }
 
   # Determine what changed
@@ -428,7 +468,9 @@ jobs:
       (github.ref == 'refs/heads/main' &&
        github.run_attempt > 1) ||
       (github.ref == 'refs/heads/main' &&
-       needs.check-previous.outputs.previous-failed == 'true')
+       needs.check-previous.outputs.previous-failed == 'true') ||
+      (github.ref == 'refs/heads/main' &&
+       needs.check-previous.outputs.deploy-job-failed == 'true')
     steps:
       - name: Checkout
         uses: actions/checkout@v4
