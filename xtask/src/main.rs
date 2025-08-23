@@ -151,33 +151,28 @@ enum IosCommands {
     Build,
     /// Run iOS app in simulator
     Run {
-        /// Run on physical device instead of simulator
-        #[arg(short, long)]
-        device: bool,
         /// Force regenerate Xcode project
         #[arg(long)]
         force_regen: bool,
     },
     /// Build and run iOS app
     Start {
-        /// Run on physical device instead of simulator
-        #[arg(short, long)]
-        device: bool,
         /// Force regenerate Xcode project
         #[arg(long)]
         force_regen: bool,
     },
     /// Rebuild and run iOS app
     Rebuild {
-        /// Run on physical device instead of simulator
-        #[arg(short, long)]
-        device: bool,
         /// Force regenerate Xcode project
         #[arg(long)]
         force_regen: bool,
     },
     /// List available simulators
     Simulators,
+    /// Update IP configuration for device development
+    UpdateDevIp,
+    /// Reset IP configuration back to localhost for simulator
+    ResetDevIp,
 }
 
 #[derive(Subcommand)]
@@ -488,42 +483,33 @@ fn handle_ios_command(cmd: IosCommands) -> Result<()> {
             )?;
             print_success("iOS app built");
         }
-        IosCommands::Run {
-            device,
-            force_regen,
-        } => {
+        IosCommands::Run { force_regen } => {
             print_step("Running iOS app");
-            if device {
-                build_and_run_ios_on_device(force_regen)?;
-            } else {
-                build_and_run_ios(force_regen)?;
-            }
+            build_and_run_ios(force_regen)?;
         }
-        IosCommands::Start {
-            device,
-            force_regen,
-        } => {
+        IosCommands::Start { force_regen } => {
             print_step("Building and running iOS app");
-            if device {
-                build_and_run_ios_on_device(force_regen)?;
-            } else {
-                build_and_run_ios(force_regen)?;
-            }
+            build_and_run_ios(force_regen)?;
         }
-        IosCommands::Rebuild {
-            device,
-            force_regen,
-        } => {
+        IosCommands::Rebuild { force_regen } => {
             print_step("Rebuilding and running iOS app");
-            if device {
-                rebuild_and_run_ios_on_device(force_regen)?;
-            } else {
-                rebuild_and_run_ios(force_regen)?;
-            }
+            rebuild_and_run_ios(force_regen)?;
         }
         IosCommands::Simulators => {
             print_step("Listing available simulators");
             run_command("xcrun", &["simctl", "list", "devices", "available"], None)?;
+        }
+        IosCommands::UpdateDevIp => {
+            print_step("Updating iOS configuration for device development");
+            let dev_ip = get_development_ip()?;
+            print_info(&format!("Detected development IP: {dev_ip}"));
+            update_http_config_for_device(&dev_ip)?;
+            print_success("✅ iOS configuration updated for device development");
+        }
+        IosCommands::ResetDevIp => {
+            print_step("Resetting iOS configuration for simulator development");
+            reset_http_config_for_simulator()?;
+            print_success("✅ iOS configuration reset to localhost for simulator");
         }
     }
     Ok(())
@@ -1059,167 +1045,6 @@ fn build_and_run_ios(force_regen: bool) -> Result<()> {
 
     print_success("iOS app launched successfully");
     Ok(())
-}
-
-fn build_and_run_ios_on_device(force_regen: bool) -> Result<()> {
-    ensure_in_project_root()?;
-
-    // Generate Xcode project if it doesn't exist or if forced
-    let project_path = std::path::Path::new("iOS/Intrada.xcodeproj");
-    if !project_path.exists() || force_regen {
-        print_step("Generating Xcode project");
-        run_command("xcodegen", &[], Some("iOS"))?;
-    } else {
-        print_info("Using existing Xcode project (preserving manual team selection)");
-    }
-
-    // Get available devices
-    print_step("Finding connected iOS device");
-    let output = Command::new("xcrun")
-        .args(["xctrace", "list", "devices"])
-        .output()
-        .context("Failed to list devices. Make sure Xcode command line tools are installed.")?;
-
-    let devices_output = String::from_utf8_lossy(&output.stdout);
-    let device_id = devices_output
-        .lines()
-        .find(|line| {
-            // Look for lines that contain iPhone/iPad and are not simulators
-            (line.contains("iPhone") || line.contains("iPad")) 
-                && !line.contains("Simulator")
-                && line.contains("(")
-                && line.contains(")")
-        })
-        .and_then(|line| {
-            // Extract device identifier from parentheses - it's the last UUID in the line
-            if let Some(start) = line.rfind('(') {
-                if let Some(end) = line[start + 1..].find(')') {
-                    let device_id = &line[start + 1..start + 1 + end];
-                    // Validate it looks like a device ID (long hex string)
-                    if device_id.len() >= 25 && device_id.chars().all(|c| c.is_ascii_hexdigit() || c == '-') {
-                        return Some(device_id);
-                    }
-                }
-            }
-            None
-        })
-        .map(|s| s.to_string())
-        .ok_or_else(|| {
-            anyhow::anyhow!(
-                "No connected iOS device found. Available devices:\n{}\n\nPlease connect an iOS device and ensure it's trusted.",
-                devices_output
-            )
-        })?;
-
-    print_info(&format!("Using device: {device_id}"));
-
-    // Get development team automatically
-    let team_id = get_development_team_id()?;
-
-    let destination = format!("id={device_id}");
-    let mut build_args = vec![
-        "-project",
-        "Intrada.xcodeproj",
-        "-scheme",
-        "Intrada",
-        "-destination",
-        &destination,
-    ];
-
-    // Add signing arguments for device deployment
-    build_args.push("CODE_SIGN_STYLE=Automatic");
-
-    let team_arg;
-    if let Some(team) = team_id {
-        // Use specific development team if found
-        team_arg = format!("DEVELOPMENT_TEAM={team}");
-        build_args.push(&team_arg);
-        print_info(&format!("Using development team: {team}"));
-    } else {
-        // Try automatic signing without specifying team - let Xcode figure it out
-        print_warning("⚠️  No development team certificates found. Trying automatic signing...");
-        print_info("💡 If this fails, you may need to:");
-        print_info("   1. Open iOS/Intrada.xcodeproj in Xcode");
-        print_info("   2. Select your development team in Signing & Capabilities");
-        print_info("   3. Ensure your device is registered and trusted");
-    }
-
-    build_args.push("build");
-
-    // Build the app for device
-    print_step("Building iOS app for device");
-
-    // Run xcodebuild and capture output for better error handling
-    let mut command = Command::new("xcodebuild");
-    command.args(&build_args).current_dir("iOS");
-
-    let output = command
-        .output()
-        .context("Failed to execute xcodebuild command")?;
-
-    if !output.status.success() {
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        let combined_output = format!("{stdout}{stderr}");
-
-        // Print the actual error for debugging
-        print_warning("❌ xcodebuild failed. Error details:");
-        println!("{combined_output}");
-
-        // Check for signing-related errors
-        if combined_output.contains("No Account for Team")
-            || combined_output.contains("No profiles for")
-            || combined_output.contains("requires a development team")
-            || combined_output.contains("development team")
-            || combined_output.contains("Signing for")
-        {
-            print_info("");
-            print_info("🔧 This is a code signing issue. To fix:");
-            print_info("   1. Open Xcode and go to Xcode → Settings → Accounts");
-            print_info("   2. Add your Apple ID if not already present");
-            print_info("   3. Open iOS/Intrada.xcodeproj in Xcode");
-            print_info("   4. Select the 'Intrada' target");
-            print_info("   5. Go to 'Signing & Capabilities' tab");
-            print_info("   6. Check 'Automatically manage signing'");
-            print_info("   7. Select your Team from the dropdown");
-            print_info("   8. Ensure your device is connected and trusted");
-            print_info("");
-            print_info("💡 Alternatively, use simulator mode: xt ios start");
-        } else if combined_output.contains("build failed") {
-            print_info("");
-            print_info("🔧 This appears to be a build error. Try:");
-            print_info("   1. Clean build: xt ios clean");
-            print_info("   2. Regenerate project: xt ios start -d --force-regen");
-            print_info("   3. Check the error details above");
-        }
-
-        anyhow::bail!("xcodebuild failed with exit code: {}", output.status);
-    }
-
-    print_success("iOS app built and should be installed on device");
-    print_info("Note: The app should now be available on your connected device. You may need to manually launch it from the device's home screen.");
-    Ok(())
-}
-
-fn rebuild_and_run_ios_on_device(force_regen: bool) -> Result<()> {
-    ensure_in_project_root()?;
-
-    // Clean first
-    print_step("Cleaning iOS build artifacts");
-    run_command(
-        "xcodebuild",
-        &[
-            "-project",
-            "Intrada.xcodeproj",
-            "-scheme",
-            "Intrada",
-            "clean",
-        ],
-        Some("iOS"),
-    )?;
-
-    // Then build and run
-    build_and_run_ios_on_device(force_regen)
 }
 
 fn find_built_app_bundle() -> Result<std::path::PathBuf> {
@@ -2485,6 +2310,135 @@ fn run_command_with_env(
 
     if !status.success() {
         anyhow::bail!("Command failed: {cmd} {}", args.join(" "));
+    }
+
+    Ok(())
+}
+
+fn get_development_ip() -> Result<String> {
+    // Try to get the local IP address that can be reached from devices
+    let output = Command::new("ifconfig")
+        .output()
+        .context("Failed to run ifconfig to get IP address")?;
+
+    let ifconfig_output = String::from_utf8_lossy(&output.stdout);
+
+    // Look for common network interface patterns (en0, en1, etc.)
+    for line in ifconfig_output.lines() {
+        if line.contains("inet ") && !line.contains("127.0.0.1") && !line.contains("inet 169.254") {
+            // Extract IP address from line like "	inet 192.168.1.100 netmask 0xffffff00 broadcast 192.168.1.255"
+            if let Some(inet_start) = line.find("inet ") {
+                let after_inet = &line[inet_start + 5..];
+                if let Some(space_pos) = after_inet.find(' ') {
+                    let ip = &after_inet[..space_pos];
+                    // Validate it's a reasonable local IP
+                    if ip.starts_with("192.168.") || ip.starts_with("10.") || ip.starts_with("172.")
+                    {
+                        return Ok(ip.to_string());
+                    }
+                }
+            }
+        }
+    }
+
+    // Fallback: try a different approach using route command
+    let route_output = Command::new("route").args(["get", "default"]).output();
+
+    if let Ok(route_output) = route_output {
+        let route_str = String::from_utf8_lossy(&route_output.stdout);
+        for line in route_str.lines() {
+            if line.trim().starts_with("interface:") {
+                let interface = line.split(':').nth(1).unwrap_or("").trim();
+                // Now get IP for this interface
+                let ifconfig_output = Command::new("ifconfig").arg(interface).output();
+
+                if let Ok(output) = ifconfig_output {
+                    let output_str = String::from_utf8_lossy(&output.stdout);
+                    for line in output_str.lines() {
+                        if line.contains("inet ") && !line.contains("127.0.0.1") {
+                            if let Some(inet_start) = line.find("inet ") {
+                                let after_inet = &line[inet_start + 5..];
+                                if let Some(space_pos) = after_inet.find(' ') {
+                                    let ip = &after_inet[..space_pos];
+                                    return Ok(ip.to_string());
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    anyhow::bail!(
+        "Could not determine local IP address. Please ensure you're connected to a network."
+    )
+}
+
+fn update_http_config_for_device(dev_ip: &str) -> Result<()> {
+    let http_file_path = "iOS/Intrada/http.swift";
+    let content =
+        std::fs::read_to_string(http_file_path).context("Failed to read http.swift file")?;
+
+    // Find and replace the device URL line specifically
+    let lines: Vec<&str> = content.lines().collect();
+    let mut updated_lines = Vec::new();
+    let mut in_else_block = false;
+
+    for line in lines {
+        if line.trim() == "#else" {
+            in_else_block = true;
+            updated_lines.push(line.to_string());
+        } else if line.trim() == "#endif" {
+            in_else_block = false;
+            updated_lines.push(line.to_string());
+        } else if in_else_block && line.contains("let serverBaseURL = \"http://") {
+            // This is the device URL line - replace it
+            updated_lines.push(format!("    let serverBaseURL = \"http://{dev_ip}:3000\""));
+        } else {
+            updated_lines.push(line.to_string());
+        }
+    }
+
+    let final_content = updated_lines.join("\n");
+
+    // Only write if content changed
+    if final_content != content {
+        std::fs::write(http_file_path, final_content)
+            .context("Failed to update http.swift file")?;
+        print_info(&format!("Updated http.swift with development IP: {dev_ip}"));
+    }
+
+    Ok(())
+}
+
+fn reset_http_config_for_simulator() -> Result<()> {
+    let http_file_path = "iOS/Intrada/http.swift";
+    let content =
+        std::fs::read_to_string(http_file_path).context("Failed to read http.swift file")?;
+
+    // Reset to localhost configuration
+    let updated_content = content
+        .lines()
+        .map(|line| {
+            if line.contains("let serverBaseURL = \"http://") && !line.contains("localhost") {
+                "    let serverBaseURL = \"http://localhost:3000\"".to_string()
+            } else if line.contains("} else if request.url.hasPrefix(\"http://")
+                && !line.contains("localhost")
+            {
+                "    } else if request.url.hasPrefix(\"http://localhost:3000\") {".to_string()
+            } else {
+                line.to_string()
+            }
+        })
+        .collect::<Vec<String>>()
+        .join("\n");
+
+    // Only write if content changed
+    if updated_content != content {
+        std::fs::write(http_file_path, updated_content)
+            .context("Failed to update http.swift file")?;
+        print_info("Updated http.swift back to localhost configuration");
     }
 
     Ok(())
