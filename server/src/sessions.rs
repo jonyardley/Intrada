@@ -41,15 +41,35 @@ impl SessionRow {
             state: match self.session_state.as_str() {
                 "NotStarted" => SessionState::NotStarted,
                 "Started" => SessionState::Started {
-                    start_time: self.start_time.clone().unwrap_or_default(),
+                    start_time: self.start_time.clone().ok_or_else(|| {
+                        RepositoryError::ValidationError(
+                            "Started session missing start_time".to_string(),
+                        )
+                    })?,
                 },
                 "PendingReflection" => SessionState::PendingReflection {
-                    start_time: self.start_time.clone().unwrap_or_default(),
-                    end_time: self.end_time.clone().unwrap_or_default(),
+                    start_time: self.start_time.clone().ok_or_else(|| {
+                        RepositoryError::ValidationError(
+                            "PendingReflection session missing start_time".to_string(),
+                        )
+                    })?,
+                    end_time: self.end_time.clone().ok_or_else(|| {
+                        RepositoryError::ValidationError(
+                            "PendingReflection session missing end_time".to_string(),
+                        )
+                    })?,
                 },
                 "Ended" => SessionState::Ended {
-                    start_time: self.start_time.clone().unwrap_or_default(),
-                    end_time: self.end_time.clone().unwrap_or_default(),
+                    start_time: self.start_time.clone().ok_or_else(|| {
+                        RepositoryError::ValidationError(
+                            "Ended session missing start_time".to_string(),
+                        )
+                    })?,
+                    end_time: self.end_time.clone().ok_or_else(|| {
+                        RepositoryError::ValidationError(
+                            "Ended session missing end_time".to_string(),
+                        )
+                    })?,
                 },
                 _ => SessionState::NotStarted,
             },
@@ -263,6 +283,34 @@ impl SessionRepository {
     }
 }
 
+// Helper functions to update session fields across all states
+fn update_session_notes(session: &mut PracticeSession, notes: Option<String>) {
+    match session {
+        PracticeSession::NotStarted(s) => s.data.notes = notes,
+        PracticeSession::Started(s) => s.data.notes = notes,
+        PracticeSession::PendingReflection(s) => s.data.notes = notes,
+        PracticeSession::Ended(s) => s.data.notes = notes,
+    }
+}
+
+fn update_session_intention(session: &mut PracticeSession, intention: String) {
+    match session {
+        PracticeSession::NotStarted(s) => s.data.intention = intention,
+        PracticeSession::Started(s) => s.data.intention = intention,
+        PracticeSession::PendingReflection(s) => s.data.intention = intention,
+        PracticeSession::Ended(s) => s.data.intention = intention,
+    }
+}
+
+fn update_session_goal_ids(session: &mut PracticeSession, goal_ids: Vec<String>) {
+    match session {
+        PracticeSession::NotStarted(s) => s.data.goal_ids = goal_ids,
+        PracticeSession::Started(s) => s.data.goal_ids = goal_ids,
+        PracticeSession::PendingReflection(s) => s.data.goal_ids = goal_ids,
+        PracticeSession::Ended(s) => s.data.goal_ids = goal_ids,
+    }
+}
+
 // HTTP Handlers
 async fn create_session(
     State(session_repo): State<Arc<SessionRepository>>,
@@ -338,60 +386,17 @@ async fn update_session(
         }
     };
 
-    // Update fields if provided - update the session data in place
-    // This preserves the session state while updating the core data fields
+    // Update fields if provided - cleaner organization
     if let Some(notes) = req.notes {
-        // Update notes in the session data
-        match &mut session {
-            PracticeSession::NotStarted(s) => {
-                *s.data.notes_mut() = Some(notes);
-            }
-            PracticeSession::Started(s) => {
-                *s.data.notes_mut() = Some(notes);
-            }
-            PracticeSession::PendingReflection(s) => {
-                *s.data.notes_mut() = Some(notes);
-            }
-            PracticeSession::Ended(s) => {
-                *s.data.notes_mut() = Some(notes);
-            }
-        }
+        update_session_notes(&mut session, Some(notes));
     }
 
     if let Some(intention) = req.intention {
-        // Update intention in the session data
-        match &mut session {
-            PracticeSession::NotStarted(s) => {
-                *s.data.intention_mut() = intention;
-            }
-            PracticeSession::Started(s) => {
-                *s.data.intention_mut() = intention;
-            }
-            PracticeSession::PendingReflection(s) => {
-                *s.data.intention_mut() = intention;
-            }
-            PracticeSession::Ended(s) => {
-                *s.data.intention_mut() = intention;
-            }
-        }
+        update_session_intention(&mut session, intention);
     }
 
     if let Some(goal_ids) = req.goal_ids {
-        // Update goal_ids in the session data
-        match &mut session {
-            PracticeSession::NotStarted(s) => {
-                *s.data.goal_ids_mut() = goal_ids;
-            }
-            PracticeSession::Started(s) => {
-                *s.data.goal_ids_mut() = goal_ids;
-            }
-            PracticeSession::PendingReflection(s) => {
-                *s.data.goal_ids_mut() = goal_ids;
-            }
-            PracticeSession::Ended(s) => {
-                *s.data.goal_ids_mut() = goal_ids;
-            }
-        }
+        update_session_goal_ids(&mut session, goal_ids);
     }
 
     // Save the updated session
@@ -507,20 +512,7 @@ async fn complete_reflection(
 
     // Update notes if provided
     if let Some(notes) = req.notes {
-        match &mut session {
-            PracticeSession::NotStarted(s) => {
-                *s.data.notes_mut() = Some(notes);
-            }
-            PracticeSession::Started(s) => {
-                *s.data.notes_mut() = Some(notes);
-            }
-            PracticeSession::PendingReflection(s) => {
-                *s.data.notes_mut() = Some(notes);
-            }
-            PracticeSession::Ended(s) => {
-                *s.data.notes_mut() = Some(notes);
-            }
-        }
+        update_session_notes(&mut session, Some(notes));
     }
 
     // Complete the reflection (transitions PendingReflection -> Ended)

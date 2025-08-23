@@ -96,15 +96,24 @@ impl ViewModel {
 
 // Helper functions for time calculations
 fn calculate_elapsed_time_from_start(start_time: &str) -> String {
-    let start = DateTime::parse_from_rfc3339(start_time).unwrap_or_default();
+    let start = match DateTime::parse_from_rfc3339(start_time) {
+        Ok(datetime) => datetime,
+        Err(_) => return "Invalid start time".to_string(),
+    };
     let now = Utc::now();
     let duration = now.signed_duration_since(start);
     format_duration_hms(duration.num_seconds())
 }
 
 fn calculate_elapsed_time_between(start_time: &str, end_time: &str) -> String {
-    let start = DateTime::parse_from_rfc3339(start_time).unwrap_or_default();
-    let end = DateTime::parse_from_rfc3339(end_time).unwrap_or_default();
+    let start = match DateTime::parse_from_rfc3339(start_time) {
+        Ok(datetime) => datetime,
+        Err(_) => return "Invalid start time".to_string(),
+    };
+    let end = match DateTime::parse_from_rfc3339(end_time) {
+        Ok(datetime) => datetime,
+        Err(_) => return "Invalid end time".to_string(),
+    };
     let duration = end.signed_duration_since(start);
     format_duration_hms(duration.num_seconds())
 }

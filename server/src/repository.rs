@@ -11,6 +11,8 @@ pub enum RepositoryError {
     NotFound(String),
     #[error("Serialization error: {0}")]
     Serialization(#[from] serde_json::Error),
+    #[error("Validation error: {0}")]
+    ValidationError(String),
 }
 
 impl From<RepositoryError> for crate::ApiError {
