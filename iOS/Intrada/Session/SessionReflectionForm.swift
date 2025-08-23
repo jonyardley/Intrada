@@ -1,16 +1,16 @@
-import SwiftUI
 import SharedTypes
+import SwiftUI
 
 struct SessionReflectionForm: View {
     let sessionId: String
     @ObservedObject var core: Core
     @Binding var isPresented: Bool
     @State private var notes: String = ""
-    
+
     private var session: PracticeSession? {
         core.view.sessions.first { $0.id == sessionId }
     }
-    
+
     var body: some View {
         NavigationView {
             Form {
@@ -31,7 +31,7 @@ struct SessionReflectionForm: View {
                 }
             )
             .onAppear {
-                if let session = session {
+                if let session {
                     notes = session.notes ?? ""
                 }
             }
@@ -45,4 +45,4 @@ struct SessionReflectionForm: View {
         core: Core(),
         isPresented: .constant(true)
     )
-} 
+}

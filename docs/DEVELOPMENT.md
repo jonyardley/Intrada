@@ -48,7 +48,39 @@ After changing shared types, regenerate platform bindings:
 ./build-and-typegen.sh
 ```
 
-### 3. Update Platforms
+### 3. Code Quality & Linting
+
+The project enforces code quality through automated linting:
+
+#### Rust Linting
+```bash
+# Run Rust linting (clippy + formatting)
+cargo run --package xtask -- lint
+
+# Format Rust code
+cargo fmt --all
+```
+
+#### Swift Linting
+```bash
+# Run Swift linting (included in xt lint)
+cargo run --package xtask -- lint
+
+# Format Swift code only
+swiftformat iOS/Intrada
+```
+
+#### Pre-commit Hooks
+The project automatically runs linting checks before each commit:
+- **Rust files**: Runs `cargo fmt --check` and `cargo clippy`
+- **Swift files**: Runs `swiftlint` if available
+
+Install SwiftLint for complete pre-commit coverage:
+```bash
+brew install swiftlint
+```
+
+### 4. Update Platforms
 
 Update platform-specific code to use new functionality:
 

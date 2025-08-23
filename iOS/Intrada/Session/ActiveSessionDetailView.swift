@@ -1,5 +1,5 @@
-import SwiftUI
 import SharedTypes
+import SwiftUI
 
 struct ActiveSessionDetailView: View {
     @Environment(\.dismiss) private var dismiss
@@ -8,14 +8,14 @@ struct ActiveSessionDetailView: View {
     @State private var showingReflectionForm = false
     @State private var showingError = false
     @State private var errorMessage = ""
-    
+
     private var session: PracticeSession? {
         core.view.sessions.first(where: { $0.id == sessionId })
     }
-    
+
     var body: some View {
         Group {
-            if let session = session {
+            if let session {
                 SessionActiveView(
                     session: session,
                     core: core,
@@ -50,13 +50,13 @@ struct ActiveSessionDetailView: View {
         }
         .onAppear {
             // If session is already in pendingReflection state when view appears, show reflection form
-            if let session = session, case .pendingReflection(_, _) = session.state {
+            if let session, case .pendingReflection = session.state {
                 showingReflectionForm = true
             }
         }
         .onChange(of: session?.state) { newState in
             // Also handle state changes while the view is active
-            if let newState = newState, case .pendingReflection(_, _) = newState {
+            if let newState, case .pendingReflection = newState {
                 showingReflectionForm = true
             }
         }
@@ -64,12 +64,13 @@ struct ActiveSessionDetailView: View {
 }
 
 // MARK: - Session Active View (Simplified)
+
 private struct SessionActiveView: View {
     let session: PracticeSession
     @ObservedObject var core: Core
     let onSessionEnd: () -> Void
     let onError: (String) -> Void
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             SessionControlsView(
@@ -77,7 +78,7 @@ private struct SessionActiveView: View {
                 onSessionEnd: onSessionEnd,
                 onError: onError
             )
-            
+
             SessionHeaderView(session: session)
             SessionTimerView(core: core)
             SessionGoalsView(session: session, core: core)
@@ -88,15 +89,16 @@ private struct SessionActiveView: View {
 }
 
 // MARK: - Session Controls View (Simplified)
+
 private struct SessionControlsView: View {
     @ObservedObject var core: Core
     let onSessionEnd: () -> Void
     let onError: (String) -> Void
-    
+
     var body: some View {
         HStack {
             Spacer()
-            
+
             // End session button
             if core.view.canEndSession {
                 Button("End Session") {
@@ -108,40 +110,26 @@ private struct SessionControlsView: View {
         }
         .padding(.horizontal)
     }
-    
 
-    
     private func handleEndSession() {
         guard let session = core.view.currentSession else {
             onError("No active session found")
             return
         }
-        
+
         let timestamp = Date().ISO8601Format()
         core.update(.session(.endSession(session.id, timestamp)))
     }
 }
 
 // MARK: - Session Header View
-private struct SessionHeaderView: View {
-    let session: PracticeSession
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(session.intention)
-                .font(.title)
-                .fontWeight(.bold)
-            
-            SessionStateView(state: session.state)
-        }
-        .padding(.horizontal)
-    }
-}
+
 
 // MARK: - Session State View (Type-safe state display)
+
 private struct SessionStateView: View {
     let state: SessionState
-    
+
     var body: some View {
         HStack {
             Image(systemName: stateIcon)
@@ -151,57 +139,58 @@ private struct SessionStateView: View {
                 .foregroundColor(stateColor)
         }
     }
-    
+
     private var stateIcon: String {
         switch state {
         case .notStarted:
-            return "circle"
+            "circle"
         case .started:
-            return "play.circle.fill"
-        case .pendingReflection(_, _):
-            return "pause.circle.fill"
-        case .ended(_, _, _):
-            return "checkmark.circle.fill"
+            "play.circle.fill"
+        case .pendingReflection:
+            "pause.circle.fill"
+        case .ended:
+            "checkmark.circle.fill"
         }
     }
-    
+
     private var stateColor: Color {
         switch state {
         case .notStarted:
-            return .gray
+            .gray
         case .started:
-            return .green
-        case .pendingReflection(_, _):
-            return .orange
-        case .ended(_, _, _):
-            return .blue
+            .green
+        case .pendingReflection:
+            .orange
+        case .ended:
+            .blue
         }
     }
-    
+
     private var stateDescription: String {
         switch state {
         case .notStarted:
-            return "Ready to start"
+            "Ready to start"
         case .started:
-            return "In progress"
-        case .pendingReflection(_, _):
-            return "Waiting for reflection"
-        case .ended(_, _, _):
-            return "Completed"
+            "In progress"
+        case .pendingReflection:
+            "Waiting for reflection"
+        case .ended:
+            "Completed"
         }
     }
 }
 
 // MARK: - Session Timer View (Dynamic)
+
 private struct SessionTimerView: View {
     @ObservedObject var core: Core
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Session Timer")
                 .font(.title2)
                 .fontWeight(.semibold)
-            
+
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     if let session = core.view.currentSession {
@@ -215,7 +204,7 @@ private struct SessionTimerView: View {
                             .font(.system(size: 48, weight: .bold, design: .monospaced))
                             .foregroundColor(.gray)
                     }
-                    
+
                     Spacer()
                 }
             }
@@ -228,19 +217,20 @@ private struct SessionTimerView: View {
 }
 
 // MARK: - Session Goals View
+
 private struct SessionGoalsView: View {
     let session: PracticeSession
     let core: Core
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Practice Goals")
                 .font(.headline)
-            
+
             let goals = core.view.goals.filter { goal in
                 session.goalIds.contains(goal.id)
             }
-            
+
             if goals.isEmpty {
                 EmptyGoalsView()
             } else {
@@ -254,6 +244,7 @@ private struct SessionGoalsView: View {
 }
 
 // MARK: - Empty Goals View
+
 private struct EmptyGoalsView: View {
     var body: some View {
         HStack {
@@ -270,10 +261,11 @@ private struct EmptyGoalsView: View {
 }
 
 // MARK: - Goal Section View
+
 private struct GoalSectionView: View {
     let goal: PracticeGoal
     let core: Core
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
@@ -290,17 +282,17 @@ private struct GoalSectionView: View {
                 }
                 Spacer()
             }
-            
+
             if !goal.studyIds.isEmpty {
                 Text("Studies")
                     .font(.subheadline)
                     .fontWeight(.semibold)
                     .foregroundColor(.gray)
-                
+
                 let studies = core.view.studies.filter { study in
                     goal.studyIds.contains(study.id)
                 }
-                
+
                 ForEach(studies, id: \.id) { study in
                     StudyRowView(study: study, core: core)
                 }
@@ -313,10 +305,11 @@ private struct GoalSectionView: View {
 }
 
 // MARK: - Study Row View
+
 private struct StudyRowView: View {
     let study: Study
     let core: Core
-    
+
     var body: some View {
         NavigationLink(destination: StudyDetailView(core: core, study: study)) {
             HStack {
@@ -343,9 +336,10 @@ private struct StudyRowView: View {
 }
 
 // MARK: - Session Not Found View
+
 private struct SessionNotFoundView: View {
     let onDismiss: () -> Void
-    
+
     var body: some View {
         Color.clear
             .onAppear {
@@ -368,4 +362,4 @@ private struct SessionNotFoundView: View {
         core: core,
         sessionId: sessionId
     )
-} 
+}

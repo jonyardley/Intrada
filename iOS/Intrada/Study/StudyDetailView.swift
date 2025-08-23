@@ -1,11 +1,11 @@
-import SwiftUI
 import SharedTypes
+import SwiftUI
 
 struct StudyDetailView: View {
     @ObservedObject var core: Core
     let study: Study
     @State private var showingEditForm = false
-    
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
@@ -14,7 +14,7 @@ struct StudyDetailView: View {
                     Text(study.name)
                         .font(.title)
                         .fontWeight(.bold)
-                    
+
                     if let description = study.description {
                         Text(description)
                             .font(.subheadline)
@@ -22,16 +22,16 @@ struct StudyDetailView: View {
                     }
                 }
                 .padding(.horizontal)
-                
+
                 // Associated Goals
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Related Goals")
                         .font(.headline)
-                    
+
                     let goals = core.view.goals.filter { goal in
                         goal.studyIds.contains(study.id)
                     }
-                    
+
                     if goals.isEmpty {
                         Text("No goals associated")
                             .foregroundColor(.gray)
@@ -84,4 +84,4 @@ struct StudyDetailView: View {
             description: "This is a sample study"
         )
     )
-} 
+}

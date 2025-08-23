@@ -1,11 +1,11 @@
-import SwiftUI
 import SharedTypes
+import SwiftUI
 
 struct GoalDetailView: View {
     @ObservedObject var core: Core
     let goal: PracticeGoal
     @State private var showingEditForm = false
-    
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
@@ -14,7 +14,7 @@ struct GoalDetailView: View {
                     Text(goal.name)
                         .font(.title)
                         .fontWeight(.bold)
-                    
+
                     if let description = goal.description {
                         Text(description)
                             .font(.subheadline)
@@ -22,37 +22,37 @@ struct GoalDetailView: View {
                     }
                 }
                 .padding(.horizontal)
-                
+
                 // Target Date
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Target Date")
                         .font(.headline)
-                    
+
                     if let targetDate = goal.targetDate {
                         Text(targetDate)
                             .font(.subheadline)
                     }
                 }
                 .padding(.horizontal)
-                
+
                 // Status
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Status")
                         .font(.headline)
-                    
+
                     StatusBadge(status: goal.status)
                 }
                 .padding(.horizontal)
-                
+
                 // Associated Studies
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Studies")
                         .font(.headline)
-                    
+
                     let studies = core.view.studies.filter { study in
                         goal.studyIds.contains(study.id)
                     }
-                    
+
                     if studies.isEmpty {
                         Text("No studies added")
                             .foregroundColor(.gray)
@@ -108,4 +108,4 @@ struct GoalDetailView: View {
             tempoTarget: nil
         )
     )
-} 
+}

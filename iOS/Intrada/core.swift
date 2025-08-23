@@ -6,7 +6,7 @@ var isPreview: Bool {
     ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1"
 }
 
-fileprivate class EffectHandler: CruxShell, @unchecked Sendable {
+private class EffectHandler: CruxShell, @unchecked Sendable {
     public var handler: ((Data) -> Void)?
 
     func processEffects(_ bytes: Data) {
@@ -27,25 +27,25 @@ class Core: ObservableObject {
 
     init() {
         print("🚀 Core init started")
-        self.handler = EffectHandler()
-        self.core = CoreFfi(handler)
-        self.dataStore = LocalStore()
-        
+        handler = EffectHandler()
+        core = CoreFfi(handler)
+        dataStore = LocalStore()
+
         // Initialize view with default state
         let bytes = [UInt8](core.view())
         if bytes.isEmpty || bytes.count < 4 {
             if !isPreview {
                 print("Warning: Core returned empty or too-small view data, using default ViewModel")
             }
-            self.view = Self.createDefaultViewModel()
+            view = Self.createDefaultViewModel()
         } else {
             do {
-                self.view = try .bincodeDeserialize(input: bytes)
+                view = try .bincodeDeserialize(input: bytes)
             } catch {
                 if !isPreview {
                     print("Warning: Failed to deserialize existing data, starting with fresh state: \(error)")
                 }
-                self.view = Self.createDefaultViewModel()
+                view = Self.createDefaultViewModel()
             }
         }
 
@@ -63,19 +63,19 @@ class Core: ObservableObject {
                 }
             }
         }
-        
+
         // Load from local store after handler is set up
         loadFromStore()
-        
+
         // Start background sync if needed
         startSyncTimer()
-        
+
         // Fetch from server if needed (non-blocking)
         Task {
             await self.syncWithServerIfNeeded()
         }
     }
-    
+
     private static func createDefaultViewModel() -> ViewModel {
         ViewModel(
             goals: [],
@@ -91,27 +91,27 @@ class Core: ObservableObject {
             lastError: nil
         )
     }
-    
+
     deinit {
         syncTimer?.invalidate()
     }
-    
+
     // MARK: - Local Store Integration
-    
+
     private func loadFromStore() {
         guard !isPreview else { return }
-        
+
         print("📱 Loading data from LocalStore...")
-        
+
         let goals = dataStore.loadGoals()
         let studies = dataStore.loadStudies()
         let sessions = dataStore.loadSessions()
-        
+
         print("📱 LocalStore data: \(goals.count) goals, \(studies.count) studies, \(sessions.count) sessions")
-        
+
         if !goals.isEmpty || !studies.isEmpty || !sessions.isEmpty {
             print("📱 Found cached data, updating view immediately")
-            
+
             // Update the view with cached data for immediate UI
             view.goals = goals
             view.studies = studies
@@ -120,7 +120,7 @@ class Core: ObservableObject {
             print("📱 No cached data found, will fetch from server")
         }
     }
-    
+
     private func startSyncTimer() {
         // Trigger CloudKit sync every 5 minutes when app is active
         syncTimer = Timer.scheduledTimer(withTimeInterval: 300.0, repeats: true) { _ in
@@ -129,30 +129,28 @@ class Core: ObservableObject {
             }
         }
     }
-    
+
     private func syncWithServerIfNeeded() async {
         guard !isPreview else { return }
-        
+
         // Always fetch from server on first launch
         print("📱 Fetching data from server...")
-        self.update(.fetchAll)
+        update(.fetchAll)
     }
-    
 
-    
     private func sessionFromViewModel(_ session: PracticeSession) -> PracticeSession {
-        return session
+        session
     }
 
     func update(_ event: Event) {
         do {
-            let effects = [UInt8](core.update(Data(try event.bincodeSerialize())))
+            let effects = try [UInt8](core.update(Data(event.bincodeSerialize())))
 
             let requests: [Request] = try .bincodeDeserialize(input: effects)
             for request in requests {
                 processEffect(request)
             }
-            
+
             // Save current state to local store after processing effects
             saveToLocalStoreIfNeeded(event)
         } catch {
@@ -161,24 +159,25 @@ class Core: ObservableObject {
             }
         }
     }
-    
-    private func saveToLocalStoreIfNeeded(_ event: Event) {
+
+    private func saveToLocalStoreIfNeeded(_: Event) {
         // Save all current data to local store after any event
         // This ensures we always have the latest state persisted
         dataStore.saveGoals(view.goals)
         dataStore.saveStudies(view.studies)
         dataStore.saveSessions(view.sessions)
     }
-    
+
     private func convertSessionToView(_ session: PracticeSession) -> PracticeSession {
         // No conversion needed - return session directly
-        return session
+        session
     }
-    
+
     private func calculateDuration(startTime: String, endTime: String) -> String? {
         let formatter = ISO8601DateFormatter()
         guard let start = formatter.date(from: startTime),
-              let end = formatter.date(from: endTime) else {
+              let end = formatter.date(from: endTime)
+        else {
             return nil
         }
         let duration = end.timeIntervalSince(start)
@@ -214,14 +213,15 @@ class Core: ObservableObject {
                     let response = try await requestHttp(req).get()
                     print("✅ HTTP request successful: \(req.method) \(req.url)")
                     print("📄 Response body: \(String(data: Data(response.body), encoding: .utf8) ?? "Unable to decode")")
-                    
-                    let effects = core.resolve(
+
+                    let effects = try core.resolve(
                         request.id,
-                        Data(try HttpResult.ok(response).bincodeSerialize()))
-                    
+                        Data(HttpResult.ok(response).bincodeSerialize())
+                    )
+
                     // Handle server reconciliation for successful responses
                     self.handleServerReconciliation(req, response)
-                    
+
                     let requests: [Request] = try .bincodeDeserialize(input: [UInt8](effects))
                     print("🔄 Processing \(requests.count) follow-up effects")
                     for request in requests {
@@ -236,14 +236,12 @@ class Core: ObservableObject {
             }
         }
     }
-    
+
     // MARK: - Server Reconciliation
-    
-    private func handleServerReconciliation(_ request: HttpRequest, _ response: HttpResponse) {
+
+    private func handleServerReconciliation(_ request: HttpRequest, _: HttpResponse) {
         // LocalStore automatically handles sync via CloudKit
         // No manual reconciliation needed
         print("✅ Server request successful: \(request.method) \(request.url)")
     }
 }
-
-

@@ -8,29 +8,28 @@ enum HttpError: Error {
 
 func requestHttp(_ request: HttpRequest) async -> Result<HttpResponse, HttpError> {
     let serverBaseURL = "http://localhost:3000"
-    
+
     // Clean URL resolution: if it's already a full localhost URL, use as-is
     // Otherwise, treat it as a relative path and prepend the server base URL
-    let finalURL: String
-    if request.url.hasPrefix("http://localhost:3000") {
-        finalURL = request.url
+    let finalURL: String = if request.url.hasPrefix("http://localhost:3000") {
+        request.url
     } else if request.url.hasPrefix("/") {
         // Relative path - prepend server base URL
-        finalURL = "\(serverBaseURL)\(request.url)"
+        "\(serverBaseURL)\(request.url)"
     } else {
         // Assume it's a relative path without leading slash
-        finalURL = "\(serverBaseURL)/\(request.url)"
+        "\(serverBaseURL)/\(request.url)"
     }
-    
+
     print("🌐 HTTP Request: \(request.method) \(finalURL)")
-    
+
     var req = URLRequest(url: URL(string: finalURL)!)
     req.httpMethod = request.method
 
     for header in request.headers {
         req.addValue(header.value, forHTTPHeaderField: header.name)
     }
-    
+
     if !request.body.isEmpty {
         req.httpBody = Data(request.body)
     }
