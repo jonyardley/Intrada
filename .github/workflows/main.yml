@@ -7,6 +7,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  SQLX_OFFLINE: true
 
 # Prevent concurrent runs on the same branch/PR
 concurrency:

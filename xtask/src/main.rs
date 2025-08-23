@@ -40,6 +40,9 @@ enum Commands {
         #[arg(short, long)]
         logs: bool,
     },
+    /// SQLx operations
+    #[command(subcommand)]
+    Sqlx(SqlxCommands),
     /// Quick start (skip type generation)
     Quick {
         #[arg(short, long)]
@@ -183,6 +186,20 @@ enum LogCommands {
 }
 
 #[derive(Subcommand)]
+enum SqlxCommands {
+    /// Prepare SQLx query cache for offline compilation
+    Prepare,
+    /// Check if query cache is up to date
+    Check,
+    /// Start database for development
+    DbUp,
+    /// Stop database
+    DbDown,
+    /// Reset database and regenerate cache
+    Reset,
+}
+
+#[derive(Subcommand)]
 enum TestCommands {
     /// Test Crux core (shared business logic)
     Core,
@@ -232,6 +249,7 @@ fn main() {
         Commands::Quick { logs } => handle_quick(logs),
         Commands::Rebuild { logs } => handle_rebuild(logs),
         Commands::Logs(log_cmd) => handle_logs_command(log_cmd),
+        Commands::Sqlx(sqlx_cmd) => handle_sqlx_command(sqlx_cmd),
         Commands::Test(test_cmd) => handle_test_command(test_cmd),
         Commands::Clean(clean_cmd) => handle_clean_command(clean_cmd),
         Commands::Watch => handle_watch(),
@@ -1031,6 +1049,94 @@ fn rebuild_and_run_ios_on_device() -> Result<()> {
 
     // Then build and run
     build_and_run_ios_on_device()
+}
+
+fn handle_sqlx_command(cmd: SqlxCommands) -> Result<()> {
+    ensure_in_project_root()?;
+
+    match cmd {
+        SqlxCommands::Prepare => {
+            print_step("Preparing SQLx query cache");
+
+            // Ensure database is running
+            print_info("Starting database...");
+            run_command("docker-compose", &["up", "-d"], Some("server"))?;
+
+            // Wait for database to be ready
+            print_info("Waiting for database to be ready...");
+            thread::sleep(Duration::from_secs(3));
+
+            // Set DATABASE_URL and prepare queries
+            let database_url = "postgresql://intrada:intrada@localhost:5432/intrada";
+            run_command_with_env(
+                "cargo",
+                &["sqlx", "prepare", "--workspace"],
+                None,
+                &[("DATABASE_URL", database_url)],
+            )?;
+
+            print_success("✅ SQLx query cache prepared! Please commit the .sqlx/ directory.");
+        }
+        SqlxCommands::Check => {
+            print_step("Checking SQLx query cache");
+
+            if !Path::new(".sqlx").exists() {
+                print_warning("⚠️  No SQLx query cache found. Run 'xt sqlx prepare' first.");
+                return Ok(());
+            }
+
+            // Check if offline mode works
+            run_command_with_env(
+                "cargo",
+                &["check", "--package", "server"],
+                None,
+                &[("SQLX_OFFLINE", "true")],
+            )?;
+
+            print_success("✅ SQLx query cache is valid!");
+        }
+        SqlxCommands::DbUp => {
+            print_step("Starting database");
+            run_command("docker-compose", &["up", "-d"], Some("server"))?;
+            print_success("✅ Database started");
+        }
+        SqlxCommands::DbDown => {
+            print_step("Stopping database");
+            run_command("docker-compose", &["down"], Some("server"))?;
+            print_success("✅ Database stopped");
+        }
+        SqlxCommands::Reset => {
+            print_step("Resetting database and regenerating SQLx cache");
+
+            // Stop and remove containers
+            run_command("docker-compose", &["down", "-v"], Some("server"))?;
+
+            // Start fresh
+            run_command("docker-compose", &["up", "-d"], Some("server"))?;
+
+            // Wait for database
+            print_info("Waiting for database to be ready...");
+            thread::sleep(Duration::from_secs(5));
+
+            // Remove old cache
+            if Path::new(".sqlx").exists() {
+                std::fs::remove_dir_all(".sqlx")?;
+            }
+
+            // Regenerate cache
+            let database_url = "postgresql://intrada:intrada@localhost:5432/intrada";
+            run_command_with_env(
+                "cargo",
+                &["sqlx", "prepare", "--workspace"],
+                None,
+                &[("DATABASE_URL", database_url)],
+            )?;
+
+            print_success("✅ Database reset and SQLx cache regenerated!");
+        }
+    }
+
+    Ok(())
 }
 
 fn generate_type_bindings() -> Result<()> {
@@ -2064,6 +2170,35 @@ fn handle_doctor() -> Result<()> {
         }
         println!();
         print_info("💡 Fix the issues above and run 'cargo xtask doctor' again");
+    }
+
+    Ok(())
+}
+
+// Utility function to run commands with environment variables
+fn run_command_with_env(
+    cmd: &str,
+    args: &[&str],
+    working_dir: Option<&str>,
+    env_vars: &[(&str, &str)],
+) -> Result<()> {
+    let mut command = Command::new(cmd);
+    command.args(args);
+
+    if let Some(dir) = working_dir {
+        command.current_dir(dir);
+    }
+
+    for (key, value) in env_vars {
+        command.env(key, value);
+    }
+
+    let status = command
+        .status()
+        .context(format!("Failed to execute: {cmd}"))?;
+
+    if !status.success() {
+        anyhow::bail!("Command failed: {cmd} {}", args.join(" "));
     }
 
     Ok(())

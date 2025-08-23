@@ -74,11 +74,32 @@ swiftformat iOS/Intrada
 The project automatically runs linting checks before each commit:
 - **Rust files**: Runs `cargo fmt --check` and `cargo clippy`
 - **Swift files**: Runs `swiftlint` if available
+- **Server files**: Checks SQLx query cache is up to date
 
 Install SwiftLint for complete pre-commit coverage:
 ```bash
 brew install swiftlint
 ```
+
+If any checks fail, the commit will be rejected with helpful fix suggestions.
+
+#### SQLx Query Cache Management
+The project uses SQLx with offline compilation for CI/CD. When you modify SQL queries in server code:
+
+```bash
+# Update query cache after changing SQL queries
+cargo run --package xtask -- sqlx prepare
+
+# Check if cache is up to date
+cargo run --package xtask -- sqlx check
+
+# Database management
+cargo run --package xtask -- sqlx db-up    # Start PostgreSQL
+cargo run --package xtask -- sqlx db-down  # Stop PostgreSQL
+cargo run --package xtask -- sqlx reset    # Reset DB and regenerate cache
+```
+
+**Note**: The `.sqlx/` directory contains query cache files and must be committed to git for CI/CD to work.
 
 ### 4. Update Platforms
 
