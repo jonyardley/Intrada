@@ -1,150 +1,80 @@
 #!/bin/bash
-
-# Database Seed Script for Intrada
-# This script adds sample test data to the database
-
 set -e
 
-echo "🌱 Intrada Database Seed"
-echo "======================="
+echo "🌱 Seeding database with sample data..."
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+# Change to server directory
+cd "$(dirname "$0")"
 
-# Check if we're in the server directory
-if [[ ! -f "docker-compose.yml" ]]; then
-    echo -e "${RED}❌ Error: This script must be run from the server directory${NC}"
-    echo "Please run: cd server && ./seed-db.sh"
-    exit 1
-fi
+# Function to check if PostgreSQL container is running
+check_postgres() {
+    if ! docker-compose ps postgres | grep -q "Up"; then
+        echo "🔄 Starting PostgreSQL container..."
+        docker-compose up -d postgres
+        sleep 3
+    fi
+}
 
-# Check if Docker is running
-if ! docker info > /dev/null 2>&1; then
-    echo -e "${RED}❌ Error: Docker is not running${NC}"
-    echo "Please start Docker and try again"
-    exit 1
-fi
+# Function to run migrations
+run_migrations() {
+    echo "🔄 Running database migrations..."
+    
+    # Check if migrations directory exists
+    if [ ! -d "migrations" ]; then
+        echo "⚠️  No migrations directory found"
+        return
+    fi
+    
+    # Run each migration file in order
+    for migration in migrations/*.sql; do
+        if [ -f "$migration" ]; then
+            echo "🔄 Running migration: $(basename "$migration")"
+            docker-compose exec -T postgres psql -U postgres -d intrada -f - < "$migration"
+        fi
+    done
+}
 
-# Check if PostgreSQL container is running
-if ! docker-compose ps | grep -q "postgres.*Up"; then
-    echo -e "${YELLOW}⚠️  PostgreSQL container is not running${NC}"
-    echo -e "${BLUE}🔄 Starting PostgreSQL container...${NC}"
-    docker-compose up -d postgres
-    echo -e "${BLUE}⏳ Waiting for database to be ready...${NC}"
-    sleep 5
-fi
+# Function to seed sample data
+seed_sample_data() {
+    echo "🔄 Inserting sample data..."
+    
+    # Create sample data SQL
+    cat <<EOF | docker-compose exec -T postgres psql -U postgres -d intrada
+-- Sample Goals
+INSERT INTO goals (id, title, description, target_date, created_at, updated_at) VALUES
+('goal-1', 'Master Bach Invention No. 1', 'Learn to play Bach Invention No. 1 in C major with proper articulation and tempo', '2024-12-31', NOW(), NOW()),
+('goal-2', 'Improve sight-reading', 'Practice sight-reading daily with progressive exercises', '2024-12-31', NOW(), NOW()),
+('goal-3', 'Learn scales and arpeggios', 'Master all major and minor scales, plus basic arpeggios', '2024-12-31', NOW(), NOW())
+ON CONFLICT (id) DO NOTHING;
 
-echo -e "${BLUE}🌱 Adding sample data to database...${NC}"
+-- Sample Studies
+INSERT INTO studies (id, goal_id, title, description, created_at, updated_at) VALUES
+('study-1', 'goal-1', 'Bach Invention Analysis', 'Analyze the structure and harmonic progression of Bach Invention No. 1', NOW(), NOW()),
+('study-2', 'goal-1', 'Hand Independence Practice', 'Practice exercises to improve hand independence for Bach Invention', NOW(), NOW()),
+('study-3', 'goal-2', 'Daily Sight-Reading', 'Daily sight-reading practice with progressive difficulty', NOW(), NOW()),
+('study-4', 'goal-3', 'Scale Practice Routine', 'Systematic practice of major and minor scales', NOW(), NOW())
+ON CONFLICT (id) DO NOTHING;
 
-# Check if server is running to use API, otherwise insert directly
-if curl -s http://localhost:3000/api/goals > /dev/null 2>&1; then
-    echo -e "${BLUE}📡 Server is running, using API endpoints...${NC}"
-    
-    # Create sample studies via API
-    echo -e "${BLUE}📚 Creating sample studies...${NC}"
-    STUDY1_ID=$(curl -s -X POST -H "Content-Type: application/json" \
-        -d '{"name": "Chopin Etude Op. 10 No. 1", "description": "Technical study focusing on arpeggios and finger independence"}' \
-        http://localhost:3000/api/studies | jq -r '.id')
-    
-    STUDY2_ID=$(curl -s -X POST -H "Content-Type: application/json" \
-        -d '{"name": "Bach Invention No. 1", "description": "Counterpoint and two-voice independence"}' \
-        http://localhost:3000/api/studies | jq -r '.id')
-    
-    STUDY3_ID=$(curl -s -X POST -H "Content-Type: application/json" \
-        -d '{"name": "Scales - C Major", "description": "Basic major scale practice, all octaves"}' \
-        http://localhost:3000/api/studies | jq -r '.id')
-    
-    # Create sample goals via API
-    echo -e "${BLUE}🎯 Creating sample goals...${NC}"
-    GOAL1_ID=$(curl -s -X POST -H "Content-Type: application/json" \
-        -d "{\"name\": \"Master Technical Studies\", \"description\": \"Improve finger technique and dexterity\", \"target_date\": \"$(date -v+3m +%Y-%m-%d)\", \"study_ids\": [\"$STUDY1_ID\", \"$STUDY3_ID\"]}" \
-        http://localhost:3000/api/goals | jq -r '.id')
-    
-    GOAL2_ID=$(curl -s -X POST -H "Content-Type: application/json" \
-        -d "{\"name\": \"Bach Counterpoint\", \"description\": \"Develop two-voice independence\", \"target_date\": \"$(date -v+2m +%Y-%m-%d)\", \"study_ids\": [\"$STUDY2_ID\"]}" \
-        http://localhost:3000/api/goals | jq -r '.id')
-    
-    # Create sample sessions via API
-    echo -e "${BLUE}🎵 Creating sample sessions...${NC}"
-    curl -s -X POST -H "Content-Type: application/json" \
-        -d "{\"goal_ids\": [\"$GOAL1_ID\"], \"intention\": \"Focus on slow practice and accuracy\"}" \
-        http://localhost:3000/api/sessions > /dev/null
-    
-    curl -s -X POST -H "Content-Type: application/json" \
-        -d "{\"goal_ids\": [\"$GOAL2_ID\"], \"intention\": \"Work on hand independence\"}" \
-        http://localhost:3000/api/sessions > /dev/null
-    
-    curl -s -X POST -H "Content-Type: application/json" \
-        -d "{\"goal_ids\": [\"$GOAL1_ID\", \"$GOAL2_ID\"], \"intention\": \"Combined technical and musical practice\"}" \
-        http://localhost:3000/api/sessions > /dev/null
-    
-else
-    echo -e "${BLUE}💾 Server not running, inserting data directly...${NC}"
-    
-    # Insert sample data directly into database
-    docker-compose exec -T postgres psql -U intrada -d intrada -c "
-    -- Insert sample studies
-    INSERT INTO studies (id, name, description) VALUES 
-    ('$(uuidgen | tr '[:upper:]' '[:lower:]')', 'Chopin Etude Op. 10 No. 1', 'Technical study focusing on arpeggios and finger independence'),
-    ('$(uuidgen | tr '[:upper:]' '[:lower:]')', 'Bach Invention No. 1', 'Counterpoint and two-voice independence'),
-    ('$(uuidgen | tr '[:upper:]' '[:lower:]')', 'Scales - C Major', 'Basic major scale practice, all octaves');
+-- Sample Sessions
+INSERT INTO sessions (id, study_id, title, duration_minutes, notes, rating, created_at, updated_at) VALUES
+('session-1', 'study-1', 'Bach Analysis Session', 45, 'Analyzed measures 1-8, identified key modulations', 4, NOW() - INTERVAL '2 days', NOW() - INTERVAL '2 days'),
+('session-2', 'study-2', 'Hand Independence Exercises', 30, 'Practiced Hanon exercises 1-3 for hand coordination', 3, NOW() - INTERVAL '1 day', NOW() - INTERVAL '1 day'),
+('session-3', 'study-3', 'Sight-Reading Practice', 20, 'Worked on Grade 3 sight-reading examples', 4, NOW(), NOW()),
+('session-4', 'study-4', 'C Major Scale Practice', 15, 'Practiced C major scale hands together, various rhythms', 5, NOW(), NOW())
+ON CONFLICT (id) DO NOTHING;
+EOF
+}
 
-    -- Insert sample goals (with study references)
-    WITH study_refs AS (
-        SELECT array_agg(id::text) as study_ids FROM studies LIMIT 2
-    )
-    INSERT INTO goals (id, name, description, status, target_date, study_ids, tempo_target)
-    SELECT 
-        '$(uuidgen | tr '[:upper:]' '[:lower:]')', 
-        'Master Technical Studies', 
-        'Improve finger technique and dexterity',
-        'NotStarted',
-        '$(date -v+3m +%Y-%m-%d)',
-        to_json(study_ids),
-        120
-    FROM study_refs;
+# Main execution
+echo "📋 Seeding database..."
 
-    -- Insert sample sessions
-    WITH goal_refs AS (
-        SELECT id FROM goals LIMIT 1
-    )
-    INSERT INTO sessions (id, goal_ids, intention, notes, session_state)
-    SELECT 
-        '$(uuidgen | tr '[:upper:]' '[:lower:]')',
-        '[\"' || id || '\"]',
-        'Focus on slow practice and accuracy',
-        NULL,
-        'NotStarted'
-    FROM goal_refs;
-
-    INSERT INTO sessions (id, goal_ids, intention, notes, session_state) VALUES 
-    ('$(uuidgen | tr '[:upper:]' '[:lower:]')', '[]', 'General practice session', NULL, 'NotStarted'),
-    ('$(uuidgen | tr '[:upper:]' '[:lower:]')', '[]', 'Technique warm-up', NULL, 'NotStarted');
-    "
-fi
-
-echo -e "${BLUE}📊 Verifying seeded data...${NC}"
-docker-compose exec -T postgres psql -U intrada -d intrada -c "
-SELECT 
-    'studies' as table_name, COUNT(*) as count FROM studies
-UNION ALL
-SELECT 
-    'goals' as table_name, COUNT(*) as count FROM goals  
-UNION ALL
-SELECT 
-    'sessions' as table_name, COUNT(*) as count FROM sessions
-ORDER BY table_name;
-"
+check_postgres
+run_migrations
+seed_sample_data
 
 echo ""
-echo -e "${GREEN}✅ Database seeded successfully!${NC}"
-echo -e "${BLUE}📋 Sample data added:${NC}"
-echo "  - 3 studies (Chopin, Bach, Scales)"
-echo "  - 2 goals with study associations"
-echo "  - 3 practice sessions"
-echo ""
-echo -e "${YELLOW}💡 You can now test the app with realistic sample data!${NC}"
+echo "🎉 Database seeding completed!"
+echo "📊 Sample data added:"
+echo "   • 3 practice goals"
+echo "   • 4 studies" 
+echo "   • 4 practice sessions"

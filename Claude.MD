@@ -67,7 +67,7 @@ We're building intelligent tools that transform practice from routine into a del
 5. **All Applications**: Must test all downstream applications
    ```bash
    # iOS App
-   cd iOS && ./build-and-run.sh
+   cd iOS && xcodegen && xcodebuild -project Intrada.xcodeproj -scheme Intrada -destination 'platform=iOS Simulator,name=iPhone 15 Pro,OS=latest' build
    
    # Web-Leptos App
    cd web-leptos && npm run build:css && cargo build && cargo test
@@ -105,7 +105,7 @@ cd web-leptos && npm run build:css && cargo build && cargo test || exit 1
 cd ..
 
 echo "6️⃣ Testing iOS app..."
-cd iOS && ./build-and-run.sh || exit 1
+cd iOS && xcodegen && xcodebuild -project Intrada.xcodeproj -scheme Intrada -destination 'platform=iOS Simulator,name=iPhone 15 Pro,OS=latest' build || exit 1
 cd ..
 
 echo "✅ All validations passed!"

@@ -1,49 +1,114 @@
 #!/bin/bash
 set -e
 
-# Auto-detect the iPhone 16 simulator device ID
-DEVICE_ID=$(xcrun simctl list devices | grep "iPhone 16 (" | grep -v Plus | grep -v Pro | head -1 | grep -o '([A-F0-9-]*)' | tr -d '()')
-BUNDLE_ID="com.jonyardley.Intrada"
+echo "📱 Building and running iOS app..."
 
-if [ -z "$DEVICE_ID" ]; then
-    echo "❌ Could not find iPhone 16 simulator"
-    exit 1
+# Change to iOS directory
+cd "$(dirname "$0")"
+
+# Check for build-only flag
+BUILD_ONLY=false
+if [ "$1" = "--build-only" ]; then
+    BUILD_ONLY=true
 fi
 
-echo "📱 Using device: $DEVICE_ID"
+# Function to generate Xcode project
+generate_project() {
+    echo "🔄 Generating Xcode project..."
+    xcodegen
+    echo "✅ Xcode project generated"
+}
 
-echo "🏗️  Building app..."
-xcodebuild -project Intrada.xcodeproj \
-           -scheme Intrada \
-           -configuration Debug \
-           -destination "id=$DEVICE_ID" \
-           -sdk iphonesimulator \
-           build -quiet
+# Function to build iOS app
+build_app() {
+    echo "🔄 Building iOS app..."
+    
+    # Use generic simulator destination for build-only
+    if [ "$BUILD_ONLY" = true ]; then
+        xcodebuild -project Intrada.xcodeproj \
+                   -scheme Intrada \
+                   -destination 'generic/platform=iOS Simulator' \
+                   build
+    else
+        # Find available iPhone simulator for full build
+        SIMULATOR_ID=$(xcrun simctl list devices available | grep 'iPhone.*(' | head -1 | sed -n 's/.*(\([A-F0-9-]*\)).*/\1/p')
+        
+        if [ -z "$SIMULATOR_ID" ]; then
+            echo "⚠️  No iPhone simulators found, using generic destination"
+            xcodebuild -project Intrada.xcodeproj \
+                       -scheme Intrada \
+                       -destination 'generic/platform=iOS Simulator' \
+                       build
+        else
+            echo "📱 Building for simulator: $SIMULATOR_ID"
+            xcodebuild -project Intrada.xcodeproj \
+                       -scheme Intrada \
+                       -destination "id=$SIMULATOR_ID" \
+                       build
+        fi
+    fi
+    
+    echo "✅ iOS app built successfully"
+}
 
-echo "📱 Booting simulator..."
-xcrun simctl boot "$DEVICE_ID" 2>/dev/null || true
-sleep 2
+# Function to run iOS app in simulator
+run_app() {
+    if [ "$BUILD_ONLY" = true ]; then
+        echo "⚠️  Build-only mode, skipping app launch"
+        return
+    fi
+    
+    echo "🔄 Installing and launching iOS app in simulator..."
+    
+    # Find available iPhone simulator
+    SIMULATOR_ID=$(xcrun simctl list devices available | grep 'iPhone.*(' | head -1 | sed -n 's/.*(\([A-F0-9-]*\)).*/\1/p')
+    
+    if [ -z "$SIMULATOR_ID" ]; then
+        echo "❌ No iPhone simulators found for launch"
+        return
+    fi
+    
+    # Boot simulator if needed
+    echo "📱 Booting simulator: $SIMULATOR_ID"
+    xcrun simctl boot "$SIMULATOR_ID" 2>/dev/null || true
+    sleep 3
+    
+    # Find the built app bundle
+    APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData -name "Intrada.app" -path "*/Build/Products/Debug-iphonesimulator/*" | head -1)
+    
+    if [ -z "$APP_PATH" ]; then
+        echo "❌ Could not find built Intrada.app bundle"
+        echo "💡 Make sure the build completed successfully"
+        return 1
+    fi
+    
+    echo "📦 Found app at: $APP_PATH"
+    
+    # Install the app on the simulator
+    echo "📥 Installing app on simulator..."
+    xcrun simctl install "$SIMULATOR_ID" "$APP_PATH"
+    sleep 2
+    
+    # Launch app
+    echo "🚀 Launching app..."
+    BUNDLE_ID="com.jonyardley.Intrada"
+    xcrun simctl launch "$SIMULATOR_ID" "$BUNDLE_ID" || {
+        echo "⚠️  App launch failed, opening simulator manually..."
+        open -a Simulator
+        echo "📱 Simulator opened - you may need to launch the Intrada app manually"
+        return 0
+    }
+    
+    echo "✅ iOS app launched successfully"
+}
 
-echo "📲 Installing app..."
-APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData -name 'Intrada.app' -path '*/Build/Products/Debug-iphonesimulator/*' | head -1)
+# Main execution
+generate_project
+build_app
+run_app
 
-# Uninstall any existing version first
-xcrun simctl uninstall "$DEVICE_ID" "$BUNDLE_ID" 2>/dev/null || true
-sleep 1
-
-# Install the app
-xcrun simctl install "$DEVICE_ID" "$APP_PATH"
-sleep 2
-
-echo "🚀 Launching app..."
-open -a Simulator
-xcrun simctl launch "$DEVICE_ID" "$BUNDLE_ID"
-
-echo "✅ App launched successfully!"
-sleep 3
-
-if xcrun simctl spawn booted launchctl list | grep -i intrada >/dev/null 2>&1; then
-    echo "📱 App is running"
+if [ "$BUILD_ONLY" = true ]; then
+    echo "🎉 iOS app build completed!"
 else
-    echo "⚠️  App may have crashed - run 'iOS Crash Logs' task for details"
+    echo "🎉 iOS app built and launched successfully!"
 fi

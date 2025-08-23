@@ -1,5 +1,5 @@
 [workspace]
-members = ["shared", "server", "shared_types"] # "web-leptos" - parked
+members = ["shared", "server", "shared_types", "xtask"] # "web-leptos" - parked
 resolver = "2"
 
 [workspace.package]

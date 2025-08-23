@@ -86,70 +86,25 @@ The server uses PostgreSQL with automatic migrations. See `migrations/` director
 ### Running from project root
 If running from the project root, use:
 ```bash
-cargo run -p intrada-server
+cargo run -p server
 ```
 
-### Database Management Scripts
+### Database Management
 
-The server includes several utility scripts for managing the PostgreSQL database:
-
-#### `cleanup-db.sh`
-Cleans all data from the database while preserving table structure.
+Database management is now handled through the project's xtask CLI:
 
 ```bash
-# Interactive cleanup (prompts for confirmation)
-./cleanup-db.sh
-
-# Force cleanup (no confirmation prompt)
-./cleanup-db.sh --force
-```
-
-**What it does:**
-- Deletes all sessions, goals, and studies
-- Preserves table structure and schema
-- Shows before/after data counts
-- Safe to run anytime during development
-
-#### `seed-db.sh`
-Adds realistic sample data to the database for testing.
-
-```bash
-./seed-db.sh
-```
-
-**What it adds:**
-- 3 sample studies (Chopin Etude, Bach Invention, Scales)
-- 2 sample goals with study associations
-- 3 sample practice sessions
-- Uses API endpoints if server is running, otherwise inserts directly
-
-#### `reset-db.sh`
-Combines cleanup and seeding in one command.
-
-```bash
-./reset-db.sh
-```
-
-**What it does:**
-1. Runs `cleanup-db.sh --force` to clear all data
-2. Runs `seed-db.sh` to add fresh sample data
-3. Perfect for getting a clean slate with test data
-
-#### Usage Examples
-
-```bash
-# Start fresh with clean database
-cd server
-./cleanup-db.sh
+# Clean all data from database
+cargo xtask db clean --force
 
 # Add sample data for testing
-./seed-db.sh
+cargo xtask db seed
 
 # Complete reset (clean + seed)
-./reset-db.sh
+cargo xtask db reset --force
 
-# Then restart server to clear any cached data
-pkill -f intrada-server && ./build-and-run.sh
+# Then restart server
+pkill -f server && cargo run -p server
 ```
 
 ### Manual Database Management
