@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 54;
+	objectVersion = 63;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -45,7 +45,7 @@
 		085DE01748EDA39FB010C0A8 /* SharedTypes */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SharedTypes; path = ../shared_types/generated/swift/SharedTypes; sourceTree = SOURCE_ROOT; };
 		0E9F213717B9B3ACC0188383 /* DashboardComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardComponents.swift; sourceTree = "<group>"; };
 		104D2C969AAB822EE589C8D3 /* core.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = core.swift; sourceTree = "<group>"; };
-		13E8B6BF7B3E02B04268499D /* Intrada.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Intrada.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		13E8B6BF7B3E02B04268499D /* Intrada.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Intrada.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		158AB46FE2EFCCA1A1B6FEB1 /* GoalFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalFormView.swift; sourceTree = "<group>"; };
 		1826750FCA4482633A085440 /* SharedComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedComponents.swift; sourceTree = "<group>"; };
 		193296C58A583AB40733912E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -236,7 +236,6 @@
 				4AEAE67A9ED6F0D48F6F61B2 /* XCLocalSwiftPackageReference "../shared/Shared" */,
 				37F1BCD307168686DD456EF8 /* XCLocalSwiftPackageReference "../shared_types/generated/swift/SharedTypes" */,
 			);
-			preferredProjectObjectVersion = 54;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -359,6 +358,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphonesimulator*]" = "";
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 9S5FG4LQAF;
 				INFOPLIST_FILE = Intrada/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -380,6 +380,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphonesimulator*]" = "";
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 9S5FG4LQAF;
 				INFOPLIST_FILE = Intrada/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
