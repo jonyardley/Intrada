@@ -147,11 +147,23 @@ enum IosCommands {
     /// Build iOS app
     Build,
     /// Run iOS app in simulator
-    Run,
+    Run {
+        /// Run on physical device instead of simulator
+        #[arg(short, long)]
+        device: bool,
+    },
     /// Build and run iOS app
-    Start,
+    Start {
+        /// Run on physical device instead of simulator
+        #[arg(short, long)]
+        device: bool,
+    },
     /// Rebuild and run iOS app
-    Rebuild,
+    Rebuild {
+        /// Run on physical device instead of simulator
+        #[arg(short, long)]
+        device: bool,
+    },
     /// List available simulators
     Simulators,
 }
@@ -449,17 +461,17 @@ fn handle_ios_command(cmd: IosCommands) -> Result<()> {
             )?;
             print_success("iOS app built");
         }
-        IosCommands::Run => {
+        IosCommands::Run { device } => {
             print_step("Running iOS app");
-            build_and_run_ios()?;
+            build_and_run_ios_with_target(device)?;
         }
-        IosCommands::Start => {
+        IosCommands::Start { device } => {
             print_step("Building and running iOS app");
-            build_and_run_ios()?;
+            build_and_run_ios_with_target(device)?;
         }
-        IosCommands::Rebuild => {
+        IosCommands::Rebuild { device } => {
             print_step("Rebuilding and running iOS app");
-            rebuild_and_run_ios()?;
+            rebuild_and_run_ios_with_target(device)?;
         }
         IosCommands::Simulators => {
             print_step("Listing available simulators");
@@ -926,6 +938,99 @@ fn build_and_run_ios() -> Result<()> {
 
     print_success("iOS app launched successfully");
     Ok(())
+}
+
+fn build_and_run_ios_with_target(use_device: bool) -> Result<()> {
+    if use_device {
+        build_and_run_ios_on_device()
+    } else {
+        build_and_run_ios()
+    }
+}
+
+fn rebuild_and_run_ios_with_target(use_device: bool) -> Result<()> {
+    if use_device {
+        rebuild_and_run_ios_on_device()
+    } else {
+        rebuild_and_run_ios()
+    }
+}
+
+fn build_and_run_ios_on_device() -> Result<()> {
+    ensure_in_project_root()?;
+
+    // Generate Xcode project
+    print_step("Generating Xcode project");
+    run_command("xcodegen", &[], Some("iOS"))?;
+
+    // Get available devices
+    print_step("Finding connected iOS device");
+    let output = Command::new("xcrun")
+        .args(["xctrace", "list", "devices"])
+        .output()
+        .context("Failed to list devices. Make sure Xcode command line tools are installed.")?;
+
+    let devices_output = String::from_utf8_lossy(&output.stdout);
+    let device_id = devices_output
+        .lines()
+        .find(|line| {
+            // Look for lines that contain iPhone/iPad and are not simulators
+            (line.contains("iPhone") || line.contains("iPad")) 
+                && !line.contains("Simulator")
+                && line.contains("(")
+                && line.contains(")")
+        })
+        .and_then(|line| {
+            // Extract device identifier from parentheses
+            line.split('(').nth(1)?.split(')').next()
+        })
+        .map(|s| s.trim().to_string())
+        .ok_or_else(|| {
+            anyhow::anyhow!("No connected iOS device found. Please connect an iOS device and ensure it's trusted.")
+        })?;
+
+    print_info(&format!("Using device: {device_id}"));
+
+    // Build the app for device
+    print_step("Building iOS app for device");
+    run_command(
+        "xcodebuild",
+        &[
+            "-project",
+            "Intrada.xcodeproj",
+            "-scheme",
+            "Intrada",
+            "-destination",
+            &format!("id={device_id}"),
+            "build",
+        ],
+        Some("iOS"),
+    )?;
+
+    print_success("iOS app built and should be installed on device");
+    print_info("Note: The app should now be available on your connected device. You may need to manually launch it from the device's home screen.");
+    Ok(())
+}
+
+fn rebuild_and_run_ios_on_device() -> Result<()> {
+    ensure_in_project_root()?;
+
+    // Clean first
+    print_step("Cleaning iOS build artifacts");
+    run_command(
+        "xcodebuild",
+        &[
+            "-project",
+            "Intrada.xcodeproj",
+            "-scheme",
+            "Intrada",
+            "clean",
+        ],
+        Some("iOS"),
+    )?;
+
+    // Then build and run
+    build_and_run_ios_on_device()
 }
 
 fn generate_type_bindings() -> Result<()> {

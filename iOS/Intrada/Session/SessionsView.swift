@@ -8,6 +8,134 @@
 import SharedTypes
 import SwiftUI
 
+struct SessionsView: View {
+    @ObservedObject var core: Core
+    @StateObject private var viewModel: SessionViewModel
+    @State private var showingAddForm = false
+    @State private var showingReflectionForm = false
+    @State private var sessionToReflect: PracticeSession?
+    @State private var navigationPath = NavigationPath()
+
+    init(core: Core) {
+        self.core = core
+        _viewModel = StateObject(wrappedValue: SessionViewModel(core: core))
+    }
+
+    var body: some View {
+        NavigationStack(path: $navigationPath) {
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: Theme.Spacing.extraLarge) {
+                    if !viewModel.activeSessions.isEmpty {
+                        practiceQueueSectionView
+                    }
+
+                    if !viewModel.completedSessions.isEmpty {
+                        completedSessionsSectionView
+                    }
+
+                    if viewModel.activeSessions.isEmpty && viewModel.completedSessions.isEmpty {
+                        emptyStateView
+                    }
+
+                    Spacer(minLength: Theme.Spacing.extraLarge)
+                }
+                .padding(.vertical, Theme.Spacing.large)
+            }
+            .navigationTitle("Sessions")
+            .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: { showingAddForm = true }) {
+                        Image(systemName: "plus")
+                    }
+                }
+            }
+            .sheet(isPresented: $showingAddForm) {
+                SessionFormView(core: core, isPresented: $showingAddForm)
+            }
+            .sheet(isPresented: $showingReflectionForm) {
+                if let session = sessionToReflect {
+                    SessionReflectionForm(sessionId: session.id, core: core, isPresented: $showingReflectionForm)
+                }
+            }
+            .navigationDestination(for: String.self) { sessionId in
+                if let session = core.view.sessions.first(where: { $0.id == sessionId }) {
+                    switch session.state {
+                    case .started, .pendingReflection:
+                        // Keep showing ActiveSessionDetailView for both started and pendingReflection states
+                        // This allows the reflection sheet to be properly presented from the active view
+                        ActiveSessionDetailView(core: core, sessionId: sessionId)
+                    default:
+                        // For notStarted and ended states, show SessionDetailView
+                        SessionDetailView(core: core, sessionId: sessionId)
+                    }
+                } else {
+                    // Fallback for unknown session
+                    SessionDetailView(core: core, sessionId: sessionId)
+                }
+            }
+            .onAppear {
+                viewModel.loadSessions()
+            }
+            .refreshable {
+                await viewModel.refreshSessions()
+            }
+        }
+    }
+
+    // MARK: - Computed Properties
+
+    private var practiceQueueSectionView: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.medium) {
+            SectionHeader(title: "Practice Queue")
+
+            LazyVStack(spacing: Theme.Spacing.medium) {
+                ForEach(viewModel.activeSessions, id: \.id) { session in
+                    SessionRowWithActions(
+                        session: session,
+                        viewModel: viewModel,
+                        core: core,
+                        onSessionEnd: handleSessionEnd,
+                        onTap: {
+                            print("🖱️ SessionsView: Tapped on session \(session.id): \(session.intention)")
+                            navigationPath.append(session.id)
+                        }
+                    )
+                }
+            }
+        }
+    }
+
+    private var completedSessionsSectionView: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.medium) {
+            SectionHeader(title: "Completed Sessions")
+
+            LazyVStack(spacing: Theme.Spacing.medium) {
+                ForEach(viewModel.completedSessions, id: \.id) { session in
+                    NavigationLink {
+                        SessionDetailView(core: core, sessionId: session.id)
+                    } label: {
+                        SessionRow(session: session, viewModel: viewModel)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                }
+            }
+        }
+    }
+
+    private var emptyStateView: some View {
+        EmptyStateView(message: "No sessions yet. Create your first practice session to get started.")
+            .padding(.top, 60)
+    }
+
+    // MARK: - Actions
+
+    private func handleSessionEnd(_ session: PracticeSession) {
+        sessionToReflect = session
+        showingReflectionForm = true
+    }
+}
+
 // MARK: - Temporary inline ViewModels and Components (to be moved to separate files)
 
 /// Application-specific error types
@@ -28,169 +156,67 @@ enum AppError: LocalizedError, Identifiable {
 
     var errorDescription: String? {
         switch self {
-        case let .networkError(message):
-            "Network Error: \(message)"
-        case let .validationError(message):
-            "Validation Error: \(message)"
-        case let .coreError(message):
-            "Application Error: \(message)"
-        case let .unknown(message):
-            "Unknown Error: \(message)"
+        case let .networkError(message): "Network Error: \(message)"
+        case let .validationError(message): "Validation Error: \(message)"
+        case let .coreError(message): "Core Error: \(message)"
+        case let .unknown(message): "Unknown Error: \(message)"
         }
-    }
-
-    static func from(_ error: Error) -> AppError {
-        if let appError = error as? AppError {
-            return appError
-        }
-        return .unknown(error.localizedDescription)
     }
 }
 
-/// Base view model with common state management patterns
-class BaseViewModel: ObservableObject {
+/// Session-specific view model for managing session state
+class SessionViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var error: AppError?
-    @Published var showingError = false
+    @Published var activeSessions: [PracticeSession] = []
+    @Published var completedSessions: [PracticeSession] = []
 
-    /// Handle async operations with loading and error states
-    @MainActor
-    func withLoadingState<T>(_ operation: @escaping () async throws -> T) async -> T? {
-        isLoading = true
-        error = nil
-
-        do {
-            let result = try await operation()
-            isLoading = false
-            return result
-        } catch {
-            isLoading = false
-            self.error = AppError.from(error)
-            showingError = true
-            return nil
-        }
-    }
-
-    /// Clear current error state
-    func clearError() {
-        error = nil
-        showingError = false
-    }
-}
-
-/// View model for session-related operations
-class SessionViewModel: BaseViewModel {
     private let core: Core
 
     init(core: Core) {
         self.core = core
-        super.init()
-    }
-
-    // MARK: - Computed Properties
-
-    @MainActor
-    var sessions: [PracticeSession] {
-        core.view.sessions
     }
 
     @MainActor
-    var activeSessions: [PracticeSession] {
-        sessions.filter { session in
+    func loadSessions() {
+        updateSessionLists()
+    }
+
+    @MainActor
+    func refreshSessions() async {
+        isLoading = true
+        error = nil
+
+        do {
+            // Simulate network refresh with a small delay
+            try await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+            updateSessionLists()
+        } catch {
+            self.error = .unknown("Failed to refresh sessions")
+        }
+
+        isLoading = false
+    }
+
+    @MainActor
+    private func updateSessionLists() {
+        let allSessions = core.view.sessions
+
+        activeSessions = allSessions.filter { session in
             switch session.state {
-            case .notStarted, .started, .pendingReflection:
+            case .started, .pendingReflection:
                 true
-            case .ended:
+            default:
                 false
             }
         }
-    }
 
-    @MainActor
-    var completedSessions: [PracticeSession] {
-        sessions.filter { session in
+        completedSessions = allSessions.filter { session in
             if case .ended = session.state {
                 return true
             }
             return false
         }
-    }
-
-    // MARK: - Actions
-
-    @MainActor
-    func startSession(_ session: PracticeSession) {
-        let startTime = Date().ISO8601Format()
-        core.update(.session(.startSession(session.id, startTime)))
-    }
-
-    @MainActor
-    func endSession(_ session: PracticeSession) {
-        let endTime = Date().ISO8601Format()
-        core.update(.session(.endSession(session.id, endTime)))
-    }
-
-    @MainActor
-    func completeReflection(sessionId: String, notes: String?) {
-        core.update(.session(.completeWithNotes(sessionId, notes ?? "")))
-    }
-
-    @MainActor
-    func createSession(goalIds: [String], intention: String) async {
-        await withLoadingState { [self] in
-            let sessionId = UUID().uuidString
-            let session = PracticeSession(
-                id: sessionId,
-                goalIds: goalIds,
-                intention: intention,
-                notes: nil,
-                studySessions: [],
-                activeStudySessionId: nil,
-                state: .notStarted
-            )
-            core.update(.session(.createSession(session)))
-        }
-    }
-
-    // MARK: - Helper Methods
-
-    func formatDuration(from state: SessionState) -> String? {
-        switch state {
-        case let .ended(_, _, durationInSeconds):
-            return formatDurationFromSeconds(durationInSeconds)
-        case let .started(startTime), let .pendingReflection(startTime, _):
-            if let duration = calculateDurationBetweenTimes(startTime: startTime, endTime: ISO8601DateFormatter().string(from: Date())) {
-                return duration
-            }
-            return nil
-        case .notStarted:
-            return nil
-        }
-    }
-
-    private func formatDurationFromSeconds(_ seconds: UInt32) -> String {
-        let hours = seconds / 3600
-        let minutes = (seconds % 3600) / 60
-        let remainingSeconds = seconds % 60
-
-        if hours > 0 {
-            return String(format: "%02d:%02d:%02d", hours, minutes, remainingSeconds)
-        } else {
-            return String(format: "%02d:%02d", minutes, remainingSeconds)
-        }
-    }
-
-    private func calculateDurationBetweenTimes(startTime: String, endTime: String) -> String? {
-        let formatter = ISO8601DateFormatter()
-        guard let start = formatter.date(from: startTime),
-              let end = formatter.date(from: endTime)
-        else {
-            return nil
-        }
-
-        let duration = end.timeIntervalSince(start)
-        let seconds = UInt32(max(0, duration))
-        return formatDurationFromSeconds(seconds)
     }
 }
 
@@ -198,23 +224,17 @@ class SessionViewModel: BaseViewModel {
 struct LoadingView: View {
     let message: String
 
-    init(_ message: String = "Loading...") {
-        self.message = message
-    }
-
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: Theme.Spacing.medium) {
             ProgressView()
-                .scaleEffect(1.2)
+                .progressViewStyle(CircularProgressViewStyle(tint: Theme.Colors.primary))
 
             Text(message)
-                .font(.subheadline)
-                .foregroundColor(.secondary)
+                .font(Theme.Typography.subheadline)
+                .foregroundColor(Theme.Colors.textSecondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(.systemBackground))
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(message)
+        .background(Theme.Colors.backgroundSecondary)
     }
 }
 
@@ -223,20 +243,14 @@ struct LoadingOverlay: View {
     let isLoading: Bool
     let message: String
 
-    init(isLoading: Bool, message: String = "Loading...") {
-        self.isLoading = isLoading
-        self.message = message
-    }
-
     var body: some View {
-        if isLoading {
-            ZStack {
-                Color.black.opacity(0.3)
-                    .ignoresSafeArea()
+        ZStack {
+            if isLoading {
+                Color.clear
+                    .background(.ultraThinMaterial)
 
-                VStack(spacing: 12) {
+                VStack(spacing: Theme.Spacing.medium) {
                     ProgressView()
-                        .scaleEffect(1.2)
                         .progressViewStyle(CircularProgressViewStyle(tint: .white))
 
                     Text(message)
@@ -246,154 +260,24 @@ struct LoadingOverlay: View {
                 .padding(24)
                 .background(Color.black.opacity(0.8))
                 .cornerRadius(12)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(message)
             }
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel(message)
         }
     }
 }
 
-struct SessionsView: View {
-    @ObservedObject var core: Core
-    @StateObject private var viewModel: SessionViewModel
-    @State private var showingAddForm = false
-    @State private var showingReflectionForm = false
-    @State private var sessionToReflect: PracticeSession?
-    @State private var navigationPath = NavigationPath()
-
-    init(core: Core) {
-        self.core = core
-        _viewModel = StateObject(wrappedValue: SessionViewModel(core: core))
-    }
-
-    var body: some View {
-        NavigationStack(path: $navigationPath) {
-            ScrollView {
-                VStack(alignment: .leading, spacing: Theme.Spacing.extraLarge) {
-                    ListHeader(title: "Your Sessions") {
-                        showingAddForm = true
-                    }
-
-                    // Loading state
-                    if viewModel.isLoading {
-                        LoadingView("Loading sessions...")
-                    } else {
-                        // Practice Queue Section
-                        if !viewModel.activeSessions.isEmpty {
-                            practiceQueueSectionView
-                        }
-
-                        // Completed Sessions Section
-                        if !viewModel.completedSessions.isEmpty {
-                            completedSessionsSectionView
-                        }
-
-                        // Empty state when no sessions exist
-                        if viewModel.sessions.isEmpty {
-                            EmptyStateView(message: "No sessions yet. Tap the + button to start your first practice session.")
-                        }
-                    }
-                }
-                .padding(.vertical, Theme.Spacing.large)
-            }
-            .navigationTitle("Sessions")
-            .navigationBarTitleDisplayMode(.inline)
-            .overlay(
-                LoadingOverlay(isLoading: viewModel.isLoading, message: "Loading sessions...")
-            )
-            .alert("Error", isPresented: $viewModel.showingError, presenting: viewModel.error) { _ in
-                Button("OK") { viewModel.clearError() }
-            } message: { error in
-                Text(error.localizedDescription)
-            }
-            .sheet(isPresented: $showingAddForm) {
-                SessionFormView(
-                    core: core,
-                    isPresented: $showingAddForm,
-                    onSessionCreated: { sessionId in
-                        navigationPath.append(sessionId)
-                    }
-                )
-            }
-            .sheet(isPresented: $showingReflectionForm) {
-                if let session = sessionToReflect {
-                    SessionReflectionForm(
-                        sessionId: session.id,
-                        core: core,
-                        isPresented: $showingReflectionForm
-                    )
-                }
-            }
-            .navigationDestination(for: String.self) { sessionId in
-                if let session = core.view.sessions.first(where: { $0.id == sessionId }) {
-                    switch session.state {
-                    case .started, .pendingReflection:
-                        // Keep showing ActiveSessionDetailView for both started and pendingReflection states
-                        // This allows the reflection sheet to be properly presented from the active view
-                        ActiveSessionDetailView(core: core, sessionId: sessionId)
-                    default:
-                        // For notStarted and ended states, show SessionDetailView
-                        SessionDetailView(core: core, sessionId: sessionId)
-                    }
-                } else {
-                    // Fallback for unknown session
-                    SessionDetailView(core: core, sessionId: sessionId)
-                }
-            }
-        }
-    }
-
-    private var practiceQueueSectionView: some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.medium) {
-            SectionHeader(title: "Practice Queue")
-
-            ForEach(viewModel.activeSessions, id: \.id) { session in
-                SessionRowWithActions(
-                    session: session,
-                    viewModel: viewModel,
-                    core: core,
-                    onSessionEnd: handleSessionEnd,
-                    onTap: {
-                        print("🖱️ SessionsView: Tapped on session \(session.id): \(session.intention)")
-                        navigationPath.append(session.id)
-                    }
-                )
-                .padding(.horizontal, Theme.Spacing.large)
-            }
-        }
-    }
-
-    private var completedSessionsSectionView: some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.medium) {
-            SectionHeader(title: "Completed Sessions")
-
-            ForEach(viewModel.completedSessions, id: \.id) { session in
-                NavigationLink {
-                    SessionDetailView(core: core, sessionId: session.id)
-                } label: {
-                    SessionRow(session: session, viewModel: viewModel)
-                        .padding(.horizontal, Theme.Spacing.large)
-                }
-                .buttonStyle(PlainButtonStyle())
-            }
-        }
-    }
-
-    private func handleSessionEnd(_ session: PracticeSession) {
-        sessionToReflect = session
-        showingReflectionForm = true
-    }
-}
+// MARK: - Session Row Components
 
 struct SessionRowWithActions: View {
     let session: PracticeSession
     let viewModel: SessionViewModel
-    @ObservedObject var core: Core
+    let core: Core
     let onSessionEnd: (PracticeSession) -> Void
     let onTap: () -> Void
 
     var body: some View {
-        GenericRow {
+        Card {
             VStack(alignment: .leading, spacing: Theme.Spacing.small) {
                 HStack {
                     // Tappable content area
@@ -412,7 +296,7 @@ struct SessionRowWithActions: View {
                                 HStack(spacing: Theme.Spacing.extraSmall) {
                                     Image(systemName: "calendar")
                                         .foregroundColor(Theme.Colors.primary)
-                                    Text(DateFormatter.formatDateAndTime(startTime))
+                                    Text(DateFormatter.formatDate(startTime))
                                         .font(Theme.Typography.caption)
                                         .foregroundColor(Theme.Colors.textSecondary)
                                 }
@@ -420,80 +304,28 @@ struct SessionRowWithActions: View {
 
                             Spacer()
 
-                            if let duration = viewModel.formatDuration(from: session.state) {
-                                Text(duration)
-                                    .badgeStyle(color: Theme.Colors.textSecondary)
-                            }
+                            SessionStateView(state: session.state)
                         }
                     }
+                    .contentShape(Rectangle())
                     .onTapGesture {
                         onTap()
                     }
 
                     Spacer()
 
-                    // State transition button (not affected by tap gesture)
-                    stateTransitionButton
+                    // Action buttons
+                    VStack(spacing: Theme.Spacing.small) {
+                        if case .started = session.state {
+                            Button("End") {
+                                onSessionEnd(session)
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.small)
+                        }
+                    }
                 }
             }
-        }
-    }
-
-    @ViewBuilder
-    private var stateTransitionButton: some View {
-        switch session.state {
-        case .notStarted:
-            Button {
-                viewModel.startSession(session)
-                onTap()
-            } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: "play.fill")
-                    Text("Start")
-                }
-                .foregroundColor(.white)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(Color.accentColor)
-                .cornerRadius(6)
-            }
-
-        case .started:
-            Button {
-                viewModel.endSession(session)
-                // Let the onSessionEnd callback handle the reflection form presentation
-                onSessionEnd(session)
-            } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: "stop.fill")
-                    Text("End")
-                }
-                .foregroundColor(.white)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(Color.red)
-                .cornerRadius(6)
-            }
-
-        case .pendingReflection:
-            Button {
-                // Navigate to reflection form
-                onTap()
-            } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: "square.and.pencil")
-                    Text("Reflect")
-                }
-                .foregroundColor(.white)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(Color.orange)
-                .cornerRadius(6)
-            }
-
-        case .ended:
-            // No action button for ended sessions
-            EmptyView()
         }
     }
 }
@@ -503,7 +335,7 @@ struct SessionRow: View {
     let viewModel: SessionViewModel
 
     var body: some View {
-        GenericRow {
+        Card {
             VStack(alignment: .leading, spacing: Theme.Spacing.small) {
                 Text(session.intention)
                     .font(Theme.Typography.headline)
@@ -519,7 +351,7 @@ struct SessionRow: View {
                         HStack(spacing: Theme.Spacing.extraSmall) {
                             Image(systemName: "calendar")
                                 .foregroundColor(Theme.Colors.primary)
-                            Text(DateFormatter.formatDateAndTime(startTime))
+                            Text(DateFormatter.formatDate(startTime))
                                 .font(Theme.Typography.caption)
                                 .foregroundColor(Theme.Colors.textSecondary)
                         }
@@ -527,30 +359,77 @@ struct SessionRow: View {
 
                     Spacer()
 
-                    if let duration = viewModel.formatDuration(from: session.state) {
-                        Text(duration)
-                            .badgeStyle(color: Theme.Colors.textSecondary)
-                    }
+                    SessionStateView(state: session.state)
                 }
             }
         }
     }
 }
 
-// Helper function to extract start time from session state
+// MARK: - Helper Functions
+
 private func extractStartTime(from state: SessionState) -> String? {
     switch state {
-    case let .started(startTime):
-        startTime
-    case let .pendingReflection(startTime, _):
-        startTime
-    case let .ended(startTime, _, _):
-        startTime
+    case let .started(startTime), let .pendingReflection(startTime, _), let .ended(startTime, _, _):
+        return startTime
     case .notStarted:
-        nil
+        return nil
     }
 }
 
-#Preview {
-    SessionsView(core: Core())
+extension DateFormatter {
+    static func formatDate(_ dateString: String) -> String {
+        let formatter = ISO8601DateFormatter()
+        if let date = formatter.date(from: dateString) {
+            let displayFormatter = DateFormatter()
+            displayFormatter.dateStyle = .short
+            displayFormatter.timeStyle = .short
+            return displayFormatter.string(from: date)
+        }
+        return dateString
+    }
+}
+
+// MARK: - Session State View
+
+private struct SessionStateView: View {
+    let state: SessionState
+
+    var body: some View {
+        HStack(spacing: Theme.Spacing.extraSmall) {
+            Circle()
+                .fill(stateColor)
+                .frame(width: 8, height: 8)
+            
+            Text(stateText)
+                .font(Theme.Typography.caption)
+                .foregroundColor(Theme.Colors.textSecondary)
+        }
+    }
+
+    private var stateColor: Color {
+        switch state {
+        case .notStarted:
+            return Color.gray
+        case .started:
+            return Color.green
+        case .pendingReflection:
+            return Color.orange
+        case .ended:
+            return Color.blue
+        }
+    }
+
+    private var stateText: String {
+        switch state {
+        case .notStarted:
+            return "Not Started"
+        case .started:
+            return "In Progress"
+        case .pendingReflection:
+            return "Pending Reflection"
+        case .ended:
+            return "Completed"
+        }
+    }
 }

@@ -8,77 +8,103 @@ struct GoalDetailView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                // Goal Header
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(goal.name)
-                        .font(.title)
-                        .fontWeight(.bold)
+            VStack(alignment: .leading, spacing: Theme.Spacing.extraLarge) {
+                // Goal Header Card
+                Card {
+                    VStack(alignment: .leading, spacing: Theme.Spacing.medium) {
+                        Text(goal.name)
+                            .font(Theme.Typography.title)
+                            .foregroundColor(Theme.Colors.text)
 
-                    if let description = goal.description {
-                        Text(description)
-                            .font(.subheadline)
-                            .foregroundColor(.gray)
-                    }
-                }
-                .padding(.horizontal)
-
-                // Target Date
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Target Date")
-                        .font(.headline)
-
-                    if let targetDate = goal.targetDate {
-                        Text(targetDate)
-                            .font(.subheadline)
-                    }
-                }
-                .padding(.horizontal)
-
-                // Status
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Status")
-                        .font(.headline)
-
-                    StatusBadge(status: goal.status)
-                }
-                .padding(.horizontal)
-
-                // Associated Studies
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Studies")
-                        .font(.headline)
-
-                    let studies = core.view.studies.filter { study in
-                        goal.studyIds.contains(study.id)
-                    }
-
-                    if studies.isEmpty {
-                        Text("No studies added")
-                            .foregroundColor(.gray)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding()
-                            .background(Color.gray.opacity(0.1))
-                            .cornerRadius(8)
-                    } else {
-                        ForEach(studies, id: \.id) { study in
-                            HStack {
-                                Text(study.name)
-                                Spacer()
-                                if let description = study.description {
-                                    Text(description)
-                                        .foregroundColor(.gray)
-                                }
-                            }
-                            .padding()
-                            .background(Color.gray.opacity(0.1))
-                            .cornerRadius(8)
+                        if let description = goal.description, !description.isEmpty {
+                            Text(description)
+                                .font(Theme.Typography.body)
+                                .foregroundColor(Theme.Colors.textSecondary)
                         }
                     }
                 }
-                .padding(.horizontal)
+                .padding(.horizontal, Theme.Spacing.large)
+
+                // Goal Details Card
+                Card {
+                    VStack(alignment: .leading, spacing: Theme.Spacing.medium) {
+                        Text("Goal Details")
+                            .font(Theme.Typography.headline)
+                            .foregroundColor(Theme.Colors.text)
+
+                        VStack(alignment: .leading, spacing: Theme.Spacing.small) {
+                            if let targetDate = goal.targetDate, !targetDate.isEmpty {
+                                DetailRow(label: "Target Date", value: targetDate)
+                            }
+                            
+                            HStack {
+                                Text("Status")
+                                    .font(Theme.Typography.subheadline)
+                                    .foregroundColor(Theme.Colors.textSecondary)
+                                Spacer()
+                                StatusBadge(status: goal.status)
+                            }
+                            
+                            if let tempoTarget = goal.tempoTarget, tempoTarget > 0 {
+                                DetailRow(label: "Target Tempo", value: "\(tempoTarget) BPM")
+                            }
+                        }
+                    }
+                }
+                .padding(.horizontal, Theme.Spacing.large)
+
+                // Associated Studies Card
+                Card {
+                    VStack(alignment: .leading, spacing: Theme.Spacing.medium) {
+                        Text("Studies")
+                            .font(Theme.Typography.headline)
+                            .foregroundColor(Theme.Colors.text)
+
+                        let studies = core.view.studies.filter { study in
+                            goal.studyIds.contains(study.id)
+                        }
+
+                        if studies.isEmpty {
+                            Text("No studies associated")
+                                .font(Theme.Typography.body)
+                                .foregroundColor(Theme.Colors.textSecondary)
+                                .frame(maxWidth: .infinity, alignment: .center)
+                                .padding(Theme.Spacing.large)
+                        } else {
+                            LazyVStack(alignment: .leading, spacing: Theme.Spacing.small) {
+                                ForEach(studies, id: \.id) { study in
+                                    NavigationLink(destination: StudyDetailView(core: core, study: study)) {
+                                        HStack {
+                                            VStack(alignment: .leading, spacing: Theme.Spacing.extraSmall) {
+                                                Text(study.name)
+                                                    .font(Theme.Typography.subheadline)
+                                                    .foregroundColor(Theme.Colors.text)
+                                                
+                                                if let description = study.description, !description.isEmpty {
+                                                    Text(description)
+                                                        .font(Theme.Typography.caption)
+                                                        .foregroundColor(Theme.Colors.textSecondary)
+                                                        .lineLimit(2)
+                                                }
+                                            }
+                                            
+                                            Spacer()
+                                            
+                                            Image(systemName: "chevron.right")
+                                                .font(.caption)
+                                                .foregroundColor(Theme.Colors.textTertiary)
+                                        }
+                                        .padding(.vertical, Theme.Spacing.extraSmall)
+                                    }
+                                    .buttonStyle(PlainButtonStyle())
+                                }
+                            }
+                        }
+                    }
+                }
+                .padding(.horizontal, Theme.Spacing.large)
             }
-            .padding(.vertical)
+            .padding(.vertical, Theme.Spacing.large)
         }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -90,6 +116,25 @@ struct GoalDetailView: View {
         }
         .sheet(isPresented: $showingEditForm) {
             GoalFormView(core: core, existingGoal: goal)
+        }
+    }
+}
+
+// MARK: - Helper Components
+
+private struct DetailRow: View {
+    let label: String
+    let value: String
+    
+    var body: some View {
+        HStack {
+            Text(label)
+                .font(Theme.Typography.subheadline)
+                .foregroundColor(Theme.Colors.textSecondary)
+            Spacer()
+            Text(value)
+                .font(Theme.Typography.subheadline)
+                .foregroundColor(Theme.Colors.text)
         }
     }
 }

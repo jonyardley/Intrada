@@ -18,6 +18,9 @@ struct HomeView: View {
                 VStack(alignment: .leading, spacing: Theme.Spacing.extraLarge) {
                     // Welcome Header
                     welcomeHeaderView
+                    
+                    // Let's Rachmaninov tagline
+                    rachmaninoffTaglineView
 
                     // Current Session Card (if active)
                     if let currentSession = core.view.currentSession {
@@ -98,6 +101,18 @@ struct HomeView: View {
                 .foregroundColor(Theme.Colors.textSecondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, Theme.Spacing.large)
+    }
+    
+    private var rachmaninoffTaglineView: some View {
+        HStack {
+            Spacer()
+            Text("Let's Rachmaninov")
+                .font(.system(size: 24, weight: .medium, design: .serif))
+                .foregroundColor(.purple)
+                .italic()
+            Spacer()
+        }
         .padding(.horizontal, Theme.Spacing.large)
     }
 }
