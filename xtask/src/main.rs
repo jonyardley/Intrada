@@ -169,10 +169,6 @@ enum IosCommands {
     },
     /// List available simulators
     Simulators,
-    /// Update IP configuration for device development
-    UpdateDevIp,
-    /// Reset IP configuration back to localhost for simulator
-    ResetDevIp,
 }
 
 #[derive(Subcommand)]
@@ -498,18 +494,6 @@ fn handle_ios_command(cmd: IosCommands) -> Result<()> {
         IosCommands::Simulators => {
             print_step("Listing available simulators");
             run_command("xcrun", &["simctl", "list", "devices", "available"], None)?;
-        }
-        IosCommands::UpdateDevIp => {
-            print_step("Updating iOS configuration for device development");
-            let dev_ip = get_development_ip()?;
-            print_info(&format!("Detected development IP: {dev_ip}"));
-            update_http_config_for_device(&dev_ip)?;
-            print_success("✅ iOS configuration updated for device development");
-        }
-        IosCommands::ResetDevIp => {
-            print_step("Resetting iOS configuration for simulator development");
-            reset_http_config_for_simulator()?;
-            print_success("✅ iOS configuration reset to localhost for simulator");
         }
     }
     Ok(())
@@ -2310,135 +2294,6 @@ fn run_command_with_env(
 
     if !status.success() {
         anyhow::bail!("Command failed: {cmd} {}", args.join(" "));
-    }
-
-    Ok(())
-}
-
-fn get_development_ip() -> Result<String> {
-    // Try to get the local IP address that can be reached from devices
-    let output = Command::new("ifconfig")
-        .output()
-        .context("Failed to run ifconfig to get IP address")?;
-
-    let ifconfig_output = String::from_utf8_lossy(&output.stdout);
-
-    // Look for common network interface patterns (en0, en1, etc.)
-    for line in ifconfig_output.lines() {
-        if line.contains("inet ") && !line.contains("127.0.0.1") && !line.contains("inet 169.254") {
-            // Extract IP address from line like "	inet 192.168.1.100 netmask 0xffffff00 broadcast 192.168.1.255"
-            if let Some(inet_start) = line.find("inet ") {
-                let after_inet = &line[inet_start + 5..];
-                if let Some(space_pos) = after_inet.find(' ') {
-                    let ip = &after_inet[..space_pos];
-                    // Validate it's a reasonable local IP
-                    if ip.starts_with("192.168.") || ip.starts_with("10.") || ip.starts_with("172.")
-                    {
-                        return Ok(ip.to_string());
-                    }
-                }
-            }
-        }
-    }
-
-    // Fallback: try a different approach using route command
-    let route_output = Command::new("route").args(["get", "default"]).output();
-
-    if let Ok(route_output) = route_output {
-        let route_str = String::from_utf8_lossy(&route_output.stdout);
-        for line in route_str.lines() {
-            if line.trim().starts_with("interface:") {
-                let interface = line.split(':').nth(1).unwrap_or("").trim();
-                // Now get IP for this interface
-                let ifconfig_output = Command::new("ifconfig").arg(interface).output();
-
-                if let Ok(output) = ifconfig_output {
-                    let output_str = String::from_utf8_lossy(&output.stdout);
-                    for line in output_str.lines() {
-                        if line.contains("inet ") && !line.contains("127.0.0.1") {
-                            if let Some(inet_start) = line.find("inet ") {
-                                let after_inet = &line[inet_start + 5..];
-                                if let Some(space_pos) = after_inet.find(' ') {
-                                    let ip = &after_inet[..space_pos];
-                                    return Ok(ip.to_string());
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    anyhow::bail!(
-        "Could not determine local IP address. Please ensure you're connected to a network."
-    )
-}
-
-fn update_http_config_for_device(dev_ip: &str) -> Result<()> {
-    let http_file_path = "iOS/Intrada/http.swift";
-    let content =
-        std::fs::read_to_string(http_file_path).context("Failed to read http.swift file")?;
-
-    // Find and replace the device URL line specifically
-    let lines: Vec<&str> = content.lines().collect();
-    let mut updated_lines = Vec::new();
-    let mut in_else_block = false;
-
-    for line in lines {
-        if line.trim() == "#else" {
-            in_else_block = true;
-            updated_lines.push(line.to_string());
-        } else if line.trim() == "#endif" {
-            in_else_block = false;
-            updated_lines.push(line.to_string());
-        } else if in_else_block && line.contains("let serverBaseURL = \"http://") {
-            // This is the device URL line - replace it
-            updated_lines.push(format!("    let serverBaseURL = \"http://{dev_ip}:3000\""));
-        } else {
-            updated_lines.push(line.to_string());
-        }
-    }
-
-    let final_content = updated_lines.join("\n");
-
-    // Only write if content changed
-    if final_content != content {
-        std::fs::write(http_file_path, final_content)
-            .context("Failed to update http.swift file")?;
-        print_info(&format!("Updated http.swift with development IP: {dev_ip}"));
-    }
-
-    Ok(())
-}
-
-fn reset_http_config_for_simulator() -> Result<()> {
-    let http_file_path = "iOS/Intrada/http.swift";
-    let content =
-        std::fs::read_to_string(http_file_path).context("Failed to read http.swift file")?;
-
-    // Reset to localhost configuration
-    let updated_content = content
-        .lines()
-        .map(|line| {
-            if line.contains("let serverBaseURL = \"http://") && !line.contains("localhost") {
-                "    let serverBaseURL = \"http://localhost:3000\"".to_string()
-            } else if line.contains("} else if request.url.hasPrefix(\"http://")
-                && !line.contains("localhost")
-            {
-                "    } else if request.url.hasPrefix(\"http://localhost:3000\") {".to_string()
-            } else {
-                line.to_string()
-            }
-        })
-        .collect::<Vec<String>>()
-        .join("\n");
-
-    // Only write if content changed
-    if updated_content != content {
-        std::fs::write(http_file_path, updated_content)
-            .context("Failed to update http.swift file")?;
-        print_info("Updated http.swift back to localhost configuration");
     }
 
     Ok(())

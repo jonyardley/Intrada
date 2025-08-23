@@ -7,16 +7,11 @@ enum HttpError: Error {
 }
 
 func requestHttp(_ request: HttpRequest) async -> Result<HttpResponse, HttpError> {
-    // Use Mac IP for device builds, localhost for simulator
-    #if targetEnvironment(simulator)
     let serverBaseURL = "http://localhost:3000"
-    #else
-    let serverBaseURL = "http://192.168.68.103:3000"
-    #endif
 
     // Clean URL resolution: if it's already a full server URL, use as-is
     // Otherwise, treat it as a relative path and prepend the server base URL
-    let finalURL: String = if request.url.hasPrefix("http://localhost:3000") || request.url.hasPrefix("http://192.168.68.103:3000") {
+    let finalURL: String = if request.url.hasPrefix("http://localhost:3000") {
         request.url
     } else if request.url.hasPrefix("/") {
         // Relative path - prepend server base URL
