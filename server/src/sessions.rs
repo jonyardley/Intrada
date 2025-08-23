@@ -5,10 +5,8 @@ use axum::{
     routing::get,
     Router,
 };
-use serde::{de::Error as DeError, Deserialize};
-use shared::session::{
-    session_view_model, EndedSession, NotStartedSession, SessionData, StartedSession,
-};
+use serde::Deserialize;
+use shared::session::{session_from_view_model, session_view_model, SessionState};
 use shared::{PracticeSession, PracticeSessionView};
 use sqlx::FromRow;
 use std::sync::Arc;
@@ -35,49 +33,56 @@ impl SessionRow {
     pub fn into_session(self) -> RepositoryResult<PracticeSession> {
         let goal_ids: Vec<String> = serde_json::from_str(&self.goal_ids)?;
 
-        let mut data = SessionData::new(goal_ids, self.intention);
-        // Set notes if present
-        if let Some(notes) = self.notes {
-            *data.notes_mut() = Some(notes);
-        }
-        // Note: We cannot restore the original ID due to private field access
-        // This is a design limitation that would require adding a new constructor to SessionData
-
-        let session = match self.session_state.as_str() {
-            "NotStarted" => PracticeSession::NotStarted(NotStartedSession { data }),
-            "Started" => {
-                let start_time = self.start_time.ok_or_else(|| {
-                    RepositoryError::Serialization(DeError::custom(
-                        "Started session missing start_time",
-                    ))
-                })?;
-                PracticeSession::Started(StartedSession { data, start_time })
-            }
-            "Ended" => {
-                let start_time = self.start_time.ok_or_else(|| {
-                    RepositoryError::Serialization(DeError::custom(
-                        "Ended session missing start_time",
-                    ))
-                })?;
-                let end_time = self.end_time.ok_or_else(|| {
-                    RepositoryError::Serialization(DeError::custom(
-                        "Ended session missing end_time",
-                    ))
-                })?;
-                PracticeSession::Ended(EndedSession {
-                    data,
-                    start_time,
-                    end_time,
-                })
-            }
-            _ => {
-                return Err(RepositoryError::Serialization(DeError::custom(format!(
-                    "Invalid session state: {}",
-                    self.session_state
-                ))))
-            }
+        // Create SessionData with the original database ID using the view model approach
+        let session_view = PracticeSessionView {
+            id: self.id,
+            goal_ids,
+            intention: self.intention,
+            state: match self.session_state.as_str() {
+                "NotStarted" => SessionState::NotStarted,
+                "Started" => SessionState::Started {
+                    start_time: self.start_time.clone().ok_or_else(|| {
+                        RepositoryError::ValidationError(
+                            "Started session missing start_time".to_string(),
+                        )
+                    })?,
+                },
+                "PendingReflection" => SessionState::PendingReflection {
+                    start_time: self.start_time.clone().ok_or_else(|| {
+                        RepositoryError::ValidationError(
+                            "PendingReflection session missing start_time".to_string(),
+                        )
+                    })?,
+                    end_time: self.end_time.clone().ok_or_else(|| {
+                        RepositoryError::ValidationError(
+                            "PendingReflection session missing end_time".to_string(),
+                        )
+                    })?,
+                },
+                "Ended" => SessionState::Ended {
+                    start_time: self.start_time.clone().ok_or_else(|| {
+                        RepositoryError::ValidationError(
+                            "Ended session missing start_time".to_string(),
+                        )
+                    })?,
+                    end_time: self.end_time.clone().ok_or_else(|| {
+                        RepositoryError::ValidationError(
+                            "Ended session missing end_time".to_string(),
+                        )
+                    })?,
+                },
+                _ => SessionState::NotStarted,
+            },
+            notes: self.notes.clone(),
+            study_sessions: Vec::new(),
+            duration: None,
+            start_time: self.start_time.clone(),
+            end_time: self.end_time.clone(),
+            is_ended: self.session_state == "Ended",
         };
 
+        // Use the existing session_from_view_model function to preserve the ID
+        let session = session_from_view_model(session_view);
         Ok(session)
     }
 }
@@ -109,6 +114,11 @@ pub struct StartSessionRequest {
 #[derive(Debug, Deserialize)]
 pub struct EndSessionRequest {
     pub end_time: String,
+}
+
+#[derive(Deserialize)]
+pub struct CompleteReflectionRequest {
+    pub notes: Option<String>,
 }
 
 // Simple Session repository - following goals/studies pattern
@@ -273,6 +283,34 @@ impl SessionRepository {
     }
 }
 
+// Helper functions to update session fields across all states
+fn update_session_notes(session: &mut PracticeSession, notes: Option<String>) {
+    match session {
+        PracticeSession::NotStarted(s) => s.data.notes = notes,
+        PracticeSession::Started(s) => s.data.notes = notes,
+        PracticeSession::PendingReflection(s) => s.data.notes = notes,
+        PracticeSession::Ended(s) => s.data.notes = notes,
+    }
+}
+
+fn update_session_intention(session: &mut PracticeSession, intention: String) {
+    match session {
+        PracticeSession::NotStarted(s) => s.data.intention = intention,
+        PracticeSession::Started(s) => s.data.intention = intention,
+        PracticeSession::PendingReflection(s) => s.data.intention = intention,
+        PracticeSession::Ended(s) => s.data.intention = intention,
+    }
+}
+
+fn update_session_goal_ids(session: &mut PracticeSession, goal_ids: Vec<String>) {
+    match session {
+        PracticeSession::NotStarted(s) => s.data.goal_ids = goal_ids,
+        PracticeSession::Started(s) => s.data.goal_ids = goal_ids,
+        PracticeSession::PendingReflection(s) => s.data.goal_ids = goal_ids,
+        PracticeSession::Ended(s) => s.data.goal_ids = goal_ids,
+    }
+}
+
 // HTTP Handlers
 async fn create_session(
     State(session_repo): State<Arc<SessionRepository>>,
@@ -328,7 +366,7 @@ async fn get_session(
 async fn update_session(
     State(session_repo): State<Arc<SessionRepository>>,
     Path(id): Path<String>,
-    Json(_req): Json<UpdateSessionRequest>,
+    Json(req): Json<UpdateSessionRequest>,
 ) -> Result<Json<PracticeSessionView>, (StatusCode, Json<ApiError>)> {
     // Get existing session
     let existing_session = session_repo
@@ -336,7 +374,7 @@ async fn update_session(
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(e.into())))?;
 
-    let existing_session = match existing_session {
+    let mut session = match existing_session {
         Some(session) => session,
         None => {
             return Err((
@@ -348,21 +386,26 @@ async fn update_session(
         }
     };
 
-    // Update fields if provided (this is complex due to the type-state design)
-    // For now, we'll implement a basic update that preserves the session state
-    // but updates the core data fields
+    // Update fields if provided - cleaner organization
+    if let Some(notes) = req.notes {
+        update_session_notes(&mut session, Some(notes));
+    }
 
-    // This requires implementing edit_session_fields logic here
-    // We'll need to modify the SessionData within the enum variants
-    // Due to the complexity of the type-state pattern, this may require
-    // a refactor of the session editing approach or additional helper methods
+    if let Some(intention) = req.intention {
+        update_session_intention(&mut session, intention);
+    }
 
+    if let Some(goal_ids) = req.goal_ids {
+        update_session_goal_ids(&mut session, goal_ids);
+    }
+
+    // Save the updated session
     session_repo
-        .update(&existing_session)
+        .update(&session)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(e.into())))?;
 
-    Ok(Json(session_view_model(&existing_session)))
+    Ok(Json(session_view_model(&session)))
 }
 
 async fn start_session(
@@ -445,6 +488,51 @@ async fn end_session(
     Ok(Json(session_view_model(&session)))
 }
 
+async fn complete_reflection(
+    State(session_repo): State<Arc<SessionRepository>>,
+    Path(id): Path<String>,
+    Json(req): Json<CompleteReflectionRequest>,
+) -> Result<Json<PracticeSessionView>, (StatusCode, Json<ApiError>)> {
+    let session = session_repo
+        .find_by_id(&id)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(e.into())))?;
+
+    let mut session = match session {
+        Some(session) => session,
+        None => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(ApiError {
+                    message: "Session not found".to_string(),
+                }),
+            ));
+        }
+    };
+
+    // Update notes if provided
+    if let Some(notes) = req.notes {
+        update_session_notes(&mut session, Some(notes));
+    }
+
+    // Complete the reflection (transitions PendingReflection -> Ended)
+    session.complete_reflection().map_err(|e| {
+        (
+            StatusCode::BAD_REQUEST,
+            Json(ApiError {
+                message: e.to_string(),
+            }),
+        )
+    })?;
+
+    session_repo
+        .update(&session)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(e.into())))?;
+
+    Ok(Json(session_view_model(&session)))
+}
+
 async fn delete_session(
     State(session_repo): State<Arc<SessionRepository>>,
     Path(id): Path<String>,
@@ -475,6 +563,10 @@ pub fn routes() -> Router<Arc<SessionRepository>> {
         )
         .route("/sessions/{id}/start", axum::routing::post(start_session))
         .route("/sessions/{id}/end", axum::routing::post(end_session))
+        .route(
+            "/sessions/{id}/complete",
+            axum::routing::post(complete_reflection),
+        )
 }
 
 // *************

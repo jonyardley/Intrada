@@ -1824,26 +1824,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "intrada-server"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "axum",
- "chrono",
- "dotenvy",
- "serde",
- "serde_json",
- "shared",
- "sqlx",
- "thiserror 1.0.69",
- "tokio",
- "tower",
- "tower-http",
- "uuid",
-]
-
-[[package]]
 name = "io-uring"
 version = "0.7.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2847,6 +2827,26 @@ dependencies = [
  "itoa",
  "ryu",
  "serde",
+]
+
+[[package]]
+name = "server"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "axum",
+ "chrono",
+ "dotenvy",
+ "serde",
+ "serde_json",
+ "shared",
+ "sqlx",
+ "thiserror 1.0.69",
+ "tokio",
+ "tower",
+ "tower-http",
+ "uuid",
 ]
 
 [[package]]

@@ -25,12 +25,8 @@ struct SessionReflectionForm: View {
                     isPresented = false
                 },
                 trailing: Button("Save") {
-                    // Update notes if they were changed
-                    if !notes.isEmpty {
-                        core.update(.session(.editSessionNotes(sessionId, notes)))
-                    }
-                    // Complete the reflection, transitioning PendingReflection -> Ended
-                    core.update(.session(.completeReflection(sessionId)))
+                    // Complete reflection with notes in a single atomic operation
+                    core.update(.session(.completeWithNotes(sessionId, notes)))
                     isPresented = false
                 }
             )

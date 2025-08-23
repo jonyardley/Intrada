@@ -150,6 +150,7 @@ pub enum SessionEvent {
         notes: Option<String>,
     },
     EditSessionNotes(String, String),
+    CompleteWithNotes(String, String),
     RemoveSession(String),
 }
 
@@ -720,15 +721,13 @@ pub fn handle_event(
                 return crux_core::render::render();
             }
 
-            // Trigger background sync
-            if let Some(session) = model.sessions.iter().find(|s| s.id() == session_id) {
-                let api = crate::app::ApiConfig::default();
-                return api.put(
-                    &format!("/api/sessions/{}", session.id()),
-                    &session_view_model(session),
-                    |response| super::Event::Session(SessionEvent::SessionSynced(response)),
-                );
-            }
+            // Trigger background sync using the new complete endpoint
+            let api = crate::app::ApiConfig::default();
+            return api.post(
+                &format!("/api/sessions/{session_id}/complete"),
+                &serde_json::json!({}), // Empty body for complete endpoint
+                |response| super::Event::Session(SessionEvent::SessionSynced(response)),
+            );
         }
         SessionEvent::EditSessionFields {
             session_id,
@@ -768,6 +767,22 @@ pub fn handle_event(
                     |response| super::Event::Session(SessionEvent::SessionSynced(response)),
                 );
             }
+        }
+        SessionEvent::CompleteWithNotes(session_id, notes) => {
+            // Apply both operations immediately to local model
+            edit_session_notes(&session_id, notes.clone(), model);
+            if let Err(e) = complete_reflection(&session_id, model) {
+                model.last_error = Some(format!("Failed to complete reflection: {e:?}"));
+                return crux_core::render::render();
+            }
+
+            // Trigger single background sync to complete endpoint (which will save notes too)
+            let api = crate::app::ApiConfig::default();
+            return api.post(
+                &format!("/api/sessions/{session_id}/complete"),
+                &serde_json::json!({ "notes": notes }),
+                |response| super::Event::Session(SessionEvent::SessionSynced(response)),
+            );
         }
         SessionEvent::RemoveSession(session_id) => {
             // Apply immediately to local model

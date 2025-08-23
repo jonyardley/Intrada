@@ -70,7 +70,7 @@ pub fn get_study_sessions_for_session<'a>(
         .iter()
         .find(|session| session.id() == session_id)
         .map(|session| session.study_sessions().iter().collect())
-        .unwrap_or_default()
+        .unwrap_or_else(Vec::new)
 }
 
 pub fn handle_event(
