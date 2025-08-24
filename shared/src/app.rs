@@ -51,7 +51,8 @@ pub use utils::{
 
 pub mod http_utils;
 pub use http_utils::{
-    delete_request, get_request, post_json_request, put_json_request, ApiConfig, Environment,
+    api_delete, api_get, api_post, api_put, delete_request, get_request, post_json_request,
+    put_json_request,
 };
 
 pub mod repository;

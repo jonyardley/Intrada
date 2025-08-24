@@ -169,6 +169,12 @@ enum IosCommands {
     },
     /// List available simulators
     Simulators,
+    /// Generate iOS configuration from Config.plist
+    Config {
+        /// Force regenerate configuration
+        #[arg(long)]
+        force: bool,
+    },
 }
 
 #[derive(Subcommand)]
@@ -497,6 +503,10 @@ fn handle_ios_command(cmd: IosCommands) -> Result<()> {
         IosCommands::Simulators => {
             print_step("Listing available simulators");
             run_command("xcrun", &["simctl", "list", "devices", "available"], None)?;
+        }
+        IosCommands::Config { force } => {
+            print_step("Generating iOS configuration from Config.plist");
+            generate_ios_config(force)?;
         }
     }
     Ok(())
@@ -2314,4 +2324,218 @@ fn run_command_with_env(
     }
 
     Ok(())
+}
+
+/// Generate iOS configuration from Config.plist
+fn generate_ios_config(force: bool) -> Result<()> {
+    ensure_in_project_root()?;
+
+    let ios_dir = Path::new("iOS");
+    if !ios_dir.exists() {
+        anyhow::bail!("iOS directory not found");
+    }
+
+    let config_plist_path = ios_dir.join("Intrada").join("Config.plist");
+    let template_path = ios_dir.join("Intrada").join("Config.plist.template");
+
+    // Check if Config.plist exists
+    if !config_plist_path.exists() {
+        if template_path.exists() {
+            print_info("Config.plist not found, copying from template...");
+            std::fs::copy(&template_path, &config_plist_path)
+                .context("Failed to copy Config.plist from template")?;
+            print_success("✅ Config.plist created from template");
+        } else {
+            anyhow::bail!("Neither Config.plist nor Config.plist.template found in iOS/Intrada/");
+        }
+    }
+
+    // Parse the Config.plist to extract configuration
+    print_step("Parsing Config.plist...");
+
+    // Use plutil to convert plist to JSON for easier parsing
+    let output = Command::new("plutil")
+        .args([
+            "-convert",
+            "json",
+            "-o",
+            "-",
+            config_plist_path.to_str().unwrap(),
+        ])
+        .output()
+        .context("Failed to convert plist to JSON")?;
+
+    if !output.status.success() {
+        anyhow::bail!("Failed to parse Config.plist");
+    }
+
+    let _config_json = String::from_utf8_lossy(&output.stdout);
+    print_info("✅ Config.plist parsed successfully");
+
+    // Generate Swift configuration code
+    print_step("Generating Swift configuration code...");
+
+    let swift_config_path = ios_dir.join("Intrada").join("GeneratedConfig.swift");
+
+    // Check if we need to regenerate
+    if swift_config_path.exists() && !force {
+        print_info("GeneratedConfig.swift already exists. Use --force to regenerate.");
+        return Ok(());
+    }
+
+    // Create the Swift configuration file
+    let swift_code = generate_swift_config_code()?;
+    std::fs::write(&swift_config_path, swift_code)
+        .context("Failed to write GeneratedConfig.swift")?;
+
+    print_success("✅ GeneratedConfig.swift created successfully");
+
+    // Generate Xcode project if it doesn't exist
+    let project_path = ios_dir.join("Intrada.xcodeproj");
+    if !project_path.exists() || force {
+        print_step("Generating Xcode project...");
+        run_command("xcodegen", &[], Some("iOS"))?;
+        print_success("✅ Xcode project generated");
+    } else {
+        print_info("Xcode project already exists. Use --force to regenerate.");
+    }
+
+    print_success("🎉 iOS configuration generation complete!");
+    print_info("📁 Generated files:");
+    print_info("   - iOS/Intrada/GeneratedConfig.swift");
+    print_info("   - iOS/Intrada.xcodeproj (if needed)");
+
+    Ok(())
+}
+
+/// Generate Swift configuration code from JSON config
+fn generate_swift_config_code() -> Result<String> {
+    // This is a simplified version - in a real implementation, you might want to use a proper JSON parser
+    // For now, we'll create a basic Swift configuration file
+
+    let swift_code = r#"// Generated configuration file - DO NOT EDIT MANUALLY
+// This file is auto-generated from Config.plist
+
+import Foundation
+
+/// Auto-generated configuration from Config.plist
+public struct GeneratedConfig {
+    
+    /// Current environment
+    public static let currentEnvironment: String = {
+        // Try to read from Config.plist first
+        if let path = Bundle.main.path(forResource: "Config", ofType: "plist"),
+           let dict = NSDictionary(contentsOfFile: path) as? [String: Any],
+           let env = dict["CurrentEnvironment"] as? String {
+            return env
+        }
+        
+        // Fallback to development
+        return "development"
+    }()
+    
+    /// Server base URL for current environment
+    public static let serverBaseURL: String = {
+        if let path = Bundle.main.path(forResource: "Config", ofType: "plist"),
+           let dict = NSDictionary(contentsOfFile: path) as? [String: Any],
+           let environments = dict["Environments"] as? [String: [String: Any]],
+           let currentEnv = environments[currentEnvironment],
+           let url = currentEnv["ServerBaseURL"] as? String {
+            return url
+        }
+        
+        // Fallback URLs
+        switch currentEnvironment {
+        case "development":
+            return "http://localhost:3000"
+        case "staging":
+            return "https://staging.intrada.app"
+        case "production":
+            return "https://api.intrada.app"
+        default:
+            return "http://localhost:3000"
+        }
+    }()
+    
+    /// Display name for current environment
+    public static let displayName: String = {
+        if let path = Bundle.main.path(forResource: "Config", ofType: "plist"),
+           let dict = NSDictionary(contentsOfFile: path) as? [String: Any],
+           let environments = dict["Environments"] as? [String: [String: Any]],
+           let currentEnv = environments[currentEnvironment],
+           let name = currentEnv["DisplayName"] as? String {
+            return name
+        }
+        
+        // Fallback names
+        switch currentEnvironment {
+        case "development":
+            return "Intrada (Dev)"
+        case "staging":
+            return "Intrada (Staging)"
+        case "production":
+            return "Intrada"
+        default:
+            return "Intrada"
+        }
+    }()
+    
+    /// Check if running in development mode
+    public static var isDevelopment: Bool {
+        return currentEnvironment == "development"
+    }
+    
+    /// Check if running in staging mode
+    public static var isStaging: Bool {
+        return currentEnvironment == "staging"
+    }
+    
+    /// Check if running in production mode
+    public static var isProduction: Bool {
+        return currentEnvironment == "production"
+    }
+    
+    /// Get configuration for a specific environment
+    public static func config(for environment: String) -> [String: Any]? {
+        guard let path = Bundle.main.path(forResource: "Config", ofType: "plist"),
+              let dict = NSDictionary(contentsOfFile: path) as? [String: Any],
+              let environments = dict["Environments"] as? [String: [String: Any]] else {
+            return nil
+        }
+        
+        return environments[environment]
+    }
+    
+    /// Get server URL for a specific environment
+    public static func serverURL(for environment: String) -> String? {
+        return config(for: environment)?["ServerBaseURL"] as? String
+    }
+    
+    /// Get display name for a specific environment
+    public static func displayName(for environment: String) -> String? {
+        return config(for: environment)?["DisplayName"] as? String
+    }
+}
+
+// MARK: - Environment-specific convenience properties
+
+public extension GeneratedConfig {
+    /// Development environment configuration
+    static var development: [String: Any]? {
+        return config(for: "development")
+    }
+    
+    /// Staging environment configuration
+    static var staging: [String: Any]? {
+        return config(for: "staging")
+    }
+    
+    /// Production environment configuration
+    static var production: [String: Any]? {
+        return config(for: "production")
+    }
+}
+"#;
+
+    Ok(swift_code.to_string())
 }

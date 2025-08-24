@@ -10,5 +10,6 @@
         "clippy::uninlined-format-args"
     ],
     "rust-analyzer.cargo.features": "all",
-    "rust-analyzer.diagnostics.enable": true
+    "rust-analyzer.diagnostics.enable": true,
+    "rust-analyzer.diagnostics.enableExperimental": true
 }

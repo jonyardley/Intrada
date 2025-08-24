@@ -6,6 +6,9 @@ class ConfigurationManager {
     private var configDict: [String: Any]?
     private var currentEnvironment: String = "development"
 
+    // Use generated configuration as fallback
+    private var generatedConfig: GeneratedConfig.Type = GeneratedConfig.self
+
     private init() {
         loadConfiguration()
     }
@@ -15,6 +18,8 @@ class ConfigurationManager {
               let dict = NSDictionary(contentsOfFile: path) as? [String: Any]
         else {
             print("⚠️ Could not load Config.plist. Using default development configuration.")
+            print("🔍 Bundle path: \(Bundle.main.bundlePath)")
+            print("🔍 Config.plist path: \(Bundle.main.path(forResource: "Config", ofType: "plist") ?? "nil")")
             return
         }
 
@@ -22,7 +27,13 @@ class ConfigurationManager {
 
         // Determine environment based on build configuration
         #if DEBUG
-        currentEnvironment = dict["CurrentEnvironment"] as? String ?? "development"
+        // For device builds, you might want to force a specific environment
+        if let forcedEnv = ProcessInfo.processInfo.environment["FORCE_ENVIRONMENT"] {
+            currentEnvironment = forcedEnv
+            print("🔧 Forced environment from environment variable: \(forcedEnv)")
+        } else {
+            currentEnvironment = dict["CurrentEnvironment"] as? String ?? generatedConfig.currentEnvironment
+        }
         #else
         currentEnvironment = "production"
         #endif
@@ -49,12 +60,14 @@ class ConfigurationManager {
 
     /// Get the server base URL for the current environment
     var serverBaseURL: String {
-        return getEnvironmentString(for: "ServerBaseURL", defaultValue: "http://localhost:3000")
+        let url = getEnvironmentString(for: "ServerBaseURL", defaultValue: generatedConfig.serverBaseURL)
+        print("🔧 ConfigurationManager.serverBaseURL: \(url) (environment: \(currentEnvironment))")
+        return url
     }
 
     /// Get the display name for the current environment
     var displayName: String {
-        return getEnvironmentString(for: "DisplayName", defaultValue: "Intrada")
+        return getEnvironmentString(for: "DisplayName", defaultValue: generatedConfig.displayName)
     }
 
     /// Check if we're in development mode

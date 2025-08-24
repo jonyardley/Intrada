@@ -86,8 +86,7 @@ pub fn handle_event(event: GoalEvent, model: &mut Model) -> Command<super::Effec
     match event {
         // Background sync events (internal only)
         GoalEvent::SyncGoals => {
-            let api = crate::app::ApiConfig::default();
-            return api.get("/api/goals", |response| {
+            return crate::app::api_get("/api/goals", |response| {
                 super::Event::Goal(GoalEvent::GoalsSynced(response))
             });
         }
@@ -119,8 +118,7 @@ pub fn handle_event(event: GoalEvent, model: &mut Model) -> Command<super::Effec
                 "study_ids": goal.study_ids,
                 "tempo_target": goal.tempo_target
             });
-            let api = crate::app::ApiConfig::default();
-            return api.post("/api/goals", &create_request, |response| {
+            return crate::app::api_post("/api/goals", &create_request, |response| {
                 super::Event::Goal(GoalEvent::GoalSynced(response))
             });
         }
@@ -129,8 +127,7 @@ pub fn handle_event(event: GoalEvent, model: &mut Model) -> Command<super::Effec
             model.goals().update(goal.clone());
 
             // Trigger background sync
-            let api = crate::app::ApiConfig::default();
-            return api.put(&format!("/api/goals/{}", goal.id), &goal, |response| {
+            return crate::app::api_put(&format!("/api/goals/{}", goal.id), &goal, |response| {
                 super::Event::Goal(GoalEvent::GoalSynced(response))
             });
         }
@@ -139,8 +136,7 @@ pub fn handle_event(event: GoalEvent, model: &mut Model) -> Command<super::Effec
             model.goals.retain(|g| g.id != goal_id);
 
             // Trigger background sync
-            let api = crate::app::ApiConfig::default();
-            return api.delete(&format!("/api/goals/{goal_id}"), |response| {
+            return crate::app::api_delete(&format!("/api/goals/{goal_id}"), |response| {
                 super::Event::Goal(GoalEvent::GoalSynced(response))
             });
         }
@@ -150,8 +146,7 @@ pub fn handle_event(event: GoalEvent, model: &mut Model) -> Command<super::Effec
 
             // Trigger background sync
             if let Some(goal) = model.goals.iter().find(|g| g.id == goal_id) {
-                let api = crate::app::ApiConfig::default();
-                return api.put(&format!("/api/goals/{}", goal.id), goal, |response| {
+                return crate::app::api_put(&format!("/api/goals/{}", goal.id), goal, |response| {
                     super::Event::Goal(GoalEvent::GoalSynced(response))
                 });
             }
