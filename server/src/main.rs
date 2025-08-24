@@ -20,9 +20,6 @@ pub struct ApiError {
     message: String,
 }
 
-//Testing deployment
-//test 1
-
 impl From<sqlx::Error> for ApiError {
     fn from(err: sqlx::Error) -> Self {
         ApiError {
