@@ -173,16 +173,6 @@ jobs:
       - name: Run tests
         run: cargo nextest run --workspace
 
-      - name: Build release server binary
-        run: cargo build --release --bin server
-
-      - name: Upload server binary
-        uses: actions/upload-artifact@v4
-        with:
-          name: server-binary
-          path: target/release/server
-          retention-days: 1
-
   # iOS build - when iOS code changes, manually dispatched, or previous build failed
   ios:
     runs-on: macos-15
@@ -460,7 +450,7 @@ jobs:
   # Deploy server to Fly.io
   deploy-server:
     runs-on: ubuntu-latest
-    needs: [changes, check-previous]
+    needs: [changes, test, check-previous]
     # TESTING: Force deployment on fix-server-deploy-2 branch, otherwise use normal conditions
     # Original restriction was: only main branch + specific conditions
     if: >
