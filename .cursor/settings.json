@@ -31,10 +31,10 @@
     "rust-analyzer.check.features": "all",
     "rust-analyzer.check.extraArgs": [
         "--",
-        "-W",
-        "clippy::uninlined-format-args",
         "-D",
-        "warnings"
+        "warnings",
+        "-D",
+        "clippy::uninlined-format-args"
     ],
     "rust-analyzer.cargo.features": "all",
     "rust-analyzer.diagnostics.enable": true,

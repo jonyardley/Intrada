@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Environments</key>
+	<dict>
+		<key>development</key>
+		<dict>
+			<key>ServerBaseURL</key>
+			<string>http://localhost:3000</string>
+			<key>DisplayName</key>
+			<string>Intrada (Dev)</string>
+		</dict>
+		<key>staging</key>
+		<dict>
+			<key>ServerBaseURL</key>
+			<string>https://staging.intrada.app</string>
+			<key>DisplayName</key>
+			<string>Intrada (Staging)</string>
+		</dict>
+		<key>production</key>
+		<dict>
+			<key>ServerBaseURL</key>
+			<string>https://api.intrada.app</string>
+			<key>DisplayName</key>
+			<string>Intrada</string>
+		</dict>
+	</dict>
+	<!-- Set current environment for development builds -->
+	<!-- This will be overridden to 'production' for Release builds -->
+	<key>CurrentEnvironment</key>
+	<string>development</string>
+</dict>
+</plist>

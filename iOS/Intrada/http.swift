@@ -7,11 +7,11 @@ enum HttpError: Error {
 }
 
 func requestHttp(_ request: HttpRequest) async -> Result<HttpResponse, HttpError> {
-    let serverBaseURL = "http://localhost:3000"
+    let serverBaseURL = ConfigurationManager.shared.serverBaseURL
 
-    // Clean URL resolution: if it's already a full server URL, use as-is
+    // Clean URL resolution: if it's already a full URL, use as-is
     // Otherwise, treat it as a relative path and prepend the server base URL
-    let finalURL: String = if request.url.hasPrefix("http://localhost:3000") {
+    let finalURL: String = if request.url.hasPrefix("http://") || request.url.hasPrefix("https://") {
         request.url
     } else if request.url.hasPrefix("/") {
         // Relative path - prepend server base URL
@@ -21,7 +21,7 @@ func requestHttp(_ request: HttpRequest) async -> Result<HttpResponse, HttpError
         "\(serverBaseURL)/\(request.url)"
     }
 
-    print("🌐 HTTP Request: \(request.method) \(finalURL)")
+    print("🌐 HTTP Request [\(ConfigurationManager.shared.environment)]: \(request.method) \(finalURL)")
 
     var req = URLRequest(url: URL(string: finalURL)!)
     req.httpMethod = request.method
