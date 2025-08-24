@@ -50,7 +50,9 @@ pub use utils::{
 };
 
 pub mod http_utils;
-pub use http_utils::{delete_request, get_request, post_json_request, put_json_request, ApiConfig};
+pub use http_utils::{
+    delete_request, get_request, post_json_request, put_json_request, ApiConfig, Environment,
+};
 
 pub mod repository;
 pub use repository::{GoalRepository, Repository, SessionRepository, StudyRepository};

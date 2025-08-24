@@ -3,6 +3,7 @@ use crate::app::{Effect, Event, HttpResult};
 use crux_core::Command;
 use crux_http::command::Http;
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 
 /// Creates a GET request command
 pub fn get_request<T: for<'de> Deserialize<'de> + 'static>(
@@ -62,15 +63,50 @@ pub fn delete_request<T: for<'de> Deserialize<'de> + 'static>(
         .then_send(callback)
 }
 
+/// Environment configuration
+#[derive(Debug, Clone, PartialEq)]
+pub enum Environment {
+    Development,
+    Staging,
+    Production,
+}
+
+impl FromStr for Environment {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "development" | "dev" => Ok(Environment::Development),
+            "staging" | "stage" => Ok(Environment::Staging),
+            "production" | "prod" => Ok(Environment::Production),
+            _ => Ok(Environment::Development), // Default fallback
+        }
+    }
+}
+
+impl Environment {
+    pub fn default_base_url(&self) -> &'static str {
+        match self {
+            Environment::Development => "http://localhost:3000",
+            Environment::Staging => "https://staging.intrada.app",
+            Environment::Production => "https://api.intrada.app",
+        }
+    }
+}
+
 /// Base URL configuration
+#[derive(Debug, Clone)]
 pub struct ApiConfig {
     pub base_url: String,
+    pub environment: Environment,
 }
 
 impl Default for ApiConfig {
     fn default() -> Self {
+        let env = Environment::Development;
         Self {
-            base_url: "http://localhost:3000".to_string(),
+            base_url: env.default_base_url().to_string(),
+            environment: env,
         }
     }
 }
@@ -78,7 +114,34 @@ impl Default for ApiConfig {
 impl ApiConfig {
     /// Create a new ApiConfig with a custom base URL
     pub fn new(base_url: String) -> Self {
-        Self { base_url }
+        Self {
+            environment: Environment::Development, // Default when custom URL provided
+            base_url,
+        }
+    }
+
+    /// Create a new ApiConfig for a specific environment
+    pub fn for_environment(env: Environment) -> Self {
+        Self {
+            base_url: env.default_base_url().to_string(),
+            environment: env,
+        }
+    }
+
+    /// Create a new ApiConfig from environment string
+    pub fn from_env_string(env_str: &str) -> Self {
+        let env = Environment::from_str(env_str).unwrap_or(Environment::Development);
+        Self::for_environment(env)
+    }
+
+    /// Check if running in development mode
+    pub fn is_development(&self) -> bool {
+        matches!(self.environment, Environment::Development)
+    }
+
+    /// Check if running in production mode
+    pub fn is_production(&self) -> bool {
+        matches!(self.environment, Environment::Production)
     }
 }
 
@@ -132,6 +195,63 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_environment_from_string() {
+        assert_eq!(
+            Environment::from_str("development").unwrap(),
+            Environment::Development
+        );
+        assert_eq!(
+            Environment::from_str("dev").unwrap(),
+            Environment::Development
+        );
+        assert_eq!(
+            Environment::from_str("staging").unwrap(),
+            Environment::Staging
+        );
+        assert_eq!(
+            Environment::from_str("stage").unwrap(),
+            Environment::Staging
+        );
+        assert_eq!(
+            Environment::from_str("production").unwrap(),
+            Environment::Production
+        );
+        assert_eq!(
+            Environment::from_str("prod").unwrap(),
+            Environment::Production
+        );
+        assert_eq!(
+            Environment::from_str("unknown").unwrap(),
+            Environment::Development
+        );
+    }
+
+    #[test]
+    fn test_environment_default_urls() {
+        assert_eq!(
+            Environment::Development.default_base_url(),
+            "http://localhost:3000"
+        );
+        assert_eq!(
+            Environment::Staging.default_base_url(),
+            "https://staging.intrada.app"
+        );
+        assert_eq!(
+            Environment::Production.default_base_url(),
+            "https://api.intrada.app"
+        );
+    }
+
+    #[test]
+    fn test_api_config_default() {
+        let config = ApiConfig::default();
+        assert_eq!(config.base_url, "http://localhost:3000");
+        assert_eq!(config.environment, Environment::Development);
+        assert!(config.is_development());
+        assert!(!config.is_production());
+    }
+
+    #[test]
     fn test_api_config_url() {
         let config = ApiConfig::default();
         assert_eq!(config.url("/goals"), "http://localhost:3000/goals");
@@ -139,10 +259,25 @@ mod tests {
     }
 
     #[test]
+    fn test_api_config_for_environment() {
+        let config = ApiConfig::for_environment(Environment::Production);
+        assert_eq!(config.base_url, "https://api.intrada.app");
+        assert_eq!(config.environment, Environment::Production);
+        assert!(!config.is_development());
+        assert!(config.is_production());
+    }
+
+    #[test]
+    fn test_api_config_from_env_string() {
+        let config = ApiConfig::from_env_string("staging");
+        assert_eq!(config.base_url, "https://staging.intrada.app");
+        assert_eq!(config.environment, Environment::Staging);
+    }
+
+    #[test]
     fn test_custom_api_config() {
-        let config = ApiConfig {
-            base_url: "https://api.example.com".to_string(),
-        };
-        assert_eq!(config.url("/users"), "https://api.example.com/users");
+        let config = ApiConfig::new("https://custom.api.com".to_string());
+        assert_eq!(config.base_url, "https://custom.api.com");
+        assert_eq!(config.url("/users"), "https://custom.api.com/users");
     }
 }
