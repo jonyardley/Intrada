@@ -190,7 +190,10 @@ enum SqlxCommands {
     /// Prepare SQLx query cache for offline compilation
     Prepare,
     /// Check if query cache is up to date
-    Check,
+    Check {
+        #[arg(short, long)]
+        quiet: bool,
+    },
     /// Start database for development
     DbUp,
     /// Stop database
@@ -1172,23 +1175,37 @@ fn handle_sqlx_command(cmd: SqlxCommands) -> Result<()> {
 
             print_success("✅ SQLx query cache prepared! Please commit the .sqlx/ directory.");
         }
-        SqlxCommands::Check => {
-            print_step("Checking SQLx query cache");
-
-            if !Path::new(".sqlx").exists() {
-                print_warning("⚠️  No SQLx query cache found. Run 'xt sqlx prepare' first.");
-                return Ok(());
+        SqlxCommands::Check { quiet } => {
+            if !quiet {
+                print_step("Checking SQLx query cache");
             }
 
-            // Check if offline mode works
+            if !Path::new(".sqlx").exists() {
+                if !quiet {
+                    print_warning("⚠️  No SQLx query cache found. Run 'xt sqlx prepare' first.");
+                }
+                return Err(anyhow::anyhow!("SQLx query cache not found"));
+            }
+
+            // Ensure database is running for the check
+            if !quiet {
+                print_info("Ensuring database is running...");
+            }
+            run_command("docker-compose", &["up", "-d"], Some("server"))?;
+            thread::sleep(Duration::from_secs(2));
+
+            // Use the proper SQLx prepare --check command to verify cache is up to date
+            let database_url = "postgresql://intrada:intrada@localhost:5432/intrada";
             run_command_with_env(
                 "cargo",
-                &["check", "--package", "server"],
+                &["sqlx", "prepare", "--check", "--workspace"],
                 None,
-                &[("SQLX_OFFLINE", "true")],
+                &[("DATABASE_URL", database_url)],
             )?;
 
-            print_success("✅ SQLx query cache is valid!");
+            if !quiet {
+                print_success("✅ SQLx query cache is valid!");
+            }
         }
         SqlxCommands::DbUp => {
             print_step("Starting database");
