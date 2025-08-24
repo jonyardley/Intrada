@@ -1,7 +1,7 @@
 name: CI/CD Pipeline (TESTING VERSION - Deploy on any branch)
 on:
   push:
-    branches: [main]
+    branches: [main, fix-server-deploy-2]  # TESTING: Allow deployment from fix-server-deploy-2 branch
   pull_request:
     branches: [main]
 
