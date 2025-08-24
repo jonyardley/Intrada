@@ -59,8 +59,7 @@ pub fn handle_event(event: StudyEvent, model: &mut Model) -> Command<super::Effe
     match event {
         // Background sync events (internal only)
         StudyEvent::SyncStudies => {
-            let api = crate::app::ApiConfig::default();
-            return api.get("/api/studies", |response| {
+            return crate::app::api_get("/api/studies", |response| {
                 super::Event::Study(StudyEvent::StudiesSynced(response))
             });
         }
@@ -89,8 +88,7 @@ pub fn handle_event(event: StudyEvent, model: &mut Model) -> Command<super::Effe
                 "name": study.name,
                 "description": study.description
             });
-            let api = crate::app::ApiConfig::default();
-            return api.post("/api/studies", &create_request, |response| {
+            return crate::app::api_post("/api/studies", &create_request, |response| {
                 super::Event::Study(StudyEvent::StudySynced(response))
             });
         }
@@ -103,8 +101,7 @@ pub fn handle_event(event: StudyEvent, model: &mut Model) -> Command<super::Effe
                 "name": study.name,
                 "description": study.description
             });
-            let api = crate::app::ApiConfig::default();
-            return api.put(
+            return crate::app::api_put(
                 &format!("/api/studies/{}", study.id),
                 &update_request,
                 |response| super::Event::Study(StudyEvent::StudySynced(response)),
@@ -115,8 +112,7 @@ pub fn handle_event(event: StudyEvent, model: &mut Model) -> Command<super::Effe
             model.studies.retain(|s| s.id != study_id);
 
             // Trigger background sync
-            let api = crate::app::ApiConfig::default();
-            return api.delete(&format!("/api/studies/{study_id}"), |response| {
+            return crate::app::api_delete(&format!("/api/studies/{study_id}"), |response| {
                 super::Event::Study(StudyEvent::StudySynced(response))
             });
         }

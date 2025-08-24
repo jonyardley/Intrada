@@ -310,8 +310,7 @@ pub fn handle_event(
     match event {
         // Background sync events (internal only)
         SessionEvent::SyncSessions => {
-            let api = crate::app::ApiConfig::default();
-            return api.get("/api/sessions", |response| {
+            return crate::app::api_get("/api/sessions", |response| {
                 super::Event::Session(SessionEvent::SessionsSynced(response))
             });
         }
@@ -342,8 +341,7 @@ pub fn handle_event(
                 "intention": session.intention,
                 "notes": session.notes
             });
-            let api = crate::app::ApiConfig::default();
-            return api.post("/api/sessions", &create_request, |response| {
+            return crate::app::api_post("/api/sessions", &create_request, |response| {
                 super::Event::Session(SessionEvent::SessionSynced(response))
             });
         }
@@ -354,8 +352,7 @@ pub fn handle_event(
             }
 
             // Trigger background sync
-            let api = crate::app::ApiConfig::default();
-            return api.put(
+            return crate::app::api_put(
                 &format!("/api/sessions/{}", session.id),
                 &session,
                 |response| super::Event::Session(SessionEvent::SessionSynced(response)),
@@ -370,8 +367,7 @@ pub fn handle_event(
 
             // Trigger background sync
             let start_request = serde_json::json!({ "start_time": timestamp });
-            let api = crate::app::ApiConfig::default();
-            return api.post(
+            return crate::app::api_post(
                 &format!("/api/sessions/{session_id}/start"),
                 &start_request,
                 |response| super::Event::Session(SessionEvent::SessionSynced(response)),
@@ -386,8 +382,7 @@ pub fn handle_event(
 
             // Trigger background sync
             let end_request = serde_json::json!({ "end_time": timestamp });
-            let api = crate::app::ApiConfig::default();
-            return api.post(
+            return crate::app::api_post(
                 &format!("/api/sessions/{session_id}/end"),
                 &end_request,
                 |response| super::Event::Session(SessionEvent::SessionSynced(response)),
@@ -401,10 +396,9 @@ pub fn handle_event(
             }
 
             // Trigger background sync using the new complete endpoint
-            let api = crate::app::ApiConfig::default();
-            return api.post(
+            return crate::app::api_post(
                 &format!("/api/sessions/{session_id}/complete"),
-                &serde_json::json!({}), // Empty body for complete endpoint
+                &serde_json::json!({}),
                 |response| super::Event::Session(SessionEvent::SessionSynced(response)),
             );
         }
@@ -425,8 +419,7 @@ pub fn handle_event(
 
             // Trigger background sync
             if let Some(session) = model.sessions.iter().find(|s| s.id == session_id) {
-                let api = crate::app::ApiConfig::default();
-                return api.put(
+                return crate::app::api_put(
                     &format!("/api/sessions/{}", session.id),
                     session,
                     |response| super::Event::Session(SessionEvent::SessionSynced(response)),
@@ -439,8 +432,7 @@ pub fn handle_event(
 
             // Trigger background sync
             if let Some(session) = model.sessions.iter().find(|s| s.id == session_id) {
-                let api = crate::app::ApiConfig::default();
-                return api.put(
+                return crate::app::api_put(
                     &format!("/api/sessions/{}", session.id),
                     session,
                     |response| super::Event::Session(SessionEvent::SessionSynced(response)),
@@ -456,8 +448,7 @@ pub fn handle_event(
             }
 
             // Trigger single background sync to complete endpoint (which will save notes too)
-            let api = crate::app::ApiConfig::default();
-            return api.post(
+            return crate::app::api_post(
                 &format!("/api/sessions/{session_id}/complete"),
                 &serde_json::json!({ "notes": notes }),
                 |response| super::Event::Session(SessionEvent::SessionSynced(response)),
@@ -468,8 +459,7 @@ pub fn handle_event(
             model.sessions().remove(&session_id);
 
             // Trigger background sync
-            let api = crate::app::ApiConfig::default();
-            return api.delete(&format!("/api/sessions/{session_id}"), |response| {
+            return crate::app::api_delete(&format!("/api/sessions/{session_id}"), |response| {
                 super::Event::Session(SessionEvent::SessionSynced(response))
             });
         }
