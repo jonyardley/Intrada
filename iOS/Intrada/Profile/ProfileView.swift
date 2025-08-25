@@ -12,9 +12,7 @@ struct ProfileView: View {
                             .frame(width: 100, height: 100)
 
                         Image(systemName: "person.fill")
-                            .resizable()
-                            .scaledToFit()
-                            .padding(25)
+                            .font(.system(size: 40))
                             .foregroundColor(.gray)
                     }
 
