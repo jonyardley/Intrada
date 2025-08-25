@@ -68,10 +68,10 @@ struct GoalFormView: View {
                 }
 
                 Section(header: Text("Studies")) {
-                    Button(action: {
+                    Button {
                         // Present study form sheet
                         showStudyForm = true
-                    }) {
+                    } label: {
                         HStack {
                             Image(systemName: "plus.circle.fill")
                                 .foregroundColor(Theme.Colors.primary)

@@ -38,7 +38,6 @@ struct GoalsView: View {
     }
 }
 
-
 #Preview {
     GoalsView(core: Core())
 }

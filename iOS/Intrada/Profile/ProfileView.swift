@@ -41,9 +41,9 @@ struct ProfileView: View {
                 .padding(.horizontal)
 
                 // Sign out button
-                Button(action: {
+                Button {
                     // Add sign out action here
-                }) {
+                } label: {
                     Text("Sign Out")
                         .foregroundColor(.red)
                         .frame(maxWidth: .infinity)

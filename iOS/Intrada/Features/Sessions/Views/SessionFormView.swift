@@ -137,69 +137,12 @@ struct SessionFormView: View {
 
                         // Goals Selection Section
                         Card {
-                            VStack(alignment: .leading, spacing: Theme.Spacing.medium) {
-                                VStack(alignment: .leading, spacing: Theme.Spacing.small) {
-                                    Text("Related Goals")
-                                        .font(Theme.Typography.headline)
-                                        .foregroundColor(Theme.Colors.text)
-
-                                    Text("Select goals that this session will help you work towards.")
-                                        .font(Theme.Typography.caption)
-                                        .foregroundColor(Theme.Colors.textSecondary)
-                                }
-
-                                // Add New Goal Button
-                                Button(action: {
-                                    showingGoalForm = true
-                                }) {
-                                    HStack {
-                                        Image(systemName: "plus.circle.fill")
-                                            .foregroundColor(Theme.Colors.primary)
-                                        Text("Add New Goal")
-                                            .foregroundColor(Theme.Colors.primary)
-                                    }
-                                }
-
-                                // Goals List
-                                if core.view.goals.isEmpty {
-                                    VStack(alignment: .leading, spacing: Theme.Spacing.small) {
-                                        Text("No goals available")
-                                            .foregroundColor(Theme.Colors.textSecondary)
-                                        Text("Create your first goal to track your practice progress!")
-                                            .font(Theme.Typography.caption)
-                                            .foregroundColor(Theme.Colors.textSecondary)
-                                    }
-                                } else {
-                                    // Search field for many goals
-                                    if core.view.goals.count > 5 {
-                                        TextField("Search goals...", text: $goalSearchText)
-                                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                                    }
-
-                                    // Filtered goals list
-                                    VStack(spacing: Theme.Spacing.small) {
-                                        ForEach(filteredGoals, id: \.id) { goal in
-                                            GoalSelectionRow(
-                                                goal: goal,
-                                                isSelected: binding(for: goal)
-                                            )
-                                        }
-                                    }
-
-                                    // Selection summary
-                                    if !selectedGoals.isEmpty {
-                                        HStack {
-                                            Image(systemName: "target")
-                                                .foregroundColor(Theme.Colors.primary)
-                                            Text(
-                                                "\(selectedGoals.count) goal\(selectedGoals.count == 1 ? "" : "s") selected"
-                                            )
-                                            .font(Theme.Typography.caption)
-                                            .foregroundColor(Theme.Colors.textSecondary)
-                                        }
-                                    }
-                                }
-                            }
+                            GoalSelectionView(
+                                selectedGoalIds: $selectedGoals,
+                                showingGoalForm: $showingGoalForm,
+                                searchText: $goalSearchText,
+                                availableGoals: core.view.goals
+                            )
                         }
 
                         // Action Buttons
