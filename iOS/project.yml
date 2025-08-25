@@ -13,22 +13,46 @@ targets:
     platform: iOS
     deploymentTarget: 17.0
     sources: 
-      - Intrada
-      - path: Intrada/GeneratedConfig.swift
+      # App Layer
+      - Intrada/App
+      
+      # Core Layer  
+      - Intrada/Core
+      
+      # Features
+      - Intrada/Features
+      
+      # Shared Components
+      - Intrada/Shared
+      
+      # Profile
+      - Intrada/Profile
+      
+      # Generated Configuration
+      - path: Intrada/Core/Configuration/GeneratedConfig.swift
         type: file
+        
+      # Remaining files at root level
+      - path: Intrada/Config.plist.template
+        type: file
+        
     resources: 
-      - Intrada/Config.plist
+      - Intrada/Resources/Assets.xcassets
+      - Intrada/Core/Configuration/Config.plist
+      
     dependencies:
       - package: Shared
       - package: SharedTypes
+      
     settings:
       base:
         CODE_SIGN_STYLE: Automatic
         CODE_SIGN_IDENTITY[sdk=iphonesimulator*]: ""
         CODE_SIGNING_ALLOWED[sdk=iphonesimulator*]: NO
         CODE_SIGNING_REQUIRED[sdk=iphonesimulator*]: NO
+        
     info:
-      path: Intrada/Info.plist
+      path: Intrada/Resources/Info.plist
       properties:
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
