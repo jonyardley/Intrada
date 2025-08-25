@@ -26,8 +26,6 @@
 			<string>Intrada</string>
 		</dict>
 	</dict>
-	<!-- Set current environment for development builds -->
-	<!-- This will be overridden to 'production' for Release builds -->
 	<key>CurrentEnvironment</key>
 	<string>development</string>
 </dict>
