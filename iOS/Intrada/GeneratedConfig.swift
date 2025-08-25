@@ -4,8 +4,7 @@
 import Foundation
 
 /// Auto-generated configuration from Config.plist
-public struct GeneratedConfig {
-
+public enum GeneratedConfig {
     /// Current environment
     public static let currentEnvironment: String = {
         // Try to read from Config.plist first
@@ -84,7 +83,8 @@ public struct GeneratedConfig {
     public static func config(for environment: String) -> [String: Any]? {
         guard let path = Bundle.main.path(forResource: "Config", ofType: "plist"),
               let dict = NSDictionary(contentsOfFile: path) as? [String: Any],
-              let environments = dict["Environments"] as? [String: [String: Any]] else {
+              let environments = dict["Environments"] as? [String: [String: Any]]
+        else {
             return nil
         }
 

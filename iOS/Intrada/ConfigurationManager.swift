@@ -27,15 +27,15 @@ class ConfigurationManager {
 
         // Determine environment based on build configuration
         #if DEBUG
-        // For device builds, you might want to force a specific environment
-        if let forcedEnv = ProcessInfo.processInfo.environment["FORCE_ENVIRONMENT"] {
-            currentEnvironment = forcedEnv
-            print("🔧 Forced environment from environment variable: \(forcedEnv)")
-        } else {
-            currentEnvironment = dict["CurrentEnvironment"] as? String ?? generatedConfig.currentEnvironment
-        }
+            // For device builds, you might want to force a specific environment
+            if let forcedEnv = ProcessInfo.processInfo.environment["FORCE_ENVIRONMENT"] {
+                currentEnvironment = forcedEnv
+                print("🔧 Forced environment from environment variable: \(forcedEnv)")
+            } else {
+                currentEnvironment = dict["CurrentEnvironment"] as? String ?? generatedConfig.currentEnvironment
+            }
         #else
-        currentEnvironment = "production"
+            currentEnvironment = "production"
         #endif
 
         print("🔧 Configuration loaded for environment: \(currentEnvironment)")

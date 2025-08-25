@@ -16,8 +16,6 @@ struct GoalsView: View {
             }
             .padding(.vertical, Theme.Spacing.large)
         }
-        .navigationTitle("Goals")
-        .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showingGoalForm) {
             GoalFormView(core: core)
         }
@@ -25,8 +23,6 @@ struct GoalsView: View {
 
     private var goalsSection: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.medium) {
-            SectionHeader(title: "Your Goals")
-
             if core.view.goals.isEmpty {
                 EmptyStateView(message: "No goals yet")
             } else {

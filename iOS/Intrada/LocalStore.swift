@@ -77,13 +77,11 @@ class LocalStore: ObservableObject {
         if cloudKitContainer != nil {
             defaults.set(true, forKey: "iCloud.enabled")
 
-            // Request CloudKit permissions
+            // CloudKit permissions are now handled automatically in iOS 17+
+            // No longer need to request userDiscoverability permission
             if let container = cloudKitContainer {
-                container.requestApplicationPermission(.userDiscoverability) { _, error in
-                    if let error {
-                        print("❌ CloudKit permission error: \(error)")
-                    }
-                }
+                // Container is ready for use, no additional permissions needed
+                print("✅ CloudKit container configured and ready")
             }
         } else {
             // Disable CloudKit sync when not available

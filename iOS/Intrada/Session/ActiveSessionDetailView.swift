@@ -34,14 +34,15 @@ struct ActiveSessionDetailView: View {
             }
         }
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(isPresented: $showingReflectionForm, onDismiss: {
-            dismiss()
-        }) {
+        .sheet(isPresented: $showingReflectionForm) {
             SessionReflectionForm(
                 sessionId: sessionId,
                 core: core,
                 isPresented: $showingReflectionForm
             )
+        }
+        .onDisappear {
+            dismiss()
         }
         .alert("Session Error", isPresented: $showingError) {
             Button("OK") {}

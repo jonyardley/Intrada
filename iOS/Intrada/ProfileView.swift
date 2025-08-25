@@ -6,16 +6,17 @@ struct ProfileView: View {
             VStack(spacing: 20) {
                 // Profile header
                 VStack {
-                    Circle()
-                        .fill(Color.gray.opacity(0.2))
-                        .frame(width: 100, height: 100)
-                        .overlay(
-                            Image(systemName: "person.fill")
-                                .resizable()
-                                .scaledToFit()
-                                .padding(25)
-                                .foregroundColor(.gray)
-                        )
+                    ZStack {
+                        Circle()
+                            .fill(Color.gray.opacity(0.2))
+                            .frame(width: 100, height: 100)
+
+                        Image(systemName: "person.fill")
+                            .resizable()
+                            .scaledToFit()
+                            .padding(25)
+                            .foregroundColor(.gray)
+                    }
 
                     Text("User Name")
                         .font(.title2)

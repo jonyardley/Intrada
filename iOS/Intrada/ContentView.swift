@@ -5,6 +5,7 @@
 //  Created by Jon Yardley on 15/05/2025.
 //
 
+import Shared
 import SharedTypes
 import SwiftUI
 
@@ -17,30 +18,28 @@ struct ContentView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            TabView {
-                HomeView(core: core)
-                    .tabItem {
-                        Label("Home", systemImage: "house")
-                    }
-                GoalsView(core: core)
-                    .tabItem {
-                        Label("Goals", systemImage: "chart.bar.xaxis.ascending.badge.clock")
-                    }
-                SessionsView(core: core)
-                    .tabItem {
-                        Label("Sessions", systemImage: "pianokeys")
-                    }
-                StudiesView(core: core)
-                    .tabItem {
-                        Label("Studies", systemImage: "music.quarternote.3")
-                    }
+        TabView {
+            HomeView(core: core)
+                .tabItem {
+                    Label("Home", systemImage: "house")
+                }
+            GoalsView(core: core)
+                .tabItem {
+                    Label("Goals", systemImage: "chart.bar.xaxis.ascending.badge.clock")
+                }
+            SessionsView(core: core)
+                .tabItem {
+                    Label("Sessions", systemImage: "pianokeys")
+                }
+            StudiesView(core: core)
+                .tabItem {
+                    Label("Studies", systemImage: "music.quarternote.3")
+                }
 
-                ProfileView()
-                    .tabItem {
-                        Label("Profile", systemImage: "person")
-                    }
-            }
+            ProfileView()
+                .tabItem {
+                    Label("Profile", systemImage: "person")
+                }
         }
     }
 }

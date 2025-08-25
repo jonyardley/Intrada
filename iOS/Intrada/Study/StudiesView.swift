@@ -16,8 +16,6 @@ struct StudiesView: View {
             }
             .padding(.vertical, Theme.Spacing.large)
         }
-        .navigationTitle("Studies")
-        .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showingAddForm) {
             StudyFormView(core: core)
         }
@@ -25,8 +23,6 @@ struct StudiesView: View {
 
     private var studiesSection: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.medium) {
-            SectionHeader(title: "Your Studies")
-
             if core.view.studies.isEmpty {
                 EmptyStateView(message: "No studies yet")
             } else {

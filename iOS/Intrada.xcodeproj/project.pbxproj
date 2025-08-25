@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 63;
+	objectVersion = 54;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -13,12 +13,13 @@
 		1AA7C60865627CEB316F80AE /* SharedComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1826750FCA4482633A085440 /* SharedComponents.swift */; };
 		30F514114D44187730655438 /* GoalsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FD08F85D2983946C780A40B /* GoalsView.swift */; };
 		32BD7E9A803656F78492B8E4 /* StudyDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A9682904D4B5E3E6031AABF /* StudyDetailView.swift */; };
+		384547213930387314C755A5 /* LoadingComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC25D2FEADF1649F3E984D7E /* LoadingComponents.swift */; };
 		475C0F9C8076B4F353028596 /* SessionReflectionForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 017BD4BD5C3BBD11E8B2DB14 /* SessionReflectionForm.swift */; };
 		47897E493E5BBA0E3C53B357 /* LocalStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFF8C86BAA82AFFD77DFE239 /* LocalStore.swift */; };
 		495D02D6DA9612297D01DD83 /* DynamicTimerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A90C12BC487A9A2858501805 /* DynamicTimerView.swift */; };
 		4A7CBB4F245895306428709C /* QuickStartSessionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FAC72E65A73219A76B5216D /* QuickStartSessionView.swift */; };
 		5D7D87040C89D8C0290BDC14 /* Config.plist in Resources */ = {isa = PBXBuildFile; fileRef = BF79F444D492395E5C4A36C9 /* Config.plist */; };
-		60EA876202FF0ABF6CB4F574 /* core.swift in Sources */ = {isa = PBXBuildFile; fileRef = 104D2C969AAB822EE589C8D3 /* core.swift */; };
+		65095ACB8C9E357A60D38381 /* SessionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFDDE3D70A8857861FCEEC0A /* SessionViewModel.swift */; };
 		664F18DE23904540AB4E0583 /* FormValidation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FE0E29AAFDFEE818EB25C1A /* FormValidation.swift */; };
 		6FC5829CF5F1455F348DD39F /* GeneratedConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FCBFE902E2795C378465FCD /* GeneratedConfig.swift */; };
 		7041A1B95A8BF82D73588AD6 /* http.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBD4BBEE3EB72A49C85AA18E /* http.swift */; };
@@ -33,6 +34,7 @@
 		9CBDD1C33A5EF3F35D479D6F /* Config.plist.template in Resources */ = {isa = PBXBuildFile; fileRef = A242062F443A30DF2B6B1F7F /* Config.plist.template */; };
 		9F252CA2D458853137E14949 /* ActiveSessionDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42ABA1F7B42F3ADFFBBE1F86 /* ActiveSessionDetailView.swift */; };
 		A7CF84A2E46DA1B4959B6F6F /* IntradaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00E1ECBA4E0EB5DA54C56F2 /* IntradaApp.swift */; };
+		C67E19195EAA12240A4BE739 /* SessionComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 197CE0737C087CAC73425E9D /* SessionComponents.swift */; };
 		CA6965A47994105FE97220A1 /* SessionFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6385FE2DE888540A275E4061 /* SessionFormView.swift */; };
 		EA8DFD8CD3F187836480FBFC /* StudyFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BC81CBD2E4C5D5D62F64935 /* StudyFormView.swift */; };
 		EEC3A3FA9D55DC193CCFCCBE /* GoalDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EA74F0CEF1045787E9E0EA8 /* GoalDetailView.swift */; };
@@ -46,11 +48,11 @@
 		017BD4BD5C3BBD11E8B2DB14 /* SessionReflectionForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionReflectionForm.swift; sourceTree = "<group>"; };
 		085DE01748EDA39FB010C0A8 /* SharedTypes */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SharedTypes; path = ../shared_types/generated/swift/SharedTypes; sourceTree = SOURCE_ROOT; };
 		0E9F213717B9B3ACC0188383 /* DashboardComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardComponents.swift; sourceTree = "<group>"; };
-		104D2C969AAB822EE589C8D3 /* core.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = core.swift; sourceTree = "<group>"; };
-		13E8B6BF7B3E02B04268499D /* Intrada.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Intrada.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		13E8B6BF7B3E02B04268499D /* Intrada.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Intrada.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		158AB46FE2EFCCA1A1B6FEB1 /* GoalFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalFormView.swift; sourceTree = "<group>"; };
 		1826750FCA4482633A085440 /* SharedComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedComponents.swift; sourceTree = "<group>"; };
 		193296C58A583AB40733912E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		197CE0737C087CAC73425E9D /* SessionComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionComponents.swift; sourceTree = "<group>"; };
 		1E9EBF7F20DE9609419F2B4B /* SessionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionsView.swift; sourceTree = "<group>"; };
 		3B36F261B1F57456079044C9 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		40FFD1BC2239CD9288F629EA /* GoalBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalBuilder.swift; sourceTree = "<group>"; };
@@ -68,10 +70,12 @@
 		83A37A40ED4819A50BFE69F4 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		8FCBFE902E2795C378465FCD /* GeneratedConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneratedConfig.swift; sourceTree = "<group>"; };
 		9A9682904D4B5E3E6031AABF /* StudyDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyDetailView.swift; sourceTree = "<group>"; };
-		A242062F443A30DF2B6B1F7F /* Config.plist.template */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = Config.plist.template; sourceTree = "<group>"; };
+		A242062F443A30DF2B6B1F7F /* Config.plist.template */ = {isa = PBXFileReference; path = Config.plist.template; sourceTree = "<group>"; };
 		A90C12BC487A9A2858501805 /* DynamicTimerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DynamicTimerView.swift; sourceTree = "<group>"; };
+		AFDDE3D70A8857861FCEEC0A /* SessionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionViewModel.swift; sourceTree = "<group>"; };
 		B00E1ECBA4E0EB5DA54C56F2 /* IntradaApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntradaApp.swift; sourceTree = "<group>"; };
 		BF79F444D492395E5C4A36C9 /* Config.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Config.plist; sourceTree = "<group>"; };
+		CC25D2FEADF1649F3E984D7E /* LoadingComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingComponents.swift; sourceTree = "<group>"; };
 		DAAF63990A427F10CDE80895 /* HomeVIew.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeVIew.swift; sourceTree = "<group>"; };
 		DBD4BBEE3EB72A49C85AA18E /* http.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = http.swift; sourceTree = "<group>"; };
 		DFF8C86BAA82AFFD77DFE239 /* LocalStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalStore.swift; sourceTree = "<group>"; };
@@ -102,6 +106,14 @@
 			name = Packages;
 			sourceTree = "<group>";
 		};
+		209569FBD1B34A52DE53CD93 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				AFDDE3D70A8857861FCEEC0A /* SessionViewModel.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
 		7A2E8539E9C5F29DAE105DC1 /* Study */ = {
 			isa = PBXGroup;
 			children = (
@@ -125,6 +137,8 @@
 			isa = PBXGroup;
 			children = (
 				0E9F213717B9B3ACC0188383 /* DashboardComponents.swift */,
+				CC25D2FEADF1649F3E984D7E /* LoadingComponents.swift */,
+				197CE0737C087CAC73425E9D /* SessionComponents.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -171,7 +185,6 @@
 				A242062F443A30DF2B6B1F7F /* Config.plist.template */,
 				F8B2ABF575A88EC880D01779 /* ConfigurationManager.swift */,
 				3B36F261B1F57456079044C9 /* ContentView.swift */,
-				104D2C969AAB822EE589C8D3 /* core.swift */,
 				5FE0E29AAFDFEE818EB25C1A /* FormValidation.swift */,
 				8FCBFE902E2795C378465FCD /* GeneratedConfig.swift */,
 				DAAF63990A427F10CDE80895 /* HomeVIew.swift */,
@@ -186,6 +199,7 @@
 				A88789A635B5B1C83BC114A7 /* Goal */,
 				E5A7F62A3A0E4D902216AE60 /* Session */,
 				7A2E8539E9C5F29DAE105DC1 /* Study */,
+				209569FBD1B34A52DE53CD93 /* ViewModels */,
 			);
 			path = Intrada;
 			sourceTree = "<group>";
@@ -242,6 +256,7 @@
 				4AEAE67A9ED6F0D48F6F61B2 /* XCLocalSwiftPackageReference "../shared/Shared" */,
 				37F1BCD307168686DD456EF8 /* XCLocalSwiftPackageReference "../shared_types/generated/swift/SharedTypes" */,
 			);
+			preferredProjectObjectVersion = 54;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -281,20 +296,22 @@
 				30F514114D44187730655438 /* GoalsView.swift in Sources */,
 				7336455A863CC14299B2B9AF /* HomeVIew.swift in Sources */,
 				A7CF84A2E46DA1B4959B6F6F /* IntradaApp.swift in Sources */,
+				384547213930387314C755A5 /* LoadingComponents.swift in Sources */,
 				47897E493E5BBA0E3C53B357 /* LocalStore.swift in Sources */,
 				0EA832D6EC736A0E1F242D7A /* ProfileView.swift in Sources */,
 				4A7CBB4F245895306428709C /* QuickStartSessionView.swift in Sources */,
+				C67E19195EAA12240A4BE739 /* SessionComponents.swift in Sources */,
 				FA16543D1DC396FE8161A006 /* SessionDetailComponents.swift in Sources */,
 				F11AC0CE6F3F92B65E71E772 /* SessionDetailView.swift in Sources */,
 				CA6965A47994105FE97220A1 /* SessionFormView.swift in Sources */,
 				475C0F9C8076B4F353028596 /* SessionReflectionForm.swift in Sources */,
+				65095ACB8C9E357A60D38381 /* SessionViewModel.swift in Sources */,
 				8C9C3799281B2075E8CFA0F0 /* SessionsView.swift in Sources */,
 				1AA7C60865627CEB316F80AE /* SharedComponents.swift in Sources */,
 				88FE04537635F0CD64005A7E /* StudiesView.swift in Sources */,
 				32BD7E9A803656F78492B8E4 /* StudyDetailView.swift in Sources */,
 				EA8DFD8CD3F187836480FBFC /* StudyFormView.swift in Sources */,
 				86021590AABBA72F8E0393E7 /* Theme.swift in Sources */,
-				60EA876202FF0ABF6CB4F574 /* core.swift in Sources */,
 				7041A1B95A8BF82D73588AD6 /* http.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -366,7 +383,6 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphonesimulator*]" = "";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 9S5FG4LQAF;
 				INFOPLIST_FILE = Intrada/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -388,7 +404,6 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphonesimulator*]" = "";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 9S5FG4LQAF;
 				INFOPLIST_FILE = Intrada/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (

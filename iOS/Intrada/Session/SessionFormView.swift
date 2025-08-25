@@ -22,7 +22,12 @@ struct SessionFormView: View {
     @State private var goalSearchText = ""
     @State private var showValidationHints = false
 
-    init(core: Core, isPresented: Binding<Bool>, existingSessionId: String? = nil, onSessionCreated: ((String) -> Void)? = nil) {
+    init(
+        core: Core,
+        isPresented: Binding<Bool>,
+        existingSessionId: String? = nil,
+        onSessionCreated: ((String) -> Void)? = nil
+    ) {
         self.core = core
         _isPresented = isPresented
         self.existingSessionId = existingSessionId
@@ -40,131 +45,193 @@ struct SessionFormView: View {
 
     var body: some View {
         NavigationView {
-            Form {
-                // Session Details Section
-                Section {
-                    VStack(alignment: .leading, spacing: Theme.Spacing.small) {
-                        TextField("What's your intention for this session?", text: $intention, axis: .vertical)
-                            .lineLimit(2 ... 4)
-                            .textFieldStyle(.plain)
+            ScrollView {
+                VStack(spacing: Theme.Spacing.extraLarge) {
+                    // Header Section
+                    VStack(spacing: Theme.Spacing.small) {
+                        Image(systemName: existingSessionId == nil ? "plus.circle.fill" : "pencil.circle.fill")
+                            .font(.system(size: 48))
+                            .foregroundColor(Theme.Colors.primary)
 
-                        if showValidationHints, intention.isEmpty {
-                            HStack {
-                                Image(systemName: "info.circle")
-                                    .foregroundColor(Theme.Colors.warning)
-                                Text("Please describe your session intention")
-                                    .font(Theme.Typography.caption)
-                                    .foregroundColor(Theme.Colors.warning)
-                            }
-                            .transition(.opacity)
-                        } else if !intention.isEmpty {
-                            HStack {
-                                Image(systemName: "checkmark.circle")
-                                    .foregroundColor(Theme.Colors.success)
-                                Text("Looks good!")
-                                    .font(Theme.Typography.caption)
-                                    .foregroundColor(Theme.Colors.success)
-                            }
-                            .transition(.opacity)
-                        }
-                    }
-                } header: {
-                    Text("Session Details")
-                } footer: {
-                    Text("Describe what you want to focus on or achieve in this practice session.")
-                        .font(Theme.Typography.caption)
+                        Text(existingSessionId == nil ? "New Practice Session" : "Edit Session")
+                            .font(Theme.Typography.title)
+                            .foregroundColor(Theme.Colors.text)
+
+                        Text(
+                            existingSessionId == nil
+                                ? "Plan your next practice session"
+                                : "Update session details"
+                        )
+                        .font(Theme.Typography.subheadline)
                         .foregroundColor(Theme.Colors.textSecondary)
-                }
-
-                // Reflection Notes Section (only for ended sessions)
-                if let existingSession = existingSessionId.flatMap({ id in
-                    core.view.sessions.first { $0.id == id }
-                }), case .ended = existingSession.state {
-                    Section {
-                        TextEditor(text: $notes)
-                            .frame(minHeight: 100)
-                    } header: {
-                        Text("Reflection Notes")
-                    } footer: {
-                        Text("How did the session go? What did you learn?")
-                            .font(Theme.Typography.caption)
-                            .foregroundColor(Theme.Colors.textSecondary)
                     }
-                }
+                    .padding(.top, Theme.Spacing.extraLarge)
 
-                // Goals Selection Section
-                Section {
-                    // Add New Goal Button
-                    Button(action: {
-                        showingGoalForm = true
-                    }) {
-                        HStack {
-                            Image(systemName: "plus.circle.fill")
-                                .foregroundColor(Theme.Colors.primary)
-                            Text("Add New Goal")
-                                .foregroundColor(Theme.Colors.primary)
-                        }
-                    }
+                    VStack(spacing: Theme.Spacing.extraLarge) {
+                        // Session Intention Input
+                        Card {
+                            VStack(alignment: .leading, spacing: Theme.Spacing.medium) {
+                                VStack(alignment: .leading, spacing: Theme.Spacing.small) {
+                                    Text("Session Intention")
+                                        .font(Theme.Typography.headline)
+                                        .foregroundColor(Theme.Colors.text)
 
-                    // Goals List
-                    if core.view.goals.isEmpty {
-                        VStack(alignment: .leading, spacing: Theme.Spacing.small) {
-                            Text("No goals available")
-                                .foregroundColor(Theme.Colors.textSecondary)
-                            Text("Create your first goal to track your practice progress!")
-                                .font(Theme.Typography.caption)
-                                .foregroundColor(Theme.Colors.textSecondary)
-                        }
-                    } else {
-                        // Search field for many goals
-                        if core.view.goals.count > 5 {
-                            TextField("Search goals...", text: $goalSearchText)
-                                .textFieldStyle(.plain)
-                        }
+                                    Text("What do you want to focus on or achieve?")
+                                        .font(Theme.Typography.caption)
+                                        .foregroundColor(Theme.Colors.textSecondary)
+                                }
 
-                        // Filtered goals list
-                        ForEach(filteredGoals, id: \.id) { goal in
-                            GoalSelectionRow(
-                                goal: goal,
-                                isSelected: binding(for: goal)
-                            )
-                        }
+                                TextField(
+                                    "e.g., Practice scales, Work on dynamics...",
+                                    text: $intention,
+                                    axis: .vertical
+                                )
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .lineLimit(2 ... 4)
+                                .submitLabel(.done)
 
-                        // Selection summary
-                        if !selectedGoals.isEmpty {
-                            HStack {
-                                Image(systemName: "target")
-                                    .foregroundColor(Theme.Colors.primary)
-                                Text("\(selectedGoals.count) goal\(selectedGoals.count == 1 ? "" : "s") selected")
-                                    .font(Theme.Typography.caption)
-                                    .foregroundColor(Theme.Colors.textSecondary)
+                                if showValidationHints, intention.isEmpty {
+                                    HStack {
+                                        Image(systemName: "info.circle")
+                                            .foregroundColor(Theme.Colors.warning)
+                                        Text("Please describe your session intention")
+                                            .font(Theme.Typography.caption)
+                                            .foregroundColor(Theme.Colors.warning)
+                                    }
+                                    .transition(.opacity)
+                                } else if !intention.isEmpty {
+                                    HStack {
+                                        Image(systemName: "checkmark.circle")
+                                            .foregroundColor(Theme.Colors.success)
+                                        Text("Looks good!")
+                                            .font(Theme.Typography.caption)
+                                            .foregroundColor(Theme.Colors.success)
+                                    }
+                                    .transition(.opacity)
+                                }
                             }
                         }
+
+                        // Reflection Notes Section (only for ended sessions)
+                        if let existingSession = existingSessionId.flatMap({ id in
+                            core.view.sessions.first { $0.id == id }
+                        }), case .ended = existingSession.state {
+                            Card {
+                                VStack(alignment: .leading, spacing: Theme.Spacing.medium) {
+                                    VStack(alignment: .leading, spacing: Theme.Spacing.small) {
+                                        Text("Reflection Notes")
+                                            .font(Theme.Typography.headline)
+                                            .foregroundColor(Theme.Colors.text)
+
+                                        Text("How did the session go? What did you learn?")
+                                            .font(Theme.Typography.caption)
+                                            .foregroundColor(Theme.Colors.textSecondary)
+                                    }
+
+                                    TextEditor(text: $notes)
+                                        .frame(minHeight: 100)
+                                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                                }
+                            }
+                        }
+
+                        // Goals Selection Section
+                        Card {
+                            VStack(alignment: .leading, spacing: Theme.Spacing.medium) {
+                                VStack(alignment: .leading, spacing: Theme.Spacing.small) {
+                                    Text("Related Goals")
+                                        .font(Theme.Typography.headline)
+                                        .foregroundColor(Theme.Colors.text)
+
+                                    Text("Select goals that this session will help you work towards.")
+                                        .font(Theme.Typography.caption)
+                                        .foregroundColor(Theme.Colors.textSecondary)
+                                }
+
+                                // Add New Goal Button
+                                Button(action: {
+                                    showingGoalForm = true
+                                }) {
+                                    HStack {
+                                        Image(systemName: "plus.circle.fill")
+                                            .foregroundColor(Theme.Colors.primary)
+                                        Text("Add New Goal")
+                                            .foregroundColor(Theme.Colors.primary)
+                                    }
+                                }
+
+                                // Goals List
+                                if core.view.goals.isEmpty {
+                                    VStack(alignment: .leading, spacing: Theme.Spacing.small) {
+                                        Text("No goals available")
+                                            .foregroundColor(Theme.Colors.textSecondary)
+                                        Text("Create your first goal to track your practice progress!")
+                                            .font(Theme.Typography.caption)
+                                            .foregroundColor(Theme.Colors.textSecondary)
+                                    }
+                                } else {
+                                    // Search field for many goals
+                                    if core.view.goals.count > 5 {
+                                        TextField("Search goals...", text: $goalSearchText)
+                                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    }
+
+                                    // Filtered goals list
+                                    VStack(spacing: Theme.Spacing.small) {
+                                        ForEach(filteredGoals, id: \.id) { goal in
+                                            GoalSelectionRow(
+                                                goal: goal,
+                                                isSelected: binding(for: goal)
+                                            )
+                                        }
+                                    }
+
+                                    // Selection summary
+                                    if !selectedGoals.isEmpty {
+                                        HStack {
+                                            Image(systemName: "target")
+                                                .foregroundColor(Theme.Colors.primary)
+                                            Text(
+                                                "\(selectedGoals.count) goal\(selectedGoals.count == 1 ? "" : "s") selected"
+                                            )
+                                            .font(Theme.Typography.caption)
+                                            .foregroundColor(Theme.Colors.textSecondary)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Action Buttons
+                        VStack(spacing: Theme.Spacing.medium) {
+                            Button(action: saveSession) {
+                                HStack {
+                                    Image(systemName: existingSessionId == nil ? "plus" : "checkmark")
+                                    Text(existingSessionId == nil ? "Create Session" : "Save Changes")
+                                }
+                                .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(PrimaryButtonStyle())
+                            .disabled(intention.isEmpty)
+                        }
                     }
-                } header: {
-                    Text("Related Goals")
-                } footer: {
-                    Text("Select goals that this session will help you work towards.")
-                        .font(Theme.Typography.caption)
-                        .foregroundColor(Theme.Colors.textSecondary)
+                    .padding(.horizontal, Theme.Spacing.large)
+                    .padding(.bottom, Theme.Spacing.extraLarge)
                 }
             }
-            .navigationTitle(existingSessionId == nil ? "New Session" : "Edit Session")
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
             .navigationBarItems(
                 leading: Button("Cancel") {
                     isPresented = false
-                },
-                trailing: Button("Save") {
-                    saveSession()
                 }
-                .buttonStyle(PrimaryButtonStyle())
-                .disabled(intention.isEmpty)
             )
             .sheet(isPresented: $showingGoalForm) {
                 GoalFormView(core: core)
             }
         }
-        .onChange(of: intention) { _ in
+
+        .onChange(of: intention) { _, _ in
             withAnimation(.easeInOut(duration: 0.2)) {
                 showValidationHints = intention.isEmpty
             }

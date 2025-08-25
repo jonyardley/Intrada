@@ -49,7 +49,8 @@ struct GoalFormView: View {
                     TextField("Enter tempo", text: $tempoTarget)
                         .keyboardType(.numberPad)
 
-                    if !tempoTarget.isEmpty, UInt32(tempoTarget) == nil || UInt32(tempoTarget)! <= 0 || UInt32(tempoTarget)! > 300 {
+                    if !tempoTarget.isEmpty,
+                       UInt32(tempoTarget) == nil || UInt32(tempoTarget)! <= 0 || UInt32(tempoTarget)! > 300 {
                         Text("Tempo must be between 1-300 BPM")
                             .foregroundColor(.red)
                             .font(.caption)
@@ -78,6 +79,7 @@ struct GoalFormView: View {
                                 .foregroundColor(Theme.Colors.primary)
                         }
                     }
+
                     .sheet(isPresented: $showStudyForm) {
                         StudyFormView(core: core)
                     }
@@ -122,7 +124,8 @@ struct GoalFormView: View {
 
     private var isFormValid: Bool {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        let tempoValid = tempoTarget.isEmpty || (UInt32(tempoTarget) != nil && UInt32(tempoTarget)! > 0 && UInt32(tempoTarget)! <= 300)
+        let tempoValid = tempoTarget
+            .isEmpty || (UInt32(tempoTarget) != nil && UInt32(tempoTarget)! > 0 && UInt32(tempoTarget)! <= 300)
 
         return !trimmedName.isEmpty && tempoValid
     }

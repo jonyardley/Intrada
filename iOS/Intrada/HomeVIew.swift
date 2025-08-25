@@ -13,7 +13,7 @@ struct HomeView: View {
     @State private var showingQuickStartForm = false
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: Theme.Spacing.extraLarge) {
                     // Welcome Header
@@ -29,8 +29,14 @@ struct HomeView: View {
 
                     // Stats Overview
                     StatsOverviewView(
-                        activeSessions: core.view.sessions.filter { if case .started = $0.state { return true } else { return false } },
-                        completedSessions: core.view.sessions.filter { if case .ended = $0.state { return true } else { return false } },
+                        activeSessions: core.view.sessions.filter { session in
+                            if case .started = session.state { return true }
+                            return false
+                        },
+                        completedSessions: core.view.sessions.filter { session in
+                            if case .ended = session.state { return true }
+                            return false
+                        },
                         goalsCount: core.view.goals.count
                     )
 

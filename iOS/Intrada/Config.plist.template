@@ -7,7 +7,7 @@
 		<key>development</key>
 		<dict>
 			<key>ServerBaseURL</key>
-			<string>https://intrada-server.fly.dev</string>
+			<string>http://localhost:3000</string>
 			<key>DisplayName</key>
 			<string>Intrada (Dev)</string>
 		</dict>

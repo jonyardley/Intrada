@@ -32,9 +32,9 @@ struct StudyDetailView: View {
                             .font(Theme.Typography.headline)
                             .foregroundColor(Theme.Colors.text)
 
-                    let goals = core.view.goals.filter { goal in
-                        goal.studyIds.contains(study.id)
-                    }
+                        let goals = core.view.goals.filter { goal in
+                            goal.studyIds.contains(study.id)
+                        }
 
                         if goals.isEmpty {
                             Text("No goals associated")

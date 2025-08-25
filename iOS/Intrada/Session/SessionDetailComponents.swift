@@ -104,7 +104,6 @@ struct SessionTimesView: View {
                     .foregroundColor(Theme.Colors.text)
 
                 VStack(alignment: .leading, spacing: Theme.Spacing.small) {
-
                     if case let .started(startTime) = session.state {
                         if let startDate = ISO8601DateFormatter().date(from: startTime) {
                             TimelineRow(
