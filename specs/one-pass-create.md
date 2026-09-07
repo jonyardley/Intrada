@@ -137,13 +137,22 @@ pub enum ScaffoldEntry {
 }
 ```
 
-Handler order, and all of it before any mutation:
+Handler order, and all of it before any mutation. The first failure wins:
+`last_error` is a single slot, so a create carrying both a bad bar and a blank
+exercise title surfaces the title, and the screens have to cope with only one
+of the two being pointed at.
 
-1. Validate the piece through the existing create validation.
-2. Parse the chart, if present. A `ChartParseError` rejects the event.
+1. Refuse online, but only when a chart or an exercise is present. A bare
+   piece is an ordinary create and falls through to `ItemEvent::Add`, rather
+   than being refused in the name of two things the musician never used.
+2. Validate the piece through the existing create validation.
 3. Validate every `New` title and resolve every `Existing { id }` to a real
-   exercise. An unknown id or a blank title rejects the event.
-4. Mint ulids for the piece and each new exercise, set the piece's
+   exercise. An unknown id or a blank title rejects the event. A repeated id
+   is collapsed rather than rejected, matching `CommitScaffold`.
+4. Parse the chart, if present. A `ChartParseError` rejects the event. Text
+   that is empty or only whitespace counts as no chart, never a parse error:
+   unlike `SetChordChart` there is no separate clear on this path.
+5. Mint ulids for the piece and each new exercise, set the piece's
    `linked_exercise_ids` and `chord_chart`, then emit **one** `SaveItems`.
 
 Wire constraints:
@@ -154,9 +163,10 @@ Wire constraints:
 - `ActiveSession` is untouched: `SetlistEntry` denormalises item fields rather
   than embedding `Item` (`domain/session.rs:63`), so the crash-recovery blob
   graph does not see this. Re-verify if that ever changes.
-- The new event and `ScaffoldEntry` need `assert_round_trips` entries in
-  `domain/types.rs` and a real-bridge round-trip in `StoreEffectLoopTests`
-  before any screen sends them: a stub bridge cannot catch a wire break (#846).
+- The new event and `ScaffoldEntry` need `assert_round_trips` entries beside
+  the other item-event round-trips in `domain/item.rs`, and a real-bridge
+  round-trip in `StoreEffectLoopTests`, before any screen sends them: a stub
+  bridge cannot catch a wire break (#846).
 
 Against the offline-first checklist: no `Http` on the local path (invariant 1),
 client-minted ulids (3), all interpretation in the core (4), a failed write

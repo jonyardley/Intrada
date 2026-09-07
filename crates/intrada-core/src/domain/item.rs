@@ -488,19 +488,23 @@ pub fn handle_item_event(event: ItemEvent, model: &mut Model) -> Command<Effect,
             chart,
             exercises,
         } => {
+            // Only the chart and the links are local-first-only: the online
+            // create reassigns ids server-side, so links minted here would
+            // dangle (#1108). A bare piece is an ordinary create, and refusing
+            // it here would name two things the musician never used.
             if !model.local_first {
-                // The online create path reassigns ids server-side, so links
-                // minted here would dangle: the trap #1108 marks in
-                // `CommitScaffold`.
-                model.last_error = Some(
-                    "Chord charts and related exercises aren't available online yet".to_string(),
-                );
-                return crux_core::render::render();
+                if chart.is_some() || !exercises.is_empty() {
+                    model.last_error = Some(
+                        "Chord charts and related exercises aren't available online yet"
+                            .to_string(),
+                    );
+                    return crux_core::render::render();
+                }
+                return handle_item_event(ItemEvent::Add(piece), model);
             }
 
-            // Everything is validated before anything is written: a bar the
-            // parser rejects or a blank exercise title must leave no half-made
-            // piece and no orphan exercise behind.
+            // Everything is validated before anything is written: no half-made
+            // piece, no orphan exercise.
             let piece_input = validation::normalize_create_item(CreateItem {
                 kind: ItemKind::Piece,
                 ..piece
@@ -534,9 +538,8 @@ pub fn handle_item_event(event: ItemEvent, model: &mut Model) -> Command<Effect,
                 }
             }
 
-            // The piece does not exist yet, so the chart derives against the
-            // key and modality the form is carrying, and the default metre:
-            // `CreateItem` has no metre field, and `SetMetre` re-derives.
+            // No piece exists yet, so the chart derives against the key the form
+            // is carrying and the default metre; `SetMetre` re-derives later.
             let chart = match chart.as_deref().map(str::trim).filter(|c| !c.is_empty()) {
                 Some(raw) => {
                     let key = piece_input.key.clone().unwrap_or_else(|| "C".to_string());
@@ -3468,10 +3471,10 @@ mod tests {
                 piece: one_pass_piece_input("Autumn Leaves"),
                 chart: Some("| Cm7 | F7 | BbMaj7 |".to_string()),
                 exercises: vec![
-                    ScaffoldEntry::New(new_exercise_input("Shell voicings")),
                     ScaffoldEntry::Existing {
                         id: "ex-1".to_string(),
                     },
+                    ScaffoldEntry::New(new_exercise_input("Shell voicings")),
                 ],
             },
         );
@@ -3493,8 +3496,8 @@ mod tests {
         );
         assert_eq!(
             piece.linked_exercise_ids,
-            vec![written.id.clone(), "ex-1".to_string()],
-            "both the written and the chosen exercise are linked, in the order given"
+            vec!["ex-1".to_string(), written.id.clone()],
+            "chosen then written, in the order given: neither minting order nor sorted"
         );
 
         let batch = emits_save_items(&mut cmd).expect("a SaveItems batch is persisted");
@@ -3641,6 +3644,52 @@ mod tests {
         );
         assert!(!emits_http(&mut cmd), "refused, never half-applied");
         assert!(model.last_error.is_some(), "and said so, never silent");
+    }
+
+    #[test]
+    fn add_piece_in_full_takes_a_bare_piece_online() {
+        let mut model = model_with_piece_and_exercise();
+        model.local_first = false;
+
+        let mut cmd = send_cmd(
+            &mut model,
+            ItemEvent::AddPieceInFull {
+                piece: one_pass_piece_input("Autumn Leaves"),
+                chart: None,
+                exercises: vec![],
+            },
+        );
+
+        assert!(
+            emits_http(&mut cmd),
+            "with nothing local-first about it, this is an ordinary create and must not be refused"
+        );
+        assert!(model.last_error.is_none());
+    }
+
+    #[test]
+    fn add_piece_in_full_treats_an_empty_chart_as_no_chart() {
+        let mut model = model_with_piece_and_exercise();
+
+        send(
+            &mut model,
+            ItemEvent::AddPieceInFull {
+                piece: one_pass_piece_input("Autumn Leaves"),
+                chart: Some("   ".to_string()),
+                exercises: vec![],
+            },
+        );
+
+        let piece = model
+            .items
+            .iter()
+            .find(|i| i.title == "Autumn Leaves")
+            .expect("an emptied chart sheet still creates the piece");
+        assert!(
+            piece.chord_chart.is_none(),
+            "whitespace is not a chart, and must not be a parse error either"
+        );
+        assert!(model.last_error.is_none());
     }
 
     #[test]

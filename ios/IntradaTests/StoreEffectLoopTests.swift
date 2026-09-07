@@ -852,11 +852,11 @@ final class StoreEffectLoopTests: XCTestCase {
             modality: .minor, tempo: nil, notes: nil, tags: [], photoId: nil),
           chart: "| Cm7 | F7 | Bbmaj7 |",
           exercises: [
+            .existing(id: existingId),
             .new(
               CreateItem(
                 title: "Enclosures", kind: .exercise, composer: nil, key: nil, modality: nil,
                 tempo: nil, notes: nil, tags: [], photoId: nil)),
-            .existing(id: existingId),
           ])))
 
     let after = try bridge.view()
@@ -866,8 +866,8 @@ final class StoreEffectLoopTests: XCTestCase {
       piece.chordChart?.sections.first?.bars.count, 3,
       "the chart parsed on the way in, with no second event")
     XCTAssertEqual(
-      piece.linkedExercises.map(\.title), ["Enclosures", "Shell voicings"],
-      "written and chosen exercises are both linked, in the order given")
+      piece.linkedExercises.map(\.title), ["Shell voicings", "Enclosures"],
+      "chosen then written, in the order given: neither minting order nor sorted")
 
     // A bar the parser rejects writes nothing at all: no piece, no exercise.
     _ = try bridge.update(
