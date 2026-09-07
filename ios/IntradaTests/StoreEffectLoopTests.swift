@@ -829,6 +829,68 @@ final class StoreEffectLoopTests: XCTestCase {
     XCTAssertEqual(shells.count, 1, "re-commit adds no duplicate (#1106 dedup)")
   }
 
+  /// Real-bridge one-pass create (#1390): `AddPieceInFull` carries a nested
+  /// `CreateItem`, an optional raw chart and a `Vec<ScaffoldEntry>` whose two
+  /// variants have different payload shapes, so a stub bridge cannot prove the
+  /// wire holds (#846). Pinned here before any screen sends it.
+  func testRealBridgeAddPieceInFullCarriesChartAndExercises() throws {
+    let bridge = LiveBridge()
+    _ = try bridge.update(.startApp(apiBaseUrl: "http://localhost:3001", localFirst: true))
+    _ = try bridge.update(
+      .item(
+        .add(
+          CreateItem(
+            title: "Shell voicings", kind: .exercise, composer: nil, key: "G",
+            modality: nil, tempo: nil, notes: nil, tags: [], photoId: nil))))
+    let existingId = try XCTUnwrap(try bridge.view().items.first?.id)
+
+    _ = try bridge.update(
+      .item(
+        .addPieceInFull(
+          piece: CreateItem(
+            title: "Autumn Leaves", kind: .piece, composer: "Joseph Kosma", key: "G",
+            modality: .minor, tempo: nil, notes: nil, tags: [], photoId: nil),
+          chart: "| Cm7 | F7 | Bbmaj7 |",
+          exercises: [
+            .new(
+              CreateItem(
+                title: "Enclosures", kind: .exercise, composer: nil, key: nil, modality: nil,
+                tempo: nil, notes: nil, tags: [], photoId: nil)),
+            .existing(id: existingId),
+          ])))
+
+    let after = try bridge.view()
+    XCTAssertNil(after.error, "the one-pass create surfaces no error")
+    let piece = try XCTUnwrap(after.items.first { $0.title == "Autumn Leaves" })
+    XCTAssertEqual(
+      piece.chordChart?.sections.first?.bars.count, 3,
+      "the chart parsed on the way in, with no second event")
+    XCTAssertEqual(
+      piece.linkedExercises.map(\.title), ["Enclosures", "Shell voicings"],
+      "written and chosen exercises are both linked, in the order given")
+
+    // A bar the parser rejects writes nothing at all: no piece, no exercise.
+    _ = try bridge.update(
+      .item(
+        .addPieceInFull(
+          piece: CreateItem(
+            title: "Blue in Green", kind: .piece, composer: nil, key: "G", modality: nil,
+            tempo: nil, notes: nil, tags: [], photoId: nil),
+          chart: "| Cm7 | Hxyz |",
+          exercises: [
+            .new(
+              CreateItem(
+                title: "Orphan", kind: .exercise, composer: nil, key: nil, modality: nil,
+                tempo: nil, notes: nil, tags: [], photoId: nil))
+          ])))
+
+    let rejected = try bridge.view()
+    XCTAssertNotNil(rejected.error, "a parse error must surface, not vanish (#846)")
+    XCTAssertNil(
+      rejected.items.first { $0.title == "Blue in Green" }, "no half-made piece is left behind")
+    XCTAssertNil(rejected.items.first { $0.title == "Orphan" }, "and no orphan exercise either")
+  }
+
   /// Real-bridge priority toggle (#763): the star sends an UpdateItem with every
   /// optional field "no change" (outer nil) and only `priority` set — a different
   /// bincode shape than the full edit, so round-trip it through the live bridge to
