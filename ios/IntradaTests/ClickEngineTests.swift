@@ -4,9 +4,10 @@ import Testing
 
 @MainActor
 struct ClickEngineTests {
-  private func pulse(bpm: Double, latencySeconds: Double = 0) -> ClickEngine.Pulse {
-    ClickEngine.Pulse(
-      bpm: bpm, scheduledStart: 0,
+  private func pulse(bpm: Double, latencySeconds: Double = 0) throws -> ClickEngine.Pulse {
+    let tempo = try #require(ClickEngine.Tempo(bpm: bpm))
+    return ClickEngine.Pulse(
+      tempo: tempo, scheduledStart: 0,
       outputLatencyTicks: HostClock.ticks(fromSeconds: latencySeconds))
   }
 
@@ -28,8 +29,8 @@ struct ClickEngineTests {
 
   /// The indicator reads the audio's clock: the beat shown is the one being
   /// heard, offset by output latency, and it wraps at the bar.
-  @Test func theCurrentBeatIsDerivedFromTheAudibleGrid() {
-    let p = pulse(bpm: 120, latencySeconds: 0.1)
+  @Test func theCurrentBeatIsDerivedFromTheAudibleGrid() throws {
+    let p = try pulse(bpm: 120, latencySeconds: 0.1)
     let audibleStart = p.scheduledStart &+ p.outputLatencyTicks
     let at = { (seconds: Double) in audibleStart &+ HostClock.ticks(fromSeconds: seconds) }
 
@@ -42,8 +43,8 @@ struct ClickEngineTests {
     #expect(ClickEngine.beatIndex(at: at(3.25), pulse: p, beats: 7) == 6)
   }
 
-  @Test func everyBeatSitsOnTheGridStruckFromTheStart() {
-    let beats = ClickEngine.schedule(beats: 0..<9, pulse: pulse(bpm: 120))
+  @Test func everyBeatSitsOnTheGridStruckFromTheStart() throws {
+    let beats = try ClickEngine.schedule(beats: 0..<9, pulse: pulse(bpm: 120))
 
     for (index, beat) in beats.enumerated() {
       let seconds = HostClock.seconds(fromTicks: beat.hostTime)
@@ -54,25 +55,25 @@ struct ClickEngineTests {
   /// The window is topped up thousands of beats into a session, so beat N is
   /// N × the period from the *start*, never one period past its predecessor —
   /// per-beat accumulation would round its way off the grid.
-  @Test func aBeatThousandsInIsStillOnTheOriginalGrid() {
+  @Test func aBeatThousandsInIsStillOnTheOriginalGrid() throws {
     let secondsPerBeat = 60.0 / 132.0
-    let beats = ClickEngine.schedule(beats: 5000..<5001, pulse: pulse(bpm: 132))
+    let beats = try ClickEngine.schedule(beats: 5000..<5001, pulse: pulse(bpm: 132))
 
     let seconds = HostClock.seconds(fromTicks: beats[0].hostTime)
     #expect(abs(seconds - 5000 * secondsPerBeat) < 0.000_001)
   }
 
-  @Test func aLaterWindowPicksUpExactlyOnePeriodAfterTheOneBefore() {
-    let first = ClickEngine.schedule(beats: 0..<64, pulse: pulse(bpm: 120))
-    let second = ClickEngine.schedule(beats: 64..<128, pulse: pulse(bpm: 120))
+  @Test func aLaterWindowPicksUpExactlyOnePeriodAfterTheOneBefore() throws {
+    let first = try ClickEngine.schedule(beats: 0..<64, pulse: pulse(bpm: 120))
+    let second = try ClickEngine.schedule(beats: 64..<128, pulse: pulse(bpm: 120))
 
     let gap = HostClock.secondsBetween(second[0].hostTime, first[63].hostTime)
     #expect(abs(gap - 0.5) < 0.000_001)
   }
 
-  @Test func aBeatIsHeardOneOutputLatencyAfterItIsScheduled() {
+  @Test func aBeatIsHeardOneOutputLatencyAfterItIsScheduled() throws {
     let latency = HostClock.ticks(fromSeconds: 0.012)
-    let beats = ClickEngine.schedule(beats: 0..<4, pulse: pulse(bpm: 90, latencySeconds: 0.012))
+    let beats = try ClickEngine.schedule(beats: 0..<4, pulse: pulse(bpm: 90, latencySeconds: 0.012))
 
     for beat in beats {
       #expect(beat.audibleHostTime == beat.hostTime &+ latency)
@@ -127,18 +128,13 @@ struct ClickEngineTests {
       !ClickEngine.hasLostTheClock(head: head, now: threeSecondsLate, secondsPerBeat: 1.5))
   }
 
-  /// `HostClock.ticks` traps on the NaN a zero tempo produces, and a trap is a
-  /// crash rather than something the caller can route around. The one test here
-  /// that genuinely needs a real engine, since it exercises `start()`'s guard.
-  @Test func aNonPositiveTempoThrowsRatherThanCrashing() throws {
-    let engine = try ClickEngine()
-
-    #expect(throws: ClickEngine.ClickEngineError.nonPositiveTempo) {
-      try engine.start(bpm: 0)
-    }
-    #expect(throws: ClickEngine.ClickEngineError.nonPositiveTempo) {
-      try engine.start(bpm: -120)
-    }
-    engine.dispose()
+  @Test func aTempoTheGridCannotUseIsRefused() {
+    #expect(ClickEngine.Tempo(bpm: 0) == nil)
+    #expect(ClickEngine.Tempo(bpm: -120) == nil)
+    #expect(ClickEngine.Tempo(bpm: .nan) == nil)
+    #expect(ClickEngine.Tempo(bpm: .infinity) == nil)
+    #expect(ClickEngine.Tempo(bpm: .leastNonzeroMagnitude) == nil)
+    #expect(ClickEngine.Tempo(bpm: 120)?.secondsPerBeat == 0.5)
+    #expect(ClickEngine.Tempo(bpm: 40)?.secondsPerBeat == 1.5)
   }
 }
