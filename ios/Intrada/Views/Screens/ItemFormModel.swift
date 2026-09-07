@@ -235,6 +235,8 @@ enum StagedExercise: Identifiable, Hashable {
 
   var entry: ScaffoldEntry {
     switch self {
+    // Trimmed here rather than relying on the sheet to have done it, so the
+    // tempo survives whoever builds the case.
     case .draft(_, let title, let key, let modality, let bpm):
       .new(
         CreateItem(
@@ -243,7 +245,9 @@ enum StagedExercise: Identifiable, Hashable {
           composer: nil,
           key: key.isEmpty ? nil : key,
           modality: modality,
-          tempo: UInt16(bpm).map { Tempo(marking: nil, bpm: $0) },
+          tempo: UInt16(bpm.trimmingCharacters(in: .whitespaces)).map {
+            Tempo(marking: nil, bpm: $0)
+          },
           notes: nil,
           tags: [],
           photoId: nil))

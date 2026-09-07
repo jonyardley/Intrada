@@ -71,6 +71,16 @@ struct LibraryAddScreen: View {
     ) {
       send()
     }
+    // An exercise carries neither a chart nor related exercises, so switching
+    // kind drops what was staged. Cleared here rather than left in the model:
+    // the sections vanishing is the acknowledgement, and Add is never left
+    // silently ignoring state the screen is no longer showing.
+    .onChange(of: form.kind) { _, kind in
+      guard kind != .piece else { return }
+      form.chartText = ""
+      form.stagedExercises = []
+      expandsExercises = false
+    }
     // Keyed on the projection, not the draft: re-picking the same library file
     // reads to an equal `PhotoDraft`, so a rescan would silently do nothing.
     .onChange(of: recognition) { _, next in
