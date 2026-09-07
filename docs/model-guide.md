@@ -9,10 +9,12 @@
 > Sonnet 5, Haiku 4.5). Re-review at the next model generation; pricing and
 > effort semantics below were validated against the API docs on that date.
 >
-> The ladder is no longer prose only: `.omp/config.yml` pins the `default`,
+> The ladder is no longer prose only. `.omp/config.yml` pins the `default`,
 > `plan`, `slow`, `task` and `advisor` roles to it, so an OMP session started in
-> this repo begins on the right rung instead of re-deriving one. Keep the two in
-> step when either changes.
+> this repo begins on the right rung instead of re-deriving one, and
+> `.omp/agents/*.md` pins a model per named subagent (see Subagents below).
+> Session roles live in the config, per-agent pins live in the agent file, and a
+> routing change usually means editing both.
 
 ## The organising rule
 
@@ -96,8 +98,15 @@ up on a cheap one.
 | `scout` | Haiku 4.5, low | Read-only research reporting facts back. Never edits, so a wrong answer is caught by the lead verifying it |
 | `sonic` | Sonnet 5, low | Mechanical, fully specified edits: renames, sweeps, data collection |
 | `test-runner` | Sonnet 5, low | Runs a gate and filters its log. No judgement, and the gate itself is the check |
-| `reviewer` | Opus 5, medium | Judgement-dense, and bound by the rule above: never weaker than the writer. Goes to Fable when Fable wrote the diff |
+| `reviewer` | Opus 5, high | Judgement-dense, and bound by the rule above: never weaker than the writer. `high` matches Effort's "review synthesis" rung and `advisor` in `.omp/config.yml` |
 | `task` (generic) | Sonnet 5, xhigh | The `.omp/config.yml` `task` role. Conventional Tier 2 on a non-sensitive surface |
+
+**The never-weaker rule needs a lever on Fable work.** A pinned frontmatter
+model is beaten only by `task.agentModelOverrides[<agent>]`, never by the parent
+session's model, so a Fable session that spawns `reviewer` on a bridge or
+migration diff gets Opus and reviews its own work with something weaker. Either
+set `task.agentModelOverrides.reviewer` for that spawn, or keep the review in
+the Fable session.
 
 Three rules on top of the table:
 

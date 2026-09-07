@@ -27,6 +27,7 @@ output:
   required:
     - answer
     - evidence
+    - unsettled
 ---
 
 This project definition shadows the bundled `scout`, so the model above is the

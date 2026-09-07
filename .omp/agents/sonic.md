@@ -28,6 +28,7 @@ output:
       type: string
   required:
     - done
+    - verification
 ---
 
 This project definition shadows the bundled `sonic`, so the model above is the

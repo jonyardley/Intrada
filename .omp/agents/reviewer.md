@@ -9,7 +9,7 @@ tools:
   - yield
 model:
   - "anthropic/claude-opus-5"
-thinkingLevel: medium
+thinkingLevel: high
 output:
   properties:
     verdict:
