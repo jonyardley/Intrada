@@ -893,38 +893,48 @@
       PracticeSessionView(
         id: "session-1", startedAt: "2026-05-30T09:00:00Z", finishedAt: "2026-05-30T09:32:00Z",
         totalDurationDisplay: "32m 0s", totalDurationSummary: "32m",
-        completionStatus: .completed, notes: nil,
+        completionStatus: .completed,
+        notes: "Left hand steadier once I slowed the middle section right down.",
         entries: [
-          previewEntry(0, "Clair de Lune", .piece),
-          previewEntry(1, "Gymnopédie No. 1", .piece),
-          previewEntry(2, "Nocturne Op. 9 No. 2", .piece),
+          previewEntry(0, "Clair de Lune", .piece, score: 7, tempo: 66),
+          previewEntry(
+            1, "Gymnopédie No. 1", .piece, score: 8,
+            notes: "Pedal changes cleaner than last week."),
+          previewEntry(
+            2, "Nocturne Op. 9 No. 2", .piece, score: 6, tempo: 54, repTarget: 5, repCount: 5),
         ],
-        sessionIntention: nil, sessionScore: nil,
+        sessionIntention: "Keep the pulse steady without the click",
+        sessionScore: 7,
         reflectionImproved: nil, reflectionStillRough: nil, reflectionNextTarget: nil)
     }
 
+    /// No session mark, and the two statuses a detail view must state plainly
+    /// rather than leave looking unmarked.
     static var previewEndedEarly: PracticeSessionView {
       PracticeSessionView(
         id: "session-2", startedAt: "2026-05-28T18:00:00Z", finishedAt: "2026-05-28T18:14:00Z",
         totalDurationDisplay: "14m 0s", totalDurationSummary: "14m",
         completionStatus: .endedEarly, notes: nil,
         entries: [
-          previewEntry(0, "Hanon No. 1", .exercise),
-          previewEntry(1, "Major Scales", .exercise),
+          previewEntry(0, "Hanon No. 1", .exercise, score: 5, repTarget: 10, repCount: 4),
+          previewEntry(1, "Major Scales", .exercise, status: .notAttempted),
         ],
         sessionIntention: nil, sessionScore: nil,
         reflectionImproved: nil, reflectionStillRough: nil, reflectionNextTarget: nil)
     }
 
-    private static func previewEntry(_ position: UInt64, _ title: String, _ type: ItemKind)
-      -> SetlistEntryView
-    {
+    private static func previewEntry(
+      _ position: UInt64, _ title: String, _ type: ItemKind,
+      status: EntryStatus = .completed, score: UInt8? = nil, tempo: UInt16? = nil,
+      repTarget: UInt8? = nil, repCount: UInt8? = nil, notes: String? = nil
+    ) -> SetlistEntryView {
       SetlistEntryView(
         id: "entry-\(position)", itemId: "item-\(position)", itemTitle: title, itemType: type,
-        position: position, durationDisplay: "10 min", status: .completed, notes: nil,
-        score: nil, intention: nil, repTarget: nil, repCount: nil, repTargetReached: nil,
-        repHistory: nil, plannedDurationSecs: nil, plannedDurationDisplay: nil, achievedTempo: nil,
-        groupId: nil, variantId: nil, clickPattern: nil)
+        position: position, durationDisplay: "10 min", status: status, notes: notes,
+        score: score, intention: nil, repTarget: repTarget, repCount: repCount,
+        repTargetReached: repTarget.map { repCount ?? 0 >= $0 },
+        repHistory: nil, plannedDurationSecs: nil, plannedDurationDisplay: nil,
+        achievedTempo: tempo, groupId: nil, variantId: nil, clickPattern: nil)
     }
   }
 

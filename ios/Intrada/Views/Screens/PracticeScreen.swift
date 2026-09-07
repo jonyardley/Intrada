@@ -14,6 +14,7 @@ struct PracticeScreen: View {
   // Shell state by decision 9 of specs/up-next-card.md: dismissal lasts the app
   // run, has no domain consequence and is deliberately not persisted.
   @State private var suggestionDismissed = false
+  @State private var openSessionId: String?
 
   init(referenceDate: Date = Date()) {
     self.referenceDate = referenceDate
@@ -83,6 +84,15 @@ struct PracticeScreen: View {
     // pop sends `cancelBuilding` → core returns to Idle. No local nav flag.
     .navigationDestination(isPresented: buildingBinding) {
       SessionBuilderScreen()
+    }
+    // Item-driven, not a NavigationLink: a link renders its label as a button,
+    // and even with .buttonStyle(.plain) SwiftUI tints the whole screen a shade
+    // lighter, which four Practice snapshots caught (#1371). The card must look
+    // the same whether or not it happens to be tappable.
+    .navigationDestination(item: $openSessionId) { id in
+      if let found = sessions.first(where: { $0.id == id }) {
+        PracticeSessionDetailScreen(session: found)
+      }
     }
   }
 
@@ -289,6 +299,13 @@ struct PracticeScreen: View {
       VStack(spacing: IntradaSpacing.cardCompact) {
         ForEach(daySessions, id: \.id) { session in
           SessionCard(session: session)
+            .contentShape(Rectangle())
+            .onTapGesture { openSessionId = session.id }
+            // The trait alone only relabels it; the action is what VoiceOver and
+            // Switch Control actually invoke, since this is a gesture not a Button.
+            .accessibilityAddTraits(.isButton)
+            .accessibilityAction { openSessionId = session.id }
+            .accessibilityHint("Opens the session")
         }
       }
     }
