@@ -790,3 +790,38 @@ suggestion already owns that slot, and a star is a standing preference rather
 than a statement about today); putting it on the Library star filter instead
 (not rejected, deliberately held: it is a different question about where a
 musician goes looking, tracked as #1538).
+
+### T21: Adding a piece captures what it can carry, in one pass
+
+**Status:** DECIDED 2026-09-07 (jonyardley/intrada#1390; spec
+[`../specs/one-pass-create.md`](../specs/one-pass-create.md)). The layout is
+settled at the Claude Design pass before the screens PR; what is decided here
+is the shape that pass works inside.
+
+Adding a piece is admin, so its friction is the bad kind (§A). Today the chart
+and the exercises are two further trips through the piece's detail screen, and
+nothing on the create form says either is possible, so both depend on having
+found them once before.
+
+Four rulings.
+
+- **The minimal form stays minimal.** The chart and the exercises are two
+  collapsed rows below the fields, not two more always-open sections. The
+  common case, a piece with neither, pays nothing for the case that has both
+  (principle B).
+- **Nothing is written until Add.** The staged chart and exercises are shell
+  state, and the core validates everything before it mutates anything, so a
+  parse error in bar 24 leaves no half-made piece behind.
+- **What the form captures is the musician's own material, never the app's
+  suggestions.** T18 put the chart-derived five in the Related exercises card
+  on the piece, offered after it exists. Generating them at create time would
+  have the app write five library items before the musician has seen the piece
+  save once, which is prescription wearing capture's clothes.
+- **The chart sheet is extended, not cloned.** On the create path there is no
+  piece id to send `SetChordChart` to, the same shape phase B hit when
+  `ReadPhoto` ended up taking only a `photo_id`.
+
+**What this does not settle:** whether the edit path grows the same sections
+(held: create is where the material is fresh), the per-bar parse feedback the
+text format still wants (#1387 part 1), and the words on the two rows, which
+are matched to the detail card at the design pass rather than invented here.
