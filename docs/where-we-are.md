@@ -16,8 +16,8 @@ sorting and accessibility fixes.
 Phase R ([`rethink-plan.md`](rethink-plan.md)) is in Stage 3, working the
 audit backlog in [`audit-2026-08.md`](audit-2026-08.md), the definitive
 reference for what the audit found and the order it runs in. Phases 1, 2 and
-4 are closed; Phase 3 has the Session Complete notes (#1370) and the history
-detail view (#1371) outstanding.
+4 are closed; Phase 3 has the Session Complete notes (#1370) outstanding,
+now that #1580 has shipped the history detail view (#1371).
 
 **The Focus Player round shipped on 2026-09-03** and closed Phase 4: the
 overall session timer (#1364), the resident pass counter (#1367, core then
