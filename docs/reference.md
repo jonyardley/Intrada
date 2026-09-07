@@ -438,3 +438,103 @@ was lost. The issue carried no assignee, label or comment, and nothing
 required looking at the one live claim signal, which is an open PR.
 `just status` now puts both signals on one screen. The resulting claim
 protocol is in CLAUDE.md under *Always*(1).
+
+## Worked tier examples
+
+The tier decision rule is in CLAUDE.md under *Workflow*. These are the calls
+that were genuinely arguable when it was written.
+
+|Task|Tier|Why|
+|---|---|---|
+|Fix typo in a label|1|Trivial copy change|
+|Bump a dependency with no API change|1|Dep bump|
+|New "Recently practiced" view following existing list patterns|2|Established patterns|
+|Refactor `intrada-core/src/domain/session.rs` (no FFI change)|2|Single file, non-trivial|
+|Tweak retry backoff in `auth.rs`|2|Sensitivity override from Tier 1|
+|Add `notes` field to a piece (touches FFI + DB)|3|Override: FFI + schema|
+|New auth provider|3|Auth + multi-crate|
+|Migrate persistence layer|3|Architectural|
+
+## Why nothing unread stays in the tree (#1176)
+
+Code with no reader gets deleted rather than parked. Not
+`#[allow(dead_code)]`, not "inert until the feature returns", not a `pub`
+export nobody calls: those go stale silently, carry weight into the app, and
+mislead the next reader into thinking something is load-bearing. `git` is the
+parking space, so the deletion goes in the PR body along with the PR number to
+recover it from, and whatever doc described the code keeps the *findings*
+rather than the code that produced them.
+
+This binds deliberately-deferred work too. The MIDI capture spike and its Rust
+segmentation module were deleted on exactly this rule even though the scoring
+path is expected back, with
+[`segmentation-findings.md`](segmentation-findings.md) left as the record.
+Deferring a feature means deferring its code to history.
+
+The distinction that keeps this from over-firing: a stub a *test* reads, or an
+API a shell genuinely calls, has a reader. The question is "who reads this
+today?", never "might someone read this eventually?".
+
+## Why a test whose arrange already satisfies its assert is worthless (#1223)
+
+Three tests landed on one branch asserting a condition the setup had already
+established one line earlier. Each passed for the wrong reason and looked like
+coverage for as long as it survived. The check before writing an assertion is
+to ask what the value was immediately before it.
+
+When one turns up, mutation-test it (delete the line it names, see whether it
+fails) before hardening it. If nothing can distinguish the behaviour being
+present from absent, the honest fix is to delete the test, never to bulk it out
+with assertions about something else while keeping the name. The resulting rule
+is in CLAUDE.md under *Testing*.
+
+## Why the crash-recovery blob is wire-pinned
+
+`AppEffect::SaveSessionInProgress(ActiveSession)` is positional bincode stored
+in UserDefaults, written by one build and read by the next. Adding a field
+anywhere in `ActiveSession`'s transitive graph therefore makes an old blob
+decode into a valid-looking wrong session rather than failing. `#[serde(default)]`
+does nothing here, because serde never reaches the default on a
+non-self-describing wire.
+
+The coach era missed this three times (#1223, #1244, #1256) and answered it
+with a per-variant wire-pin test. `active_session_blob_wire_is_pinned`
+(`domain/session.rs`) now pins the blob the same way (#1345). When it fails,
+bump `Store.sessionInProgressKey` first, then re-pin. Never only re-pin.
+
+## Why docs and issues use plain language (2026-08-14)
+
+Jon's rule, from a week in which three unrelated "Phase B"s existed at once.
+Features get named by the musician-visible outcome ("exercises from a chord
+chart", "the Up next card"), with the codename in brackets once if git
+archaeology needs it. Issue numbers are the only stable handles, so bare
+workstream letters never cross document boundaries, and issue titles state the
+outcome rather than the mechanism.
+
+The sweep test is whether you would say the sentence to a musician. Process
+words are the exception and live in the glossary above. Older docs get renamed
+as they are touched, never swept.
+
+## The comment density gate
+
+The `pre-push` hook (under `.githooks/`) flags branches pushing too many
+comment lines relative to code, exempting diffs under 25 added code lines.
+Bypass a genuinely justified case locally with `SKIP_COMMENT_CHECK=1 git push`;
+in CI, add the `comments-justified` label to the PR instead. When invoking any
+code-review agent for a PR, include "comment-policy violations are Blockers,
+not Nits" so the review treats drift as a merge-blocker rather than a taste
+note. The policy itself is in CLAUDE.md under *Code Style*.
+
+## iOS authentication flow
+
+Google OAuth runs in Safari via `ASWebAuthenticationSession`, because Google
+blocks OAuth in an in-app browser. The Clerk JWT is exchanged for a long-lived
+PAT via `POST /api/auth/ios/exchange`, and every later call uses the PAT.
+
+JWTs are RS256, validated against JWKS; PATs are validated by SHA-256 hash
+lookup. All DB queries are scoped by `user_id`, taken from the JWT `sub` or the
+PAT owner. When `CLERK_ISSUER_URL` is unset, auth is disabled, which is local
+dev only.
+
+Key files: `intrada-api/src/auth.rs`, `intrada-api/src/routes/auth_ios.rs`,
+`intrada-api/src/clerk.rs`.
