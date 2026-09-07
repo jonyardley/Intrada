@@ -37,3 +37,75 @@ modelRoles:
   # nothing until advisor.enabled or --advisor; pair it on bridge and migration
   # work, where a wrong turn is a silent no-op rather than a crash.
   advisor: anthropic/claude-opus-5:high
+
+# The gates in .claude/settings.json, mirrored. #1581 gave Claude Code deny
+# rules for the merge, the main-branch push, the deploys and the simulator
+# resets, because CLAUDE.md states all four and nothing enforced them. OMP
+# reads none of that file, so this harness could still run every one of them.
+# Keep the two in step.
+#
+# bash.patterns is an array, and a repo array REPLACES the global one rather
+# than merging key by key, so the five machine-wide rules from
+# ~/.omp/agent/config.yml are restated below. Omitting one drops it silently,
+# which is the failure this whole file exists to avoid. Within a segment the
+# first matching rule wins, so every deny precedes the prompts.
+bash:
+  patterns:
+    # Always(4): a human reviews and merges. Agents never merge.
+    - match: "*gh pr merge*"
+      approval: deny
+    # Never push to main, in any of the three spellings: plain, flagged
+    # (push --force origin main, which the Claude Code equivalent misses
+    # because of the flag in the middle), and refspec (HEAD:main and its fully
+    # qualified HEAD:refs/heads/main form).
+    - match: "*push*origin main*"
+      approval: deny
+    - match: "*push*:main*"
+      approval: deny
+    - match: "*push*refs/heads/main*"
+      approval: deny
+    # Releases and deploys are Jon's, never a session's.
+    - match: "*just testflight*"
+      approval: deny
+    - match: "fly *"
+      approval: deny
+    - match: "flyctl *"
+      approval: deny
+    # The simulator and CoreSimulatorService are machine-global: another
+    # session's sim or test run dies with them.
+    - match: "*just ios-test-sim-clean*"
+      approval: deny
+    - match: "*simctl shutdown all*"
+      approval: deny
+    - match: "*simctl erase*"
+      approval: deny
+    # Wildcarded around killall so a signal flag cannot walk through it:
+    # killall -9 CoreSimulatorService is the form .claude/settings.json denies
+    # by name, and a contiguous match would miss it.
+    - match: "*killall*CoreSimulatorService*"
+      approval: deny
+    - match: rm -rf /*
+      approval: deny
+    # Never cancel or re-run CI, and never bump dependencies unless asked.
+    - match: "*gh run rerun*"
+      approval: prompt
+    - match: "*gh run cancel*"
+      approval: prompt
+    - match: "*gh workflow run*"
+      approval: prompt
+    - match: "*cargo update*"
+      approval: prompt
+    - match: "*cargo add*"
+      approval: prompt
+    - match: "*cargo remove*"
+      approval: prompt
+    - match: "*push --force*"
+      approval: prompt
+
+# A bash.patterns deny governs the bash tool only: the same command issued
+# through eval spawns its own shell and is unaffected, and under yolo it
+# resolves to allow. Every deny above therefore had a hole beside it. A prompt
+# policy on eval is enforced in every mode, including yolo, and closes it.
+tools:
+  approval:
+    eval: prompt
