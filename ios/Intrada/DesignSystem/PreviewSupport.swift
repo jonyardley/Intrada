@@ -1033,7 +1033,9 @@
           summaryEntry(
             "e2", "Hanon No. 1", .exercise, "8m 10s", .completed, score: 4, tempo: 96,
             intention: "Land each finger evenly"),
-          summaryEntry("e3", "Gymnopédie No. 1", .piece, "11m 30s", .completed, score: 5),
+          summaryEntry(
+            "e3", "Gymnopédie No. 1", .piece, "11m 30s", .completed, score: 5,
+            notes: "Pedal changes cleaner than last week."),
           summaryEntry("e4", "Czerny Op. 299", .exercise, "5m 30s", .completed, score: 3),
         ], sessionIntention: nil, sessionScore: 8,
         reflectionImproved: nil, reflectionStillRough: nil, reflectionNextTarget: nil)
@@ -1068,11 +1070,13 @@
 
     private static func summaryEntry(
       _ id: String, _ title: String, _ type: ItemKind, _ duration: String,
-      _ status: EntryStatus, score: UInt8?, tempo: UInt16? = nil, intention: String? = nil
+      _ status: EntryStatus, score: UInt8?, tempo: UInt16? = nil, intention: String? = nil,
+      notes: String? = nil
     ) -> SetlistEntryView {
       SetlistEntryView(
         id: id, itemId: id, itemTitle: title, itemType: type, position: 0,
-        durationDisplay: duration, status: status, notes: nil, score: score, intention: intention,
+        durationDisplay: duration, status: status, notes: notes, score: score,
+        intention: intention,
         repTarget: nil, repCount: nil, repTargetReached: nil, repHistory: nil,
         plannedDurationSecs: nil, plannedDurationDisplay: nil, achievedTempo: tempo, groupId: nil,
         variantId: nil, clickPattern: nil)

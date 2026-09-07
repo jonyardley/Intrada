@@ -8,9 +8,11 @@ import SwiftUI
 /// Reached after the last item.
 struct SessionSummaryScreen: View {
   @Environment(Store.self) private var store
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @State private var note = ""
   @State private var entryNotes: [String: String] = [:]
   @State private var expandedEntryId: String?
+  @FocusState private var focusedEntryId: String?
   @State private var confirmingDiscard = false
 
   private var summary: SummaryView? { store.viewModel?.summary }
@@ -47,8 +49,6 @@ struct SessionSummaryScreen: View {
     }
     .onAppear {
       note = summary?.notes ?? ""
-      entryNotes = Dictionary(
-        uniqueKeysWithValues: (summary?.entries ?? []).map { ($0.id, $0.notes ?? "") })
     }
     .alert("Discard this session?", isPresented: $confirmingDiscard) {
       Button("Discard", role: .destructive) { store.send(.session(.discardSession)) }
@@ -178,6 +178,8 @@ struct SessionSummaryScreen: View {
         Button("Add a note") { expand(entry) }
           .font(IntradaFont.micro)
           .foregroundStyle(IntradaColor.accent)
+          .frame(minHeight: 44, alignment: .leading)
+          .contentShape(Rectangle())
           .accessibilityLabel("Add a note for \(entry.itemTitle)")
       } else {
         Button {
@@ -187,7 +189,8 @@ struct SessionSummaryScreen: View {
             .font(IntradaFont.micro)
             .foregroundStyle(IntradaColor.inkSecondary)
             .multilineTextAlignment(.leading)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Note for \(entry.itemTitle)")
@@ -212,6 +215,7 @@ struct SessionSummaryScreen: View {
     .foregroundStyle(IntradaColor.ink)
     .padding(IntradaSpacing.cardCompact)
     .cardSurface(cornerRadius: IntradaRadius.control)
+    .focused($focusedEntryId, equals: entry.id)
     .accessibilityLabel("Note for \(entry.itemTitle)")
     .onChange(of: entryNotes[entry.id]) { _, value in
       // Only while still in Summary, and only for a real change, or teardown
@@ -232,7 +236,8 @@ struct SessionSummaryScreen: View {
 
   private func expand(_ entry: SetlistEntryView) {
     entryNotes[entry.id] = entry.notes ?? ""
-    withAnimation(.easeOut(duration: 0.2)) { expandedEntryId = entry.id }
+    withAnimation(reduceMotion ? nil : IntradaMotion.standard) { expandedEntryId = entry.id }
+    focusedEntryId = entry.id
   }
 
   @ViewBuilder
