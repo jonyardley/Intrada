@@ -191,6 +191,26 @@ pub enum ItemEvent {
         id: String,
         metre: Option<Metre>,
     },
+    /// Create a piece with everything the add form could carry: its chord
+    /// chart and the exercises written or chosen alongside it, in one save
+    /// (#1390). `chart` is raw text, parsed here against the piece's own key,
+    /// so a rejected bar leaves no half-made piece. Local-first only, like
+    /// `AddLinkedExercise`.
+    AddPieceInFull {
+        piece: CreateItem,
+        chart: Option<String>,
+        exercises: Vec<ScaffoldEntry>,
+    },
+}
+
+/// One exercise a new piece is created with: written alongside it, or chosen
+/// from the library.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "facet_typegen", derive(facet::Facet))]
+#[cfg_attr(feature = "facet_typegen", repr(C))]
+pub enum ScaffoldEntry {
+    New(CreateItem),
+    Existing { id: String },
 }
 
 /// Shared by Update / AddTags / RemoveTags.
@@ -460,6 +480,145 @@ pub fn handle_item_event(event: ItemEvent, model: &mut Model) -> Command<Effect,
 
             Command::all([
                 crate::persistence::save_items(vec![exercise, piece]),
+                crux_core::render::render(),
+            ])
+        }
+        ItemEvent::AddPieceInFull {
+            piece,
+            chart,
+            exercises,
+        } => {
+            if !model.local_first {
+                // The online create path reassigns ids server-side, so links
+                // minted here would dangle: the trap #1108 marks in
+                // `CommitScaffold`.
+                model.last_error = Some(
+                    "Chord charts and related exercises aren't available online yet".to_string(),
+                );
+                return crux_core::render::render();
+            }
+
+            // Everything is validated before anything is written: a bar the
+            // parser rejects or a blank exercise title must leave no half-made
+            // piece and no orphan exercise behind.
+            let piece_input = validation::normalize_create_item(CreateItem {
+                kind: ItemKind::Piece,
+                ..piece
+            });
+            if let Err(e) = validation::validate_create_item(&piece_input) {
+                model.last_error = Some(e.to_string());
+                return crux_core::render::render();
+            }
+
+            let mut entries = Vec::with_capacity(exercises.len());
+            for entry in exercises {
+                match entry {
+                    ScaffoldEntry::New(input) => {
+                        let input = validation::normalize_create_item(CreateItem {
+                            kind: ItemKind::Exercise,
+                            ..input
+                        });
+                        if let Err(e) = validation::validate_create_item(&input) {
+                            model.last_error = Some(e.to_string());
+                            return crux_core::render::render();
+                        }
+                        entries.push(ScaffoldEntry::New(input));
+                    }
+                    ScaffoldEntry::Existing { id } => {
+                        if let Err(e) = validation::validate_exercise_link_target(&id, model) {
+                            model.last_error = Some(e.to_string());
+                            return crux_core::render::render();
+                        }
+                        entries.push(ScaffoldEntry::Existing { id });
+                    }
+                }
+            }
+
+            // The piece does not exist yet, so the chart derives against the
+            // key and modality the form is carrying, and the default metre:
+            // `CreateItem` has no metre field, and `SetMetre` re-derives.
+            let chart = match chart.as_deref().map(str::trim).filter(|c| !c.is_empty()) {
+                Some(raw) => {
+                    let key = piece_input.key.clone().unwrap_or_else(|| "C".to_string());
+                    let modality = piece_input.modality.unwrap_or(Modality::Major);
+                    match super::chart::parse_chart(raw, &key, modality, &Metre::default()) {
+                        Ok(chart) => Some(chart),
+                        Err(e) => {
+                            model.last_error = Some(e.to_string());
+                            return crux_core::render::render();
+                        }
+                    }
+                }
+                None => None,
+            };
+
+            let now = chrono::Utc::now();
+            let mut created: Vec<Item> = Vec::new();
+            let mut linked_ids: Vec<String> = Vec::new();
+            for entry in entries {
+                match entry {
+                    ScaffoldEntry::New(input) => {
+                        let exercise = Item {
+                            id: ulid::Ulid::generate().to_string(),
+                            title: input.title,
+                            kind: input.kind,
+                            composer: input.composer,
+                            key: input.key,
+                            modality: input.modality,
+                            tempo: input.tempo,
+                            notes: input.notes,
+                            tags: input.tags,
+                            linked_exercise_ids: vec![],
+                            created_at: now,
+                            updated_at: now,
+                            priority: false,
+                            chord_chart: None,
+                            variants: vec![],
+                            photo_id: input.photo_id,
+                            metre: None,
+                        };
+                        linked_ids.push(exercise.id.clone());
+                        created.push(exercise);
+                    }
+                    ScaffoldEntry::Existing { id } => {
+                        if !linked_ids.contains(&id) {
+                            linked_ids.push(id);
+                        }
+                    }
+                }
+            }
+
+            let piece_item = Item {
+                id: ulid::Ulid::generate().to_string(),
+                title: piece_input.title,
+                kind: ItemKind::Piece,
+                composer: piece_input.composer,
+                key: piece_input.key,
+                modality: piece_input.modality,
+                tempo: piece_input.tempo,
+                notes: piece_input.notes,
+                tags: piece_input.tags,
+                linked_exercise_ids: linked_ids,
+                created_at: now,
+                updated_at: now,
+                priority: false,
+                chord_chart: chart,
+                variants: vec![],
+                photo_id: piece_input.photo_id,
+                metre: None,
+            };
+
+            model.items.extend(created.iter().cloned());
+            model.items.push(piece_item.clone());
+            model.last_error = None;
+            model.record_success();
+
+            // One batch, exercises before the piece: the shell writes it in a
+            // single transaction, so the piece never lands without them.
+            let mut to_save = created;
+            to_save.push(piece_item);
+            Command::all([
+                crate::persistence::save_items(to_save),
                 crux_core::render::render(),
             ])
         }
@@ -3281,5 +3440,229 @@ mod tests {
         crate::domain::types::assert_round_trips(crate::app::Event::Item(ItemEvent::ClearPhoto {
             id: "piece-1".to_string(),
         }));
+    }
+
+    // ── AddPieceInFull ──
+
+    fn one_pass_piece_input(title: &str) -> CreateItem {
+        CreateItem {
+            title: title.to_string(),
+            kind: ItemKind::Piece,
+            composer: Some("Kosma".to_string()),
+            key: Some("G".to_string()),
+            modality: Some(Modality::Minor),
+            tempo: None,
+            notes: None,
+            tags: vec![],
+            photo_id: None,
+        }
+    }
+
+    #[test]
+    fn add_piece_in_full_saves_the_piece_with_its_chart_and_exercises_in_one_batch() {
+        let mut model = model_with_piece_and_exercise();
+
+        let mut cmd = send_cmd(
+            &mut model,
+            ItemEvent::AddPieceInFull {
+                piece: one_pass_piece_input("Autumn Leaves"),
+                chart: Some("| Cm7 | F7 | BbMaj7 |".to_string()),
+                exercises: vec![
+                    ScaffoldEntry::New(new_exercise_input("Shell voicings")),
+                    ScaffoldEntry::Existing {
+                        id: "ex-1".to_string(),
+                    },
+                ],
+            },
+        );
+
+        let piece = model
+            .items
+            .iter()
+            .find(|i| i.title == "Autumn Leaves")
+            .expect("the piece is created");
+        let written = model
+            .items
+            .iter()
+            .find(|i| i.title == "Shell voicings")
+            .expect("the new exercise is created alongside");
+
+        assert!(
+            piece.chord_chart.is_some(),
+            "the chart lands on the piece, with no second event"
+        );
+        assert_eq!(
+            piece.linked_exercise_ids,
+            vec![written.id.clone(), "ex-1".to_string()],
+            "both the written and the chosen exercise are linked, in the order given"
+        );
+
+        let batch = emits_save_items(&mut cmd).expect("a SaveItems batch is persisted");
+        assert_eq!(
+            batch.len(),
+            2,
+            "the new exercise and the piece in one transaction, never one write each"
+        );
+        assert!(!emits_http(&mut cmd), "local-first create makes no HTTP");
+        assert!(model.last_error.is_none());
+    }
+
+    #[test]
+    fn add_piece_in_full_writes_nothing_when_the_chart_will_not_parse() {
+        let mut model = model_with_piece_and_exercise();
+        let before = model.items.len();
+
+        let mut cmd = send_cmd(
+            &mut model,
+            ItemEvent::AddPieceInFull {
+                piece: one_pass_piece_input("Autumn Leaves"),
+                chart: Some("| Cm7 | (F7) |".to_string()),
+                exercises: vec![ScaffoldEntry::New(new_exercise_input("Shell voicings"))],
+            },
+        );
+
+        assert_eq!(
+            model.items.len(),
+            before,
+            "a bar the parser rejects leaves no half-made piece and no orphan exercise"
+        );
+        assert!(emits_save_items(&mut cmd).is_none(), "and nothing is saved");
+        assert!(model.last_error.is_some(), "the parse error is surfaced");
+    }
+
+    #[test]
+    fn add_piece_in_full_writes_nothing_when_any_exercise_is_invalid() {
+        let mut model = model_with_piece_and_exercise();
+        let before = model.items.len();
+
+        send(
+            &mut model,
+            ItemEvent::AddPieceInFull {
+                piece: one_pass_piece_input("Autumn Leaves"),
+                chart: None,
+                exercises: vec![
+                    ScaffoldEntry::New(new_exercise_input("Shell voicings")),
+                    ScaffoldEntry::New(new_exercise_input("   ")),
+                ],
+            },
+        );
+
+        assert_eq!(
+            model.items.len(),
+            before,
+            "validation runs over every part before anything is written"
+        );
+        assert!(model.last_error.is_some());
+    }
+
+    #[test]
+    fn add_piece_in_full_rejects_an_exercise_id_that_is_not_there() {
+        let mut model = model_with_piece_and_exercise();
+        let before = model.items.len();
+
+        send(
+            &mut model,
+            ItemEvent::AddPieceInFull {
+                piece: one_pass_piece_input("Autumn Leaves"),
+                chart: None,
+                exercises: vec![ScaffoldEntry::Existing {
+                    id: "gone".to_string(),
+                }],
+            },
+        );
+
+        assert_eq!(model.items.len(), before);
+        assert!(model.last_error.is_some());
+    }
+
+    #[test]
+    fn add_piece_in_full_rejects_linking_a_piece_as_an_exercise() {
+        let mut model = model_with_piece_and_exercise();
+        let before = model.items.len();
+
+        send(
+            &mut model,
+            ItemEvent::AddPieceInFull {
+                piece: one_pass_piece_input("Autumn Leaves"),
+                chart: None,
+                exercises: vec![ScaffoldEntry::Existing {
+                    id: "piece-1".to_string(),
+                }],
+            },
+        );
+
+        assert_eq!(model.items.len(), before);
+        assert!(model.last_error.is_some());
+    }
+
+    #[test]
+    fn add_piece_in_full_takes_a_piece_with_neither_chart_nor_exercises() {
+        let mut model = model_with_piece_and_exercise();
+
+        let mut cmd = send_cmd(
+            &mut model,
+            ItemEvent::AddPieceInFull {
+                piece: one_pass_piece_input("Autumn Leaves"),
+                chart: None,
+                exercises: vec![],
+            },
+        );
+
+        let piece = model
+            .items
+            .iter()
+            .find(|i| i.title == "Autumn Leaves")
+            .expect("the plain create still works through this path");
+        assert!(piece.chord_chart.is_none());
+        assert!(piece.linked_exercise_ids.is_empty());
+        assert_eq!(emits_save_items(&mut cmd).map(|b| b.len()), Some(1));
+        assert!(model.last_error.is_none());
+    }
+
+    #[test]
+    fn add_piece_in_full_is_refused_online() {
+        let mut model = model_with_piece_and_exercise();
+        model.local_first = false;
+        let before = model.items.len();
+
+        let mut cmd = send_cmd(
+            &mut model,
+            ItemEvent::AddPieceInFull {
+                piece: one_pass_piece_input("Autumn Leaves"),
+                chart: None,
+                exercises: vec![ScaffoldEntry::New(new_exercise_input("Shell voicings"))],
+            },
+        );
+
+        assert_eq!(
+            model.items.len(),
+            before,
+            "the online create path reassigns ids server-side, so the links would dangle"
+        );
+        assert!(!emits_http(&mut cmd), "refused, never half-applied");
+        assert!(model.last_error.is_some(), "and said so, never silent");
+    }
+
+    #[test]
+    fn add_piece_in_full_round_trips_on_the_ffi_bincode_wire() {
+        crate::domain::types::assert_round_trips(crate::app::Event::Item(
+            ItemEvent::AddPieceInFull {
+                piece: one_pass_piece_input("Autumn Leaves"),
+                chart: Some("| Cm7 | F7 |".to_string()),
+                exercises: vec![
+                    ScaffoldEntry::New(new_exercise_input("Shell voicings")),
+                    ScaffoldEntry::Existing {
+                        id: "ex-1".to_string(),
+                    },
+                ],
+            },
+        ));
+        crate::domain::types::assert_round_trips(crate::app::Event::Item(
+            ItemEvent::AddPieceInFull {
+                piece: one_pass_piece_input("Bare"),
+                chart: None,
+                exercises: vec![],
+            },
+        ));
     }
 }

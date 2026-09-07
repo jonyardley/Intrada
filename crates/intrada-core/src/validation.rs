@@ -443,20 +443,10 @@ pub fn validate_piece_host(piece_id: &str, model: &Model) -> Result<(), LibraryE
     Ok(())
 }
 
-pub fn validate_link_exercise(
-    piece_id: &str,
-    exercise_id: &str,
-    model: &Model,
-) -> Result<(), LibraryError> {
-    if piece_id == exercise_id {
-        return Err(LibraryError::Validation {
-            field: "exercise_id".to_string(),
-            message: "A piece cannot be linked to itself".to_string(),
-        });
-    }
-
-    validate_piece_host(piece_id, model)?;
-
+/// The linked half of `validate_link_exercise`: the id names an item that
+/// exists and is an exercise. Shared with `AddPieceInFull`, where the host
+/// piece does not exist yet and so only this half can run.
+pub fn validate_exercise_link_target(exercise_id: &str, model: &Model) -> Result<(), LibraryError> {
     let exercise = model
         .items
         .iter()
@@ -471,6 +461,25 @@ pub fn validate_link_exercise(
             message: "Linked item must be an exercise, not a piece".to_string(),
         });
     }
+
+    Ok(())
+}
+
+pub fn validate_link_exercise(
+    piece_id: &str,
+    exercise_id: &str,
+    model: &Model,
+) -> Result<(), LibraryError> {
+    if piece_id == exercise_id {
+        return Err(LibraryError::Validation {
+            field: "exercise_id".to_string(),
+            message: "A piece cannot be linked to itself".to_string(),
+        });
+    }
+
+    validate_piece_host(piece_id, model)?;
+
+    validate_exercise_link_target(exercise_id, model)?;
 
     let already_linked = model
         .items
