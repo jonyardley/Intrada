@@ -8,7 +8,11 @@ import SwiftUI
 /// Reached after the last item.
 struct SessionSummaryScreen: View {
   @Environment(Store.self) private var store
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @State private var note = ""
+  @State private var entryNotes: [String: String] = [:]
+  @State private var expandedEntryId: String?
+  @FocusState private var focusedEntryId: String?
   @State private var confirmingDiscard = false
 
   private var summary: SummaryView? { store.viewModel?.summary }
@@ -154,9 +158,86 @@ struct SessionSummaryScreen: View {
       if entry.status == .completed {
         scoreRow(entry)
       }
+      if !unfinished {
+        noteRow(entry)
+      }
     }
     .padding(.vertical, IntradaSpacing.cardCompact)
     .opacity(unfinished ? 0.5 : 1)
+  }
+
+  // A written note stays on the row: a note the musician cannot see again is
+  // admin rather than reflection (T7).
+  @ViewBuilder
+  private func noteRow(_ entry: SetlistEntryView) -> some View {
+    let written = entry.notes ?? ""
+    Group {
+      if expandedEntryId == entry.id {
+        noteField(entry)
+      } else if written.isEmpty {
+        Button("Add a note") { expand(entry) }
+          .font(IntradaFont.micro)
+          .foregroundStyle(IntradaColor.accent)
+          .frame(minHeight: 44, alignment: .leading)
+          .contentShape(Rectangle())
+          .accessibilityLabel("Add a note for \(entry.itemTitle)")
+      } else {
+        Button {
+          expand(entry)
+        } label: {
+          Text(written)
+            .font(IntradaFont.micro)
+            .foregroundStyle(IntradaColor.inkSecondary)
+            .multilineTextAlignment(.leading)
+            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Note for \(entry.itemTitle)")
+        .accessibilityValue(written)
+        .accessibilityHint("Edit this note")
+      }
+    }
+    .padding(.leading, 19)
+  }
+
+  private func noteField(_ entry: SetlistEntryView) -> some View {
+    TextField(
+      "Anything worth remembering",
+      text: Binding(
+        get: { entryNotes[entry.id] ?? "" },
+        set: { entryNotes[entry.id] = $0 }
+      ),
+      axis: .vertical
+    )
+    .lineLimit(2...4)
+    .font(IntradaFont.field)
+    .foregroundStyle(IntradaColor.ink)
+    .padding(IntradaSpacing.cardCompact)
+    .cardSurface(cornerRadius: IntradaRadius.control)
+    .focused($focusedEntryId, equals: entry.id)
+    .accessibilityLabel("Note for \(entry.itemTitle)")
+    .onChange(of: entryNotes[entry.id]) { _, value in
+      // Only while still in Summary, and only for a real change, or teardown
+      // fires a core error on an identical round-trip.
+      guard summary != nil else { return }
+      let trimmed = (value ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+      let next = trimmed.isEmpty ? nil : trimmed
+      guard next != entry.notes else { return }
+      // A refusal (over-long note) surfaces on RootView's banner; the field
+      // must not keep showing text the core rejected.
+      let before = store.viewModel?.errorSeq
+      store.send(.session(.updateEntryNotes(entryId: entry.id, notes: next)))
+      if store.viewModel?.errorSeq != before {
+        entryNotes[entry.id] = entry.notes ?? ""
+      }
+    }
+  }
+
+  private func expand(_ entry: SetlistEntryView) {
+    entryNotes[entry.id] = entry.notes ?? ""
+    withAnimation(reduceMotion ? nil : IntradaMotion.standard) { expandedEntryId = entry.id }
+    focusedEntryId = entry.id
   }
 
   @ViewBuilder
