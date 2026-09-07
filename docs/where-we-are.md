@@ -15,19 +15,20 @@ sorting and accessibility fixes.
 
 Phase R ([`rethink-plan.md`](rethink-plan.md)) is in Stage 3, working the
 audit backlog in [`audit-2026-08.md`](audit-2026-08.md), the definitive
-reference for what the audit found and the order it runs in. Phases 1, 2 and
-4 are closed; Phase 3 has the Session Complete notes (#1370) outstanding,
-now that #1580 has shipped the history detail view (#1371).
+reference for what the audit found and the order it runs in. **Every phase of
+that backlog is now closed**: Phase 3 finished on 2026-09-07 when #1585 shipped
+per-item notes on Session Complete (#1370), after the quick-add section (#1362)
+and the history detail view (#1371, in #1580).
 
 **The Focus Player round shipped on 2026-09-03** and closed Phase 4: the
 overall session timer (#1364), the resident pass counter (#1367, core then
 shell), and a click that sounds chosen beats of a chosen bar without lying
 about the tempo (#1499, core then shell). One Claude Design pass, one Tier 3
 spec ([`specs/practice-instruments.md`](../specs/practice-instruments.md)),
-six PRs. What it deliberately left behind is tracked: the declared tempo of a
-quaver-metre piece still reads as a crotchet (#1510), sheets still hand-mirror
-ranges the core validates (#1512), and nothing holds the idle timer, so the
-screen sleeps mid-practice (#1513).
+six PRs. Two of the things it deliberately left behind are still tracked: the
+declared tempo of a quaver-metre piece still reads as a crotchet (#1510), and
+sheets still hand-mirror ranges the core validates (#1512). The idle timer
+(#1513) was fixed on 2026-09-04.
 
 The next major direction stays open (Stage 4 of the rethink plan). The capture
 line has earned its keep — the on-device page read was validated on device on
