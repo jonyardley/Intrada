@@ -147,9 +147,10 @@ Big bets, last, each a fresh decision gated on lived use:
     reads the changes into a chart for review, entirely on-device.
     Feasibility spike first (OCR + the existing parser vs an on-device
     model); changes only, never melodies.
-11. **Quick lesson entry (#1080) and goals** — the twice-deleted
-    admin-shaped features; revisited only if use says the star list and a
-    fast add path are not enough.
+11. **Quick lesson entry (#1080) and goals**: the twice-deleted admin-shaped
+    features. **Settled 2026-09-07 for the lesson half**, #1080 closes into
+    one-pass create (#1390), a faster path through the add and link primitives
+    that already exist rather than a lesson screen. Goals stay parked.
 
 ## Decisions (Jon, 2026-08-14)
 
@@ -159,3 +160,18 @@ Big bets, last, each a fresh decision gated on lived use:
 - Plain language in docs and issues from here on: rule in CLAUDE.md →
   Conventions, glossary in [`../reference.md`](../reference.md); older docs
   renamed as touched.
+
+## Decisions (Jon, 2026-09-07)
+
+- **Push the capture line, not the weekly-lesson loop.** Three of the loop's
+  four workstreams are shipped, so what remained of it was entry, and entry is
+  capture.
+- **One-pass create (#1390) is the first slice**: the chord chart and the
+  related exercises on the add form, saved once. Spec:
+  [`../../specs/one-pass-create.md`](../../specs/one-pass-create.md).
+- **#1080 closes into #1390.** No lesson entity and no lesson screen: the
+  answer to the shape question its hold was protecting is a faster path
+  through the primitives that already exist.
+- **The photo path is why it goes first.** `PhotoDraft.chart_text` already
+  crosses the bridge and is dropped for want of a field to land in, so phase D
+  of the photo work needs this half before it can pay.

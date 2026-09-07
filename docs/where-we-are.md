@@ -30,7 +30,11 @@ declared tempo of a quaver-metre piece still reads as a crotchet (#1510), and
 sheets still hand-mirror ranges the core validates (#1512). The idle timer
 (#1513) was fixed on 2026-09-04.
 
-The next major direction stays open (Stage 4 of the rethink plan). The capture
-line has earned its keep — the on-device page read was validated on device on
-2026-09-02 — but nothing is decided between pushing capture further and the
-weekly-lesson loop (#1087).
+The next major direction was decided on 2026-09-07 (Stage 4 of the rethink
+plan): **push the capture line**. The weekly-lesson loop (#1087) turned out to
+be three quarters shipped, since per-piece tracking (#1081), the Up next card
+(#1082) and exercise steps (#1083) have all landed, so its only unbuilt part
+was entry, and entry is a capture problem. Quick lesson entry (#1080) closes
+into one-pass create (#1390), specced in
+[`specs/one-pass-create.md`](../specs/one-pass-create.md); no lesson entity
+gets built.
