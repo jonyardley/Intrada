@@ -37,40 +37,15 @@ struct SessionCard: View {
   }
 
   private var metaLine: String {
-    "\(session.totalDurationSummary) · \(itemCount)"
-  }
-
-  private var itemCount: String {
-    let count = session.entries.count
-    let noun: String
-    if session.entries.allSatisfy({ $0.itemType == .piece }) {
-      noun = count == 1 ? "piece" : "pieces"
-    } else if session.entries.allSatisfy({ $0.itemType == .exercise }) {
-      noun = count == 1 ? "exercise" : "exercises"
-    } else {
-      noun = count == 1 ? "item" : "items"
-    }
-    return "\(count) \(noun)"
+    "\(session.totalDurationSummary) · \(session.itemCountDisplay)"
   }
 
   private var dateDisplay: String {
-    guard let date = session.startedDate else { return "" }
-    if calendar.isDateInToday(date) { return "Today" }
-    if calendar.isDateInYesterday(date) { return "Yesterday" }
-    let formatter = DateFormatter()
-    // Drive locale + calendar off the SwiftUI environment (not `Locale.current`/
-    // `Calendar.current`) so production follows the device while snapshot hosts
-    // pin both — the template reorders by region ("Sat 30 May" vs "Sat, May 30")
-    // and the day bucket shifts by timezone.
-    formatter.locale = locale
-    formatter.calendar = calendar
-    formatter.timeZone = calendar.timeZone
-    formatter.setLocalizedDateFormatFromTemplate("EEEdMMM")
-    return formatter.string(from: date)
+    session.dateDisplay(locale: locale, calendar: calendar)
   }
 
   private var accessibilityLabel: String {
-    var parts = [dateDisplay, session.totalDurationSummary, itemCount]
+    var parts = [dateDisplay, session.totalDurationSummary, session.itemCountDisplay]
     if session.completionStatus == .endedEarly { parts.append("ended early") }
     return parts.joined(separator: ", ")
   }

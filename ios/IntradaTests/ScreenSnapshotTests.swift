@@ -219,6 +219,35 @@ final class ScreenSnapshotTests: XCTestCase {
         store: .previewPractice), as: config)
   }
 
+  /// The read-only record of a past session (#1371), including the session
+  /// mark #1012 asked for.
+  func testPracticeSessionDetail() {
+    assertSnapshot(
+      of: host(
+        NavigationStack {
+          PracticeSessionDetailScreen(session: .previewCompleted)
+        }, store: .previewPractice), as: config)
+  }
+
+  /// Skipped and not-played items, and no session mark to draw.
+  func testPracticeSessionDetailEndedEarly() {
+    assertSnapshot(
+      of: host(
+        NavigationStack {
+          PracticeSessionDetailScreen(session: .previewEndedEarly)
+        }, store: .previewPractice), as: config)
+  }
+
+  /// Pins the accessibility-size branch: the ring drops below the text so the
+  /// meta line cannot break mid-word (#1471's shape, one screen over).
+  func testPracticeSessionDetailAccessibilitySize() {
+    let detail = NavigationStack {
+      PracticeSessionDetailScreen(session: .previewCompleted)
+    }
+    .dynamicTypeSize(.accessibility3)
+    assertSnapshot(of: host(detail, store: .previewPractice), as: config)
+  }
+
   func testSessionBuilderEmpty() {
     assertSnapshot(of: host(NavigationStack { SessionBuilderScreen() }), as: config)
   }

@@ -65,4 +65,23 @@ extension XCUIApplication {
       confirm.waitForExistence(timeout: 5), "the discard confirmation", file: file, line: line)
     confirm.tap()
   }
+
+  /// Saves a session that reached the summary, which is the only way to leave a
+  /// card in Practice history for a test to open (#1371).
+  @MainActor
+  func saveSummary(file: StaticString = #filePath, line: UInt = #line) {
+    let save = buttons["Save session"]
+    XCTAssertTrue(save.waitForExistence(timeout: 10), "the summary is up", file: file, line: line)
+    save.tap()
+  }
+
+  /// Ends a running session early, which lands on the summary.
+  @MainActor
+  func endSessionEarly(file: StaticString = #filePath, line: UInt = #line) {
+    buttons["Session options"].tap()
+    let end = buttons["End session early"]
+    XCTAssertTrue(
+      end.waitForExistence(timeout: 5), "End session early", file: file, line: line)
+    end.tap()
+  }
 }
