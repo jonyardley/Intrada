@@ -561,6 +561,16 @@ jobs:
           path: ios/IntradaTests/__Snapshots__/
           retention-days: 7
           if-no-files-found: ignore
+      # A non-snapshot failure leaves nothing to read otherwise: the test step
+      # prints counts and the failing test's name, never its message (#1576).
+      - name: Upload test result bundle
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: native-ios-unit-xcresult
+          path: ios/build/dd/Logs/Test/*.xcresult
+          retention-days: 7
+          if-no-files-found: ignore
       # REUSE_BUILD: the test step above's downloaded artifact already has
       # build/dd/Build/Products/Intrada.app — install + launch it for the
       # screenshot without rebuilding. Main only (~105s): the unit/snapshot

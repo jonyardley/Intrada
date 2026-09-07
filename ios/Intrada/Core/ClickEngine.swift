@@ -33,12 +33,25 @@ final class ClickEngine {
   private var nextBeat = 0
   private var observers: [NSObjectProtocol] = []
 
-  struct Pulse {
+  /// Anything the beat grid cannot use, by four separate routes, reaches
+  /// `HostClock.ticks`' precondition as a trap rather than an error (#1576).
+  struct Tempo {
     let bpm: Double
+
+    var secondsPerBeat: Double { 60.0 / bpm }
+
+    init?(bpm: Double) {
+      guard bpm.isFinite, bpm > 0, (60.0 / bpm).isFinite else { return nil }
+      self.bpm = bpm
+    }
+  }
+
+  struct Pulse {
+    let tempo: Tempo
     let scheduledStart: UInt64
     let outputLatencyTicks: UInt64
 
-    var secondsPerBeat: Double { 60.0 / bpm }
+    var secondsPerBeat: Double { tempo.secondsPerBeat }
   }
 
   /// Which beats of the bar sound. The grid never changes rate; the pattern
@@ -80,9 +93,9 @@ final class ClickEngine {
 
   /// Safe to call repeatedly — each call restarts the grid at the new tempo.
   func start(bpm: Double, pattern: BeatPattern = .flat) throws {
-    // NaN `secondsPerBeat` trips `HostClock.ticks`' precondition, which is a
-    // crash rather than something the caller can route around.
-    guard bpm > 0 else { throw ClickEngineError.nonPositiveTempo }
+    // Unrepresentable rather than guarded: no `Tempo` means no `Pulse`, so the
+    // grid cannot be handed a NaN period (#1576).
+    guard let tempo = Tempo(bpm: bpm) else { throw ClickEngineError.nonPositiveTempo }
     playerNode.stop()
 
     let session = AVAudioSession.sharedInstance()
@@ -106,7 +119,7 @@ final class ClickEngine {
     playerNode.play()
 
     pulse = Pulse(
-      bpm: bpm,
+      tempo: tempo,
       scheduledStart: HostClock.now() &+ HostClock.ticks(fromSeconds: leadInSeconds),
       outputLatencyTicks: HostClock.ticks(fromSeconds: session.outputLatency))
     self.pattern = pattern
