@@ -20,6 +20,9 @@ extend-exclude = [
     # where they live and where a spec pulls a copy of them (#1256)
     "design/*.html",
     "specs/*/design/",
+    # The design tool's own bundled runtime and tokens, shipped inside the
+    # Claude Design handoff export. Minified, never hand-edited (#1390)
+    "design/_ds/",
     # Retired docs, reference only (mirrors .graphifyignore)
     "specs/_archive/",
     ".specify/",

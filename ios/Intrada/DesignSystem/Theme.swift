@@ -163,6 +163,12 @@ enum IntradaFont {
   static let tab = Font.custom(Inter.medium, size: 13, relativeTo: .footnote)
   static let segment = Font.custom(Inter.medium, size: 14, relativeTo: .subheadline)
   static let field = Font.custom(Inter.regular, size: 16, relativeTo: .callout)
+  /// The chord-chart face: bars line up only in a monospace, so this is the one
+  /// place the app leaves its two type families. Named because the same face is
+  /// wanted at three sizes across the editor, the staged card and the detail
+  /// grid (#1390).
+  static let chart = Font.system(.footnote, design: .monospaced)
+  static let chartEditor = Font.system(.body, design: .monospaced)
 
   private enum Inter {
     static let regular = "InterVariable"

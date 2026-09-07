@@ -6,9 +6,11 @@ import SwiftUI
 @Observable
 final class ItemFormModel {
   /// The fields a photographed page can fill (#1436). Key and notes are not
-  /// among them: nothing on a page reliably says either.
+  /// among them: nothing on a page reliably says either. `chart` is phase D of
+  /// `specs/piece-from-photo.md`: the field exists in the core and is always
+  /// `None` until that phase fills it.
   enum ReadField: Hashable {
-    case title, composer, marking, bpm
+    case title, composer, marking, bpm, chart
   }
 
   var kind: ItemKind
@@ -56,11 +58,27 @@ final class ItemFormModel {
       edited(.bpm)
     }
   }
+  /// Raw chart text, staged until Add. The core parses it inside
+  /// `AddPieceInFull` against the key this same form carries, so the shell
+  /// never interprets a bar (T21).
+  var chartText: String {
+    get { storedChart }
+    set {
+      storedChart = newValue
+      edited(.chart)
+    }
+  }
+
+  /// Exercises staged for the piece being created, in the order they were
+  /// added. Shell state on purpose: a rejected create leaves them on screen
+  /// because nothing was written (T21).
+  var stagedExercises: [StagedExercise] = []
 
   private var storedTitle = ""
   private var storedComposer = ""
   private var storedMarking = ""
   private var storedBpm = ""
+  private var storedChart = ""
 
   init(kind: ItemKind = .piece) {
     self.kind = kind
@@ -105,6 +123,9 @@ final class ItemFormModel {
         take(.bpm, String(beats), weak: read.weak) { storedBpm = $0 }
       }
     }
+    if let read = draft.chartText, replaceable(.chart, storedChart) {
+      take(.chart, read.value, weak: read.weak) { storedChart = $0 }
+    }
   }
 
   private func replaceable(_ field: ReadField, _ current: String) -> Bool {
@@ -132,6 +153,17 @@ final class ItemFormModel {
       photoId: photoId)
   }
 
+  /// What the piece carries beyond its own fields. Empty means the create is an
+  /// ordinary one, and the core says so too: `AddPieceInFull` falls through to
+  /// `Add` when both are absent.
+  var hasStagedExtras: Bool {
+    !stagedExercises.isEmpty || emptyToNil(chartText) != nil
+  }
+
+  func scaffoldEntries() -> [ScaffoldEntry] {
+    stagedExercises.map(\.entry)
+  }
+
   func updateInput() -> UpdateItem {
     UpdateItem(
       title: title,
@@ -155,5 +187,68 @@ final class ItemFormModel {
     let beats = UInt16(bpm.trimmingCharacters(in: .whitespaces))
     if mark == nil && beats == nil { return nil }
     return Tempo(marking: mark, bpm: beats)
+  }
+}
+
+/// An exercise staged on the create form: either one the musician wrote here,
+/// or one already in the library. Both are drafts until Add, so they render
+/// identically and removing either writes nothing (T21).
+enum StagedExercise: Identifiable, Hashable {
+  case draft(id: UUID, title: String, key: String, modality: Modality?, bpm: String)
+  case existing(id: String, title: String, meta: String?)
+
+  var id: String {
+    switch self {
+    case .draft(let id, _, _, _, _): id.uuidString
+    case .existing(let id, _, _): id
+    }
+  }
+
+  /// The library id, for the picker's already-selected set. `nil` for an
+  /// exercise written here, which has no id until Add mints one.
+  var existingId: String? {
+    switch self {
+    case .draft: nil
+    case .existing(let id, _, _): id
+    }
+  }
+
+  var title: String {
+    switch self {
+    case .draft(_, let title, _, _, _): title
+    case .existing(_, let title, _): title
+    }
+  }
+
+  var meta: String? {
+    switch self {
+    case .draft(_, _, let key, let modality, let bpm):
+      let mode = modality == .minor ? "minor" : "major"
+      let parts = [
+        key.isEmpty ? nil : "\(key) \(mode)",
+        bpm.isEmpty ? nil : "\(bpm) bpm",
+      ].compactMap { $0 }
+      return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    case .existing(_, _, let meta): return meta
+    }
+  }
+
+  var entry: ScaffoldEntry {
+    switch self {
+    case .draft(_, let title, let key, let modality, let bpm):
+      .new(
+        CreateItem(
+          title: title.trimmingCharacters(in: .whitespacesAndNewlines),
+          kind: .exercise,
+          composer: nil,
+          key: key.isEmpty ? nil : key,
+          modality: modality,
+          tempo: UInt16(bpm).map { Tempo(marking: nil, bpm: $0) },
+          notes: nil,
+          tags: [],
+          photoId: nil))
+    case .existing(let id, _, _):
+      .existing(id: id)
+    }
   }
 }

@@ -747,6 +747,22 @@ final class ScreenSnapshotTests: XCTestCase {
     assertSnapshot(of: host(LibraryAddScreen(defaultKind: .exercise)), as: config)
   }
 
+  /// The staged state the spec pins (#1390): a chart shown verbatim rather than
+  /// parsed, and a written exercise beside a chosen one. They render
+  /// identically on purpose, because until Add neither exists (T21).
+  func testLibraryAddScreenStaged() {
+    let form = ItemFormModel(kind: .piece)
+    form.title = "Alice in Wonderland"
+    form.composer = "Sammy Fain"
+    form.chartText = "[A]\n| Dm7 | G7 | Cmaj7 | A7alt |\n| Dm7 | G7 | Cmaj7 | Cmaj7 |"
+    form.stagedExercises = [
+      .draft(
+        id: UUID(), title: "Guide tones, ii to V to I", key: "C", modality: .major, bpm: "80"),
+      .existing(id: "ex-1", title: "Shell voicings", meta: "C major"),
+    ]
+    assertSnapshot(of: host(LibraryAddScreen(previewForm: form)), as: config)
+  }
+
   /// #1436: the composer was read weakly, so its mark is dimmed — the one
   /// decision the design conversation settled, and one a pixel diff can hold.
   func testLibraryAddScreenReadFromAPhoto() {
@@ -786,6 +802,31 @@ final class ScreenSnapshotTests: XCTestCase {
     .background(PaperBackground())
 
     assertSnapshot(of: stack, as: .image(layout: .sizeThatFits))
+  }
+
+  /// #1390: an exercise written on the create form and one chosen from the
+  /// library render identically, because until Add neither exists. A badge on
+  /// the chosen one would imply it already had a life the form has to respect.
+  /// The screen-level staged snapshot cannot hold this: the rows sit below the
+  /// fold of a scroll view.
+  func testDraftItemRows() {
+    let rows = VStack(spacing: 0) {
+      DraftItemRow(title: "Guide tones, ii to V to I", meta: "C major · 80 bpm", onRemove: {})
+      HairlineDivider()
+      DraftItemRow(title: "Shell voicings", meta: "C major", onRemove: {})
+      HairlineDivider()
+      DraftItemRow(title: "No key or tempo yet", meta: nil, onRemove: {})
+    }
+    // `cardFill` rather than `.cardSurface()`: on screen these rows sit between
+    // the section header and the actions footer, so they never meet the card's
+    // rounded corners. Clipping them here would pin a corner case the app
+    // cannot produce, and would cut the 4pt type bar diagonally.
+    .background(IntradaColor.cardFill)
+    .padding(IntradaSpacing.card)
+    .frame(width: 390)
+    .background(PaperBackground())
+
+    assertSnapshot(of: rows, as: .image(layout: .sizeThatFits))
   }
 
   private func addForm(from draft: PhotoDraft) -> some View {
