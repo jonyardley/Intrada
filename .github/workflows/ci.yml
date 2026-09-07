@@ -286,7 +286,13 @@ jobs:
     needs: changes
     if: github.event_name == 'push' || needs.changes.outputs.native == 'true'
     steps:
+      # `clean: true` runs `git clean -ffdx`, which deletes the gitignored
+      # ios/build. On the persistent self-hosted runner that would throw away
+      # the warm SwiftPM and DerivedData directories every run, which is the
+      # whole reason it is faster (#1577).
       - uses: actions/checkout@v7
+        with:
+          clean: ${{ runner.environment == 'github-hosted' }}
       # Pin Xcode 26.5 on the hosted runner to match the recorded snapshot
       # reference. Skipped when self-hosted: that Mac carries one Xcode, and
       # this action errors rather than falling back to it (#1577). Snapshot
@@ -422,8 +428,14 @@ jobs:
       # rebuilt. Restore-then-save-on-main, not `save-if`: that is not an
       # `actions/cache` input at all and was being ignored, so every PR branch
       # wrote its own 928MB copy that no other ref can read.
+      # Hosted only. These archives are saved on GitHub's runners, where the
+      # home directory is /Users/runner, and Sentry's binary artefact records
+      # that absolute path, so restoring them on another machine fails the
+      # build outright (#1577). The self-hosted checkout is persistent and
+      # already warm, so it needs no restore.
       - name: Restore SwiftPM packages
         id: spm-cache
+        if: runner.environment == 'github-hosted'
         uses: actions/cache/restore@v6
         with:
           path: ios/build/spm
@@ -443,6 +455,7 @@ jobs:
       # to force-evict.
       - name: Restore iOS DerivedData
         id: dd-cache
+        if: runner.environment == 'github-hosted'
         uses: actions/cache/restore@v6
         with:
           path: ios/build/dd
@@ -473,13 +486,13 @@ jobs:
       # three jobs waiting on it, and keyed off the restore so an unchanged
       # `project.yml` doesn't archive 928MB just to fail the reservation.
       - name: Save SwiftPM packages
-        if: github.ref == 'refs/heads/main' && steps.spm-cache.outputs.cache-hit != 'true'
+        if: runner.environment == 'github-hosted' && github.ref == 'refs/heads/main' && steps.spm-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v6
         with:
           path: ios/build/spm
           key: ${{ steps.spm-cache.outputs.cache-primary-key }}
       - name: Save iOS DerivedData
-        if: github.ref == 'refs/heads/main' && steps.dd-cache.outputs.cache-hit != 'true'
+        if: runner.environment == 'github-hosted' && github.ref == 'refs/heads/main' && steps.dd-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v6
         with:
           path: ios/build/dd
@@ -500,6 +513,8 @@ jobs:
     if: github.event_name == 'push' || needs.changes.outputs.native == 'true'
     steps:
       - uses: actions/checkout@v7
+        with:
+          clean: ${{ runner.environment == 'github-hosted' }}
       - uses: maxim-lobanov/setup-xcode@v1
         if: runner.environment == 'github-hosted'
         with:
@@ -552,6 +567,7 @@ jobs:
           key: ios-bindings-cargoswift-0.9.0-${{ runner.os }}-${{ hashFiles('crates/intrada-core/src/**', 'crates/intrada-ffi/src/**', 'crates/intrada-core/Cargo.toml', 'crates/intrada-ffi/Cargo.toml', 'Cargo.lock') }}
           fail-on-cache-miss: true
       - name: Restore SwiftPM packages
+        if: runner.environment == 'github-hosted'
         uses: actions/cache/restore@v6
         with:
           path: ios/build/spm
@@ -563,6 +579,7 @@ jobs:
       # tree every run. Restore here, save on main only, below.
       - name: Restore Release DerivedData
         id: dd-release-cache
+        if: runner.environment == 'github-hosted'
         uses: actions/cache/restore@v6
         with:
           path: ios/build/dd-release
@@ -572,7 +589,7 @@ jobs:
       - name: Build Release (just ios-build-release)
         run: just ios-build-release
       - name: Save Release DerivedData
-        if: github.ref == 'refs/heads/main' && steps.dd-release-cache.outputs.cache-hit != 'true'
+        if: runner.environment == 'github-hosted' && github.ref == 'refs/heads/main' && steps.dd-release-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v6
         with:
           path: ios/build/dd-release
@@ -590,6 +607,8 @@ jobs:
     if: github.event_name == 'push' || needs.changes.outputs.native == 'true'
     steps:
       - uses: actions/checkout@v7
+        with:
+          clean: ${{ runner.environment == 'github-hosted' }}
       - uses: maxim-lobanov/setup-xcode@v1
         if: runner.environment == 'github-hosted'
         with:
@@ -662,6 +681,8 @@ jobs:
             filters: "-skip-testing:IntradaTests -skip-testing:IntradaUITests/SessionBuilderUITests"
     steps:
       - uses: actions/checkout@v7
+        with:
+          clean: ${{ runner.environment == 'github-hosted' }}
       - uses: maxim-lobanov/setup-xcode@v1
         if: runner.environment == 'github-hosted'
         with:
