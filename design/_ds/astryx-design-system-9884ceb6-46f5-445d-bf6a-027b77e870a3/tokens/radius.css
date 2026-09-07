@@ -1,0 +1,10 @@
+/* Radius — the neutral theme's slightly rounder scale. */
+:root {
+  --radius-none: 0.25rem;    /* 4px  */
+  --radius-inner: 0.375rem;  /* 6px  — nested/inner elements */
+  --radius-element: 0.625rem;/* 10px — buttons, inputs, controls */
+  --radius-container: 0.75rem;/* 12px — cards, panels */
+  --radius-page: 1.75rem;    /* 28px — page-level surfaces, chat */
+  --radius-chat: 1.75rem;    /* 28px — chat bubbles/composer */
+  --radius-full: 9999px;     /* pills, avatars, switches */
+}

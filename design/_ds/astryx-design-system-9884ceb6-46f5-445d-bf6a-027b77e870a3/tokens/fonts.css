@@ -1,0 +1,10 @@
+/* Fonts — the neutral theme sets Figtree for body + heading and keeps a
+   monospace system stack for code. Figtree is loaded from Google Fonts (this
+   is the real Astryx neutral typeface, not a substitute). */
+@import url("https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&display=swap");
+
+:root {
+  --font-family-body: "Figtree", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-family-heading: "Figtree", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-family-code: ui-monospace, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}

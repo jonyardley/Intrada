@@ -1,0 +1,15 @@
+/* Motion — the neutral theme's "snappy" scale (base fast=125, medium=300,
+   slow=700, ratio 0.75). min = base×ratio, max = base÷ratio. One easing. */
+:root {
+  --duration-fast-min: 95ms;   /* @kind other */
+  --duration-fast: 125ms;      /* @kind other */
+  --duration-fast-max: 165ms;  /* @kind other */
+  --duration-medium-min: 225ms;/* @kind other */
+  --duration-medium: 300ms;    /* @kind other */
+  --duration-medium-max: 400ms;/* @kind other */
+  --duration-slow-min: 525ms;  /* @kind other */
+  --duration-slow: 700ms;      /* @kind other */
+  --duration-slow-max: 935ms;  /* @kind other */
+
+  --ease-standard: cubic-bezier(0.24, 1, 0.4, 1); /* @kind other */
+}

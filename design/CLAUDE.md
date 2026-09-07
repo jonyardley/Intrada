@@ -23,10 +23,10 @@
   Option-B pattern): mounted via `<dc-import name="Focus Player">` in both the design
   system and the related-items journey. Edit it here, once. New shared screens follow
   the same pattern (see `design-process.md` §9).
-- `Linked Exercises.dc.html` · `Session Summary.dc.html` ·
-  `Reflection Narrative.dc.html` — the journey feature files for the restored
-  session-builder surfaces; live references again since the coach removal
-  (#1344), alongside `Focus Player.dc.html` above.
+- `Drill Loop.dc.html` — **practice-coach Session A journey** (3 Aug 2026): A2 during
+  play + A3 after a repetition (full, mobile + iPad), A1 Home + A4 block boundary
+  (rough passes for Phase 2a). Its six primitives are canonical in the design system
+  under *Components · Coach primitives*; the feature file holds only the journey.
 - `Intrada Concepts.dc.html` — exploratory/validated screen concepts (Progress, Focus
   Player with rep counter, one-tap+calendar Practice, Library mastery, session-summary
   celebration, after-dark variant, live motion lab).

@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+  a { color: #4C3FA6; text-decoration: none; }
+  a:hover { color: #6346E5; text-decoration: underline; }
+  ::selection { background: #4C3FA633; }
+  [data-lucide] { stroke-width: 2; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { * { animation-duration: .001ms !important; } }
+</style>
+</helmet>
+<div style="min-height:100vh;background:linear-gradient(180deg,#F4F1E8 0%,#EBE7D9 100%);font-family:'Inter',system-ui,sans-serif;color:#2B2A26;padding:56px 48px 160px;">
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="#FBFAF3"/><g fill="none" stroke="#4C3FA6" stroke-width="5" stroke-linecap="round"><path d="M30 30h40M30 46h40"/><rect x="30" y="60" width="40" height="12" rx="6"/></g></svg></template>
+<div style="max-width:1340px;margin:0 auto;">
+
+  <section id="intro">
+    <div style="font-size:12px;font-weight:600;letter-spacing:1.8px;text-transform:uppercase;color:#9A927F;">Feature design · one-pass create · #1390</div>
+    <h1 style="font-family:'Source Serif 4',serif;font-weight:600;font-size:56px;line-height:1.04;letter-spacing:-0.02em;margin:14px 0 0;">Adding a piece in one pass</h1>
+    <p style="font-size:16px;line-height:1.68;color:#6E6557;max-width:700px;margin:18px 0 0;">The core half shipped: <strong style="color:#2B2A26;font-weight:600;">AddPieceInFull</strong> validates the piece, every staged exercise and the chart before it mutates anything, and writes one batch. This is the surface. Constraint set: <em>specs/one-pass-create.md</em>; ruling T21. The minimal form stays minimal — two collapsed rows below the existing fields, nothing written until <strong style="color:#2B2A26;font-weight:600;">Add</strong>, one primary on the screen.</p>
+    <p style="font-size:14px;line-height:1.68;color:#6E6557;max-width:700px;margin:12px 0 0;">Everything above the fold is unchanged and is <em>not redrawn</em> here — <strong style="color:#2B2A26;font-weight:600;">ScanPageEntry</strong>, the kind picker and the field cards are canonical in <a href="Intrada Design System.dc.html">Design System · Screens · Add piece</a>; the words come from the piece's <a href="Linked Exercises.dc.html">Related exercises card</a>. The frames below start at the foot of the form, where the new rows live.</p>
+  </section>
+
+  <section style="margin-top:76px;">
+    <div style="font-size:12px;font-weight:600;letter-spacing:1.8px;text-transform:uppercase;color:#9A927F;">1 · Where they sit, and what they say</div>
+    <h2 style="font-family:'Source Serif 4',serif;font-weight:600;font-size:34px;letter-spacing:-0.01em;margin:8px 0 0;">Two rows, last, silent when empty</h2>
+    <div style="display:flex;gap:44px;flex-wrap:wrap;margin-top:30px;">
+
+      <!-- F1 · empty form, both rows collapsed -->
+      <div style="width:392px;">
+        <div style="width:392px;border-radius:54px;padding:11px;background:linear-gradient(150deg,#3a3a3c,#1c1c1e);box-shadow:0 30px 60px -20px rgba(43,42,38,0.45),0 0 0 2px #0a0a0a;">
+          <div data-screen-label="F1 — Empty, both rows collapsed" style="position:relative;width:370px;height:782px;border-radius:43px;overflow:hidden;background:linear-gradient(180deg,#F4F1E8,#EBE7D9);display:flex;flex-direction:column;">
+            <div style="position:absolute;top:11px;left:50%;transform:translateX(-50%);width:104px;height:30px;background:#000;border-radius:18px;z-index:60;"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;height:46px;padding:0 24px 0 28px;flex:none;"><span style="font-weight:600;font-size:14px;">9:41</span><div style="display:flex;align-items:center;gap:6px;"><i data-lucide="signal" width="16" height="16"></i><i data-lucide="wifi" width="16" height="16"></i><div style="width:23px;height:12px;border:1.3px solid #2B2A26;border-radius:3px;display:flex;align-items:center;padding:1.5px;"><div style="width:72%;height:100%;background:#2B2A26;border-radius:1px;"></div></div></div></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 18px 12px;border-bottom:1px solid #E5DECD;flex:none;"><span style="font-size:16px;color:#6E6557;">Cancel</span><span style="font-family:'Source Serif 4',serif;font-weight:600;font-size:16px;">New piece</span><span style="font-size:16px;font-weight:600;color:#4C3FA6;">Add</span></div>
+            <div style="flex:1;position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;">
+              <div style="padding:16px;display:flex;flex-direction:column;gap:16px;flex:none;">
+                <div style="background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;display:flex;align-items:center;gap:10px;padding:16px;">
+                  <i data-lucide="scan-line" width="20" height="20" style="color:#4C3FA6;flex:none;"></i>
+                  <div><div style="font-size:15px;font-weight:500;color:#4C3FA6;">Scan a page</div><div style="font-size:12px;color:#6E6557;margin-top:2px;">Title, composer and tempo, read off the page</div></div>
+                </div>
+                <div style="display:flex;gap:4px;padding:4px;background:#FCFAF3;border:1px solid #E5DECD;border-radius:999px;"><span style="flex:1;text-align:center;padding:9px;border-radius:999px;background:#4C3FA6;color:#F2EFE8;font-weight:500;font-size:14px;">Piece</span><span style="flex:1;text-align:center;padding:9px;border-radius:999px;color:#6E6557;font-weight:500;font-size:14px;">Exercise</span></div>
+                <div style="background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;overflow:hidden;">
+                  <div style="padding:10px 16px;"><div style="font-size:12px;font-weight:500;color:#6E6557;">Title</div><div style="font-size:16px;color:#9A927F;margin-top:3px;">Required</div></div>
+                  <div style="height:1px;background:#E5DECD;"></div>
+                  <div style="padding:10px 16px;"><div style="font-size:12px;font-weight:500;color:#6E6557;">Composer</div><div style="font-size:16px;color:#2B2A26;margin-top:3px;">&nbsp;</div></div>
+                  <div style="height:1px;background:#E5DECD;"></div>
+                  <div style="padding:10px 16px;"><div style="font-size:12px;font-weight:500;color:#6E6557;">Key</div><div style="font-size:16px;color:#9A927F;margin-top:3px;">Pick a key</div></div>
+                </div>
+                <div style="background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;overflow:hidden;">
+                  <div style="padding:10px 16px;"><div style="font-size:12px;font-weight:500;color:#6E6557;">Tempo marking</div><div style="font-size:16px;color:#9A927F;margin-top:3px;">e.g. Allegro</div></div>
+                  <div style="height:1px;background:#E5DECD;"></div>
+                  <div style="padding:10px 16px;"><div style="font-size:12px;font-weight:500;color:#6E6557;">Beats per minute</div><div style="font-size:16px;color:#2B2A26;margin-top:3px;">&nbsp;</div></div>
+                </div>
+                <div style="background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;padding:10px 16px;"><div style="font-size:12px;font-weight:500;color:#6E6557;">Notes</div><div style="font-size:16px;color:#9A927F;margin-top:3px;">&nbsp;</div></div>
+                <div style="background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;padding:10px 16px;"><div style="font-size:12px;font-weight:500;color:#6E6557;">Tags</div><div style="font-size:16px;color:#9A927F;margin-top:3px;">Add a tag</div></div>
+                <div style="background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;padding:15px 16px;display:flex;align-items:center;gap:12px;">
+                  <span style="flex:1;font-family:'Source Serif 4',serif;font-weight:600;font-size:17px;">{{ chartRowLabel }}</span>
+                  <i data-lucide="chevron-right" width="18" height="18" style="color:#9A927F;"></i>
+                </div>
+                <div style="background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;padding:15px 16px;display:flex;align-items:center;gap:12px;">
+                  <span style="flex:1;font-family:'Source Serif 4',serif;font-weight:600;font-size:17px;">{{ exercisesRowLabel }}</span>
+                  <i data-lucide="chevron-down" width="18" height="18" style="color:#9A927F;"></i>
+                </div>
+              </div>
+              <div style="position:absolute;top:0;left:0;right:0;height:20px;background:linear-gradient(180deg,#F4F1E8,rgba(244,241,232,0));"></div>
+            </div>
+            <div style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:128px;height:5px;border-radius:3px;background:#2B2A26;opacity:0.8;z-index:60;"></div>
+          </div>
+        </div>
+        <sc-if value="{{ showNotes }}" hint-placeholder-val="{{ true }}">
+        <div style="margin-top:22px;">
+          <div style="font-family:'Source Serif 4',serif;font-weight:600;font-size:19px;">F1 · the collapsed state (ask 1 &amp; 3)</div>
+          <ul style="margin:10px 0 0;padding-left:18px;font-size:13.5px;line-height:1.7;color:#6E6557;">
+            <li><strong style="color:#2B2A26;font-weight:600;">Nouns win.</strong> “Chord chart” and “Related exercises” — the same words the detail card wears, so one thing has one name across two surfaces. Verb-led rows lose on a harder point than tone: “Add chord chart” puts a second <em>Add</em> on a screen whose only primary is Add.</li>
+            <li><strong style="color:#2B2A26;font-weight:600;">Silent when collapsed.</strong> No caption, no count, no “optional”. A piece with neither pays two rows, nothing more.</li>
+            <li>The caption the tone doc allows is <em>spent on expansion</em> — one sentence, at the decision point, once (F3). Collapsed, the row is a promise the app can keep in one tap; it needs no sales line.</li>
+            <li><strong style="color:#2B2A26;font-weight:600;">Both rows sit last, below Tags.</strong> The fields say what the piece <em>is</em>; the rows carry what comes <em>with</em> it. Ordering them next to ScanPageEntry was tempting — a page can fill the chart — but proximity is the wrong instrument for that: the read mark is (F5). Sitting last also leaves <code style="font-size:12px;">ItemFormScaffold</code>'s existing order untouched, so the edit path is unchanged.</li>
+            <li>Chevrons differ on purpose: <em>right</em> on the chart (it opens the existing sheet), <em>down</em> on exercises (it expands in place). Spec decision 5 keeps one chart editor; cloning it inline would make two.</li>
+          </ul>
+        </div>
+        </sc-if>
+      </div>
+
+      <!-- F2 · both staged -->
+      <div style="width:392px;">
+        <div style="width:392px;border-radius:54px;padding:11px;background:linear-gradient(150deg,#3a3a3c,#1c1c1e);box-shadow:0 30px 60px -20px rgba(43,42,38,0.45),0 0 0 2px #0a0a0a;">
+          <div data-screen-label="F2 — Chart and two exercises staged" style="position:relative;width:370px;height:782px;border-radius:43px;overflow:hidden;background:linear-gradient(180deg,#F4F1E8,#EBE7D9);display:flex;flex-direction:column;">
+            <div style="position:absolute;top:11px;left:50%;transform:translateX(-50%);width:104px;height:30px;background:#000;border-radius:18px;z-index:60;"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;height:46px;padding:0 24px 0 28px;flex:none;"><span style="font-weight:600;font-size:14px;">9:41</span><div style="display:flex;align-items:center;gap:6px;"><i data-lucide="signal" width="16" height="16"></i><i data-lucide="wifi" width="16" height="16"></i><div style="width:23px;height:12px;border:1.3px solid #2B2A26;border-radius:3px;display:flex;align-items:center;padding:1.5px;"><div style="width:72%;height:100%;background:#2B2A26;border-radius:1px;"></div></div></div></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 18px 12px;border-bottom:1px solid #E5DECD;flex:none;"><span style="font-size:16px;color:#6E6557;">Cancel</span><span style="font-family:'Source Serif 4',serif;font-weight:600;font-size:16px;">New piece</span><span style="font-size:16px;font-weight:600;color:#4C3FA6;">Add</span></div>
+            <div style="flex:1;position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;">
+              <div style="padding:16px;display:flex;flex-direction:column;gap:16px;flex:none;">
+                <div style="background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;overflow:hidden;">
+                  <div style="padding:10px 16px;"><div style="font-size:12px;font-weight:500;color:#6E6557;">Tempo marking</div><div style="font-size:16px;margin-top:3px;">Medium swing</div></div>
+                  <div style="height:1px;background:#E5DECD;"></div>
+                  <div style="padding:10px 16px;"><div style="font-size:12px;font-weight:500;color:#6E6557;">Beats per minute</div><div style="font-size:16px;margin-top:3px;">132</div></div>
+                </div>
+                <div style="background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;padding:10px 16px;"><div style="font-size:12px;font-weight:500;color:#6E6557;">Notes</div><div style="font-size:16px;margin-top:3px;">Bridge from the lesson recording</div></div>
+                <div style="background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;padding:10px 16px 12px;"><div style="font-size:12px;font-weight:500;color:#6E6557;">Tags</div><div style="display:flex;gap:6px;margin-top:7px;"><span style="font-size:12px;font-weight:500;color:#6E6557;border:1px solid #E0D9C8;border-radius:999px;padding:4px 10px;">standards</span><span style="font-size:12px;font-weight:500;color:#6E6557;border:1px solid #E0D9C8;border-radius:999px;padding:4px 10px;">lesson</span></div></div>
+
+                <div style="background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;">
+                  <div style="display:flex;align-items:center;padding:14px 16px 10px;"><span style="flex:1;font-family:'Source Serif 4',serif;font-weight:600;font-size:17px;">Chord chart</span><span style="font-size:15px;font-weight:500;color:#4C3FA6;">Edit</span></div>
+                  <div style="margin:0 16px 14px;background:#F4F1E8;border:1px solid #E0D9C8;border-radius:8px;padding:11px 12px;position:relative;overflow:hidden;max-height:76px;">
+                    <div style="font-family:ui-monospace,Menlo,monospace;font-size:12.5px;line-height:1.6;white-space:pre;">[A]
+| Dm7 | G7 | Cmaj7 | A7alt |
+| Dm7 | G7 | Cmaj7 | Cmaj7 |</div>
+                    <div style="position:absolute;left:0;right:0;bottom:0;height:26px;background:linear-gradient(180deg,rgba(244,241,232,0),#F4F1E8);"></div>
+                  </div>
+                </div>
+
+                <div style="background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;overflow:hidden;">
+                  <div style="display:flex;align-items:center;padding:14px 16px 10px;"><span style="flex:1;font-family:'Source Serif 4',serif;font-weight:600;font-size:17px;">Related exercises</span><i data-lucide="chevron-up" width="18" height="18" style="color:#9A927F;"></i></div>
+                  <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;position:relative;"><div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,#9E7B33,#8A6A2E);"></div><div style="flex:1;padding-left:5px;"><div style="font-family:'Source Serif 4',serif;font-weight:600;font-size:17px;">Shell voicings</div><div style="font-size:12px;color:#6E6557;margin-top:3px;">C major</div></div><i data-lucide="minus-circle" width="22" height="22" style="color:#B3261E;"></i></div>
+                  <div style="height:1px;background:#E5DECD;"></div>
+                  <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;position:relative;"><div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,#9E7B33,#8A6A2E);"></div><div style="flex:1;padding-left:5px;"><div style="font-family:'Source Serif 4',serif;font-weight:600;font-size:17px;">Guide tones, ii–V–I</div><div style="font-size:12px;color:#6E6557;margin-top:3px;">C major · 80 bpm</div></div><i data-lucide="minus-circle" width="22" height="22" style="color:#B3261E;"></i></div>
+                  <div style="display:flex;padding:8px;"><span style="flex:1;text-align:center;font-size:15px;font-weight:500;color:#4C3FA6;padding:12px 0;">Create an exercise</span><span style="flex:1;text-align:center;font-size:15px;font-weight:500;color:#4C3FA6;padding:12px 0;">Choose one</span></div>
+                </div>
+              </div>
+              <div style="position:absolute;top:0;left:0;right:0;height:20px;background:linear-gradient(180deg,#F4F1E8,rgba(244,241,232,0));"></div>
+            </div>
+            <div style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:128px;height:5px;border-radius:3px;background:#2B2A26;opacity:0.8;z-index:60;"></div>
+          </div>
+        </div>
+        <sc-if value="{{ showNotes }}" hint-placeholder-val="{{ true }}">
+        <div style="margin-top:22px;">
+          <div style="font-family:'Source Serif 4',serif;font-weight:600;font-size:19px;">F2 · staged, nothing written yet (ask 2)</div>
+          <ul style="margin:10px 0 0;padding-left:18px;font-size:13.5px;line-height:1.7;color:#6E6557;">
+            <li><strong style="color:#2B2A26;font-weight:600;">The chart shows as the text you typed</strong> — monospaced, three lines, then a fade, with <em>Edit</em> where the detail card puts it. Not a bar count and not a bar grid: both claim a parse this form has not run. The chart is parsed when Add is pressed, so anything that looks parsed here would be a promise the screen can't keep.</li>
+            <li>Removal is a per-row <em>minus</em>, the same control the detail card's edit mode uses — no Edit mode of its own. A three-row draft with no reorder doesn't earn a mode.</li>
+            <li><strong style="color:#2B2A26;font-weight:600;">Written and chosen rows look identical</strong>, and that's the ruling: until Add, neither exists, and removing either writes nothing. A “from your library” badge would imply the row already had a life the form has to respect.</li>
+            <li>The two actions become the detail card's populated footer verbatim — <em>Create an exercise · Choose one</em>. No filled bar anywhere in the sections: Add stays the only primary.</li>
+            <li>Answers spec open question 2: a rejected create leaves this exactly as drawn. The draft is shell state; the banner appears above, the rows stay, and nothing was written to clean up.</li>
+          </ul>
+        </div>
+        </sc-if>
+      </div>
+
+      <!-- Wording candidates -->
+      <div style="width:392px;">
+        <div style="background:#F0E7D6;border:1px solid #E5DECD;border-radius:16px;padding:20px;">
+          <div style="font-size:11px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:#9A927F;">Ask 1 · the three candidates</div>
+          <div style="margin-top:14px;background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;padding:15px 16px;display:flex;align-items:center;gap:12px;"><span style="flex:1;font-family:'Source Serif 4',serif;font-weight:600;font-size:17px;">Chord chart</span><i data-lucide="chevron-right" width="18" height="18" style="color:#9A927F;"></i></div>
+          <div style="margin-top:6px;background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;padding:15px 16px;display:flex;align-items:center;gap:12px;"><span style="flex:1;font-family:'Source Serif 4',serif;font-weight:600;font-size:17px;">Related exercises</span><i data-lucide="chevron-down" width="18" height="18" style="color:#9A927F;"></i></div>
+          <div style="display:flex;align-items:center;gap:7px;margin-top:9px;font-size:12.5px;font-weight:600;color:#1F8A5B;"><i data-lucide="check" width="14" height="14"></i>A · nouns, silent — recommended</div>
+
+          <div style="margin-top:20px;background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;padding:15px 16px;display:flex;align-items:center;gap:12px;opacity:0.72;"><i data-lucide="plus" width="17" height="17" style="color:#4C3FA6;"></i><span style="flex:1;font-size:15px;font-weight:500;color:#4C3FA6;">Add chord chart</span></div>
+          <div style="margin-top:6px;background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;padding:15px 16px;display:flex;align-items:center;gap:12px;opacity:0.72;"><i data-lucide="plus" width="17" height="17" style="color:#4C3FA6;"></i><span style="flex:1;font-size:15px;font-weight:500;color:#4C3FA6;">Add exercises</span></div>
+          <div style="display:flex;align-items:flex-start;gap:7px;margin-top:9px;font-size:12.5px;line-height:1.5;color:#6E6557;"><i data-lucide="x" width="14" height="14" style="color:#B3261E;flex:none;margin-top:2px;"></i><span>B · verb-led — two more “Add”s on the one screen where Add means <em>save the piece</em>, and a second name for a thing the detail card already names</span></div>
+
+          <div style="margin-top:20px;background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;padding:14px 16px;opacity:0.72;"><div style="display:flex;align-items:center;gap:12px;"><span style="flex:1;font-family:'Source Serif 4',serif;font-weight:600;font-size:17px;">Chord chart</span><i data-lucide="chevron-right" width="18" height="18" style="color:#9A927F;"></i></div><div style="font-size:13px;line-height:1.5;color:#6E6557;margin-top:4px;">Paste the changes to keep them with the piece</div></div>
+          <div style="display:flex;align-items:flex-start;gap:7px;margin-top:9px;font-size:12.5px;line-height:1.5;color:#6E6557;"><i data-lucide="x" width="14" height="14" style="color:#B3261E;flex:none;margin-top:2px;"></i><span>C · noun plus caption — the sentence is right, the place is wrong: it doubles the resting height of a form that is minimal on purpose. Keep the sentence, move it to expansion (F3)</span></div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <section style="margin-top:88px;">
+    <div style="font-size:12px;font-weight:600;letter-spacing:1.8px;text-transform:uppercase;color:#9A927F;">2 · Expanded</div>
+    <h2 style="font-family:'Source Serif 4',serif;font-weight:600;font-size:34px;letter-spacing:-0.01em;margin:8px 0 0;">One sentence, then the material</h2>
+    <div style="display:flex;gap:44px;flex-wrap:wrap;margin-top:30px;">
+
+      <!-- F3 · exercises expanded, empty -->
+      <div style="width:392px;">
+        <div style="width:392px;border-radius:54px;padding:11px;background:linear-gradient(150deg,#3a3a3c,#1c1c1e);box-shadow:0 30px 60px -20px rgba(43,42,38,0.45),0 0 0 2px #0a0a0a;">
+          <div data-screen-label="F3 — Related exercises just expanded" style="position:relative;width:370px;height:782px;border-radius:43px;overflow:hidden;background:linear-gradient(180deg,#F4F1E8,#EBE7D9);display:flex;flex-direction:column;">
+            <div style="position:absolute;top:11px;left:50%;transform:translateX(-50%);width:104px;height:30px;background:#000;border-radius:18px;z-index:60;"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;height:46px;padding:0 24px 0 28px;flex:none;"><span style="font-weight:600;font-size:14px;">9:41</span><div style="display:flex;align-items:center;gap:6px;"><i data-lucide="signal" width="16" height="16"></i><i data-lucide="wifi" width="16" height="16"></i><div style="width:23px;height:12px;border:1.3px solid #2B2A26;border-radius:3px;display:flex;align-items:center;padding:1.5px;"><div style="width:72%;height:100%;background:#2B2A26;border-radius:1px;"></div></div></div></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 18px 12px;border-bottom:1px solid #E5DECD;flex:none;"><span style="font-size:16px;color:#6E6557;">Cancel</span><span style="font-family:'Source Serif 4',serif;font-weight:600;font-size:16px;">New piece</span><span style="font-size:16px;font-weight:600;color:#4C3FA6;">Add</span></div>
+            <div style="flex:1;position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;">
+              <div style="padding:16px;display:flex;flex-direction:column;gap:16px;flex:none;">
+                <div style="display:flex;gap:4px;padding:4px;background:#FCFAF3;border:1px solid #E5DECD;border-radius:999px;"><span style="flex:1;text-align:center;padding:9px;border-radius:999px;background:#4C3FA6;color:#F2EFE8;font-weight:500;font-size:14px;">Piece</span><span style="flex:1;text-align:center;padding:9px;border-radius:999px;color:#6E6557;font-weight:500;font-size:14px;">Exercise</span></div><div style="background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;overflow:hidden;"><div style="padding:10px 16px;"><div style="font-size:12px;font-weight:500;color:#6E6557;">Title</div><div style="font-size:16px;margin-top:3px;">Alice in Wonderland</div></div><div style="height:1px;background:#E5DECD;"></div><div style="padding:10px 16px;"><div style="font-size:12px;font-weight:500;color:#6E6557;">Composer</div><div style="font-size:16px;margin-top:3px;">Sammy Fain</div></div><div style="height:1px;background:#E5DECD;"></div><div style="padding:10px 16px;"><div style="font-size:12px;font-weight:500;color:#6E6557;">Key</div><div style="font-size:16px;margin-top:3px;">C major</div></div></div><div style="background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;overflow:hidden;"><div style="padding:10px 16px;"><div style="font-size:12px;font-weight:500;color:#6E6557;">Tempo marking</div><div style="font-size:16px;margin-top:3px;">Medium swing</div></div><div style="height:1px;background:#E5DECD;"></div><div style="padding:10px 16px;"><div style="font-size:12px;font-weight:500;color:#6E6557;">Beats per minute</div><div style="font-size:16px;margin-top:3px;">132</div></div></div>
+                <div style="background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;padding:10px 16px;"><div style="font-size:12px;font-weight:500;color:#6E6557;">Notes</div><div style="font-size:16px;margin-top:3px;">Bridge from the lesson recording</div></div>
+                <div style="background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;padding:10px 16px 12px;"><div style="font-size:12px;font-weight:500;color:#6E6557;">Tags</div><div style="display:flex;gap:6px;margin-top:7px;"><span style="font-size:12px;font-weight:500;color:#6E6557;border:1px solid #E0D9C8;border-radius:999px;padding:4px 10px;">standards</span><span style="font-size:12px;font-weight:500;color:#6E6557;border:1px solid #E0D9C8;border-radius:999px;padding:4px 10px;">lesson</span></div></div>
+                <div style="background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;padding:15px 16px;display:flex;align-items:center;gap:12px;"><span style="flex:1;font-family:'Source Serif 4',serif;font-weight:600;font-size:17px;">Chord chart</span><i data-lucide="chevron-right" width="18" height="18" style="color:#9A927F;"></i></div>
+                <div style="background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;overflow:hidden;animation:fadeUp .35s ease both;">
+                  <div style="display:flex;align-items:center;padding:14px 16px 8px;"><span style="flex:1;font-family:'Source Serif 4',serif;font-weight:600;font-size:17px;">Related exercises</span><i data-lucide="chevron-up" width="18" height="18" style="color:#9A927F;"></i></div>
+                  <div style="font-size:14px;line-height:1.55;color:#6E6557;padding:0 16px 14px;">Scales, arpeggios, and anything else you practise alongside this piece.</div>
+                  <div style="height:1px;background:#E5DECD;"></div>
+                  <div style="display:flex;align-items:center;justify-content:center;gap:8px;padding:14px;font-size:15px;font-weight:500;color:#4C3FA6;"><i data-lucide="plus" width="16" height="16"></i>Create an exercise</div>
+                  <div style="height:1px;background:#E5DECD;"></div>
+                  <div style="text-align:center;padding:14px;font-size:15px;font-weight:500;color:#4C3FA6;">Choose one from the library</div>
+                </div>
+              </div>
+              <div style="position:absolute;top:0;left:0;right:0;height:20px;background:linear-gradient(180deg,#F4F1E8,rgba(244,241,232,0));"></div>
+            </div>
+            <div style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:128px;height:5px;border-radius:3px;background:#2B2A26;opacity:0.8;z-index:60;"></div>
+          </div>
+        </div>
+        <sc-if value="{{ showNotes }}" hint-placeholder-val="{{ true }}">
+        <div style="margin-top:22px;">
+          <div style="font-family:'Source Serif 4',serif;font-weight:600;font-size:19px;">F3 · two actions, no competing buttons (ask 2)</div>
+          <ul style="margin:10px 0 0;padding-left:18px;font-size:13.5px;line-height:1.7;color:#6E6557;">
+            <li>The detail card's empty state gives the sentence and both actions; this borrows all three verbatim, minus one thing: <strong style="color:#2B2A26;font-weight:600;">the BrandBarButton</strong>. On the piece there is one obvious next step, so the filled indigo bar is right; here it would out-shout Add. Both actions become plain accent rows, divided by a hairline — equal weight, and the order carries the recommendation.</li>
+            <li>“Create an exercise” opens a small sheet that <em>returns a draft</em> rather than sending an event (F4). “Choose one from the library” is <code style="font-size:12px;">LinkedItemPickerSheet</code> unchanged — it links existing exercises only, which is exactly its job here.</li>
+            <li>No ellipsis on either, and neither is a mode: the section stays open behind the sheet, so coming back is landing where you were.</li>
+          </ul>
+        </div>
+        </sc-if>
+      </div>
+
+      <!-- F4 · draft exercise sheet -->
+      <div style="width:392px;">
+        <div style="width:392px;border-radius:54px;padding:11px;background:linear-gradient(150deg,#3a3a3c,#1c1c1e);box-shadow:0 30px 60px -20px rgba(43,42,38,0.45),0 0 0 2px #0a0a0a;">
+          <div data-screen-label="F4 — Write your own, as a returning sheet" style="position:relative;width:370px;height:782px;border-radius:43px;overflow:hidden;background:linear-gradient(180deg,#F4F1E8,#EBE7D9);display:flex;flex-direction:column;">
+            <div style="position:absolute;top:11px;left:50%;transform:translateX(-50%);width:104px;height:30px;background:#000;border-radius:18px;z-index:60;"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;height:46px;padding:0 24px 0 28px;flex:none;"><span style="font-weight:600;font-size:14px;">9:41</span><div style="display:flex;align-items:center;gap:6px;"><i data-lucide="signal" width="16" height="16"></i><i data-lucide="wifi" width="16" height="16"></i><div style="width:23px;height:12px;border:1.3px solid #2B2A26;border-radius:3px;display:flex;align-items:center;padding:1.5px;"><div style="width:72%;height:100%;background:#2B2A26;border-radius:1px;"></div></div></div></div>
+            <div style="position:absolute;inset:0;background:rgba(43,42,38,0.32);z-index:40;"></div>
+            <div style="position:absolute;left:0;right:0;bottom:0;top:170px;z-index:50;background:#F7F4EC;border-radius:24px 24px 0 0;box-shadow:0 -18px 44px -20px rgba(43,42,38,0.5);display:flex;flex-direction:column;padding:10px 16px 26px;">
+              <div style="width:40px;height:5px;border-radius:3px;background:#D8D0BD;margin:0 auto;"></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-bottom:12px;border-bottom:1px solid #E5DECD;"><span style="font-size:16px;color:#6E6557;">Cancel</span><span style="font-family:'Source Serif 4',serif;font-weight:600;font-size:16px;">New exercise</span><span style="font-size:16px;font-weight:600;color:#4C3FA6;">Done</span></div>
+              <div style="margin-top:16px;background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;overflow:hidden;">
+                <div style="padding:10px 16px;"><div style="font-size:12px;font-weight:500;color:#6E6557;">Title</div><div style="font-size:16px;margin-top:3px;">Guide tones, ii–V–I<span style="display:inline-block;width:1.5px;height:17px;background:#4C3FA6;vertical-align:-3px;margin-left:2px;"></span></div></div>
+                <div style="height:1px;background:#E5DECD;"></div>
+                <div style="padding:10px 16px;"><div style="font-size:12px;font-weight:500;color:#6E6557;">Key</div><div style="font-size:16px;margin-top:3px;">C major</div></div>
+                <div style="height:1px;background:#E5DECD;"></div>
+                <div style="padding:10px 16px;"><div style="font-size:12px;font-weight:500;color:#6E6557;">Beats per minute</div><div style="font-size:16px;margin-top:3px;">80</div></div>
+              </div>
+              <div style="font-size:13px;line-height:1.55;color:#6E6557;margin-top:12px;">It joins the list here and is written when you add the piece.</div>
+            </div>
+            <div style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:128px;height:5px;border-radius:3px;background:#2B2A26;opacity:0.8;z-index:60;"></div>
+          </div>
+        </div>
+        <sc-if value="{{ showNotes }}" hint-placeholder-val="{{ true }}">
+        <div style="margin-top:22px;">
+          <div style="font-family:'Source Serif 4',serif;font-weight:600;font-size:19px;">F4 · <code style="font-size:13px;">DraftExerciseSheet</code></div>
+          <ul style="margin:10px 0 0;padding-left:18px;font-size:13.5px;line-height:1.7;color:#6E6557;">
+            <li>Three fields — title, key, bpm — because a <code style="font-size:12px;">ScaffoldEntry::New</code> only needs a valid title and the two things a musician says out loud in the same breath. Notes, tags and steps belong to the exercise's own screen, after it exists.</li>
+            <li><strong style="color:#2B2A26;font-weight:600;">Done, not Add</strong>: the word Add is reserved for the create that writes. One sentence says where the row goes, at the only point where “nothing is written yet” could surprise someone.</li>
+            <li>Deliberately not <code style="font-size:12px;">LibraryAddScreen(relatedToPieceId:)</code>: that path mints and links immediately, which on the create path would write an exercise for a piece that doesn't exist.</li>
+          </ul>
+        </div>
+        </sc-if>
+      </div>
+
+      <!-- chart treatment candidates -->
+      <div style="width:392px;">
+        <div style="background:#F0E7D6;border:1px solid #E5DECD;border-radius:16px;padding:20px;">
+          <div style="font-size:11px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:#9A927F;">Ask 2 · the staged chart, three ways</div>
+
+          <div style="margin-top:14px;background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;">
+            <div style="display:flex;align-items:center;padding:14px 16px 10px;"><span style="flex:1;font-family:'Source Serif 4',serif;font-weight:600;font-size:17px;">Chord chart</span><span style="font-size:15px;font-weight:500;color:#4C3FA6;">Edit</span></div>
+            <div style="margin:0 16px 14px;background:#F4F1E8;border:1px solid #E0D9C8;border-radius:8px;padding:11px 12px;position:relative;overflow:hidden;max-height:76px;"><div style="font-family:ui-monospace,Menlo,monospace;font-size:12.5px;line-height:1.6;white-space:pre;">[A]
+| Dm7 | G7 | Cmaj7 | A7alt |
+| Dm7 | G7 | Cmaj7 | Cmaj7 |</div><div style="position:absolute;left:0;right:0;bottom:0;height:26px;background:linear-gradient(180deg,rgba(244,241,232,0),#F4F1E8);"></div></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:7px;margin-top:9px;font-size:12.5px;font-weight:600;color:#1F8A5B;"><i data-lucide="check" width="14" height="14"></i>Your text, three lines — recommended</div>
+
+          <div style="margin-top:20px;background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;padding:14px 16px;opacity:0.72;"><div style="display:flex;align-items:center;gap:12px;"><div style="flex:1;"><div style="font-family:'Source Serif 4',serif;font-weight:600;font-size:17px;">Chord chart</div><div style="font-size:12px;color:#6E6557;margin-top:3px;">C major · 16 bars · 24 changes</div></div><span style="font-size:15px;font-weight:500;color:#4C3FA6;">Edit</span></div></div>
+          <div style="display:flex;align-items:flex-start;gap:7px;margin-top:9px;font-size:12.5px;line-height:1.5;color:#6E6557;"><i data-lucide="x" width="14" height="14" style="color:#B3261E;flex:none;margin-top:2px;"></i><span>Bar count — the detail card's own subtitle, and it belongs there: it is read off a <em>parsed</em> chart. Here it would count bars the core hasn't accepted, and be wrong precisely when it matters (F6)</span></div>
+
+          <div style="margin-top:20px;background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;padding:15px 16px;display:flex;align-items:center;gap:12px;opacity:0.72;"><i data-lucide="check-circle-2" width="18" height="18" style="color:#1F8A5B;"></i><span style="flex:1;font-family:'Source Serif 4',serif;font-weight:600;font-size:17px;">Chord chart</span><span style="font-size:15px;font-weight:500;color:#4C3FA6;">Edit</span></div>
+          <div style="display:flex;align-items:flex-start;gap:7px;margin-top:9px;font-size:12.5px;line-height:1.5;color:#6E6557;"><i data-lucide="x" width="14" height="14" style="color:#B3261E;flex:none;margin-top:2px;"></i><span>A filled row with a tick — cheapest, and it hides the one thing worth checking before you commit: whether the paste landed. A tick also asserts “valid”, which nothing has established yet</span></div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <section style="margin-top:88px;">
+    <div style="font-size:12px;font-weight:600;letter-spacing:1.8px;text-transform:uppercase;color:#9A927F;">3 · The page, and the error</div>
+    <h2 style="font-family:'Source Serif 4',serif;font-weight:600;font-size:34px;letter-spacing:-0.01em;margin:8px 0 0;">A read chart is marked; a bad bar is pointed at</h2>
+    <div style="display:flex;gap:44px;flex-wrap:wrap;margin-top:30px;">
+
+      <!-- F5 · chart from the photo -->
+      <div style="width:392px;">
+        <div style="width:392px;border-radius:54px;padding:11px;background:linear-gradient(150deg,#3a3a3c,#1c1c1e);box-shadow:0 30px 60px -20px rgba(43,42,38,0.45),0 0 0 2px #0a0a0a;">
+          <div data-screen-label="F5 — Chart read from the page" style="position:relative;width:370px;height:782px;border-radius:43px;overflow:hidden;background:linear-gradient(180deg,#F4F1E8,#EBE7D9);display:flex;flex-direction:column;">
+            <div style="position:absolute;top:11px;left:50%;transform:translateX(-50%);width:104px;height:30px;background:#000;border-radius:18px;z-index:60;"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;height:46px;padding:0 24px 0 28px;flex:none;"><span style="font-weight:600;font-size:14px;">9:41</span><div style="display:flex;align-items:center;gap:6px;"><i data-lucide="signal" width="16" height="16"></i><i data-lucide="wifi" width="16" height="16"></i><div style="width:23px;height:12px;border:1.3px solid #2B2A26;border-radius:3px;display:flex;align-items:center;padding:1.5px;"><div style="width:72%;height:100%;background:#2B2A26;border-radius:1px;"></div></div></div></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 18px 12px;border-bottom:1px solid #E5DECD;flex:none;"><span style="font-size:16px;color:#6E6557;">Cancel</span><span style="font-family:'Source Serif 4',serif;font-weight:600;font-size:16px;">New piece</span><span style="font-size:16px;font-weight:600;color:#4C3FA6;">Add</span></div>
+            <div style="flex:1;position:relative;overflow:hidden;">
+              <div style="padding:16px;display:flex;flex-direction:column;gap:16px;">
+                <div style="background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;display:flex;align-items:center;gap:12px;padding:10px 12px;">
+                  <div style="width:40px;height:52px;border-radius:8px;border:1px solid #E5DECD;background:linear-gradient(160deg,#EFEADC,#E2DBC9);display:flex;align-items:center;justify-content:center;flex:none;"><i data-lucide="file-music" width="18" height="18" style="color:#9A927F;"></i></div>
+                  <span style="flex:1;font-size:13px;color:#6E6557;">Scanned page</span>
+                  <span style="font-size:15px;font-weight:500;color:#4C3FA6;">Change</span>
+                </div>
+                <div style="display:flex;gap:4px;padding:4px;background:#FCFAF3;border:1px solid #E5DECD;border-radius:999px;"><span style="flex:1;text-align:center;padding:9px;border-radius:999px;background:#4C3FA6;color:#F2EFE8;font-weight:500;font-size:14px;">Piece</span><span style="flex:1;text-align:center;padding:9px;border-radius:999px;color:#6E6557;font-weight:500;font-size:14px;">Exercise</span></div>
+                <div style="background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;overflow:hidden;">
+                  <div style="padding:10px 16px;"><div style="font-size:12px;font-weight:500;color:#6E6557;">Title</div><div style="font-size:16px;margin-top:3px;">Alice in Wonderland</div><div style="display:flex;align-items:center;gap:5px;margin-top:5px;color:#6E6557;"><i data-lucide="scan-line" width="11" height="11"></i><span style="font-size:10px;font-weight:500;">From the photo</span></div></div>
+                  <div style="height:1px;background:#E5DECD;"></div>
+                  <div style="padding:10px 16px;"><div style="font-size:12px;font-weight:500;color:#6E6557;">Composer</div><div style="font-size:16px;margin-top:3px;">Sammy Fain</div><div style="display:flex;align-items:center;gap:5px;margin-top:5px;color:#9A927F;"><i data-lucide="scan-line" width="11" height="11"></i><span style="font-size:10px;font-weight:500;">From the photo</span></div></div>
+                  <div style="height:1px;background:#E5DECD;"></div>
+                  <div style="padding:10px 16px;"><div style="font-size:12px;font-weight:500;color:#6E6557;">Key</div><div style="font-size:16px;color:#9A927F;margin-top:3px;">Pick a key</div></div>
+                </div>
+                <div style="background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;overflow:hidden;">
+                  <div style="padding:10px 16px;"><div style="font-size:12px;font-weight:500;color:#6E6557;">Tempo marking</div><div style="font-size:16px;margin-top:3px;">Medium swing</div><div style="display:flex;align-items:center;gap:5px;margin-top:5px;color:#6E6557;"><i data-lucide="scan-line" width="11" height="11"></i><span style="font-size:10px;font-weight:500;">From the photo</span></div></div>
+                  <div style="height:1px;background:#E5DECD;"></div>
+                  <div style="padding:10px 16px;"><div style="font-size:12px;font-weight:500;color:#6E6557;">Beats per minute</div><div style="font-size:16px;color:#2B2A26;margin-top:3px;">&nbsp;</div></div>
+                </div>
+                <div style="background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;">
+                  <div style="display:flex;align-items:center;padding:14px 16px 10px;"><span style="flex:1;font-family:'Source Serif 4',serif;font-weight:600;font-size:17px;">Chord chart</span><span style="font-size:15px;font-weight:500;color:#4C3FA6;">Edit</span></div>
+                  <div style="margin:0 16px 10px;background:#F4F1E8;border:1px solid #E0D9C8;border-radius:8px;padding:11px 12px;position:relative;overflow:hidden;max-height:76px;"><div style="font-family:ui-monospace,Menlo,monospace;font-size:12.5px;line-height:1.6;white-space:pre;">| F7 | Bb7 | Eb6 | Cm7 |
+| F7 | Bb7 | Eb6 | Eb6 |</div></div>
+                  <div style="display:flex;align-items:center;gap:5px;padding:0 16px 14px;color:#6E6557;"><i data-lucide="scan-line" width="11" height="11"></i><span style="font-size:10px;font-weight:500;">From the photo</span></div>
+                </div>
+                <div style="background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;padding:15px 16px;display:flex;align-items:center;gap:12px;"><span style="flex:1;font-family:'Source Serif 4',serif;font-weight:600;font-size:17px;">Related exercises</span><i data-lucide="chevron-down" width="18" height="18" style="color:#9A927F;"></i></div>
+              </div>
+              <div style="position:absolute;left:0;right:0;bottom:0;height:26px;background:linear-gradient(180deg,rgba(238,234,221,0),#EDE9DC);"></div>
+            </div>
+            <div style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:128px;height:5px;border-radius:3px;background:#2B2A26;opacity:0.8;z-index:60;"></div>
+          </div>
+        </div>
+        <sc-if value="{{ showNotes }}" hint-placeholder-val="{{ true }}">
+        <div style="margin-top:22px;">
+          <div style="font-family:'Source Serif 4',serif;font-weight:600;font-size:19px;">F5 · the page can fill the chart (ask 3)</div>
+          <ul style="margin:10px 0 0;padding-left:18px;font-size:13.5px;line-height:1.7;color:#6E6557;">
+            <li>The chart row arrives <strong style="color:#2B2A26;font-weight:600;">already expanded and marked</strong>, wearing <code style="font-size:12px;">FieldMark</code> unchanged — same icon, same words, same dimmed variant for a weak read. This is the whole shell-side cost of phase D: <code style="font-size:12px;">ReadField.chart</code>.</li>
+            <li>Note the composer's mark is the dimmed one: read, but not clearly. Contrast never carries it alone — the hint is spoken.</li>
+            <li>Editing the chart text takes the mark off on the first keystroke, exactly as the fields do. A second scan replaces what the first wrote.</li>
+            <li>Frames F1–F4 are scrolled to the foot; this one is the top of the same form, showing that the scan entry <em>did not move</em>. A page filling four things across two ends of the form is an argument for marks, not for regrouping.</li>
+          </ul>
+        </div>
+        </sc-if>
+      </div>
+
+      <!-- F6 · chart parse error -->
+      <div style="width:392px;">
+        <div style="width:392px;border-radius:54px;padding:11px;background:linear-gradient(150deg,#3a3a3c,#1c1c1e);box-shadow:0 30px 60px -20px rgba(43,42,38,0.45),0 0 0 2px #0a0a0a;">
+          <div data-screen-label="F6 — Add pressed, bar rejected" style="position:relative;width:370px;height:782px;border-radius:43px;overflow:hidden;background:linear-gradient(180deg,#F4F1E8,#EBE7D9);display:flex;flex-direction:column;">
+            <div style="position:absolute;top:11px;left:50%;transform:translateX(-50%);width:104px;height:30px;background:#000;border-radius:18px;z-index:60;"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;height:46px;padding:0 24px 0 28px;flex:none;"><span style="font-weight:600;font-size:14px;">9:41</span><div style="display:flex;align-items:center;gap:6px;"><i data-lucide="signal" width="16" height="16"></i><i data-lucide="wifi" width="16" height="16"></i><div style="width:23px;height:12px;border:1.3px solid #2B2A26;border-radius:3px;display:flex;align-items:center;padding:1.5px;"><div style="width:72%;height:100%;background:#2B2A26;border-radius:1px;"></div></div></div></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 18px 12px;border-bottom:1px solid #E5DECD;flex:none;"><span style="font-size:16px;color:#6E6557;">Cancel</span><span style="font-family:'Source Serif 4',serif;font-weight:600;font-size:16px;">New piece</span><span style="font-size:16px;font-weight:600;color:#4C3FA6;">Add</span></div>
+            <div style="padding:12px 16px 0;flex:none;">
+              <div style="background:rgba(179,38,30,0.1);border-radius:13px;padding:12px;display:flex;gap:8px;align-items:flex-start;animation:fadeUp .3s ease both;"><i data-lucide="alert-circle" width="16" height="16" style="color:#B3261E;flex:none;margin-top:1px;"></i><span style="font-size:12px;line-height:1.5;">Couldn't read “Bx7” in the chord chart</span></div>
+            </div>
+            <div style="flex:1;position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;">
+              <div style="padding:16px;display:flex;flex-direction:column;gap:16px;flex:none;">
+                <div style="background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;overflow:hidden;"><div style="padding:10px 16px;"><div style="font-size:12px;font-weight:500;color:#6E6557;">Title</div><div style="font-size:16px;margin-top:3px;">Alice in Wonderland</div></div><div style="height:1px;background:#E5DECD;"></div><div style="padding:10px 16px;"><div style="font-size:12px;font-weight:500;color:#6E6557;">Composer</div><div style="font-size:16px;margin-top:3px;">Sammy Fain</div></div><div style="height:1px;background:#E5DECD;"></div><div style="padding:10px 16px;"><div style="font-size:12px;font-weight:500;color:#6E6557;">Key</div><div style="font-size:16px;margin-top:3px;">C major</div></div></div><div style="background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;overflow:hidden;"><div style="padding:10px 16px;"><div style="font-size:12px;font-weight:500;color:#6E6557;">Tempo marking</div><div style="font-size:16px;margin-top:3px;">Medium swing</div></div><div style="height:1px;background:#E5DECD;"></div><div style="padding:10px 16px;"><div style="font-size:12px;font-weight:500;color:#6E6557;">Beats per minute</div><div style="font-size:16px;margin-top:3px;">132</div></div></div>
+                <div style="background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;padding:10px 16px;"><div style="font-size:12px;font-weight:500;color:#6E6557;">Notes</div><div style="font-size:16px;margin-top:3px;">Bridge from the lesson recording</div></div>
+                <div style="background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;padding:10px 16px 12px;"><div style="font-size:12px;font-weight:500;color:#6E6557;">Tags</div><div style="display:flex;gap:6px;margin-top:7px;"><span style="font-size:12px;font-weight:500;color:#6E6557;border:1px solid #E0D9C8;border-radius:999px;padding:4px 10px;">standards</span></div></div>
+                <div style="background:#FCFAF3;border:1.5px solid #B3261E;border-radius:12px;">
+                  <div style="display:flex;align-items:center;padding:14px 16px 10px;"><i data-lucide="alert-circle" width="17" height="17" style="color:#B3261E;margin-right:8px;"></i><span style="flex:1;font-family:'Source Serif 4',serif;font-weight:600;font-size:17px;">Chord chart</span><span style="font-size:15px;font-weight:500;color:#4C3FA6;">Edit</span></div>
+                  <div style="margin:0 16px 14px;background:#F4F1E8;border:1px solid #E0D9C8;border-radius:8px;padding:11px 12px;position:relative;overflow:hidden;max-height:76px;">
+                    <div style="font-family:ui-monospace,Menlo,monospace;font-size:12.5px;line-height:1.6;white-space:pre;">[A]
+| Dm7 | G7 | Cmaj7 | <span style="background:rgba(179,38,30,0.16);color:#B3261E;border-radius:3px;padding:0 2px;">Bx7</span> |
+| Dm7 | G7 | Cmaj7 | Cmaj7 |</div>
+                    <div style="position:absolute;left:0;right:0;bottom:0;height:26px;background:linear-gradient(180deg,rgba(244,241,232,0),#F4F1E8);"></div>
+                  </div>
+                </div>
+                <div style="background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;overflow:hidden;">
+                  <div style="display:flex;align-items:center;padding:14px 16px 10px;"><span style="flex:1;font-family:'Source Serif 4',serif;font-weight:600;font-size:17px;">Related exercises</span><i data-lucide="chevron-up" width="18" height="18" style="color:#9A927F;"></i></div>
+                  <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;position:relative;"><div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,#9E7B33,#8A6A2E);"></div><div style="flex:1;padding-left:5px;"><div style="font-family:'Source Serif 4',serif;font-weight:600;font-size:17px;">Shell voicings</div><div style="font-size:12px;color:#6E6557;margin-top:3px;">C major</div></div><i data-lucide="minus-circle" width="22" height="22" style="color:#B3261E;"></i></div>
+                  <div style="display:flex;padding:8px;"><span style="flex:1;text-align:center;font-size:15px;font-weight:500;color:#4C3FA6;padding:12px 0;">Create an exercise</span><span style="flex:1;text-align:center;font-size:15px;font-weight:500;color:#4C3FA6;padding:12px 0;">Choose one</span></div>
+                </div>
+              </div>
+              <div style="position:absolute;top:0;left:0;right:0;height:20px;background:linear-gradient(180deg,#F4F1E8,rgba(244,241,232,0));"></div>
+            </div>
+            <div style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:128px;height:5px;border-radius:3px;background:#2B2A26;opacity:0.8;z-index:60;"></div>
+          </div>
+        </div>
+        <sc-if value="{{ showNotes }}" hint-placeholder-val="{{ true }}">
+        <div style="margin-top:22px;">
+          <div style="font-family:'Source Serif 4',serif;font-weight:600;font-size:19px;">F6 · the banner says it once (ask 4)</div>
+          <ul style="margin:10px 0 0;padding-left:18px;font-size:13.5px;line-height:1.7;color:#6E6557;">
+            <li><strong style="color:#2B2A26;font-weight:600;">The banner keeps the sentence; the row carries the pointer.</strong> <code style="font-size:12px;">ItemFormScaffold</code>'s banner behaviour is unchanged — it holds the core's own per-token message and stays on screen. The section expands, takes the danger hairline and marks the offending token in place, and repeats <em>no</em> words. One message, two ends of the same thread.</li>
+            <li>Pressing Add scrolls the marked section into view, so the pointer is never off-screen while the banner accuses it.</li>
+            <li><code style="font-size:12px;">last_error</code> is a single slot, so exactly one row is ever marked. Here the staged exercise is fine; if it weren't, its title would have surfaced first and <em>the chart would sit unmarked</em> — the core stops at the first failure, and the screen must not invent a second verdict.</li>
+            <li>Nothing was written. The chart text, both staged rows and every field are still here — the draft is shell state and the create was refused whole.</li>
+            <li>Live per-bar feedback while typing stays out (#1387). The mark appears on Add and clears when the text changes.</li>
+          </ul>
+        </div>
+        </sc-if>
+      </div>
+
+      <!-- F7 · blank title error -->
+      <div style="width:392px;">
+        <div style="width:392px;border-radius:54px;padding:11px;background:linear-gradient(150deg,#3a3a3c,#1c1c1e);box-shadow:0 30px 60px -20px rgba(43,42,38,0.45),0 0 0 2px #0a0a0a;">
+          <div data-screen-label="F7 — A staged exercise has no title" style="position:relative;width:370px;height:782px;border-radius:43px;overflow:hidden;background:linear-gradient(180deg,#F4F1E8,#EBE7D9);display:flex;flex-direction:column;">
+            <div style="position:absolute;top:11px;left:50%;transform:translateX(-50%);width:104px;height:30px;background:#000;border-radius:18px;z-index:60;"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;height:46px;padding:0 24px 0 28px;flex:none;"><span style="font-weight:600;font-size:14px;">9:41</span><div style="display:flex;align-items:center;gap:6px;"><i data-lucide="signal" width="16" height="16"></i><i data-lucide="wifi" width="16" height="16"></i><div style="width:23px;height:12px;border:1.3px solid #2B2A26;border-radius:3px;display:flex;align-items:center;padding:1.5px;"><div style="width:72%;height:100%;background:#2B2A26;border-radius:1px;"></div></div></div></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 18px 12px;border-bottom:1px solid #E5DECD;flex:none;"><span style="font-size:16px;color:#6E6557;">Cancel</span><span style="font-family:'Source Serif 4',serif;font-weight:600;font-size:16px;">New piece</span><span style="font-size:16px;font-weight:600;color:#4C3FA6;">Add</span></div>
+            <div style="padding:12px 16px 0;flex:none;">
+              <div style="background:rgba(179,38,30,0.1);border-radius:13px;padding:12px;display:flex;gap:8px;align-items:flex-start;animation:fadeUp .3s ease both;"><i data-lucide="alert-circle" width="16" height="16" style="color:#B3261E;flex:none;margin-top:1px;"></i><span style="font-size:12px;line-height:1.5;">An exercise needs a title</span></div>
+            </div>
+            <div style="flex:1;position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;">
+              <div style="padding:16px;display:flex;flex-direction:column;gap:16px;flex:none;">
+                <div style="background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;overflow:hidden;"><div style="padding:10px 16px;"><div style="font-size:12px;font-weight:500;color:#6E6557;">Title</div><div style="font-size:16px;margin-top:3px;">Alice in Wonderland</div></div><div style="height:1px;background:#E5DECD;"></div><div style="padding:10px 16px;"><div style="font-size:12px;font-weight:500;color:#6E6557;">Composer</div><div style="font-size:16px;margin-top:3px;">Sammy Fain</div></div><div style="height:1px;background:#E5DECD;"></div><div style="padding:10px 16px;"><div style="font-size:12px;font-weight:500;color:#6E6557;">Key</div><div style="font-size:16px;margin-top:3px;">C major</div></div></div><div style="background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;overflow:hidden;"><div style="padding:10px 16px;"><div style="font-size:12px;font-weight:500;color:#6E6557;">Tempo marking</div><div style="font-size:16px;margin-top:3px;">Medium swing</div></div><div style="height:1px;background:#E5DECD;"></div><div style="padding:10px 16px;"><div style="font-size:12px;font-weight:500;color:#6E6557;">Beats per minute</div><div style="font-size:16px;margin-top:3px;">132</div></div></div><div style="background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;padding:10px 16px;"><div style="font-size:12px;font-weight:500;color:#6E6557;">Notes</div><div style="font-size:16px;margin-top:3px;">Bridge from the lesson recording</div></div>
+                <div style="background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;padding:10px 16px 12px;"><div style="font-size:12px;font-weight:500;color:#6E6557;">Tags</div><div style="display:flex;gap:6px;margin-top:7px;"><span style="font-size:12px;font-weight:500;color:#6E6557;border:1px solid #E0D9C8;border-radius:999px;padding:4px 10px;">standards</span></div></div>
+                <div style="background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;">
+                  <div style="display:flex;align-items:center;padding:14px 16px 10px;"><span style="flex:1;font-family:'Source Serif 4',serif;font-weight:600;font-size:17px;">Chord chart</span><span style="font-size:15px;font-weight:500;color:#4C3FA6;">Edit</span></div>
+                  <div style="margin:0 16px 14px;background:#F4F1E8;border:1px solid #E0D9C8;border-radius:8px;padding:11px 12px;position:relative;overflow:hidden;max-height:76px;"><div style="font-family:ui-monospace,Menlo,monospace;font-size:12.5px;line-height:1.6;white-space:pre;">[A]
+| Dm7 | G7 | Cmaj7 | Bx7 |
+| Dm7 | G7 | Cmaj7 | Cmaj7 |</div><div style="position:absolute;left:0;right:0;bottom:0;height:26px;background:linear-gradient(180deg,rgba(244,241,232,0),#F4F1E8);"></div></div>
+                </div>
+                <div style="background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;overflow:hidden;">
+                  <div style="display:flex;align-items:center;padding:14px 16px 10px;"><span style="flex:1;font-family:'Source Serif 4',serif;font-weight:600;font-size:17px;">Related exercises</span><i data-lucide="chevron-up" width="18" height="18" style="color:#9A927F;"></i></div>
+                  <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;position:relative;background:rgba(179,38,30,0.06);border-top:1.5px solid #B3261E;border-bottom:1.5px solid #B3261E;"><div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,#9E7B33,#8A6A2E);"></div><div style="flex:1;padding-left:5px;"><div style="font-family:'Source Serif 4',serif;font-weight:600;font-size:17px;color:#B3261E;">Untitled</div><div style="font-size:12px;color:#6E6557;margin-top:3px;">C major · 80 bpm</div></div><i data-lucide="minus-circle" width="22" height="22" style="color:#B3261E;"></i></div>
+                  <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;position:relative;"><div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,#9E7B33,#8A6A2E);"></div><div style="flex:1;padding-left:5px;"><div style="font-family:'Source Serif 4',serif;font-weight:600;font-size:17px;">Shell voicings</div><div style="font-size:12px;color:#6E6557;margin-top:3px;">C major</div></div><i data-lucide="minus-circle" width="22" height="22" style="color:#B3261E;"></i></div>
+                  <div style="display:flex;padding:8px;"><span style="flex:1;text-align:center;font-size:15px;font-weight:500;color:#4C3FA6;padding:12px 0;">Create an exercise</span><span style="flex:1;text-align:center;font-size:15px;font-weight:500;color:#4C3FA6;padding:12px 0;">Choose one</span></div>
+                </div>
+              </div>
+              <div style="position:absolute;top:0;left:0;right:0;height:20px;background:linear-gradient(180deg,#F4F1E8,rgba(244,241,232,0));"></div>
+            </div>
+            <div style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:128px;height:5px;border-radius:3px;background:#2B2A26;opacity:0.8;z-index:60;"></div>
+          </div>
+        </div>
+        <sc-if value="{{ showNotes }}" hint-placeholder-val="{{ true }}">
+        <div style="margin-top:22px;">
+          <div style="font-family:'Source Serif 4',serif;font-weight:600;font-size:19px;">F7 · only one error surfaces</div>
+          <ul style="margin:10px 0 0;padding-left:18px;font-size:13.5px;line-height:1.7;color:#6E6557;">
+            <li>The same create as F6, plus a titleless row. The core validates exercises before it parses the chart, so <strong style="color:#2B2A26;font-weight:600;">the title wins</strong> — and the chart above holds the same bad bar with no mark on it. That is correct, not a miss: the app only says what the core actually decided.</li>
+            <li>The offending row is skinned, not the whole section: within a list, the pointer has to be the row. “Untitled” is the row's own placeholder, in danger ink.</li>
+            <li>Fixing the title and pressing Add again surfaces the bar — the second press is where the chart's turn comes. Two problems, two presses, and no screen that pretends to know both.</li>
+          </ul>
+        </div>
+        </sc-if>
+      </div>
+
+    </div>
+  </section>
+
+  <section style="margin-top:88px;">
+    <div style="font-size:12px;font-weight:600;letter-spacing:1.8px;text-transform:uppercase;color:#9A927F;">4 · Large Dynamic Type</div>
+    <h2 style="font-family:'Source Serif 4',serif;font-weight:600;font-size:34px;letter-spacing:-0.01em;margin:8px 0 0;">Nothing truncates; the actions stack</h2>
+    <p style="font-size:14.5px;line-height:1.68;color:#6E6557;max-width:700px;margin:14px 0 0;">At AX3 the form is already a long scroll; two rows and a staged list are what tips it. Neither frame collapses anything — the answer is stacking and wrapping, not hiding.</p>
+    <div style="display:flex;gap:44px;flex-wrap:wrap;margin-top:30px;">
+
+      <!-- F8 · AX empty -->
+      <div style="width:392px;">
+        <div style="width:392px;border-radius:54px;padding:11px;background:linear-gradient(150deg,#3a3a3c,#1c1c1e);box-shadow:0 30px 60px -20px rgba(43,42,38,0.45),0 0 0 2px #0a0a0a;">
+          <div data-screen-label="F8 — Empty at AX3" style="position:relative;width:370px;height:782px;border-radius:43px;overflow:hidden;background:linear-gradient(180deg,#F4F1E8,#EBE7D9);display:flex;flex-direction:column;">
+            <div style="position:absolute;top:11px;left:50%;transform:translateX(-50%);width:104px;height:30px;background:#000;border-radius:18px;z-index:60;"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;height:46px;padding:0 24px 0 28px;flex:none;"><span style="font-weight:600;font-size:14px;">9:41</span><div style="display:flex;align-items:center;gap:6px;"><i data-lucide="signal" width="16" height="16"></i><i data-lucide="wifi" width="16" height="16"></i><div style="width:23px;height:12px;border:1.3px solid #2B2A26;border-radius:3px;display:flex;align-items:center;padding:1.5px;"><div style="width:72%;height:100%;background:#2B2A26;border-radius:1px;"></div></div></div></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 18px 14px;border-bottom:1px solid #E5DECD;flex:none;"><span style="font-size:19px;color:#6E6557;">Cancel</span><span style="font-size:19px;font-weight:600;color:#4C3FA6;">Add</span></div>
+            <div style="flex:1;position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;">
+              <div style="padding:16px;display:flex;flex-direction:column;gap:16px;flex:none;">
+                <div style="display:flex;gap:4px;padding:5px;background:#FCFAF3;border:1px solid #E5DECD;border-radius:999px;"><span style="flex:1;text-align:center;padding:12px;border-radius:999px;background:#4C3FA6;color:#F2EFE8;font-weight:500;font-size:19px;">Piece</span><span style="flex:1;text-align:center;padding:12px;border-radius:999px;color:#6E6557;font-weight:500;font-size:19px;">Exercise</span></div><div style="background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;overflow:hidden;"><div style="padding:14px 16px;"><div style="font-size:16px;font-weight:500;color:#6E6557;">Title</div><div style="font-size:21px;margin-top:5px;">Alice in Wonderland</div></div><div style="height:1px;background:#E5DECD;"></div><div style="padding:14px 16px;"><div style="font-size:16px;font-weight:500;color:#6E6557;">Composer</div><div style="font-size:21px;margin-top:5px;">Sammy Fain</div></div><div style="height:1px;background:#E5DECD;"></div><div style="padding:14px 16px;"><div style="font-size:16px;font-weight:500;color:#6E6557;">Key</div><div style="font-size:21px;margin-top:5px;">C major</div></div></div><div style="background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;overflow:hidden;"><div style="padding:14px 16px;"><div style="font-size:16px;font-weight:500;color:#6E6557;">Tempo marking</div><div style="font-size:21px;margin-top:5px;">Medium swing</div></div><div style="height:1px;background:#E5DECD;"></div><div style="padding:14px 16px;"><div style="font-size:16px;font-weight:500;color:#6E6557;">Beats per minute</div><div style="font-size:21px;margin-top:5px;">132</div></div></div>
+                <div style="background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;padding:14px 16px;"><div style="font-size:16px;font-weight:500;color:#6E6557;">Notes</div><div style="font-size:21px;color:#9A927F;margin-top:5px;">&nbsp;</div></div>
+                <div style="background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;padding:14px 16px;"><div style="font-size:16px;font-weight:500;color:#6E6557;">Tags</div><div style="font-size:21px;color:#9A927F;margin-top:5px;">Add a tag</div></div>
+                <div style="background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;padding:18px 16px;display:flex;align-items:center;gap:12px;"><span style="flex:1;font-family:'Source Serif 4',serif;font-weight:600;font-size:23px;line-height:1.25;">Chord chart</span><i data-lucide="chevron-right" width="22" height="22" style="color:#9A927F;flex:none;"></i></div>
+                <div style="background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;padding:18px 16px;display:flex;align-items:center;gap:12px;"><span style="flex:1;font-family:'Source Serif 4',serif;font-weight:600;font-size:23px;line-height:1.25;">Related exercises</span><i data-lucide="chevron-down" width="22" height="22" style="color:#9A927F;flex:none;"></i></div>
+              </div>
+              <div style="position:absolute;top:0;left:0;right:0;height:20px;background:linear-gradient(180deg,#F4F1E8,rgba(244,241,232,0));"></div>
+            </div>
+            <div style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:128px;height:5px;border-radius:3px;background:#2B2A26;opacity:0.8;z-index:60;"></div>
+          </div>
+        </div>
+        <sc-if value="{{ showNotes }}" hint-placeholder-val="{{ true }}">
+        <div style="margin-top:22px;">
+          <div style="font-family:'Source Serif 4',serif;font-weight:600;font-size:19px;">F8 · empty at large type (ask 5)</div>
+          <ul style="margin:10px 0 0;padding-left:18px;font-size:13.5px;line-height:1.7;color:#6E6557;">
+            <li>The rows hold: a noun and a chevron is the smallest thing a section header can be, so it wraps to two lines at AX5 and still reads. This is the second argument against a caption on the collapsed row — at this size candidate C is four lines per row.</li>
+            <li>The navigation title drops out at accessibility sizes (system behaviour with <code style="font-size:12px;">.inline</code>); Cancel and Add keep full-size hit targets and never shrink to fit.</li>
+          </ul>
+        </div>
+        </sc-if>
+      </div>
+
+      <!-- F9 · AX full -->
+      <div style="width:392px;">
+        <div style="width:392px;border-radius:54px;padding:11px;background:linear-gradient(150deg,#3a3a3c,#1c1c1e);box-shadow:0 30px 60px -20px rgba(43,42,38,0.45),0 0 0 2px #0a0a0a;">
+          <div data-screen-label="F9 — Both staged at AX3" style="position:relative;width:370px;height:782px;border-radius:43px;overflow:hidden;background:linear-gradient(180deg,#F4F1E8,#EBE7D9);display:flex;flex-direction:column;">
+            <div style="position:absolute;top:11px;left:50%;transform:translateX(-50%);width:104px;height:30px;background:#000;border-radius:18px;z-index:60;"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;height:46px;padding:0 24px 0 28px;flex:none;"><span style="font-weight:600;font-size:14px;">9:41</span><div style="display:flex;align-items:center;gap:6px;"><i data-lucide="signal" width="16" height="16"></i><i data-lucide="wifi" width="16" height="16"></i><div style="width:23px;height:12px;border:1.3px solid #2B2A26;border-radius:3px;display:flex;align-items:center;padding:1.5px;"><div style="width:72%;height:100%;background:#2B2A26;border-radius:1px;"></div></div></div></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 18px 14px;border-bottom:1px solid #E5DECD;flex:none;"><span style="font-size:19px;color:#6E6557;">Cancel</span><span style="font-size:19px;font-weight:600;color:#4C3FA6;">Add</span></div>
+            <div style="flex:1;position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;">
+              <div style="padding:16px;display:flex;flex-direction:column;gap:16px;flex:none;">
+                <div style="background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;overflow:hidden;"><div style="padding:14px 16px;"><div style="font-size:16px;font-weight:500;color:#6E6557;">Title</div><div style="font-size:21px;margin-top:5px;">Alice in Wonderland</div></div><div style="height:1px;background:#E5DECD;"></div><div style="padding:14px 16px;"><div style="font-size:16px;font-weight:500;color:#6E6557;">Composer</div><div style="font-size:21px;margin-top:5px;">Sammy Fain</div></div><div style="height:1px;background:#E5DECD;"></div><div style="padding:14px 16px;"><div style="font-size:16px;font-weight:500;color:#6E6557;">Key</div><div style="font-size:21px;margin-top:5px;">C major</div></div></div><div style="background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;overflow:hidden;"><div style="padding:14px 16px;"><div style="font-size:16px;font-weight:500;color:#6E6557;">Tempo marking</div><div style="font-size:21px;margin-top:5px;">Medium swing</div></div><div style="height:1px;background:#E5DECD;"></div><div style="padding:14px 16px;"><div style="font-size:16px;font-weight:500;color:#6E6557;">Beats per minute</div><div style="font-size:21px;margin-top:5px;">132</div></div></div><div style="background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;padding:14px 16px;"><div style="font-size:16px;font-weight:500;color:#6E6557;">Notes</div><div style="font-size:21px;margin-top:5px;">Bridge from the lesson</div></div><div style="background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;padding:14px 16px 16px;"><div style="font-size:16px;font-weight:500;color:#6E6557;">Tags</div><div style="display:flex;gap:8px;margin-top:9px;flex-wrap:wrap;"><span style="font-size:16px;font-weight:500;color:#6E6557;border:1px solid #E0D9C8;border-radius:999px;padding:6px 13px;">standards</span><span style="font-size:16px;font-weight:500;color:#6E6557;border:1px solid #E0D9C8;border-radius:999px;padding:6px 13px;">lesson</span></div></div>
+                <div style="background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;">
+                  <div style="display:flex;align-items:flex-start;padding:16px 16px 10px;gap:12px;"><span style="flex:1;font-family:'Source Serif 4',serif;font-weight:600;font-size:23px;line-height:1.25;">Chord chart</span><span style="font-size:19px;font-weight:500;color:#4C3FA6;">Edit</span></div>
+                  <div style="margin:0 16px 16px;background:#F4F1E8;border:1px solid #E0D9C8;border-radius:8px;padding:12px;position:relative;overflow:hidden;max-height:72px;"><div style="font-family:ui-monospace,Menlo,monospace;font-size:15px;line-height:1.55;white-space:pre;">[A]
+| Dm7 | G7 | Cmaj7 |</div><div style="position:absolute;left:0;right:0;bottom:0;height:24px;background:linear-gradient(180deg,rgba(244,241,232,0),#F4F1E8);"></div></div>
+                </div>
+                <div style="background:#FCFAF3;border:1px solid #E5DECD;border-radius:12px;overflow:hidden;">
+                  <div style="display:flex;align-items:flex-start;padding:16px 16px 10px;gap:12px;"><span style="flex:1;font-family:'Source Serif 4',serif;font-weight:600;font-size:23px;line-height:1.25;">Related exercises</span><i data-lucide="chevron-up" width="22" height="22" style="color:#9A927F;flex:none;margin-top:4px;"></i></div>
+                  <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;position:relative;"><div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,#9E7B33,#8A6A2E);"></div><div style="flex:1;padding-left:5px;"><div style="font-family:'Source Serif 4',serif;font-weight:600;font-size:21px;line-height:1.3;">Guide tones, ii–V–I</div><div style="font-size:16px;color:#6E6557;margin-top:5px;">C major · 80 bpm</div></div><div style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;flex:none;"><i data-lucide="minus-circle" width="26" height="26" style="color:#B3261E;"></i></div></div>
+                  <div style="height:1px;background:#E5DECD;"></div>
+                  <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;position:relative;"><div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,#9E7B33,#8A6A2E);"></div><div style="flex:1;padding-left:5px;"><div style="font-family:'Source Serif 4',serif;font-weight:600;font-size:21px;line-height:1.3;">Shell voicings</div><div style="font-size:16px;color:#6E6557;margin-top:5px;">C major</div></div><div style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;flex:none;"><i data-lucide="minus-circle" width="26" height="26" style="color:#B3261E;"></i></div></div>
+                  <div style="height:1px;background:#E5DECD;"></div>
+                  <div style="display:flex;align-items:center;justify-content:center;gap:8px;padding:16px;font-size:19px;font-weight:500;color:#4C3FA6;"><i data-lucide="plus" width="18" height="18"></i>Create an exercise</div>
+                  <div style="height:1px;background:#E5DECD;"></div>
+                  <div style="text-align:center;padding:16px;font-size:19px;font-weight:500;color:#4C3FA6;">Choose one</div>
+                </div>
+              </div>
+              <div style="position:absolute;top:0;left:0;right:0;height:20px;background:linear-gradient(180deg,#F4F1E8,rgba(244,241,232,0));"></div>
+            </div>
+            <div style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:128px;height:5px;border-radius:3px;background:#2B2A26;opacity:0.8;z-index:60;"></div>
+          </div>
+        </div>
+        <sc-if value="{{ showNotes }}" hint-placeholder-val="{{ true }}">
+        <div style="margin-top:22px;">
+          <div style="font-family:'Source Serif 4',serif;font-weight:600;font-size:19px;">F9 · full at large type (ask 5)</div>
+          <ul style="margin:10px 0 0;padding-left:18px;font-size:13.5px;line-height:1.7;color:#6E6557;">
+            <li><strong style="color:#2B2A26;font-weight:600;">The two-up footer stacks</strong> above <code style="font-size:12px;">.accessibilityMedium</code> — side by side, “Create an exercise” would break onto three lines in half a phone's width. Stacked, they are the same two rows as the empty state, which is a smaller vocabulary to learn, not a bigger one.</li>
+            <li>The staged chart clamps to <strong style="color:#2B2A26;font-weight:600;">two lines</strong> at these sizes, still monospaced and still verbatim: it is a reassurance that the paste landed, and one section label plus one bar line does that.</li>
+            <li>Remove keeps a 44pt target throughout, and titles wrap rather than shrink — <code style="font-size:12px;">minimumScaleFactor</code> is for the bar grid on the detail card, not for a musician's own words.</li>
+            <li>Everything else is scroll, and that is the right answer: the form is already the app's longest scroll, and a piece that carries both is the case the user asked for.</li>
+          </ul>
+        </div>
+        </sc-if>
+      </div>
+
+    </div>
+  </section>
+
+  <section style="margin-top:88px;">
+    <div style="font-size:12px;font-weight:600;letter-spacing:1.8px;text-transform:uppercase;color:#9A927F;">5 · What this asks of the system</div>
+    <h2 style="font-family:'Source Serif 4',serif;font-weight:600;font-size:34px;letter-spacing:-0.01em;margin:8px 0 0;">Four named parts, no new tokens</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px;margin-top:26px;">
+      <div style="background:#FCFAF3;border:1px solid #E5DECD;border-radius:16px;padding:22px;">
+        <div style="font-family:'Source Serif 4',serif;font-weight:600;font-size:20px;">New components</div>
+        <ul style="margin:12px 0 0;padding-left:18px;font-size:13.5px;line-height:1.75;color:#6E6557;">
+          <li><strong style="color:#2B2A26;font-weight:600;">FormSectionRow</strong> — a noun, a chevron, and a card surface: the collapsed section inside a form. One flag for whether it opens a sheet or expands in place, one for the error skin.</li>
+          <li><strong style="color:#2B2A26;font-weight:600;">StagedChartCard</strong> — header, Edit, and the verbatim monospace clamp with its fade; carries the parse mark and <code style="font-size:12px;">FieldMark</code>.</li>
+          <li><strong style="color:#2B2A26;font-weight:600;">DraftItemRow</strong> — an unsaved item row with a remove control. The type bar, title and meta of <code style="font-size:12px;">LinkedExerciseRow</code>, minus the score ring: a draft has no history to show.</li>
+          <li><strong style="color:#2B2A26;font-weight:600;">DraftExerciseSheet</strong> — returns a <code style="font-size:12px;">ScaffoldEntry::New</code> instead of sending an event.</li>
+        </ul>
+      </div>
+      <div style="background:#FCFAF3;border:1px solid #E5DECD;border-radius:16px;padding:22px;">
+        <div style="font-family:'Source Serif 4',serif;font-weight:600;font-size:20px;">Reused unchanged</div>
+        <ul style="margin:12px 0 0;padding-left:18px;font-size:13.5px;line-height:1.75;color:#6E6557;">
+          <li><code style="font-size:12px;">ItemFormScaffold</code> — the two sections append below Tags; existing order and the banner's behaviour untouched, so the edit path does not change.</li>
+          <li><code style="font-size:12px;">ScanPageEntry</code>, <code style="font-size:12px;">FieldMark</code>, <code style="font-size:12px;">LinkedItemPickerSheet</code> — as they are.</li>
+          <li><code style="font-size:12px;">ChordChartEditSheet</code> — gains the text-returning mode spec decision 5 already allows; not cloned.</li>
+          <li><code style="font-size:12px;">ItemFormModel.ReadField</code> — one case, <code style="font-size:12px;">chart</code>.</li>
+        </ul>
+      </div>
+      <div style="background:#FCFAF3;border:1px solid #E5DECD;border-radius:16px;padding:22px;">
+        <div style="font-family:'Source Serif 4',serif;font-weight:600;font-size:20px;">Theme.swift</div>
+        <ul style="margin:12px 0 0;padding-left:18px;font-size:13.5px;line-height:1.75;color:#6E6557;">
+          <li><strong style="color:#2B2A26;font-weight:600;">No new colour, spacing or radius tokens.</strong> Every surface here is <code style="font-size:12px;">cardFill</code> + <code style="font-size:12px;">hairline</code>, the inner chart block is <code style="font-size:12px;">paperTop</code> + <code style="font-size:12px;">divider</code> at <code style="font-size:12px;">IntradaRadius.badge</code>, and the error skin is <code style="font-size:12px;">danger</code> at 10% — the same tint the chart sheet already uses.</li>
+          <li>One candidate: the monospace chart face is now written in three places (<code style="font-size:12px;">.body</code> in the sheet, <code style="font-size:12px;">.footnote</code> here, and the detail grid). If this design wins, that earns <strong style="color:#2B2A26;font-weight:600;">IntradaFont.chart</strong> rather than a fourth literal.</li>
+        </ul>
+      </div>
+      <div style="background:#F0E7D6;border:1px solid #E5DECD;border-radius:16px;padding:22px;">
+        <div style="font-family:'Source Serif 4',serif;font-weight:600;font-size:20px;">Still open</div>
+        <ul style="margin:12px 0 0;padding-left:18px;font-size:13.5px;line-height:1.75;color:#6E6557;">
+          <li>The edit path gets neither section (spec open question 1 stays held). If the create form teaches these words, the piece screen is where a chart gets changed — worth a second look after the snapshots.</li>
+          <li>Online mode: the event refuses when a chart or an exercise is present. The refusal message lands in the banner like any other, and neither section is marked — nothing on the screen is at fault. Worth confirming that reads as an app state rather than a mistake.</li>
+          <li>Two frames of the spec's snapshot list are drawn here (F1 collapsed, F2 staged); F6 is the third worth pinning.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;showNotes&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Documentation&quot;},&quot;rowWording&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Nouns&quot;,&quot;Verb-led&quot;],&quot;default&quot;:&quot;Nouns&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Documentation&quot;}}">
+class Component extends DCLogic {
+  componentDidMount() {
+    if (window.lucide) window.lucide.createIcons();
+  }
+  componentDidUpdate() {
+    if (window.lucide) window.lucide.createIcons();
+  }
+  renderVals() {
+    const verbLed = (this.props.rowWording ?? "Nouns") === "Verb-led";
+    return {
+      showNotes: this.props.showNotes ?? true,
+      chartRowLabel: verbLed ? "Add chord chart" : "Chord chart",
+      exercisesRowLabel: verbLed ? "Add exercises" : "Related exercises",
+    };
+  }
+}
+</script>
+</body>
+</html>

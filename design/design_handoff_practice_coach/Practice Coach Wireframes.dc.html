@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600&family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#EFEBE0;font-family:'Inter',system-ui,sans-serif}
+a{color:#4C3FA6}a:hover{color:#372c7d}
+.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(43,42,38,.12);scroll-margin-top:16px}
+.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}
+.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#2B2A26;color:#fff;border-radius:4px;text-decoration:none}
+.dv-tname{font:600 13px/1.2 'Inter',system-ui,sans-serif;color:#2B2A26}
+.dv-opts{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}
+.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px}
+.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(43,42,38,.1);color:#2B2A26;border-radius:5px;text-decoration:none}
+.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11px/1.3 'Inter',system-ui,sans-serif;color:rgba(43,42,38,.6)}
+.dv-card{max-width:100%;background:#FBFAF3;border:1px solid rgba(43,42,38,.12);border-radius:8px;box-shadow:0 1px 3px rgba(43,42,38,.07);overflow:hidden}
+.dv-opt:target .dv-oid{background:#4C3FA6;color:#fff}
+.dv-next{margin:22px 0 0;font:12px/1.5 'Inter',system-ui,sans-serif;color:rgba(43,42,38,.55)}
+.wf-row{display:flex;flex-wrap:wrap;gap:26px;padding:26px}
+.wf-fr{flex:none;display:flex;flex-direction:column;gap:8px;width:300px}
+.wf-ph{width:300px;height:600px;border:2px solid #2B2A26;border-radius:20px;background:#FBFAF3;padding:15px 14px;display:flex;flex-direction:column;gap:11px;overflow:hidden;position:relative}
+.wf-ph.sm{width:262px;height:500px}
+.wf-fr.sm{width:262px}
+.wf-cap{font:500 15px/1.25 'Caveat',cursive;color:#5C5646}
+.wf-cap b{font-weight:600;color:#2B2A26}
+.wf-n{display:inline-flex;align-items:center;justify-content:center;width:19px;height:19px;border:1.5px solid #2B2A26;border-radius:50%;font:600 10px 'Inter',sans-serif;color:#2B2A26;flex:none}
+.wf-lbl{font:600 8.5px 'Inter',sans-serif;letter-spacing:1.1px;text-transform:uppercase;color:#9A927F}
+.wf-h{font:400 24px/1.15 'Source Serif 4',serif;color:#2B2A26}
+.wf-h2{font:400 18px/1.2 'Source Serif 4',serif;color:#2B2A26}
+.wf-t{font:400 12px/1.5 'Inter',sans-serif;color:#5C5646}
+.wf-ts{font:400 10.5px/1.45 'Inter',sans-serif;color:#9A927F}
+.wf-box{border:1.5px dashed #C4BCA6;border-radius:9px;background:rgba(43,42,38,.02)}
+.wf-solid{border:1.5px solid #2B2A26;border-radius:9px;background:#fff}
+.wf-btn{border:1.5px solid #2B2A26;border-radius:10px;background:#2B2A26;color:#FBFAF3;font:600 12.5px 'Inter',sans-serif;padding:12px;text-align:center}
+.wf-btn.ghost{background:transparent;color:#2B2A26}
+.wf-chip{display:inline-flex;align-items:center;gap:4px;border:1px solid #C4BCA6;border-radius:999px;padding:3px 8px;font:500 9.5px 'Inter',sans-serif;color:#7A7360;background:#fff}
+.wf-tick{font:400 22px/1 'Inter',sans-serif}
+.wf-note{font:500 13px/1.3 'Caveat',cursive;color:#8A6A1F}
+.wf-bar{height:6px;border-radius:999px;background:#E2DCCB;overflow:hidden}
+.wf-bar i{display:block;height:100%;background:#2B2A26;border-radius:999px}
+.wf-top{display:flex;align-items:center;justify-content:space-between}
+.wf-sheet{position:absolute;left:0;right:0;bottom:0;background:#FBFAF3;border-top:2px solid #2B2A26;border-radius:18px 18px 0 0;padding:16px 14px;display:flex;flex-direction:column;gap:10px}
+</style>
+</helmet>
+
+<section class="dv-turn" id="t1">
+<div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">Practice Coach — first wireframes (Strasbourg / St. Denis, 20 min)</span></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="1a">
+<div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>The full run · one session end to end, 13 frames</div>
+<div class="dv-card">
+<div class="wf-row">
+
+<div class="wf-fr">
+<div class="wf-ph">
+<div class="wf-top"><div class="wf-lbl">Intrada</div><div style="display:flex;gap:5px;"><span class="wf-chip">midi ✓</span><span class="wf-chip">library</span></div></div>
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;">
+<div class="wf-lbl">Tonight</div>
+<div class="wf-h">Strasbourg / St. Denis</div>
+<div class="wf-ts">20 minutes · 4 blocks · ends on the head</div>
+<div style="width:150px;height:150px;border:2.5px solid #2B2A26;border-radius:50%;display:flex;align-items:center;justify-content:center;font:600 20px 'Inter',sans-serif;letter-spacing:2px;margin:6px 0;">START</div>
+<div class="wf-t" style="max-width:230px;">Rootless voicings are due — six days since you last touched the A section.</div>
+<div class="wf-ts" style="text-decoration:underline;">why this?</div>
+</div>
+<div class="wf-ts" style="text-align:center;">not tonight? →</div>
+</div>
+<div class="wf-cap"><span class="wf-n">1</span> <b>Home.</b> One screen, one decision. The why is one line, not a briefing.</div>
+</div>
+
+<div class="wf-fr">
+<div class="wf-ph">
+<div style="opacity:.32;display:flex;flex-direction:column;gap:11px;">
+<div class="wf-top"><div class="wf-lbl">Intrada</div><span class="wf-chip">midi ✓</span></div>
+<div class="wf-h" style="margin-top:40px;">Strasbourg / St. Denis</div>
+</div>
+<div class="wf-sheet" style="height:452px;">
+<div class="wf-lbl">Why this session</div>
+<div class="wf-box" style="padding:10px;">
+<div style="font:600 11.5px 'Inter',sans-serif;color:#2B2A26;">0–3 · warm-up · pattern over the changes</div>
+<div class="wf-ts">Mastered. Opens warm, and it drops today's tempo read before anything hurts.</div>
+</div>
+<div class="wf-solid" style="padding:10px;">
+<div style="font:600 11.5px 'Inter',sans-serif;color:#2B2A26;">3–9 · frontier · rootless voicings, A section</div>
+<div class="wf-ts">Due. Estimate 0.42, confidence still wide, six days cold.</div>
+<div style="display:flex;gap:5px;margin-top:6px;"><span class="wf-chip">graph node</span><span class="wf-chip">grind</span></div>
+</div>
+<div class="wf-box" style="padding:10px;">
+<div style="font:600 11.5px 'Inter',sans-serif;color:#2B2A26;">9–14 · the Rollins lick → Db</div>
+<div class="wf-ts">2 of 12 keys clean. One phrase in flight.</div>
+</div>
+<div class="wf-box" style="padding:10px;">
+<div style="font:600 11.5px 'Inter',sans-serif;color:#2B2A26;">14–19 · restricted improv on the form</div>
+<div class="wf-ts">Hard rule: every session touches real music.</div>
+</div>
+<div class="wf-box" style="flex:1;display:flex;align-items:center;justify-content:center;"><span class="wf-ts">graph state · tap to open</span></div>
+<div class="wf-btn">Got it</div>
+</div>
+</div>
+<div class="wf-cap"><span class="wf-n">2</span> <b>Why panel.</b> Progressive disclosure — the reasoning is available, never forced.</div>
+</div>
+
+<div class="wf-fr">
+<div class="wf-ph">
+<div class="wf-top"><div class="wf-lbl">Block 1 of 4 · warm-up</div><span class="wf-chip">19:04 left</span></div>
+<div class="wf-bar"><i style="width:11%"></i></div>
+<div class="wf-h2" style="margin-top:8px;">Pattern over the changes</div>
+<div class="wf-ts">1-2-3-5 cells · 100 bpm · the whole form</div>
+<div class="wf-box" style="flex:1;margin-top:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;">
+<div style="font:400 52px/1 'Source Serif 4',serif;color:#2B2A26;">A♭7</div>
+<div class="wf-ts">bar 9 of 32</div>
+<div style="display:flex;gap:6px;margin-top:10px;">
+<span style="width:9px;height:9px;border-radius:50%;background:#2B2A26;"></span>
+<span style="width:9px;height:9px;border-radius:50%;border:1.5px solid #C4BCA6;"></span>
+<span style="width:9px;height:9px;border-radius:50%;border:1.5px solid #C4BCA6;"></span>
+<span style="width:9px;height:9px;border-radius:50%;border:1.5px solid #C4BCA6;"></span>
+</div>
+</div>
+<div class="wf-ts" style="text-align:center;">scored quietly — nothing to clear here</div>
+<div class="wf-btn ghost">Stuck</div>
+<div class="wf-ts" style="text-align:center;">end early · banks what you've done</div>
+</div>
+<div class="wf-cap"><span class="wf-n">3</span> <b>Warm-up.</b> A guaranteed win. Scored, but no feedback shown — momentum first.</div>
+</div>
+
+<div class="wf-fr">
+<div class="wf-ph">
+<div class="wf-top"><div class="wf-lbl">Block 2 of 4 · frontier</div><span class="wf-chip">grind · 3 weeks</span></div>
+<div class="wf-bar"><i style="width:34%"></i></div>
+<div class="wf-h2" style="margin-top:8px;">Rootless voicings — A section</div>
+<div class="wf-ts">A position · 120 bpm · left hand leads</div>
+<div style="display:flex;align-items:baseline;gap:9px;margin-top:14px;">
+<div style="font:400 44px/1 'Source Serif 4',serif;color:#2B2A26;">2</div>
+<div class="wf-t" style="padding-bottom:6px;">of 3 clean passes at 120</div>
+</div>
+<div style="display:flex;gap:7px;">
+<span style="flex:1;height:8px;border-radius:999px;background:#2B2A26;"></span>
+<span style="flex:1;height:8px;border-radius:999px;background:#2B2A26;"></span>
+<span style="flex:1;height:8px;border-radius:999px;background:#E2DCCB;"></span>
+</div>
+<div class="wf-solid" style="flex:1;margin-top:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;">
+<div style="display:flex;gap:16px;align-items:center;">
+<span class="wf-tick" style="color:#7A7360;">✓</span><span class="wf-tick" style="color:#7A7360;">✓</span>
+<span class="wf-tick" style="font-size:44px;color:#2B2A26;">✕</span>
+</div>
+<div style="font:600 17px 'Inter',sans-serif;color:#2B2A26;">Late into bar 3</div>
+<div class="wf-ts">that's the pass gone — go again</div>
+</div>
+<div class="wf-btn" style="padding:16px;">Stuck</div>
+<div class="wf-ts" style="text-align:center;">midi listening · 120 bpm click</div>
+</div>
+<div class="wf-cap"><span class="wf-n">4</span> <b>Active drill.</b> One mark, one fact, huge type. Grind is labelled as grind, with the horizon attached.</div>
+</div>
+
+<div class="wf-fr">
+<div class="wf-ph">
+<div class="wf-lbl">Block 2 · rootless voicings</div>
+<div class="wf-h2" style="margin-top:6px;">Three in a row.<br>Let's make it smaller.</div>
+<div class="wf-t" style="margin-top:2px;">Bar 3 every time — it's the change, not the chords.</div>
+<div style="display:flex;flex-direction:column;gap:9px;margin-top:14px;">
+<div class="wf-solid" style="padding:13px;">
+<div style="font:600 13px 'Inter',sans-serif;">Drop to 96 bpm</div>
+<div class="wf-ts">most likely to unstick this one</div>
+</div>
+<div class="wf-box" style="padding:13px;">
+<div style="font:600 13px 'Inter',sans-serif;">Bars 1–4 only</div>
+<div class="wf-ts">practise the change, not the chords</div>
+</div>
+<div class="wf-box" style="padding:13px;">
+<div style="font:600 13px 'Inter',sans-serif;">Left hand alone</div>
+<div class="wf-ts">shape first, then add the right</div>
+</div>
+<div class="wf-box" style="padding:13px;">
+<div style="font:600 13px 'Inter',sans-serif;">Sing the top line</div>
+<div class="wf-ts">hear it before you play it</div>
+</div>
+</div>
+<div style="flex:1;"></div>
+<div class="wf-note">Everyone's A-position feels like knitting for about three weeks. You're two in.</div>
+<div class="wf-ts" style="text-align:center;margin-top:8px;">or carry on as you were</div>
+</div>
+<div class="wf-cap"><span class="wf-n">5</span> <b>Stuck ladder.</b> Fires on the pattern, not one failure. No guilt, no ceremony, one recommendation.</div>
+</div>
+
+<div class="wf-fr">
+<div class="wf-ph">
+<div class="wf-lbl">Block 2 cleared</div>
+<div style="display:flex;align-items:baseline;gap:10px;margin-top:6px;">
+<div style="font:400 52px/1 'Source Serif 4',serif;">3<span style="font-size:26px;color:#9A927F;">/3</span></div>
+<div class="wf-t" style="padding-bottom:8px;">clean at 120</div>
+</div>
+<div class="wf-solid" style="padding:13px;margin-top:12px;">
+<div class="wf-t">The tempo drop worked — you cleared at 96, came back and held 120 twice. Second time this week the ladder has paid.</div>
+</div>
+<div class="wf-lbl" style="margin-top:14px;">A-position, last 4 weeks</div>
+<div class="wf-box" style="height:96px;display:flex;align-items:flex-end;gap:7px;padding:10px;">
+<span style="flex:1;height:24%;background:#C4BCA6;border-radius:3px 3px 0 0;"></span>
+<span style="flex:1;height:38%;background:#C4BCA6;border-radius:3px 3px 0 0;"></span>
+<span style="flex:1;height:34%;background:#C4BCA6;border-radius:3px 3px 0 0;"></span>
+<span style="flex:1;height:61%;background:#C4BCA6;border-radius:3px 3px 0 0;"></span>
+<span style="flex:1;height:78%;background:#2B2A26;border-radius:3px 3px 0 0;"></span>
+</div>
+<div class="wf-ts">90 → 120 bpm clean. Your trend says roughly four more sessions to the full-cycle gate.</div>
+<div style="flex:1;"></div>
+<div class="wf-lbl">Next, listen for</div>
+<div class="wf-t">Hear the next chord before your hands leave this one.</div>
+<div class="wf-btn" style="margin-top:10px;">Next block →</div>
+</div>
+<div class="wf-cap"><span class="wf-n">6</span> <b>Block boundary.</b> The only place prose is allowed. Praises the tactic, not the talent. Horizon from your own trend.</div>
+</div>
+
+<div class="wf-fr">
+<div class="wf-ph">
+<div class="wf-top"><div class="wf-lbl">Block 3 of 4 · vocabulary</div><span class="wf-chip">11:20 left</span></div>
+<div class="wf-h2" style="margin-top:8px;">The Rollins lick</div>
+<div class="wf-ts">one phrase in flight</div>
+<div style="display:flex;gap:3px;margin-top:14px;align-items:center;">
+<span class="wf-chip" style="background:#2B2A26;color:#FBFAF3;border-color:#2B2A26;">learn ✓</span>
+<span style="flex:1;height:1.5px;background:#C4BCA6;"></span>
+<span class="wf-chip" style="border-color:#2B2A26;border-width:1.5px;color:#2B2A26;font-weight:600;">keys</span>
+<span style="flex:1;height:1.5px;background:#E2DCCB;"></span>
+<span class="wf-chip">analyse</span>
+</div>
+<div style="display:flex;gap:3px;margin-top:6px;align-items:center;">
+<span class="wf-chip">extract</span>
+<span style="flex:1;height:1.5px;background:#E2DCCB;"></span>
+<span class="wf-chip">generate</span>
+<span style="flex:1;height:1.5px;background:#E2DCCB;"></span>
+<span class="wf-chip">deploy</span>
+</div>
+<div class="wf-lbl" style="margin-top:16px;">Keys · 2 of 12 clean</div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
+<span class="wf-solid" style="padding:9px 0;text-align:center;font:600 11px 'Inter',sans-serif;background:#2B2A26;color:#FBFAF3;">C</span>
+<span class="wf-solid" style="padding:9px 0;text-align:center;font:600 11px 'Inter',sans-serif;background:#2B2A26;color:#FBFAF3;">F</span>
+<span class="wf-solid" style="padding:9px 0;text-align:center;font:600 11px 'Inter',sans-serif;">B♭</span>
+<span class="wf-solid" style="padding:9px 0;text-align:center;font:600 11px 'Inter',sans-serif;">E♭</span>
+<span class="wf-box" style="padding:9px 0;text-align:center;font:500 11px 'Inter',sans-serif;color:#9A927F;">A♭</span>
+<span class="wf-box" style="padding:9px 0;text-align:center;font:500 11px 'Inter',sans-serif;color:#9A927F;">D♭</span>
+<span class="wf-box" style="padding:9px 0;text-align:center;font:500 11px 'Inter',sans-serif;color:#9A927F;">G♭</span>
+<span class="wf-box" style="padding:9px 0;text-align:center;font:500 11px 'Inter',sans-serif;color:#9A927F;">B</span>
+</div>
+<div class="wf-ts">…and four more</div>
+<div class="wf-solid" style="padding:12px;margin-top:14px;">
+<div style="font:600 12.5px 'Inter',sans-serif;">Today: B♭ and E♭, over the turnaround</div>
+<div class="wf-ts">gate: 2 clean in both · around the cycle, not chromatically</div>
+</div>
+<div style="flex:1;"></div>
+<div class="wf-btn">Start the drill</div>
+</div>
+<div class="wf-cap"><span class="wf-n">7</span> <b>Lick pipeline.</b> "All 12 keys" is never a session goal — two new keys, the rest as maintenance.</div>
+</div>
+
+<div class="wf-fr">
+<div class="wf-ph">
+<div class="wf-lbl">After the drill</div>
+<div class="wf-h2" style="margin-top:6px;">Why does it sound like that?</div>
+<div class="wf-box" style="height:76px;margin-top:10px;display:flex;align-items:center;justify-content:center;"><span class="wf-ts">notation of the phrase, bar 3 highlighted</span></div>
+<div class="wf-solid" style="padding:12px;margin-top:10px;">
+<div class="wf-t">B♮ over the B♭7 — a ♭9, resolving down a semitone onto the 5th. That crunch-then-release is the sound you like.</div>
+<div class="wf-ts" style="text-decoration:underline;margin-top:7px;">90-second lesson on ♭9 resolutions</div>
+</div>
+<div class="wf-lbl" style="margin-top:16px;">Adds to your devices</div>
+<div class="wf-solid" style="padding:11px;display:flex;align-items:center;gap:10px;">
+<div class="wf-box" style="width:38px;height:30px;flex:none;"></div>
+<div style="flex:1;">
+<div style="font:600 12px 'Inter',sans-serif;">♭9 → 5 resolution</div>
+<div class="wf-ts">new · carried by the Rollins lick</div>
+</div>
+</div>
+<div style="flex:1;"></div>
+<div class="wf-note">The lick was the carrier. The device is the vocabulary.</div>
+<div class="wf-btn" style="margin-top:10px;">Keep it</div>
+</div>
+<div class="wf-cap"><span class="wf-n">8</span> <b>Analyse → extract.</b> Theory only at the point of use, on a sound you already want.</div>
+</div>
+
+<div class="wf-fr">
+<div class="wf-ph">
+<div class="wf-top"><div class="wf-lbl">Your devices</div><span class="wf-chip">14</span></div>
+<div class="wf-h2" style="margin-top:6px;">The vocabulary,<br>visible and growing</div>
+<div style="display:flex;flex-direction:column;gap:8px;margin-top:14px;">
+<div class="wf-solid" style="padding:11px;display:flex;gap:10px;align-items:center;">
+<div class="wf-box" style="width:36px;height:28px;flex:none;"></div>
+<div style="flex:1;">
+<div style="font:600 12px 'Inter',sans-serif;">Enclosure (3-note)</div>
+<div class="wf-ts">from 4 phrases · deployed unprompted ×3</div>
+<div class="wf-bar" style="margin-top:6px;"><i style="width:82%"></i></div>
+</div>
+</div>
+<div class="wf-solid" style="padding:11px;display:flex;gap:10px;align-items:center;">
+<div class="wf-box" style="width:36px;height:28px;flex:none;"></div>
+<div style="flex:1;">
+<div style="font:600 12px 'Inter',sans-serif;">♭9 → 5 resolution</div>
+<div class="wf-ts">generate ladder 1 of 4 · vary the rhythm</div>
+<div class="wf-bar" style="margin-top:6px;"><i style="width:22%"></i></div>
+</div>
+</div>
+<div class="wf-box" style="padding:11px;display:flex;gap:10px;align-items:center;">
+<div class="wf-box" style="width:36px;height:28px;flex:none;background:#fff;"></div>
+<div style="flex:1;">
+<div style="font:600 12px 'Inter',sans-serif;color:#5C5646;">Rhythmic displacement</div>
+<div class="wf-ts">learned · not used in 6 weeks</div>
+<div class="wf-bar" style="margin-top:6px;"><i style="width:54%;background:#C4BCA6;"></i></div>
+</div>
+</div>
+<div class="wf-box" style="padding:11px;display:flex;gap:10px;align-items:center;">
+<div class="wf-box" style="width:36px;height:28px;flex:none;background:#fff;"></div>
+<div style="flex:1;">
+<div style="font:600 12px 'Inter',sans-serif;color:#5C5646;">Chromatic approach from below</div>
+<div class="wf-ts">from 2 phrases</div>
+<div class="wf-bar" style="margin-top:6px;"><i style="width:66%;background:#C4BCA6;"></i></div>
+</div>
+</div>
+</div>
+<div style="flex:1;"></div>
+<div class="wf-ts">Bar = the generate ladder: vary · transplant · compose · deploy.</div>
+</div>
+<div class="wf-cap"><span class="wf-n">9</span> <b>Device inventory.</b> The strongest progress surface — this is the thing that is actually growing.</div>
+</div>
+
+<div class="wf-fr">
+<div class="wf-ph">
+<div class="wf-top"><div class="wf-lbl">Block 4 of 4 · integration</div><span class="wf-chip">1:40 left</span></div>
+<div class="wf-h2" style="margin-top:8px;">Restricted improv</div>
+<div class="wf-ts">the form, chord-tone targets, land the ♭9 once</div>
+<div class="wf-lbl" style="margin-top:16px;">What the app heard</div>
+<div class="wf-solid" style="padding:12px;">
+<div style="display:flex;justify-content:space-between;"><span class="wf-t">Landed on target chord tones</span><span style="font:600 13px 'Inter',sans-serif;">27 of 32</span></div>
+<div style="display:flex;justify-content:space-between;margin-top:5px;"><span class="wf-t">Time held</span><span style="font:600 13px 'Inter',sans-serif;">±18 ms</span></div>
+<div style="display:flex;justify-content:space-between;margin-top:5px;"><span class="wf-t">♭9 device, bar 12</span><span style="font:600 13px 'Inter',sans-serif;">probably</span></div>
+<div class="wf-ts" style="margin-top:7px;">Not certain about that last one — free improv is hard to read.</div>
+</div>
+<div class="wf-lbl" style="margin-top:16px;">What only you can hear</div>
+<div class="wf-box" style="padding:12px;">
+<div class="wf-t">Did that sound like the record?</div>
+<div style="display:flex;gap:5px;margin-top:9px;">
+<span class="wf-solid" style="flex:1;padding:9px 0;text-align:center;font:500 11px 'Inter',sans-serif;">Stiff</span>
+<span class="wf-solid" style="flex:1;padding:9px 0;text-align:center;font:500 11px 'Inter',sans-serif;">Getting there</span>
+<span class="wf-solid" style="flex:1;padding:9px 0;text-align:center;font:600 11px 'Inter',sans-serif;background:#2B2A26;color:#FBFAF3;">Felt good</span>
+</div>
+</div>
+<div style="flex:1;"></div>
+<div class="wf-note">Never bluff: stated when certain, asked when not.</div>
+<div class="wf-btn" style="margin-top:8px;">Close on the head →</div>
+</div>
+<div class="wf-cap"><span class="wf-n">10</span> <b>Measured vs felt.</b> An extra screen I've added — the self-assessment boundary made literal.</div>
+</div>
+
+<div class="wf-fr">
+<div class="wf-ph">
+<div class="wf-lbl">Session banked</div>
+<div class="wf-h" style="margin-top:6px;">19 minutes.<br>One gate cleared.</div>
+<div style="display:flex;flex-direction:column;gap:7px;margin-top:16px;">
+<div style="display:flex;gap:9px;align-items:center;"><span class="wf-tick" style="font-size:14px;">✓</span><span class="wf-t">Warm-up pattern · whole form, clean</span></div>
+<div style="display:flex;gap:9px;align-items:center;"><span class="wf-tick" style="font-size:14px;">✓</span><span class="wf-t">Rootless A · 3 of 3 at 120</span></div>
+<div style="display:flex;gap:9px;align-items:center;"><span class="wf-tick" style="font-size:14px;">✓</span><span class="wf-t">Rollins lick · B♭ and E♭ clean</span></div>
+<div style="display:flex;gap:9px;align-items:center;"><span class="wf-tick" style="font-size:14px;color:#9A927F;">·</span><span class="wf-t">♭9 → 5 added to your devices</span></div>
+</div>
+<div class="wf-solid" style="padding:12px;margin-top:14px;">
+<div class="wf-lbl">In your words, two weeks ago</div>
+<div style="font:400 14px/1.4 'Source Serif 4',serif;color:#2B2A26;margin-top:4px;">"bridge still rushing"</div>
+<div class="wf-ts" style="margin-top:6px;">Tonight the bridge held at 120. That's the delta.</div>
+</div>
+<div class="wf-lbl" style="margin-top:16px;">Tomorrow, drafted</div>
+<div class="wf-box" style="padding:12px;">
+<div class="wf-t">Rootless A maintenance · Rollins lick → A♭ and D♭ · restricted improv, ♭9 twice per chorus.</div>
+<div class="wf-ts" style="margin-top:6px;">In flight: one phrase, one tune. Nothing added.</div>
+</div>
+<div style="flex:1;"></div>
+<div class="wf-btn">Done</div>
+</div>
+<div class="wf-cap"><span class="wf-n">11</span> <b>Session close.</b> Ends on competence. Tomorrow is drafted before the lid shuts — the when-then plan.</div>
+</div>
+
+<div class="wf-fr">
+<div class="wf-ph">
+<div class="wf-lbl">Off piste</div>
+<div class="wf-h2" style="margin-top:6px;">No plan. Still listening.</div>
+<div class="wf-box" style="flex:1;margin-top:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;">
+<div style="font:400 40px/1 'Source Serif 4',serif;">11:20</div>
+<div style="display:flex;gap:3px;align-items:flex-end;height:44px;width:80%;">
+<span style="flex:1;height:30%;background:#C4BCA6;"></span><span style="flex:1;height:70%;background:#C4BCA6;"></span><span style="flex:1;height:45%;background:#C4BCA6;"></span><span style="flex:1;height:90%;background:#C4BCA6;"></span><span style="flex:1;height:55%;background:#C4BCA6;"></span><span style="flex:1;height:80%;background:#C4BCA6;"></span><span style="flex:1;height:35%;background:#C4BCA6;"></span><span style="flex:1;height:65%;background:#C4BCA6;"></span>
+</div>
+<div class="wf-ts">logged, unscored, no gates</div>
+</div>
+<div class="wf-solid" style="padding:13px;margin-top:12px;">
+<div class="wf-t">You spent seven minutes circling a IV–iv–I in E♭. Keep it as a drill?</div>
+<div style="display:flex;gap:7px;margin-top:10px;">
+<span class="wf-btn" style="flex:1;padding:10px;">Keep it</span>
+<span class="wf-btn ghost" style="flex:1;padding:10px;">Just playing</span>
+</div>
+</div>
+<div class="wf-ts" style="text-align:center;margin-top:8px;">counts towards tonight either way</div>
+</div>
+<div class="wf-cap"><span class="wf-n">12</span> <b>Off piste.</b> Wandering is honoured and still feeds diagnosis. Some wanders are the graph revealing a gap.</div>
+</div>
+
+<div class="wf-fr">
+<div class="wf-ph">
+<div class="wf-top"><div class="wf-lbl">Intrada</div><span class="wf-chip">midi ✓</span></div>
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;">
+<div class="wf-h">Ten minutes?</div>
+<div class="wf-t" style="max-width:225px;">Lighter tonight. The pattern, one key of the lick, then the head.</div>
+<div style="width:150px;height:150px;border:2.5px solid #2B2A26;border-radius:50%;display:flex;align-items:center;justify-content:center;font:600 20px 'Inter',sans-serif;letter-spacing:2px;margin:6px 0;">START</div>
+<div style="display:flex;gap:6px;">
+<span class="wf-chip">2 blocks</span><span class="wf-chip">no grind</span><span class="wf-chip">ends on music</span>
+</div>
+<div class="wf-ts" style="text-decoration:underline;">or the full twenty →</div>
+</div>
+<div class="wf-note" style="text-align:center;">Lighter on a bad day, not heavier. No mention of what you're skipping.</div>
+</div>
+<div class="wf-cap"><span class="wf-n">13</span> <b>Bad day.</b> Same screen, less of it. The grind block is the first thing dropped.</div>
+</div>
+
+</div>
+</div>
+</div>
+
+<div class="dv-opt" id="1b">
+<div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>Home · three ways to kill the choice</div>
+<div class="dv-card">
+<div class="wf-row">
+
+<div class="wf-fr sm">
+<div class="wf-ph sm">
+<div style="flex:1;display:flex;align-items:center;justify-content:center;">
+<div style="width:170px;height:170px;border:2.5px solid #2B2A26;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;">
+<span style="font:600 22px 'Inter',sans-serif;letter-spacing:2px;">START</span>
+<span class="wf-ts">20 min</span>
+</div>
+</div>
+<div class="wf-ts" style="text-align:center;">why · library · off piste</div>
+</div>
+<div class="wf-cap"><b>The button.</b> Maximum kill-the-choice. Risk: no reason to trust it, and no cue for the bad day.</div>
+</div>
+
+<div class="wf-fr sm">
+<div class="wf-ph sm">
+<div class="wf-lbl">Tonight · 20 min</div>
+<div class="wf-h2" style="margin-top:4px;">Strasbourg / St. Denis</div>
+<div style="display:flex;flex-direction:column;gap:7px;margin-top:14px;">
+<div class="wf-box" style="padding:10px;"><div style="font:600 11.5px 'Inter',sans-serif;">Warm-up · pattern</div><div class="wf-ts">3 min · mastered</div></div>
+<div class="wf-solid" style="padding:10px;"><div style="font:600 11.5px 'Inter',sans-serif;">Rootless voicings, A</div><div class="wf-ts">6 min · due, six days cold</div></div>
+<div class="wf-box" style="padding:10px;"><div style="font:600 11.5px 'Inter',sans-serif;">Rollins lick → B♭, E♭</div><div class="wf-ts">5 min · 2 of 12 keys</div></div>
+<div class="wf-box" style="padding:10px;"><div style="font:600 11.5px 'Inter',sans-serif;">Restricted improv</div><div class="wf-ts">5 min · then the head</div></div>
+</div>
+<div style="flex:1;"></div>
+<div class="wf-btn" style="padding:15px;">Start</div>
+<div class="wf-ts" style="text-align:center;margin-top:6px;">swap a block →</div>
+</div>
+<div class="wf-cap"><b>The plan.</b> Trust through transparency. Risk: it's a list, and a list invites deciding.</div>
+</div>
+
+<div class="wf-fr sm">
+<div class="wf-ph sm">
+<div class="wf-lbl">Tonight</div>
+<div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:20px;">
+<div style="font:400 25px/1.3 'Source Serif 4',serif;color:#2B2A26;">Tonight we fix the A-section voicings, then put the new lick into two more keys.</div>
+<div class="wf-t">Twenty minutes. Ends on the head.</div>
+</div>
+<div class="wf-btn" style="padding:15px;">Start</div>
+<div class="wf-ts" style="text-align:center;margin-top:6px;">not tonight? · why this?</div>
+</div>
+<div class="wf-cap"><b>The sentence.</b> One plain-language claim, no list to scan. Closest to a teacher speaking. My pick.</div>
+</div>
+
+</div>
+</div>
+</div>
+
+<div class="dv-opt" id="1c">
+<div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>Active drill · what you see at arm's length</div>
+<div class="dv-card">
+<div class="wf-row">
+
+<div class="wf-fr sm">
+<div class="wf-ph sm">
+<div class="wf-lbl">Rootless A · 120 bpm</div>
+<div style="display:flex;flex-direction:column;gap:9px;margin-top:12px;">
+<div class="wf-box" style="padding:10px;display:flex;justify-content:space-between;"><span class="wf-t">Accuracy</span><span style="font:600 15px 'Inter',sans-serif;">94%</span></div>
+<div class="wf-box" style="padding:10px;display:flex;justify-content:space-between;"><span class="wf-t">Timing</span><span style="font:600 15px 'Inter',sans-serif;">+31 ms</span></div>
+<div class="wf-box" style="padding:10px;display:flex;justify-content:space-between;"><span class="wf-t">Swing</span><span style="font:600 15px 'Inter',sans-serif;">1.42</span></div>
+<div class="wf-box" style="padding:10px;display:flex;justify-content:space-between;"><span class="wf-t">Tempo drift</span><span style="font:600 15px 'Inter',sans-serif;">−2%</span></div>
+</div>
+<div class="wf-lbl" style="margin-top:14px;">Passes</div>
+<div style="display:flex;gap:6px;"><span style="flex:1;height:7px;background:#2B2A26;border-radius:9px;"></span><span style="flex:1;height:7px;background:#2B2A26;border-radius:9px;"></span><span style="flex:1;height:7px;background:#E2DCCB;border-radius:9px;"></span></div>
+<div style="flex:1;"></div>
+<div class="wf-btn ghost">Stuck</div>
+</div>
+<div class="wf-cap"><b>Numbers forward.</b> Everything measured, on screen. Fails the one-second test — this is reading, not glancing.</div>
+</div>
+
+<div class="wf-fr sm">
+<div class="wf-ph sm">
+<div class="wf-lbl">Rootless A · 120</div>
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;">
+<span style="font:400 92px/1 'Inter',sans-serif;">✕</span>
+<div style="font:600 19px 'Inter',sans-serif;text-align:center;">Late into bar 3</div>
+</div>
+<div style="display:flex;align-items:baseline;gap:8px;justify-content:center;">
+<span style="font:400 30px/1 'Source Serif 4',serif;">2</span><span class="wf-t">of 3 clean</span>
+</div>
+<div style="display:flex;gap:6px;margin-top:8px;"><span style="flex:1;height:8px;background:#2B2A26;border-radius:9px;"></span><span style="flex:1;height:8px;background:#2B2A26;border-radius:9px;"></span><span style="flex:1;height:8px;background:#E2DCCB;border-radius:9px;"></span></div>
+<div class="wf-btn" style="margin-top:10px;padding:15px;">Stuck</div>
+</div>
+<div class="wf-cap"><b>Gate forward.</b> One mark, one fact, one count. Readable across a room. Used in <a class="dv-oid" href="#1a">1a</a>.</div>
+</div>
+
+<div class="wf-fr sm">
+<div class="wf-ph sm">
+<div class="wf-lbl">Rootless A · 120</div>
+<div class="wf-h2" style="margin-top:4px;">A section</div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:14px;">
+<span class="wf-solid" style="height:44px;"></span>
+<span class="wf-solid" style="height:44px;"></span>
+<span class="wf-solid" style="height:44px;background:#2B2A26;"></span>
+<span class="wf-solid" style="height:44px;"></span>
+<span class="wf-solid" style="height:44px;"></span>
+<span class="wf-solid" style="height:44px;"></span>
+<span class="wf-solid" style="height:44px;"></span>
+<span class="wf-solid" style="height:44px;"></span>
+</div>
+<div class="wf-ts" style="margin-top:8px;">bar 3, every pass</div>
+<div class="wf-solid" style="padding:11px;margin-top:14px;"><div class="wf-t">The change into bar 3 is the whole problem. Everything else is clean.</div></div>
+<div style="flex:1;"></div>
+<div style="display:flex;gap:6px;"><span style="flex:1;height:8px;background:#2B2A26;border-radius:9px;"></span><span style="flex:1;height:8px;background:#2B2A26;border-radius:9px;"></span><span style="flex:1;height:8px;background:#E2DCCB;border-radius:9px;"></span></div>
+<div class="wf-btn ghost" style="margin-top:9px;">Stuck</div>
+</div>
+<div class="wf-cap"><b>Bar map.</b> Shows <em>where</em>, not just <em>what</em>. Strongest diagnostically; needs a glance at a block boundary, not mid-rep.</div>
+</div>
+
+</div>
+</div>
+</div>
+
+</div>
+<p class="dv-next">Try next: "take <a class="dv-oid" href="#1b">1b</a>'s sentence home into <a class="dv-oid" href="#1a">1a</a> and re-run the flow" · "give me three versions of the stuck ladder" · "now make <a class="dv-oid" href="#1a">1a</a> hi-fi in Paper &amp; Score"</p>
+</section>
+
+</x-dc>
+</body>
+</html>

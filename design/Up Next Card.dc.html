@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; -webkit-font-smoothing: antialiased; background: #EBE7D9; }
+  [data-lucide] { stroke-width: 2; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { * { animation-duration: .001ms !important; } }
+</style>
+</helmet>
+<div style="padding:40px;font-family:'Inter',system-ui,sans-serif;background:linear-gradient(180deg,#F4F1E8,#EBE7D9);">
+  <div style="max-width:1360px;margin:0 auto;">
+    <div style="font-size:11px;font-weight:600;letter-spacing:1.8px;color:#9E7B33;">JOURNEY · UP NEXT</div>
+    <div style="font-family:'Source Serif 4',serif;font-weight:600;font-size:38px;color:#2B2A26;margin-top:8px;line-height:1.05;">Where the suggestion sits</div>
+    <div style="font-size:14px;color:#6E6557;margin-top:10px;max-width:760px;line-height:1.5;">
+      Feature file for <strong>#1082</strong>, the Up next card. <strong>Decided 2026-08-27
+      (Jon): the suggestion is the hero</strong>, recorded as design-principles T15, and
+      <strong>folded in</strong> with the screens: the Practice screen in the design system is now
+      the canonical drawing of it. What is left here is the state that screen cannot also show.
+      Reason lines are the core's own strings, not sample copy: they are what
+      <code>SuggestedSession.reason</code> returns.
+    </div>
+    <div style="display:flex;gap:44px;margin-top:38px;flex-wrap:wrap;">
+      
+<div style="display:flex;flex-direction:column;gap:14px;max-width:370px;">
+  <div>
+    <div style="font-family:'Inter',system-ui,sans-serif;font-size:11px;font-weight:600;letter-spacing:1.8px;color:#9E7B33;text-transform:uppercase;">Folded in · see the design system</div>
+    <div style="font-family:'Inter',system-ui,sans-serif;font-size:12.5px;color:#6E6557;margin-top:5px;line-height:1.45;">The taken design is now the canonical Practice screen: <strong style="color:#2B2A26;">Design System · Screens · Practice</strong>. It is not redrawn here. The rejected alternative, the card under the existing hero, is recorded in design-principles T15 with the reasons; it is not kept as a frame, because a superseded copy is the drift this process exists to stop.</div>
+  </div>
+  <div style="border:1px dashed #DCD4C1;border-radius:14px;padding:22px;background:rgba(252,250,243,0.55);font-family:'Inter',system-ui,sans-serif;font-size:12.5px;color:#6E6557;line-height:1.5;">
+    What stays in this file is the one state the design system's single canonical screen cannot also show: <strong style="color:#2B2A26;">nothing to suggest</strong>, on the right.
+  </div>
+</div>
+      
+<div style="display:flex;flex-direction:column;gap:14px;">
+  <div>
+    <div style="font-family:'Inter',system-ui,sans-serif;font-size:11px;font-weight:600;letter-spacing:1.8px;color:#9E7B33;text-transform:uppercase;">Either way · nothing to suggest</div>
+    <div style="font-family:'Inter',system-ui,sans-serif;font-size:12.5px;color:#6E6557;margin-top:5px;max-width:370px;line-height:1.45;">No piece has a related exercise linked, so `up_next` is None and today's screen is exactly what shipped. Identical after 'Build my own instead' is tapped. The card is a suggestion, never a gate.</div>
+  </div>
+  <div style="width:392px;border-radius:54px;padding:11px;background:linear-gradient(150deg,#3a3a3c,#1c1c1e);box-shadow:0 30px 60px -20px rgba(43,42,38,0.45),0 0 0 2px #0a0a0a;font-family:'Inter',system-ui,sans-serif;">
+    <div style="position:relative;width:370px;height:782px;border-radius:43px;overflow:hidden;background:linear-gradient(180deg,#F4F1E8,#EBE7D9);display:flex;flex-direction:column;">
+      <div style="position:absolute;top:11px;left:50%;transform:translateX(-50%);width:104px;height:30px;background:#000;border-radius:18px;z-index:60;"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;height:46px;padding:0 24px 0 28px;flex:none;">
+        <span style="font-weight:600;font-size:14px;color:#2B2A26;">9:41</span>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <i data-lucide="signal" width="16" height="16" style="color:#2B2A26;"></i>
+          <i data-lucide="wifi" width="16" height="16" style="color:#2B2A26;"></i>
+          <div style="width:23px;height:12px;border:1.3px solid #2B2A26;border-radius:3px;display:flex;align-items:center;padding:1.5px;"><div style="width:72%;height:100%;background:#2B2A26;border-radius:1px;"></div></div>
+        </div>
+      </div>
+      
+      
+      <div style="padding:6px 16px 12px;flex:none;">
+        <div style="font-family:'Source Serif 4',serif;font-weight:600;font-size:32px;color:#2B2A26;line-height:1.05;">Practice</div>
+        <div style="font-family:'Inter',system-ui,sans-serif;font-size:13px;color:#6E6557;margin-top:4px;">Last practised Tuesday</div>
+      </div>
+      <div style="flex:1;overflow:hidden;padding:0 16px;">
+        
+        <div style="border-radius:22px;background:linear-gradient(180deg,#5648B2,#43388F 55%,#392F7C);padding:24px;display:flex;flex-direction:column;align-items:center;box-shadow:0 10px 20px -6px rgba(0,0,0,0.18);animation:fadeUp .5s ease both;">
+          <div style="font-size:11px;font-weight:600;letter-spacing:1.8px;color:rgba(242,239,232,0.7);">LAST PRACTISED</div>
+          <div style="font-family:'Source Serif 4',serif;font-weight:600;font-size:25px;color:#F4F1E8;margin-top:10px;text-align:center;line-height:1.1;">Like Someone in Love</div>
+          <div style="width:96px;height:96px;border-radius:50%;background:#F7F4EC;display:flex;align-items:center;justify-content:center;margin:16px 0 8px;box-shadow:0 8px 16px rgba(0,0,0,0.25);">
+            <i data-lucide="play" width="34" height="34" style="color:#4C3FA6;fill:#4C3FA6;"></i></div>
+          <div style="font-size:15px;font-weight:500;color:rgba(242,239,232,0.85);">Tuesday</div>
+        </div>
+        <div style="margin-top:24px;animation:fadeUp .5s .06s ease both;">
+          <div style="display:flex;align-items:baseline;justify-content:space-between;">
+      <span style="font-family:'Inter',system-ui,sans-serif;font-size:11px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:#9A927F;">This week</span>
+      <span style="font-family:'Inter',system-ui,sans-serif;font-size:12px;color:#6E6557;">4 days practised</span></div>
+          <div style="margin-top:12px;"><div style="display:flex;gap:2px;"><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;">
+          <span style="font-size:10px;font-weight:600;color:#9A927F;">M</span>
+          <div style="width:31px;height:31px;border-radius:50%;background:#E7E3F4;border:none;display:flex;align-items:center;justify-content:center;">
+            <span style="font-size:12.5px;font-weight:600;color:#4C3FA6;">18</span></div></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;">
+          <span style="font-size:10px;font-weight:600;color:#9A927F;">T</span>
+          <div style="width:31px;height:31px;border-radius:50%;background:transparent;border:1px dashed #DCD4C1;display:flex;align-items:center;justify-content:center;">
+            <span style="font-size:12.5px;font-weight:600;color:#B0A892;">19</span></div></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;">
+          <span style="font-size:10px;font-weight:600;color:#9A927F;">W</span>
+          <div style="width:31px;height:31px;border-radius:50%;background:#E7E3F4;border:none;display:flex;align-items:center;justify-content:center;">
+            <span style="font-size:12.5px;font-weight:600;color:#4C3FA6;">20</span></div></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;">
+          <span style="font-size:10px;font-weight:600;color:#9A927F;">T</span>
+          <div style="width:31px;height:31px;border-radius:50%;background:#E7E3F4;border:none;display:flex;align-items:center;justify-content:center;">
+            <span style="font-size:12.5px;font-weight:600;color:#4C3FA6;">21</span></div></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;">
+          <span style="font-size:10px;font-weight:600;color:#9A927F;">F</span>
+          <div style="width:31px;height:31px;border-radius:50%;background:#4C3FA6;border:none;display:flex;align-items:center;justify-content:center;">
+            <span style="font-size:12.5px;font-weight:600;color:#F2EFE8;">22</span></div></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;">
+          <span style="font-size:10px;font-weight:600;color:#9A927F;">S</span>
+          <div style="width:31px;height:31px;border-radius:50%;background:transparent;border:1px dashed #DCD4C1;display:flex;align-items:center;justify-content:center;">
+            <span style="font-size:12.5px;font-weight:600;color:#B0A892;">23</span></div></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;">
+          <span style="font-size:10px;font-weight:600;color:#9A927F;">S</span>
+          <div style="width:31px;height:31px;border-radius:50%;background:transparent;border:1px dashed #DCD4C1;display:flex;align-items:center;justify-content:center;">
+            <span style="font-size:12.5px;font-weight:600;color:#B0A892;">24</span></div></div></div></div>
+        </div>
+        <div style="margin-top:22px;animation:fadeUp .5s .12s ease both;">
+          <div style="display:flex;align-items:baseline;justify-content:space-between;">
+      <span style="font-family:'Inter',system-ui,sans-serif;font-size:11px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:#9A927F;">Today</span>
+      <span style="font-family:'Inter',system-ui,sans-serif;font-size:12px;color:#6E6557;">Rest day</span></div>
+          <div style="margin-top:10px;border:1px dashed #DCD4C1;border-radius:12px;background:#FCFAF3;padding:18px;display:flex;flex-direction:column;align-items:center;gap:10px;">
+            <i data-lucide="moon" width="26" height="26" style="color:#6E6557;"></i>
+            <div style="font-size:13px;color:#6E6557;text-align:center;">A rest day. No pressure · the schedule has adapted.</div>
+          </div>
+        </div>
+      </div>
+      
+      <div style="flex:none;display:flex;align-items:center;padding:9px 10px 22px;background:#EFEBDF;border-top:1px solid #E5DECD;"><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;">
+          <i data-lucide="library-big" width="21" height="21" style="color:#9A927F;"></i>
+          <span style="font-size:10.5px;font-weight:500;color:#9A927F;">Library</span></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;">
+          <i data-lucide="circle-play" width="21" height="21" style="color:#4C3FA6;"></i>
+          <span style="font-size:10.5px;font-weight:600;color:#4C3FA6;">Practice</span></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;">
+          <i data-lucide="chart-line" width="21" height="21" style="color:#9A927F;"></i>
+          <span style="font-size:10.5px;font-weight:500;color:#9A927F;">Track</span></div></div>
+      <div style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:128px;height:5px;border-radius:3px;background:#2B2A26;opacity:0.8;z-index:60;"></div>
+    </div>
+  </div>
+</div>
+    </div>
+    <div style="margin-top:46px;padding:24px;background:#FCFAF3;border:1px solid #E5DECD;border-radius:16px;max-width:820px;">
+      <div style="font-size:11px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:#9A927F;">The decision</div>
+      <div style="font-size:13.5px;color:#6E6557;line-height:1.65;margin-top:12px;">One primary action, and a hero made of the user's own pieces and marks rather than a play glyph. The reasoning, the alternatives and what it cost are recorded once, in <a href="../../../docs/design-principles.md" style="color:#4C3FA6;">design-principles T15</a>, not repeated here.</div>
+    </div>
+    <div style="margin-top:24px;padding:24px;background:#F0E7D6;border:1px solid #E5DECD;border-radius:16px;max-width:820px;">
+      <div style="font-size:11px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:#9A927F;">Settled</div>
+      <ul style="margin:12px 0 0;padding-left:20px;font-size:13.5px;color:#6E6557;line-height:1.65;">
+        <li><strong style="color:#2B2A26;">Exercises first, the piece last</strong>, matching how the builder already lays out a block.</li>
+        <li><strong style="color:#2B2A26;">Every row carries its reason</strong>, and the reasons come from the core. The screen never composes one.</li>
+        <li><strong style="color:#2B2A26;">The step rides with its exercise</strong> ("step F"), because the ladder's current rung is what gets practised.</li>
+        <li><strong style="color:#2B2A26;">"Build my own instead" is secondary</strong> and its result is the nothing-to-suggest frame: the screen that shipped.</li>
+        <li><strong style="color:#2B2A26;">Two new tokens, no new components.</strong> Card surface, eyebrow, hero gradient and the button are catalogue parts; the type language needed a light-on-dark pair for the indigo hero (<code>onHeroExercise</code> / <code>onHeroPiece</code>), now in the catalogue.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+</x-dc>
+<!-- Renders standalone in a browser too, not only inside the DC runtime. -->
+<script>
+  window.addEventListener('DOMContentLoaded', function () {
+    if (window.lucide) window.lucide.createIcons();
+  });
+</script>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:1400}}">
+class Component extends DCLogic {
+  componentDidMount() { if (window.lucide) window.lucide.createIcons(); }
+}
+</script>
+</body>
+</html>

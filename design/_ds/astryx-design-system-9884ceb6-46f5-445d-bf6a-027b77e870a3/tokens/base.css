@@ -1,0 +1,31 @@
+/* Base — minimal, opt-in resets and helpers consumers get for free.
+   Sets body defaults from tokens and gives links a themed default so
+   user-added <a> elements never fall back to browser blue. */
+:root {
+  --link-color: var(--color-text-accent);
+  --link-color-hover: var(--color-text-primary);
+}
+
+body {
+  margin: 0;
+  background: var(--color-background-body);
+  color: var(--color-text-primary);
+  font-family: var(--font-family-body);
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-leading);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+a {
+  color: var(--link-color);
+  text-decoration: none;
+}
+a:hover {
+  color: var(--link-color-hover);
+  text-decoration: underline;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+::selection { background: var(--color-accent-muted); }

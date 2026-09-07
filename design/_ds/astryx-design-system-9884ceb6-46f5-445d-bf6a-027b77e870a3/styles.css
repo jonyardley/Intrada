@@ -1,0 +1,12 @@
+/* Astryx Design System — global CSS entry point.
+   Consumers link THIS one file. It only @imports the token + font closure.
+   Values mirror the flagship `neutral` theme (Figtree, grayscale spine,
+   OKLCH-derived categorical palette) resolved over the Astryx core defaults. */
+@import "tokens/fonts.css";
+@import "tokens/colors.css";
+@import "tokens/typography.css";
+@import "tokens/spacing.css";
+@import "tokens/radius.css";
+@import "tokens/shadows.css";
+@import "tokens/motion.css";
+@import "tokens/base.css";
