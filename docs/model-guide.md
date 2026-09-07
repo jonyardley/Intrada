@@ -83,6 +83,35 @@ the executor it advises).
 - Ordinary Opus or Sonnet Tier 2: Opus reviews (the code-reviewer subagent).
 - Small Tier 2 (one file, no sensitive surface): `/review` inline is enough.
 
+## Subagents: the model belongs in the agent, not the spawn
+
+The ladders above route a *session*. A lead also spawns *named agent types*, and
+those get routed once, in the committed definition, rather than re-decided at
+every spawn. A definition with no model inherits whatever the harness picks,
+which is how a mechanical sweep ends up on the expensive model and a review ends
+up on a cheap one.
+
+| Agent | Model + effort | Because |
+|---|---|---|
+| `scout` | Haiku 4.5, low | Read-only research reporting facts back. Never edits, so a wrong answer is caught by the lead verifying it |
+| `sonic` | Sonnet 5, low | Mechanical, fully specified edits: renames, sweeps, data collection |
+| `test-runner` | Sonnet 5, low | Runs a gate and filters its log. No judgement, and the gate itself is the check |
+| `reviewer` | Opus 5, medium | Judgement-dense, and bound by the rule above: never weaker than the writer. Goes to Fable when Fable wrote the diff |
+| `task` (generic) | Sonnet 5, xhigh | The `.omp/config.yml` `task` role. Conventional Tier 2 on a non-sensitive surface |
+
+Three rules on top of the table:
+
+- **A cheap agent needs acceptance criteria that can fail.** "Works" is not the
+  bar. A `sonic` agent wiring a binary path passed every check it was given and
+  hardcoded an ephemeral per-shell directory: true when checked, gone with the
+  shell. The weakest reading of the criterion is the one you get.
+- **Read-only research is always the cheap rung**, and its output is a lead
+  rather than a fact (see Rules of thumb). Paying more does not fix that;
+  verifying before acting does.
+- **The sensitivity override applies here too.** A subagent touching the bridge,
+  a migration, the `ActiveSession` blob or auth goes up a rung, or the lead keeps
+  that slice itself.
+
 ## Planning
 
 1. **Fable 5, high** — direction: roadmap pivots, reversals, "should we build
