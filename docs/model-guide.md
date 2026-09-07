@@ -108,7 +108,7 @@ migration diff gets Opus and reviews its own work with something weaker. Either
 set `task.agentModelOverrides.reviewer` for that spawn, or keep the review in
 the Fable session.
 
-Three rules on top of the table:
+Four rules on top of the table:
 
 - **A cheap agent needs acceptance criteria that can fail.** "Works" is not the
   bar. A `sonic` agent wiring a binary path passed every check it was given and
@@ -120,6 +120,12 @@ Three rules on top of the table:
 - **The sensitivity override applies here too.** A subagent touching the bridge,
   a migration, the `ActiveSession` blob or auth goes up a rung, or the lead keeps
   that slice itself.
+- **Gates run through `test-runner`, not in the lead session.** A passing suite
+  prints its counts and little else; a failing one prints thousands of lines,
+  and once that output is in the lead's transcript it is re-sent on every later
+  turn. `just check` and the `ios-test` tiers are the ones that bite. The
+  exception is a gate whose full output you need in order to act, which is rare
+  enough to be worth naming when you claim it.
 
 ## Planning
 

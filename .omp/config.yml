@@ -109,3 +109,25 @@ bash:
 tools:
   approval:
     eval: prompt
+
+# Skill metadata (name plus full description) rides in the system prompt on
+# every turn of every session, not once per session, so a skill irrelevant to
+# this repo is a per-turn tax for nothing. Ten of the nineteen discovered here
+# were the Jira, Confluence and web-performance packs: real work context in a
+# Red Badger session, dead weight in a Rust and SwiftUI repo.
+#
+# includeSkills is an allowlist of globs, and like every array here it REPLACES
+# rather than merges, so this list is the whole set for this repo. An excluded
+# skill is still installed and still reachable by name through skill://<name>;
+# it just stops advertising itself in the prompt. The intrada-* glob means a
+# new repo skill needs no edit here.
+skills:
+  includeSkills:
+    - "intrada-*"
+    - graphify
+    - i-have-adhd
+    - context7-mcp
+    - test-driven-development
+    - requesting-code-review
+    - receiving-code-review
+    - using-git-worktrees
