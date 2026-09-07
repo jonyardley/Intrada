@@ -343,6 +343,7 @@ jobs:
         run: cargo install cargo-swift --version "=0.9.0" --locked
       - name: Cache xcodegen
         id: xcodegen-cache
+        if: runner.environment == 'github-hosted'
         uses: actions/cache@v6
         with:
           path: |
@@ -353,18 +354,40 @@ jobs:
       # rather than `brew install xcodegen`: Homebrew has no `xcodegen@2.46.0`
       # formula to pin to, and current Homebrew rejects installing a loose
       # formula file outside a tap, so a version pin would need a full
-      # homebrew-core git clone at a fixed commit — much heavier than the
+      # homebrew-core git clone at a fixed commit, much heavier than the
       # 4MB release zip. `native-ios-build` and `native-ios-build-release`
       # both resolve xcodegen independently within one CI run, so a formula
       # bump landing mid-run could generate the two projects from different
       # versions. Bump this WITH the identical step in
       # `native-ios-build-release`, in lockstep.
+      # Hosted only: the installer copies into /usr/local, which the
+      # self-hosted runner's unprivileged user cannot write (#1577). That
+      # machine's own xcodegen is used instead, and the next step is what
+      # stops it drifting away from this pin unnoticed.
       - name: Install xcodegen
-        if: steps.xcodegen-cache.outputs.cache-hit != 'true'
+        if: runner.environment == 'github-hosted' && steps.xcodegen-cache.outputs.cache-hit != 'true'
         run: |
           curl -fsSL -o /tmp/xcodegen.zip https://github.com/yonaskolb/XcodeGen/releases/download/2.46.0/xcodegen.zip
           unzip -q /tmp/xcodegen.zip -d /tmp
           /tmp/xcodegen/install.sh
+      # Reads the pin out of this file rather than repeating it, so a bump
+      # cannot leave the assertion behind. Runs on both paths: on the hosted
+      # runner it confirms the install, on self-hosted it is the only thing
+      # holding the machine's own copy to the pinned version.
+      - name: xcodegen on PATH matches the pin
+        run: |
+          pinned=$(grep -oE 'download/[0-9]+\.[0-9]+\.[0-9]+/xcodegen' .github/workflows/ci.yml \
+            | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | sort -u)
+          actual=$(xcodegen --version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+          echo "pinned=$pinned actual=$actual"
+          if [ "$(printf '%s\n' "$pinned" | wc -l)" -ne 1 ]; then
+            echo "the pin is ambiguous, so this assertion cannot mean anything"
+            exit 1
+          fi
+          if [ "$pinned" != "$actual" ]; then
+            echo "xcodegen $actual is on PATH but this workflow pins $pinned"
+            exit 1
+          fi
       # The generated bindings (ios/generated: cargo-swift's IntradaCoreFFI
       # xcframework + facet's SharedTypes) are a pure function of the core/ffi
       # source, the locked dep versions (uniffi/crux contract — Cargo.lock), and
@@ -486,20 +509,37 @@ jobs:
           tool: just
       - name: Cache xcodegen
         id: xcodegen-cache
+        if: runner.environment == 'github-hosted'
         uses: actions/cache@v6
         with:
           path: |
             /usr/local/bin/xcodegen
             /usr/local/share/xcodegen
           key: xcodegen-2.46.0-${{ runner.os }}-${{ runner.arch }}
-      # See the identical step + comment in native-ios-build: pinned to
-      # 2.46.0 in lockstep across both jobs that generate the project.
+      # See the identical steps + comments in native-ios-build: pinned to
+      # 2.46.0 in lockstep across both jobs that generate the project, and
+      # hosted-only because /usr/local is not writable on the self-hosted
+      # runner.
       - name: Install xcodegen
-        if: steps.xcodegen-cache.outputs.cache-hit != 'true'
+        if: runner.environment == 'github-hosted' && steps.xcodegen-cache.outputs.cache-hit != 'true'
         run: |
           curl -fsSL -o /tmp/xcodegen.zip https://github.com/yonaskolb/XcodeGen/releases/download/2.46.0/xcodegen.zip
           unzip -q /tmp/xcodegen.zip -d /tmp
           /tmp/xcodegen/install.sh
+      - name: xcodegen on PATH matches the pin
+        run: |
+          pinned=$(grep -oE 'download/[0-9]+\.[0-9]+\.[0-9]+/xcodegen' .github/workflows/ci.yml \
+            | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | sort -u)
+          actual=$(xcodegen --version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+          echo "pinned=$pinned actual=$actual"
+          if [ "$(printf '%s\n' "$pinned" | wc -l)" -ne 1 ]; then
+            echo "the pin is ambiguous, so this assertion cannot mean anything"
+            exit 1
+          fi
+          if [ "$pinned" != "$actual" ]; then
+            echo "xcodegen $actual is on PATH but this workflow pins $pinned"
+            exit 1
+          fi
       # xcodegen fails ("Invalid local package") without ios/generated, and
       # `ios-build-release`'s `_ios-sync` reads the stamp inside it to decide
       # whether to regenerate: on a hit it doesn't, so no cargo is needed.
