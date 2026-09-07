@@ -497,7 +497,10 @@ _ios-test-run tier:
         # `xcodebuild` call locally, so retry applies to both; CI's fanned-out
         # jobs (#1207) call `_ios-test-without-building` once per slice (unit,
         # then the two UI slices) and scope retry to the UI slices only.
-        just _ios-test-without-building "" 1
+        # Parallel here and nowhere else: cloned simulators need the RAM this
+        # machine has and CI's runner does not, and the UI tier is 86s parallel
+        # against 339s sequential (measured over three runs, 2026-09-07).
+        just _ios-test-without-building "" 1 1
     fi
     # Same exact-tree guard as `check` above (#1204).
     if [ -z "$(git status --porcelain)" ] && [ "$(git rev-parse HEAD)" = "$sha" ]; then
@@ -567,12 +570,13 @@ _ios-build-for-testing:
 # and a 928MB cache restore each).
 # `filters` is a space-separated list of xcodebuild `-only-testing:` /
 # `-skip-testing:` flags, or "" to run everything the built products contain;
-# `retry` is "1" to add the relaunch-on-crash flags (#1203), else "0". Shared
-# by `_ios-test-run` (local, everything in one call) and CI's fanned-out
-# `native-ios-test-unit` / `native-ios-test-ui` jobs (#1207), which slice the
-# suite so a crash in one slice can't take the others down with it.
+# `retry` is "1" to add the relaunch-on-crash flags (#1203), else "0";
+# `parallel` is "1" to clone simulators and run test classes concurrently,
+# else "0". Shared by `_ios-test-run` (local, everything in one call) and CI's
+# fanned-out `native-ios-test-unit` / `native-ios-test-ui` jobs (#1207), which
+# slice the suite so a crash in one slice can't take the others down with it.
 [private]
-_ios-test-without-building filters retry:
+_ios-test-without-building filters retry parallel="0":
     #!/usr/bin/env bash
     set -euo pipefail
     cd ios
@@ -595,10 +599,18 @@ _ios-test-without-building filters retry:
         echo "  Running them anyway lets a deliberately broken line pass, which is how a good test gets deleted (#1530)." >&2
         exit 1
     fi
-    # Parallelism is a CI job fan-out, never xcodebuild's cloned simulators:
-    # a clone's test runner hits "Application failed preflight checks (Busy)"
-    # under memory pressure, which reds the gate for no test reason.
-    flags=(-parallel-testing-enabled NO)
+    # Cloned simulators are opt-in per caller, defaulting off: a clone's test
+    # runner hits "Application failed preflight checks (Busy)" under memory
+    # pressure, which reds the gate for no test reason, and CI's 7GB runner
+    # has too little to hold more than one. A 48GB dev machine holds five,
+    # which takes the UI tier from 339s to 86s, so the local full tier opts
+    # in. CI's parallelism stays the job fan-out.
+    flags=()
+    if [ "{{parallel}}" = "1" ]; then
+        flags+=(-parallel-testing-enabled YES -maximum-concurrent-test-simulator-destinations 4)
+    else
+        flags+=(-parallel-testing-enabled NO)
+    fi
     if [ -n "{{filters}}" ]; then
         for f in {{filters}}; do flags+=("$f"); done
     fi
