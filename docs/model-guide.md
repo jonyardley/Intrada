@@ -9,10 +9,12 @@
 > Sonnet 5, Haiku 4.5). Re-review at the next model generation; pricing and
 > effort semantics below were validated against the API docs on that date.
 >
-> The ladder is no longer prose only: `.omp/config.yml` pins the `default`,
+> The ladder is no longer prose only. `.omp/config.yml` pins the `default`,
 > `plan`, `slow`, `task` and `advisor` roles to it, so an OMP session started in
-> this repo begins on the right rung instead of re-deriving one. Keep the two in
-> step when either changes.
+> this repo begins on the right rung instead of re-deriving one, and
+> `.omp/agents/*.md` pins a model per named subagent (see Subagents below).
+> Session roles live in the config, per-agent pins live in the agent file, and a
+> routing change usually means editing both.
 
 ## The organising rule
 
@@ -82,6 +84,42 @@ the executor it advises).
 - Fable-written bridge or migration work: Fable reviews it.
 - Ordinary Opus or Sonnet Tier 2: Opus reviews (the code-reviewer subagent).
 - Small Tier 2 (one file, no sensitive surface): `/review` inline is enough.
+
+## Subagents: the model belongs in the agent, not the spawn
+
+The ladders above route a *session*. A lead also spawns *named agent types*, and
+those get routed once, in the committed definition, rather than re-decided at
+every spawn. A definition with no model inherits whatever the harness picks,
+which is how a mechanical sweep ends up on the expensive model and a review ends
+up on a cheap one.
+
+| Agent | Model + effort | Because |
+|---|---|---|
+| `scout` | Haiku 4.5, low | Read-only research reporting facts back. Never edits, so a wrong answer is caught by the lead verifying it |
+| `sonic` | Sonnet 5, low | Mechanical, fully specified edits: renames, sweeps, data collection |
+| `test-runner` | Sonnet 5, low | Runs a gate and filters its log. No judgement, and the gate itself is the check |
+| `reviewer` | Opus 5, high | Judgement-dense, and bound by the rule above: never weaker than the writer. `high` matches Effort's "review synthesis" rung and `advisor` in `.omp/config.yml` |
+| `task` (generic) | Sonnet 5, xhigh | The `.omp/config.yml` `task` role. Conventional Tier 2 on a non-sensitive surface |
+
+**The never-weaker rule needs a lever on Fable work.** A pinned frontmatter
+model is beaten only by `task.agentModelOverrides[<agent>]`, never by the parent
+session's model, so a Fable session that spawns `reviewer` on a bridge or
+migration diff gets Opus and reviews its own work with something weaker. Either
+set `task.agentModelOverrides.reviewer` for that spawn, or keep the review in
+the Fable session.
+
+Three rules on top of the table:
+
+- **A cheap agent needs acceptance criteria that can fail.** "Works" is not the
+  bar. A `sonic` agent wiring a binary path passed every check it was given and
+  hardcoded an ephemeral per-shell directory: true when checked, gone with the
+  shell. The weakest reading of the criterion is the one you get.
+- **Read-only research is always the cheap rung**, and its output is a lead
+  rather than a fact (see Rules of thumb). Paying more does not fix that;
+  verifying before acting does.
+- **The sensitivity override applies here too.** A subagent touching the bridge,
+  a migration, the `ActiveSession` blob or auth goes up a rung, or the lead keeps
+  that slice itself.
 
 ## Planning
 

@@ -28,11 +28,30 @@ reviewer for 35 minutes and letting a second burn its 45 minute runtime limit an
 get cancelled, on a three file diff each time. The lead waiting on a reviewer
 that is waiting on the lead produces no work at all.
 
+**The lead does not sit in a wait while the review runs.** There is always work
+that does not depend on the findings: write the PR body, open the deferred
+issues, re-read the diff yourself. The 35 minutes above were the lead's wait,
+not the agent's parking.
+
 **Non-trivial PRs open as drafts.** `gh pr create --draft`, then `gh pr ready <n>` only once the self-review comment is posted, its blockers are fixed inline and the deferred issues exist. An open PR reads as ready to merge to the person merging it, and the difference between "reviewed and green" and "green while a reviewer is still running" lives only in the prose nobody should have to read carefully. #1550 merged during the fourteen minutes its reviewer was still thinking, taking a defect to main that the review then found. CI has no draft filter, so this costs nothing in signal.
 
-## Work a simulator cannot verify
+## Verifying a change on the simulator
 
-Anything whose behaviour lives outside the simulator (camera, haptics, gestures, background audio, Live Activities, anything hardware-bound) carries the `needs-device` label, and its **What I checked** section names exactly what is unverified and what a person has to do by hand. Green CI on those PRs proves nothing else broke; it says nothing about the change itself. The label is what makes that true at the moment of merging, rather than in the third section of a body nobody rereads.
+**A UI or interaction change is driven on the simulator before it ships**, not
+described. The tooling exists: `just ios-run` launches the app, and the runtime
+snapshot and input tools tap, type and screenshot it. Snapshot references prove
+a settled frame renders, which is not the same as proving a tap reveals
+anything, that focus lands, or that a rejected write puts the old value back.
+Name in **What I checked** what you drove and what you saw.
+
+`needs-device` is for behaviour that genuinely cannot exist on a simulator: the
+camera, haptics, gestures a synthetic touch cannot reproduce, background audio,
+Live Activities, anything hardware-bound.
+Those PRs carry the label, and their **What I checked** names exactly what is
+unverified and what a person has to do by hand, because green CI there proves
+only that nothing else broke. The label is what makes that true at the moment of
+merging rather than in a section nobody rereads. Reaching for it because driving
+the app looked like effort is the failure this rule exists to stop.
 
 ## Codecov gate (Tier 2+)
 
