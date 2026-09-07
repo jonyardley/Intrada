@@ -287,8 +287,13 @@ jobs:
     if: github.event_name == 'push' || needs.changes.outputs.native == 'true'
     steps:
       - uses: actions/checkout@v7
-      # Pin Xcode 26.5 to match local dev + the recorded snapshot reference.
+      # Pin Xcode 26.5 on the hosted runner to match the recorded snapshot
+      # reference. Skipped when self-hosted: that Mac carries one Xcode, and
+      # this action errors rather than falling back to it (#1577). Snapshot
+      # rendering comes from the iOS 26.5 runtime either way, which both
+      # machines have; what differs is the Swift toolchain and swift format.
       - uses: maxim-lobanov/setup-xcode@v1
+        if: runner.environment == 'github-hosted'
         with:
           xcode-version: "26.5"
       - uses: taiki-e/install-action@v2.87.4
@@ -312,9 +317,11 @@ jobs:
           cache-on-failure: true
       # dtolnay/rust-toolchain skips adding ~/.cargo/bin to PATH on the macOS
       # image; without this `cargo` resolves to Apple's stub. (See ios-build.)
+      # CARGO_HOME is set on the hosted image and unset on the self-hosted
+      # runner, where rustup used the default location.
       - name: Ensure cargo is on PATH
         run: |
-          echo "$CARGO_HOME/bin" >> "$GITHUB_PATH"
+          echo "${CARGO_HOME:-$HOME/.cargo}/bin" >> "$GITHUB_PATH"
           cargo --version
       # iOS-only `#[cfg(target_os = "ios")]` branches in the FFI crate can't be
       # linted by the Linux `clippy` job (no Apple SDK); lint them here against
@@ -471,6 +478,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: maxim-lobanov/setup-xcode@v1
+        if: runner.environment == 'github-hosted'
         with:
           xcode-version: "26.5"
       - uses: taiki-e/install-action@v2.87.4
@@ -543,6 +551,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: maxim-lobanov/setup-xcode@v1
+        if: runner.environment == 'github-hosted'
         with:
           xcode-version: "26.5"
       - uses: taiki-e/install-action@v2.87.4
@@ -614,6 +623,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: maxim-lobanov/setup-xcode@v1
+        if: runner.environment == 'github-hosted'
         with:
           xcode-version: "26.5"
       - uses: taiki-e/install-action@v2.87.4
