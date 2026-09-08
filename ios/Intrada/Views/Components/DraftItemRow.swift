@@ -8,7 +8,7 @@ struct DraftItemRow: View {
 
   var body: some View {
     HStack(spacing: IntradaSpacing.cardCompact) {
-      // spacing: 3 — tight title/meta baseline gap, below the token scale floor.
+      // spacing: 3, a tight title/meta baseline gap below the token scale floor.
       VStack(alignment: .leading, spacing: 3) {
         Text(title)
           .font(IntradaFont.cardTitle())
