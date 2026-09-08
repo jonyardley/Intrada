@@ -658,7 +658,7 @@ jobs:
   # bloating git history: every PNG must map to a current test (no orphans) and
   # stay under the size ceiling (catches un-optimized references — Xcode writes a
   # redundant alpha channel; `just ios-snapshots-optimize` strips it). See
-  # .claude/skills/intrada-ios-quality/SKILL.md.
+  # .claude/rules/ios-quality.md.
   snapshot-hygiene:
     name: Snapshot Hygiene
     runs-on: ubuntu-latest
@@ -683,7 +683,7 @@ jobs:
       - run: cargo fmt --all -- --check
 
   # The same comment-density gate as the local pre-push hook, enforced for
-  # everyone — an opt-in hook is effectively off (.claude/skills/intrada-ios-quality/SKILL.md "stated invariant =
+  # everyone: an opt-in hook is effectively off (.claude/rules/ios-quality.md "stated invariant =
   # enforced invariant"). HEAD is detached on a PR checkout, so the base branch
   # is passed explicitly via COMMENT_CHECK_BASE. CI can't see the local
   # SKIP_COMMENT_CHECK env var, so a genuinely justified case bypasses here

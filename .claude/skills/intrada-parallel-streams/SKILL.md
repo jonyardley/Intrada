@@ -1,95 +1,64 @@
 ---
 name: intrada-parallel-streams
-description: "Rules for running more than one coding-agent session against this repo at once: the decoupled file set a second stream may use, the serialisation points that must never be edited in parallel, worktree-per-agent mechanics, one-agent-per-vertical-slice, when to fan out, and the definition of done before requesting review. MUST read before starting a second concurrent stream, fanning work out to subagents, or coordinating parallel worktrees."
+description: Running more than one Claude Code session or subagent against this repo at once: the decoupled file set a second stream may use, the serialisation points never edited in parallel, one agent per vertical slice, worktree mechanics, and the definition of done. Read before starting a second stream or fanning out.
 ---
 
-## Parallel work streams (agentic sessions)
+## Stream rules
 
-Rules for running more than one Claude Code session against this repo at once.
-Evidence base: coupling analysis of the last 400 commits (2026-08).
+The claim protocol in CLAUDE.md stops two streams building the same issue;
+these rules stop two streams colliding in the same files. Evidence base: a
+coupling analysis of 400 commits (2026-08).
 
-The claim protocol in Always(1) is what stops two streams building the same
-issue; these rules stop two streams colliding in the same *files*. Both apply.
-
-### Stream rules
-
-- **Exactly one core+iOS vertical stream at a time.** 31% of core commits also
-  touch `ios/`; two concurrent vertical features will collide.
-- A **second stream** may run only in the decoupled set: `crates/intrada-api`,
-  `docs/`, `specs/`, `design/`, or CI/tooling (`justfile`,
+- **Exactly one core plus iOS vertical stream at a time.** 31% of core commits
+  also touch `ios/`.
+- A **second stream** runs only in the decoupled set: `crates/intrada-api`,
+  `docs/`, `specs/`, `design/`, or CI and tooling (`justfile`,
   `.github/workflows/`). An API task that needs a new domain field is a core
-  change: it joins the vertical stream.
+  change and joins the vertical stream.
 - **Serialisation points.** If your task and another live branch both touch one
-  of these, serialise rather than parallelise:
-  `crates/intrada-core/src/app.rs`, `crates/intrada-core/src/domain/session.rs`,
+  of these, serialise: `crates/intrada-core/src/app.rs`,
+  `crates/intrada-core/src/domain/session.rs`,
   `ios/IntradaTests/ScreenSnapshotTests.swift`,
-  `ios/Intrada/DesignSystem/PreviewSupport.swift`, `ios/project.yml`, and
+  `ios/Intrada/DesignSystem/PreviewSupport.swift`, `ios/project.yml`,
   `Cargo.lock` (never pair anything with a dependency bump).
-- One git worktree per stream, branched from fresh `origin/main`. Follow the
-  simulator safety rule under Commands. Close the second session when its task
-  ships; do not keep it warm.
-- **Once you have a worktree, edit only inside it.** The main checkout belongs
-  to whoever is working on `main`, and a stray write there is invisible to you
-  and undiagnosable to them: on 2026-09-06 a session working #1556 in its own
-  `release-pins` worktree also wrote the same change into the main checkout,
-  where another session found it mid-`git status` and nearly committed it into
-  an unrelated copy-fix PR. Note what that near miss says about gates: a full
-  green run, 374 tests, proves nothing about *whose* work is in the tree, so
-  read the diff before `git add`, and never `git add -A` on a shared checkout.
-- **Clear a "conflicting" PR by merging main in, never by rebasing.**
-  `git fetch origin main && git merge origin/main && git push`. Feature
-  No tracked file is written by every PR any more, so a conflict now means two
-  branches really did touch the same code.
-- **Dependent PRs stack natively, depth 2 max.** Open the child PR with base =
-  the parent's branch; GitHub retargets it to main when the parent merges.
-  After the parent squash-merges, rebase the child:
-  `git rebase --onto origin/main <parent-old-head>`. No stacking tooling.
+- **One worktree per stream**, from fresh `origin/main`: `just worktree-new
+  <name>` seeds the warm `target/` and `ios/build` caches (#1205). Close the
+  second session when its task ships.
+- **Once you have a worktree, edit only inside it.** On 2026-09-06 a session
+  working in its own worktree also wrote the change into the main checkout,
+  where another session nearly committed it into an unrelated PR. A green run
+  proves nothing about whose work is in the tree: read the diff before
+  `git add`, and never `git add -A` on a shared checkout.
+- **Clear a conflicting PR by merging main in, never by rebasing**:
+  `git fetch origin main && git merge origin/main && git push`. No tracked file
+  is written by every PR any more, so a conflict means two branches really did
+  touch the same code.
+- **Dependent PRs stack natively, depth 2 max.** Open the child with base set to
+  the parent's branch; GitHub retargets it when the parent merges. After the
+  parent squash-merges: `git rebase --onto origin/main <parent-old-head>`.
 
-### One agent per slice; fan out only on independent work
+## One agent per slice
 
-**A vertical slice is one agent's job.** Do not split core and iOS across two
-agents working the same slice. In-session agent teams were tried on #1223 and
-retired: on a slice coupled by a bridge contract the split caused the worst bug
-in the PR, because the shell teammate couldn't see the core invariant it needed.
-The measured post-mortem is in `docs/reference.md`.
+**A vertical slice is one agent's job.** Never split core and iOS across two
+agents on the same slice: in-session agent teams were tried on #1223 and
+retired, because the shell teammate could not see the core invariant it needed
+and wrote the worst bug in the PR (`docs/reference.md`).
 
-**Fan out to worktrees when the pieces are genuinely independent** — no shared
-contract in flight, no piece blocked on another's output. Good shapes: an audit
-or migration sweep across many files, N independent approaches to one design
-question, or unrelated tasks in the decoupled set. Bad shape: anything where two
-agents would edit either side of one contract.
+Fan out only when the pieces are genuinely independent: no shared contract in
+flight, nothing blocked on another's output. Good shapes: an audit or sweep
+across many files, N independent approaches to one design question, unrelated
+tasks in the decoupled set. One worktree per agent; the lead integrates; only
+one agent runs iOS tests at a time; every fan-out task skips `just check` and
+the suites, which the lead runs once at the end.
 
-- **One git worktree per agent**, branched from fresh `origin/main`. Separate
-  checkouts mean no shared-index hazard, so a bare `git commit` is safe — the
-  explicit-pathspec rule existed only for the retired shared-checkout teams.
-- **The lead integrates.** Fan-out agents report; they do not merge into each
-  other's work. Reconcile in one place.
-- **The simulator is machine-global.** Only one agent runs iOS tests at a time.
-- **Choosing between `isolated: true` and a real worktree** (measured 2026-09-04):
-  OMP's isolated workspace is an APFS clone with its own `.git`, not a git
-  worktree. It carries `target/` (2.6 GB, so cargo starts warm) but **not**
-  `ios/build`, so an iOS build there is cold, 5 to 10 minutes. Because
-  `git-dir` equals `git-common-dir` in a clone, the graphify hooks' worktree
-  guard does not fire, and every commit inside one kicks a full graph rebuild
-  that is thrown away with the workspace. So: `isolated: true` for the
-  decoupled set and core-only Rust; `just worktree-new` for anything touching
-  `ios/`, which also gets the seeded `ios/build` caches (#1205).
-- Mechanics for git worktrees: Claude Code's `using-git-worktrees` skill;
-  OMP's native `isolated` option on `task` makes the field available per task
-  item, it does not force isolation on a spawn that omits it.
+**Contract before code applies to one agent as much as several.** Pin the
+Event/Effect/ViewModel shape for a slice before wiring either side.
 
-**Contract before code applies to one agent as much as to several.** Pin the
-Event/Effect/ViewModel shape for a slice before wiring either side — that
-discipline is what makes bridge changes reviewable, not a handoff protocol.
-
-### Definition of done (every stream, before requesting review)
+## Definition of done, before requesting review
 
 - [ ] `just check` green locally; `just ios-fmt-check` too if `ios/` touched
-- [ ] Tests shipped with the new code (see Testing)
-- [ ] PR opened via the pre-push gate (checks + self-review); self-review
-      comment posted
+- [ ] Tests shipped with the new code
+- [ ] PR opened through `/ship`; self-review comment posted
 - [ ] Codecov compared against the PR's Coverage line (Tier 2+)
 - [ ] Roadmap updated if a phase changed; deferred items tracked as issues
-      (there is no status file to update)
 - [ ] A human reviews and merges. Agents never merge.
-

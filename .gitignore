@@ -17,6 +17,7 @@ Thumbs.db
 .claude/worktrees/
 !.claude/agents/
 !.claude/commands/
+!.claude/rules/
 !.claude/skills/
 !.claude/settings.json
 # settings.local.json stays ignored (per-machine permission grants)
