@@ -2,23 +2,20 @@ name: Claude Code Review
 
 on:
   pull_request:
-    types: [opened, synchronize, ready_for_review, reopened]
-    # Optional: Only run on specific file changes
-    # paths:
-    #   - "src/**/*.ts"
-    #   - "src/**/*.tsx"
-    #   - "src/**/*.js"
-    #   - "src/**/*.jsx"
+    # No synchronize: the plugin short-circuits once it has commented, so a
+    # re-push would burn a runner without re-reviewing (#1603).
+    types: [opened, ready_for_review, reopened]
+
+# Mirror ci.yml: a second push must not race the first run's comment.
+concurrency:
+  group: claude-review-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   claude-review:
-    # Optional: Filter by PR author
-    # if: |
-    #   github.event.pull_request.user.login == 'external-contributor' ||
-    #   github.event.pull_request.user.login == 'new-developer' ||
-    #   github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR'
-
     runs-on: ubuntu-latest
+    # See claude.yml: this scopes checkout and github.token, not the app token
+    # the action exchanges for itself.
     permissions:
       contents: read
       pull-requests: read
@@ -40,6 +37,3 @@ jobs:
           plugins: 'code-review@claude-code-plugins'
           prompt: '/code-review:code-review --comment ${{ github.repository }}/pull/${{ github.event.pull_request.number }}'
           claude_args: '--allowedTools "mcp__github_inline_comment__create_inline_comment"'
-          # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
-          # or https://code.claude.com/docs/en/cli-reference for available options
-
