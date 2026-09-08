@@ -543,9 +543,16 @@ Key files: `intrada-api/src/auth.rs`, `intrada-api/src/routes/auth_ios.rs`,
 
 `CLAUDE.md` is paid for on every request, in every session and again in every
 subagent, so its cost is the one thing in this repo that scales with how much
-work we do rather than with how much code exists. It had 44 commits in the 90
-days to 2026-09-08 and almost all of them were additions, because there was an
-accretion mechanism and no decay one. This is that mechanism.
+work we do rather than with how much code exists.
+
+The problem is not that the file only grows. In the 90 days to 2026-09-08 it
+took 45 commits, which added 1572 lines and removed 1958: a net reduction of
+386. The problem is the shape of that pruning. Almost all of the removal came
+from three deliberate sweeps (#1240, #1086, and the #1592 and #1593 trims),
+while the commits in between added a rule at a time. So rules accumulate for
+weeks, someone notices the file has become unreadable, and a large sweep cuts it
+back. This mechanism is for pruning continuously instead, so the sweeps stop
+being necessary.
 
 **Three exit routes, in order of preference.**
 

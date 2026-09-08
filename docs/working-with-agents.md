@@ -31,10 +31,79 @@ walk up. Launch it from `/Users/jonyardley/Dev/intrada` or a worktree root, or
 | Task-scoped rules | `.claude/skills/*/SKILL.md` | Metadata only until read. Both harnesses discover these |
 | Personal skills | `~/.claude/skills/*` | TDD, code review, worktrees, graphify |
 | Subagents | `.claude/agents/*.md`, `~/.claude/agents/*.md`, `.omp/agents/*.md` | Do not cross harnesses. See Delegating |
+| Project commands | `.claude/commands/` | Read by both harnesses. Currently just `ship` |
 | Xcode tools | `.mcp.json` | xcodebuildmcp, simulator workflow |
 
 Skills cost one line of prompt until read, so reference-grade rules belong there
 and only invariants belong in `CLAUDE.md`.
+
+## Session controls
+
+### Claude Code
+
+| Want | Do |
+|---|---|
+| The pre-push funnel | `/ship`, which runs the gates then the self-review. The standard route for any non-trivial PR |
+| Review the current diff | `/code-review`, at a chosen depth |
+| Tidy up permission prompts | `/fewer-permission-prompts` |
+| Read a skill now | Invoke it by name; the repo skills are listed in `CLAUDE.md` |
+
+When asking for a review, say **"comment-policy violations are Blockers"**.
+Without that the reviewer files them as nits and they survive to merge.
+
+The **Superpowers plugin is disabled**, deliberately: its "invoke a skill for
+anything" posture fights the tier system, which exists to keep ceremony
+proportional. Four of its skills were kept as standalone globals and are invoked
+by name instead: `test-driven-development`, `requesting-code-review`,
+`receiving-code-review` and `using-git-worktrees`. The `/speckit-*` commands are
+deprecated: never invoke them.
+
+### OMP
+
+`.omp/config.yml` pins the ladder from [`model-guide.md`](model-guide.md), so a
+session started at the repo root begins on the right rung rather than
+re-deriving one:
+
+| Role | Pinned to | For |
+|---|---|---|
+| `default` | `anthropic/claude-opus-5:xhigh` | coding and agentic work |
+| `plan` | `anthropic/claude-opus-5:high` | planning conversations |
+| `slow` | `anthropic/claude-fable-5:max` | the silent-failure surfaces |
+| `task` | `anthropic/claude-sonnet-5:xhigh` | fan-out writers |
+| `advisor` | `anthropic/claude-opus-5:high` | set, but off until `--advisor` |
+
+Switch up to `slow` before touching the bincode bridge, a GRDB migration, the
+`ActiveSession` blob, or auth. That is the domain-sensitivity override applied
+to models rather than to ceremony.
+
+| Want | In session |
+|---|---|
+| A different rung | `/model`, Roles view. A role carries its pinned effort, so switching role moves model and effort together. `Ctrl+P` cycles `smol`, `default`, `slow` |
+| A bare model | `/model`, All models. Effort does not come with it, so use `--thinking` at launch when the level matters |
+| Read a skill now | `/skill:intrada-design-system`, and the same form for any other |
+| Run a command | `!just check`, or `$` for Python |
+| Watch subagents | `Alt+A` for the hub, `/agents` for per-agent model, prewalk and advisor |
+| Keys and commands | `/hotkeys`, `/help` |
+
+**Prewalk is off in this repo.** It hands the session to a cheaper model at the
+first edit after any `todo` call, and the switch is sticky for the rest of the
+session, which inverts the sensitivity override. Armed mid-conversation it
+either does nothing, because no `todo` call fires, or it hands every remaining
+decision to the cheap model. It belongs only at the start of a session whose
+sole job is executing a finished plan, and a plan routing a task that way says
+so explicitly:
+
+```bash
+omp --prewalk-into anthropic/claude-sonnet-5:xhigh
+```
+
+For "decide here, execute cheaply", use a subagent instead, so the deciding
+session stays strong.
+
+`ultrathink` in a prompt adds a careful-reasoning notice, but it only raises
+effort where the thinking level is `auto`. The roles above all carry an explicit
+effort, so treat it as a prompt hint rather than a rung change. `orchestrate`
+adds the fan-out contract, which is the wrong instinct on a core plus iOS slice.
 
 ## Match ceremony to scope
 
@@ -76,9 +145,9 @@ to be kept in step by hand.
 | Read-only research | `Explore`, or `general-purpose` | `scout` |
 | Mechanical, fully specified edits | `smol` | `sonic` |
 | Conventional Tier 2 slice | `task` | `task` |
-| Review a diff or a plan | `reviewer`, `advisor` | `reviewer`, `security-reviewer` |
+| Review a diff or a plan | `reviewer`, `advisor` | `reviewer`, plus `security-reviewer` (an OMP built-in, not in `.omp/agents/`) |
 | Run a gate and filter its log | `test-runner` | `test-runner` |
-| Compressed repo context | (use `Explore`) | `librarian` |
+| Compressed repo context | (use `Explore`) | `librarian` (an OMP built-in, not in `.omp/agents/`) |
 
 Model pins live in the agent definition, not at the spawn. A definition with no
 model inherits whatever the harness picks, which is how a mechanical sweep ends
@@ -89,23 +158,12 @@ Four rules on top of the table:
 - **One agent per vertical slice.** Core and iOS are one job, not two. Fan out
   only on genuinely independent pieces, and the lead integrates.
 
-- **The reviewer is never weaker than the writer.** A pinned frontmatter model
-  is beaten only by an explicit per-spawn override, never by the parent
-  session's model, so a Fable session spawning `reviewer` gets Opus and reviews
-  its own work with something weaker. Override it for that spawn, or keep the
-  review in the strong session.
-
-- **A cheap agent needs acceptance criteria that can fail tomorrow.** "Works" is
-  not the bar. A `sonic` agent wiring a binary path passed every check it was
-  given and hardcoded an ephemeral per-shell directory: true when checked, gone
-  with the shell. The weakest reading of the criterion is the one you get.
-
-- **A subagent's finding is a lead, not a fact.** Read-only research reports
-  with the same confidence whether it observed something or inferred it. One on
-  2026-09-04 blamed the wrong commit for a deletion, cited a line number
-  pointing at a comment rather than the method it named, and said it could not
-  run `git show` when it could. Brief them to mark observed against inferred,
-  and verify anything you will act on.
+- **The never-weaker rule, the acceptance-criteria rule and the
+  finding-is-a-lead rule** all live in
+  [`model-guide.md`](model-guide.md#subagents-the-model-belongs-in-the-agent-not-the-spawn)
+  and are not restated here, because restating a rule in two files is how the
+  two documents this one replaces drifted apart. Read that section before
+  briefing any subagent.
 
 **Gates run through `test-runner`, not in the lead session.** A passing suite
 prints its counts and little else; a failing one prints thousands of lines, and

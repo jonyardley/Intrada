@@ -5,10 +5,12 @@
 > restored session builder. Describes shipped behaviour; verify against the
 > code before extending.
 
-> Tier 3 (Crux core + FFI bridge + local persistence). Status: **shipped**
-> via #1022. The §7 open questions were answered in implementation, so read
-> `group_id`, `UngroupBlock` and `UngroupAllBlocks` in `domain/session.rs`
-> rather than §7 for what the app actually does.
+> Tier 3 (Crux core + FFI bridge + local persistence). Status: **shipped**.
+> Core and persistence landed as Phase A in #1022, which shipped no builder UI;
+> the UI followed later, and `SessionBuilderScreen.swift` now carries both
+> "Ungroup" and "Ungroup all". §7 records the Phase A decisions as resolved,
+> so read `group_id`, `UngroupBlock` and `UngroupAllBlocks` in
+> `domain/session.rs` for what the app actually does.
 
 ## 1. Problem
 

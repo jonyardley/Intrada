@@ -7,9 +7,11 @@ saying so. **This index is the fast answer to "can I implement from this
 document?"** Where a spec's own banner and this table disagree, this table wins,
 because a spec's header is written once and this table is reviewed.
 
-Every `.md` in this folder appears in exactly one section below. A spec that
-does not appear here has not been classified, which is a gap to fix rather than
-a licence to implement.
+Every top-level `.md` in this folder appears in exactly one section below. A
+spec that does not appear here has not been classified, which is a gap to fix
+rather than a licence to implement. Files inside a spec's own subfolder
+(`<spec>/design/`, and `reflection-loop/spec.md`) travel with their parent and
+are not listed separately.
 
 Companion documents outside this folder:
 [`docs/roadmap.md`](../docs/roadmap.md) (direction and phase order) and
@@ -22,7 +24,7 @@ Accurate about how the app works or is being built now.
 | Spec | Scope |
 |---|---|
 | [`session-builder-revert.md`](session-builder-revert.md) | **The 2026-08 revert.** Restores the session builder and removes the coach machinery (#1344). The decision that set the current product shape |
-| [`native-ios.md`](native-ios.md) | The SwiftUI shell on the Crux core, the only shell. Its offline-first and paid-sync decisions are reproduced in `CLAUDE.md` |
+| [`native-ios.md`](native-ios.md) | The SwiftUI shell on the Crux core, the only shell. Its offline-first decisions are now enforced through `skill://intrada-offline-first`, which is where the invariants live; the paid-sync framing survives only here |
 | [`ios-testflight-cicd.md`](ios-testflight-cicd.md) | Signing, match, the release lane (`.github/workflows/release-testflight.yml`) |
 | [`mcp-server.md`](mcp-server.md) | The API's MCP surface. `crates/intrada-api/src/mcp/` cites this spec and self-identifies as its Phase 3 |
 | [`key-modality.md`](key-modality.md) | Tonic plus major/minor instead of a free-text key (`Modality` in `domain/item.rs`) |
@@ -49,15 +51,15 @@ contract.
 
 | Spec | Scope |
 |---|---|
-| [`chart-to-scaffold.md`](chart-to-scaffold.md) | Chord-chart parsing and scaffold derivation (`chart.rs`). Phase C's twelve-key ladder is still open (#1107, blocked by #1083) |
+| [`chart-to-scaffold.md`](chart-to-scaffold.md) | Chord-chart parsing and scaffold derivation (`domain/chart.rs`). Phase C shipped in PR #1111. The twelve-key ladder originally scoped inside it is still open as #1107, and that issue records that the steps mechanism it needs has since shipped, so the old #1083 blocker is gone |
 | [`exercise-variants.md`](exercise-variants.md) | Exercise steps and the per-step ladder (`domain/variant.rs`) |
 | [`session-block-grouping.md`](session-block-grouping.md) | Grouping and reordering blocks in the builder (`group_id`, `UngroupBlock`). Shipped via #1022, which the spec itself does not cite |
 | [`piece-linked-exercises.md`](piece-linked-exercises.md) · [`piece-linked-exercises-design-brief.md`](piece-linked-exercises-design-brief.md) | The original piece-linked exercises (#1015). Its "Linked exercises" copy has since been renamed twice; read `exercise-relations.md` and `piece-related-exercises.md` for current behaviour |
-| [`related-exercises-redesign.md`](related-exercises-redesign.md) | Related-exercises stocktake. Its "already shipped" inventory is stale: the "Related to <piece>" breadcrumb it lists was deleted by `exercise-relations.md` |
+| [`related-exercises-redesign.md`](related-exercises-redesign.md) | Related-exercises stocktake. Its "already shipped" inventory is stale: the exercise detail's "Related to" breadcrumb it lists was replaced by the "Used in" list. The Focus Player still shows one (`FocusPlayerScreen.swift`), which `exercise-relations.md` keeps deliberately |
 | [`reflection-loop/`](reflection-loop/) | The reflection loop's core model |
 | [`track-exercises-per-piece/`](track-exercises-per-piece/) | Per-piece exercise tracking |
 | [`native-player.md`](native-player.md) · [`native-ios-player.md`](native-ios-player.md) | The Focus Player, as two sequential phases (#932 spine, #948 persistence) |
-| [`priority-items.md`](priority-items.md) | Priority items replacing Goals in the Plan layer (#981) |
+| [`priority-items.md`](priority-items.md) | Priority items replacing Goals in the Plan layer. Landed across #739 and #769, with #981 as its slice 2 |
 
 ## Historical, do not implement from these
 

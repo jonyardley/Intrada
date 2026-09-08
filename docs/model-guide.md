@@ -94,13 +94,13 @@ which is how a mechanical sweep ends up on the expensive model and a review ends
 up on a cheap one. The routing below is by *job*, because the agent names differ
 between Claude Code and OMP.
 
-| Job | Model + effort | Because |
+| Job (Claude Code · OMP) | Model + effort | Because |
 |---|---|---|
-| Read-only research | Haiku 4.5, low | Reports facts back to a lead. Never edits, so a wrong answer is caught by the lead verifying it |
-| Mechanical, fully specified edits | Sonnet 5, low | Renames, sweeps, data collection. The decision is already made |
-| Run a gate and filter its log | Sonnet 5, low | No judgement, and the gate itself is the check |
-| Review a diff or a plan | Opus 5, high | Judgement-dense, and bound by the never-weaker rule above. `high` matches the "review synthesis" rung |
-| Conventional Tier 2 slice | Sonnet 5, xhigh | Non-sensitive surface, patterns already in the repo |
+| Read-only research (`Explore` · `scout`) | Haiku 4.5, low | Reports facts back to a lead. Never edits, so a wrong answer is caught by the lead verifying it |
+| Mechanical, fully specified edits (`smol` · `sonic`) | Sonnet 5, low | Renames, sweeps, data collection. The decision is already made |
+| Run a gate and filter its log (`test-runner` in both) | Sonnet 5, low | No judgement, and the gate itself is the check |
+| Review a diff or a plan (`reviewer`, `advisor` · `reviewer`) | Opus 5, high | Judgement-dense, and bound by the never-weaker rule above. `high` matches the "review synthesis" rung, and matches `advisor` in `.omp/config.yml`, still pinned `claude-opus-5:high` |
+| Conventional Tier 2 slice (`task` in both) | Sonnet 5, xhigh | Non-sensitive surface, patterns already in the repo |
 
 Which named agent implements each job differs per harness, and the definitions
 do not cross: see the Delegating table in
