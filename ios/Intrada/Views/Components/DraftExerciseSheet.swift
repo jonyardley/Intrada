@@ -1,12 +1,6 @@
 import SharedTypes
 import SwiftUI
 
-/// Writes an exercise for a piece that does not exist yet: it returns a draft
-/// rather than sending an event.
-///
-/// Deliberately not `LibraryAddScreen(relatedToPieceId:)`, which mints and links
-/// immediately. On the create path that would write an exercise for a piece
-/// nobody has saved (T21).
 struct DraftExerciseSheet: View {
   @Environment(\.dismiss) private var dismiss
 
@@ -46,7 +40,6 @@ struct DraftExerciseSheet: View {
         ToolbarItem(placement: .cancellationAction) {
           Button("Cancel") { dismiss() }
         }
-        // Done, never Add: Add is reserved for the create that writes.
         ToolbarItem(placement: .confirmationAction) {
           Button("Done", action: done)
             .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty)

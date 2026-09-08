@@ -21,9 +21,6 @@ struct ItemFormScaffold<Header: View, Sections: View>: View {
   /// as a row inside the form: once a page is read it is not a field beside
   /// title and composer, it is what fills them (#1446).
   @ViewBuilder var header: () -> Header
-  /// Appended below Tags, so the existing field order is untouched and the edit
-  /// path is unchanged. The create form puts the chart and the related
-  /// exercises here (T21).
   @ViewBuilder var sections: () -> Sections
   let send: () -> Void
 

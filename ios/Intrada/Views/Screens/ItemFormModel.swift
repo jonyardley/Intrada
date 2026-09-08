@@ -6,9 +6,8 @@ import SwiftUI
 @Observable
 final class ItemFormModel {
   /// The fields a photographed page can fill (#1436). Key and notes are not
-  /// among them: nothing on a page reliably says either. `chart` is phase D of
-  /// `specs/piece-from-photo.md`: the field exists in the core and is always
-  /// `None` until that phase fills it.
+  /// among them: nothing on a page reliably says either.
+  /// `chart` is always empty until phase D of `specs/piece-from-photo.md`.
   enum ReadField: Hashable {
     case title, composer, marking, bpm, chart
   }
@@ -58,9 +57,6 @@ final class ItemFormModel {
       edited(.bpm)
     }
   }
-  /// Raw chart text, staged until Add. The core parses it inside
-  /// `AddPieceInFull` against the key this same form carries, so the shell
-  /// never interprets a bar (T21).
   var chartText: String {
     get { storedChart }
     set {
@@ -69,9 +65,6 @@ final class ItemFormModel {
     }
   }
 
-  /// Exercises staged for the piece being created, in the order they were
-  /// added. Shell state on purpose: a rejected create leaves them on screen
-  /// because nothing was written (T21).
   var stagedExercises: [StagedExercise] = []
 
   private var storedTitle = ""
@@ -153,9 +146,6 @@ final class ItemFormModel {
       photoId: photoId)
   }
 
-  /// What the piece carries beyond its own fields. Empty means the create is an
-  /// ordinary one, and the core says so too: `AddPieceInFull` falls through to
-  /// `Add` when both are absent.
   var hasStagedExtras: Bool {
     !stagedExercises.isEmpty || emptyToNil(chartText) != nil
   }
@@ -190,9 +180,6 @@ final class ItemFormModel {
   }
 }
 
-/// An exercise staged on the create form: either one the musician wrote here,
-/// or one already in the library. Both are drafts until Add, so they render
-/// identically and removing either writes nothing (T21).
 enum StagedExercise: Identifiable, Hashable {
   case draft(id: UUID, title: String, key: String, modality: Modality?, bpm: String)
   case existing(id: String, title: String, meta: String?)
@@ -204,8 +191,6 @@ enum StagedExercise: Identifiable, Hashable {
     }
   }
 
-  /// The library id, for the picker's already-selected set. `nil` for an
-  /// exercise written here, which has no id until Add mints one.
   var existingId: String? {
     switch self {
     case .draft: nil

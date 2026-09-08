@@ -1,21 +1,10 @@
 import SwiftUI
 
-/// The header row of a section at the foot of the item form: a noun, and an
-/// accessory saying what tapping it does. The card surface and whatever the
-/// section holds belong to the caller, so one row heads both a collapsed
-/// section and an expanded one (#1390).
-///
-/// A noun rather than a verb: the create form's only primary is Add, and a row
-/// reading "Add chord chart" would put a second Add beside it.
 struct FormSectionRow: View {
   enum Accessory {
-    /// Opens a sheet. The chart keeps one editor rather than a second inline
-    /// copy of it (spec decision 5).
     case opensSheet
     case collapsed
     case expanded
-    /// Replaces the chevron once the section holds something, matching the
-    /// piece's own Related exercises card.
     case edit
   }
 

@@ -1,15 +1,10 @@
 import SharedTypes
 import SwiftUI
 
-/// Editor for a chord chart, in one of two destinations.
-///
-/// On a saved piece the raw text goes to the core, which parses it; on a parse
-/// error the core surfaces the offending token and this sheet stays open
-/// showing it inline (never a silent dismiss, #846). On the create form there
-/// is no piece id to send to, so the text comes back to the caller and is
-/// parsed when Add is pressed (spec decision 5: one editor, never cloned).
-///
-/// The chart derives in the piece's key, so the key isn't edited here.
+/// Editor for a piece's chord chart. Sends the raw text to the core, which
+/// parses it; on a parse error the core surfaces the offending token and this
+/// sheet stays open showing it inline (never a silent dismiss, #846). The chart
+/// derives in the piece's key, so the key isn't edited here.
 struct ChordChartEditSheet: View {
   enum Destination {
     case piece(id: String)
@@ -32,9 +27,6 @@ struct ChordChartEditSheet: View {
     _text = State(initialValue: existingChart.map(Self.reconstructText) ?? "")
   }
 
-  /// The create path: seeded with whatever is staged, handing the text back
-  /// rather than writing it. Empty is allowed here, because clearing the text
-  /// is how a staged chart is removed; the piece path keeps its own clear.
   init(
     text: String, pieceKey: String?, pieceModality: Modality?,
     onSave: @escaping (String) -> Void
@@ -156,10 +148,8 @@ struct ChordChartEditSheet: View {
     .cardSurface()
   }
 
-  /// The piece path is an optimistic send guarded on errorSeq: on a parse
-  /// rejection the core bumps the error, so we keep the sheet open and mirror
-  /// the message inline. The create path cannot fail here at all, because
-  /// nothing is parsed until Add.
+  // Optimistic send guarded on errorSeq: on a parse rejection the core bumps
+  // the error, so we keep the sheet open and mirror the message inline.
   private func save() {
     switch destination {
     case .piece(let id):

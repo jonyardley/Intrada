@@ -1,12 +1,6 @@
 import SharedTypes
 import SwiftUI
 
-/// An exercise staged on the create form, with its remove control. The type
-/// bar, title and meta of the piece's own related-exercise row, minus the score
-/// ring: a draft has no history to show.
-///
-/// Written and chosen exercises render identically on purpose. Until Add,
-/// neither exists and removing either writes nothing (T21).
 struct DraftItemRow: View {
   let title: String
   let meta: String?

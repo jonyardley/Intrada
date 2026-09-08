@@ -1,10 +1,9 @@
 import SharedTypes
 import SwiftUI
 
-/// Create sheet for a new library item. Sends `Event.item(.add)`, or
-/// `.addPieceInFull` once the form is carrying a chart or a staged exercise:
-/// the core validates and (in local-first mode) persists locally with a
-/// client-minted ulid; the shell only collects field values.
+/// Create sheet for a new library item. Sends `Event.item(.add)`, the core
+/// validates and (in local-first mode) persists locally with a client-minted
+/// ulid; the shell only collects field values.
 struct LibraryAddScreen: View {
   @Environment(Store.self) private var store
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -36,9 +35,6 @@ struct LibraryAddScreen: View {
       relatedToPieceId = nil
     }
 
-    /// Renders a form already carrying staged material. The sections live here
-    /// rather than in `ItemFormScaffold`, so a snapshot of the scaffold alone
-    /// cannot reach them.
     init(previewForm: ItemFormModel) {
       _form = State(initialValue: previewForm)
       relatedToPieceId = nil
@@ -61,8 +57,6 @@ struct LibraryAddScreen: View {
           onCaptured: { store.send(.item(.readPhoto(photoId: $0))) })
       },
       sections: {
-        // Only a piece carries a chart and related exercises, and only on the
-        // create path: the edit path keeps its existing shape (T21).
         if showsSections {
           chartSection
           exercisesSection
@@ -71,10 +65,8 @@ struct LibraryAddScreen: View {
     ) {
       send()
     }
-    // An exercise carries neither a chart nor related exercises, so switching
-    // kind drops what was staged. Cleared here rather than left in the model:
-    // the sections vanishing is the acknowledgement, and Add is never left
-    // silently ignoring state the screen is no longer showing.
+    // Switching kind drops what was staged: an exercise carries neither a
+    // chart nor related exercises, so the sections vanishing is the only sign.
     .onChange(of: form.kind) { _, kind in
       guard kind != .piece else { return }
       form.chartText = ""
@@ -161,13 +153,6 @@ struct LibraryAddScreen: View {
     .cardSurface()
   }
 
-  /// Two plain accent actions, never a `BrandBarButton`: Add is the screen's
-  /// only primary and a filled bar here would out-shout it.
-  ///
-  /// Stacked while the list is empty, where the actions are the whole content
-  /// and "Choose one" has no rows above it to give "one" an antecedent. Also
-  /// stacked at accessibility sizes, where side by side breaks "Create an
-  /// exercise" onto three lines in half a phone's width.
   @ViewBuilder private var exercisesActions: some View {
     if stacksActions {
       VStack(spacing: 0) {
@@ -221,8 +206,6 @@ struct LibraryAddScreen: View {
   // `Swift.Set`, because `SharedTypes` exports a domain `Set` that shadows the
   // standard library type in this file (#1348).
   private func applyChosen(_ ids: Swift.Set<String>) {
-    // Written exercises keep their place; chosen ones follow in library order,
-    // because the picker hands back a set rather than a tap order.
     let drafts = form.stagedExercises.filter { $0.existingId == nil }
     form.stagedExercises =
       drafts

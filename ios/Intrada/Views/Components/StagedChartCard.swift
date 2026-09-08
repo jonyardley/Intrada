@@ -1,16 +1,9 @@
 import SwiftUI
 
-/// A chord chart staged on the create form, shown as the text that was typed:
-/// monospaced, clamped, verbatim.
-///
-/// Deliberately not a bar count or a grid. The chart is parsed when Add is
-/// pressed, so anything here that looked parsed would claim a verdict the form
-/// has not asked for yet, and would be wrong exactly when it mattered.
 struct StagedChartCard: View {
   @Environment(\.dynamicTypeSize) private var typeSize
 
   let text: String
-  /// Non-nil when a photographed page filled this, `true` for a weak read.
   let readWeakly: Bool?
   let onEdit: () -> Void
 
@@ -46,8 +39,6 @@ struct StagedChartCard: View {
       .accessibilityValue(text)
   }
 
-  /// Two lines at accessibility sizes: the block is reassurance that the paste
-  /// landed, and a section label plus one bar line does that.
   private var lineLimit: Int {
     typeSize.isAccessibilitySize ? 2 : 3
   }
