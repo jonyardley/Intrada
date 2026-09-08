@@ -28,14 +28,16 @@ walk up. Launch it from `/Users/jonyardley/Dev/intrada` or a worktree root, or
 | OMP session roles | `.omp/config.yml` | OMP only. Pins the ladder so a session starts on the right rung |
 | Sticky user rules | `~/.omp/agent/RULES.md` | OMP only. Re-attached near the current turn, survives long sessions |
 | User profile | `~/.claude/CLAUDE.md` | Read directly by Claude Code; imported by `~/.omp/agent/AGENTS.md` for OMP |
+| Auto memory | `~/.claude/projects/<project>/memory/MEMORY.md` | Claude Code only. Injected every session, and the one input that can carry a stale fact |
+| User hooks | `~/.claude/settings.json`, `~/.claude/hooks/` | Claude Code only. Text injected at session start, on every prompt, and after a push |
 | Task-scoped rules | `.claude/skills/*/SKILL.md` | Metadata only until read. Both harnesses discover these |
-| Personal skills | `~/.claude/skills/*` | TDD, code review, worktrees, graphify |
+| Personal skills | `~/.claude/skills/*` | TDD, code review, worktrees, graphify, and whatever else the user keeps there |
 | Subagents | `.claude/agents/*.md`, `~/.claude/agents/*.md`, `.omp/agents/*.md` | Do not cross harnesses. See Delegating |
 | Project commands | `.claude/commands/` | Read by both harnesses. Currently just `ship` |
 | Xcode tools | `.mcp.json` | xcodebuildmcp, simulator workflow |
 
-Skills cost one line of prompt until read, so reference-grade rules belong there
-and only invariants belong in `CLAUDE.md`.
+Skills cost their description until read, so keep descriptions short, put
+reference-grade rules in the body, and leave only invariants in `CLAUDE.md`.
 
 ## Session controls
 

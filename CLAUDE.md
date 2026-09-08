@@ -357,8 +357,8 @@ Invoked by name, deliberately, not blanket-applied. In OMP these resolve as
 
 - **Test-first** for non-UI Tier 2 work, all Tier 3 work, and by default for
   `intrada-core` changes (`domain/*.rs`, `validation.rs`, `http.rs`,
-  `model.rs`). The #719 delete-404 bug shipped because the test was retrofit to
-  pass rather than written to constrain. Skip for visual or gesture work
+  `model.rs`). A test retrofit to pass agrees with the
+  implementation by construction, which is how #1256 hid a real bug. Skip for visual or gesture work
   verified on-device. (`test-driven-development`.)
 - **Request review** as the standard channel for Tier 2+ PRs, rather than
   hand-rolling a prompt each time. (`requesting-code-review`; OMP: the

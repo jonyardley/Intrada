@@ -97,7 +97,7 @@ between Claude Code and OMP.
 | Job (Claude Code · OMP) | Model + effort | Because |
 |---|---|---|
 | Read-only research (`Explore` · `scout`) | Haiku 4.5, low | Reports facts back to a lead. Never edits, so a wrong answer is caught by the lead verifying it |
-| Mechanical, fully specified edits (`smol` · `sonic`) | Sonnet 5, low | Renames, sweeps, data collection. The decision is already made |
+| Mechanical, fully specified edits (`smol` · `sonic`) | Haiku 4.5, low (`smol`) · Sonnet 5, low (`sonic`) | Renames, sweeps, data collection. The decision is already made, so the cheapest rung that types accurately; the two pins differ and this row records both |
 | Run a gate and filter its log (`test-runner` in both) | Sonnet 5, low | No judgement, and the gate itself is the check |
 | Review a diff or a plan (`reviewer`, `advisor` · `reviewer`) | Opus 5, high | Judgement-dense, and bound by the never-weaker rule above. `high` matches the "review synthesis" rung, and matches `advisor` in `.omp/config.yml`, still pinned `claude-opus-5:high` |
 | Conventional Tier 2 slice (`task` in both) | Sonnet 5, xhigh | Non-sensitive surface, patterns already in the repo |

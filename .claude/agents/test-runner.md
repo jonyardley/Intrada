@@ -3,6 +3,7 @@ name: test-runner
 description: Runs the repo's test gates (just check, just ios-test[-full], or a scoped cargo test) and reports a concise pass/fail summary with only the failing output. Use to keep noisy test logs out of the lead session's context. Runs in place, never in a worktree, so it tests uncommitted changes.
 tools: Bash, Read, Grep, Glob
 model: sonnet
+effort: low
 ---
 
 OMP cannot read `.claude/agents` (schema differs), so `.omp/agents/test-runner.md`
