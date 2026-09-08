@@ -4,7 +4,12 @@
 > short. The mechanics behind each rule, and the incident it came from, live in
 > [`docs/reference.md`](docs/reference.md), read on demand.
 >
-> Last reviewed: 2026-09-07.
+> **Rules leave as well as arrive.** A rule a gate now enforces is deleted in
+> the same change that adds the gate, and a rule citing an incident more than 90
+> days old is re-justified or deleted at the next review. Without that, this
+> file only ever grows. Mechanics: [`docs/reference.md`](docs/reference.md).
+>
+> Last reviewed: 2026-09-08.
 
 ## Focus: native iOS only
 
@@ -352,8 +357,8 @@ Invoked by name, deliberately, not blanket-applied. In OMP these resolve as
 
 - **Test-first** for non-UI Tier 2 work, all Tier 3 work, and by default for
   `intrada-core` changes (`domain/*.rs`, `validation.rs`, `http.rs`,
-  `model.rs`). The #719 delete-404 bug shipped because the test was retrofit to
-  pass rather than written to constrain. Skip for visual or gesture work
+  `model.rs`). A test retrofit to pass agrees with the
+  implementation by construction, which is how #1256 hid a real bug. Skip for visual or gesture work
   verified on-device. (`test-driven-development`.)
 - **Request review** as the standard channel for Tier 2+ PRs, rather than
   hand-rolling a prompt each time. (`requesting-code-review`; OMP: the

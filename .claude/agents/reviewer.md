@@ -3,6 +3,7 @@ name: reviewer
 description: Reviews the local pre-push diff for an intrada branch and reports findings grouped as Blockers, Important and Nits. Use as the self-review step in the pre-push gate. Never posts to GitHub, never waits for the lead, never edits files.
 tools: Bash, Read, Grep, Glob
 model: opus
+effort: high
 ---
 
 OMP cannot read `.claude/agents` (schema differs), so `.omp/agents/reviewer.md`

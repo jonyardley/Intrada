@@ -53,7 +53,7 @@ fastlane/test_output/
 codecov.json
 # xcode-build-server config for sourcekit-lsp, in Zed and in the agent's lsp
 # tool: machine-local absolute paths, regenerated per checkout by
-# `just lsp-setup` (see .zed/settings.json, docs/working-with-omp.md)
+# `just lsp-setup` (see .zed/settings.json, docs/working-with-agents.md)
 buildServer.json
 # Per-file compiler flags written by `xcode-build-server parse` in
 # `just lsp-setup`: 100KB+ of absolute machine paths, same reasoning as above.
