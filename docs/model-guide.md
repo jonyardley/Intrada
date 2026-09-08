@@ -5,7 +5,7 @@
 > in [`CLAUDE.md`](../CLAUDE.md): tiers set the ceremony, this sets the
 > resourcing.
 >
-> Last reviewed: 2026-08-14, against the Claude 5 family (Fable 5, Opus 5,
+> Last reviewed: 2026-09-08, against the Claude 5 family (Fable 5, Opus 5,
 > Sonnet 5, Haiku 4.5). Re-review at the next model generation; pricing and
 > effort semantics below were validated against the API docs on that date.
 >
@@ -91,15 +91,21 @@ The ladders above route a *session*. A lead also spawns *named agent types*, and
 those get routed once, in the committed definition, rather than re-decided at
 every spawn. A definition with no model inherits whatever the harness picks,
 which is how a mechanical sweep ends up on the expensive model and a review ends
-up on a cheap one.
+up on a cheap one. The routing below is by *job*, because the agent names differ
+between Claude Code and OMP.
 
-| Agent | Model + effort | Because |
+| Job | Model + effort | Because |
 |---|---|---|
-| `scout` | Haiku 4.5, low | Read-only research reporting facts back. Never edits, so a wrong answer is caught by the lead verifying it |
-| `sonic` | Sonnet 5, low | Mechanical, fully specified edits: renames, sweeps, data collection |
-| `test-runner` | Sonnet 5, low | Runs a gate and filters its log. No judgement, and the gate itself is the check |
-| `reviewer` | Opus 5, high | Judgement-dense, and bound by the rule above: never weaker than the writer. `high` matches Effort's "review synthesis" rung and `advisor` in `.omp/config.yml` |
-| `task` (generic) | Sonnet 5, xhigh | The `.omp/config.yml` `task` role. Conventional Tier 2 on a non-sensitive surface |
+| Read-only research | Haiku 4.5, low | Reports facts back to a lead. Never edits, so a wrong answer is caught by the lead verifying it |
+| Mechanical, fully specified edits | Sonnet 5, low | Renames, sweeps, data collection. The decision is already made |
+| Run a gate and filter its log | Sonnet 5, low | No judgement, and the gate itself is the check |
+| Review a diff or a plan | Opus 5, high | Judgement-dense, and bound by the never-weaker rule above. `high` matches the "review synthesis" rung |
+| Conventional Tier 2 slice | Sonnet 5, xhigh | Non-sensitive surface, patterns already in the repo |
+
+Which named agent implements each job differs per harness, and the definitions
+do not cross: see the Delegating table in
+[`working-with-agents.md`](working-with-agents.md). Pin the model in the agent
+definition rather than at the spawn.
 
 **The never-weaker rule needs a lever on Fable work.** A pinned frontmatter
 model is beaten only by `task.agentModelOverrides[<agent>]`, never by the parent

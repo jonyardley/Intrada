@@ -128,7 +128,9 @@ specs/                # Design specs for major features
 | [`docs/research-foundation.md`](docs/research-foundation.md) | Research basis for design decisions |
 | [`docs/rebuild-review.md`](docs/rebuild-review.md) | Historical record: the 2026-07 pivot assessment and the retired coach design ([`specs/intrada-practice-coach-design.md`](specs/intrada-practice-coach-design.md)) |
 | [`SETUP.md`](SETUP.md) | Deployment & configuration (Fly.io, Turso, TestFlight) |
-| [`docs/working-with-omp.md`](docs/working-with-omp.md) | Driving this repo from OMP: what loads, the model ladder, delegation, build and token control |
+| [`docs/working-with-agents.md`](docs/working-with-agents.md) | Driving this repo from a coding agent (Claude Code or OMP): what loads, delegation, isolation, guardrails, worked examples |
+| [`docs/model-guide.md`](docs/model-guide.md) | Which model and reasoning effort each kind of work runs on, and what a plan must say about resourcing |
+| [`docs/agentic-primer.md`](docs/agentic-primer.md) | General essay on agentic coding, with the criticisms left in. No intrada specifics; written to be read outside this repo |
 
 ## CI/CD
 

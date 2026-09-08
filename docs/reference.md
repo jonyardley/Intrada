@@ -538,3 +538,44 @@ dev only.
 
 Key files: `intrada-api/src/auth.rs`, `intrada-api/src/routes/auth_ios.rs`,
 `intrada-api/src/clerk.rs`.
+
+## How a rule leaves CLAUDE.md (2026-09-08)
+
+`CLAUDE.md` is paid for on every request, in every session and again in every
+subagent, so its cost is the one thing in this repo that scales with how much
+work we do rather than with how much code exists. It had 44 commits in the 90
+days to 2026-09-08 and almost all of them were additions, because there was an
+accretion mechanism and no decay one. This is that mechanism.
+
+**Three exit routes, in order of preference.**
+
+1. **A gate replaced it.** The moment a rule becomes a test, a CI check, a
+   commit hook or a permission entry, its prose is dead and comes out in the
+   same change that adds the gate. `scripts/check-dashes.sh` is the model: the
+   dash ban is enforced on changed lines, so the prose only has to say what the
+   gate cannot see (double dashes, commit messages, PR bodies). A rule that is
+   both gated and written is worse than either alone, because the two drift and
+   the reader cannot tell which is current.
+
+2. **The incident aged out.** A rule that cites a specific failure is trusted
+   and kept; a rule that reads as dogma gets cargo-culted or ignored. But an
+   incident more than 90 days old has usually either stopped recurring, in which
+   case the rule can go, or recurred, in which case it deserves a gate rather
+   than more prose. At review time, every dated rule answers "has this happened
+   since?". No is a delete, yes is a gate.
+
+3. **The surface went away.** A rule about a deleted crate, a retired harness or
+   a superseded pattern is not history, it is misdirection: an agent reads it as
+   current and plans around a constraint that no longer exists. These come out
+   the moment the surface does, and the *finding* moves here if it is worth
+   keeping.
+
+**What never leaves.** Invariants whose breach is silent. The bincode bridge
+being positional, migrations being append-only, the device being the only copy
+of a free-tier user's data: no gate covers the judgement of noticing you are
+about to break one, and no amount of elapsed time makes them safer.
+
+**Where the deleted prose goes.** Here, if the reasoning is worth keeping, as a
+dated section like this one. Otherwise nowhere: `git` is the parking space, the
+same rule that applies to dead code (#1176). Do not leave a rule in place with a
+note saying it is obsolete.

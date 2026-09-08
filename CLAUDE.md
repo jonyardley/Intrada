@@ -4,7 +4,12 @@
 > short. The mechanics behind each rule, and the incident it came from, live in
 > [`docs/reference.md`](docs/reference.md), read on demand.
 >
-> Last reviewed: 2026-09-07.
+> **Rules leave as well as arrive.** A rule a gate now enforces is deleted in
+> the same change that adds the gate, and a rule citing an incident more than 90
+> days old is re-justified or deleted at the next review. Without that, this
+> file only ever grows. Mechanics: [`docs/reference.md`](docs/reference.md).
+>
+> Last reviewed: 2026-09-08.
 
 ## Focus: native iOS only
 
