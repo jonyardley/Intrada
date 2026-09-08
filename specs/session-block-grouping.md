@@ -5,9 +5,10 @@
 > restored session builder. Describes shipped behaviour; verify against the
 > code before extending.
 
-> Tier 3 (Crux core + FFI bridge + local persistence). Spec → review → plan →
-> implement. Status: **draft for review** — open questions in §7 need answers
-> before Phase A.
+> Tier 3 (Crux core + FFI bridge + local persistence). Status: **shipped**
+> via #1022. The §7 open questions were answered in implementation, so read
+> `group_id`, `UngroupBlock` and `UngroupAllBlocks` in `domain/session.rs`
+> rather than §7 for what the app actually does.
 
 ## 1. Problem
 

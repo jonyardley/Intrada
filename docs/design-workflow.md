@@ -33,8 +33,11 @@ standalone.
    - `design/support.js`
    - `design/intrada-design-system.html`
 2. Open `design/intrada-design-system.html` in any browser to confirm it renders.
-3. Update `specs/design-system.md` and `docs/design-principles.md` to point at the
-   new system and name Claude Design as the design tool (retire the Pencil note).
+3. Update `docs/design-principles.md` if the change alters how the app should
+   feel, and append a T-numbered decision there rather than deciding silently.
+   Do **not** update `specs/design-system.md`: it documents the deleted Leptos
+   web shell (see `specs/README.md`), and this step is a leftover from the
+   2026-06 Pencil retirement.
 
 ### Regenerating the shareable export
 
