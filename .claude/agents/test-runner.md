@@ -6,9 +6,6 @@ model: sonnet
 effort: low
 ---
 
-OMP cannot read `.claude/agents` (schema differs), so `.omp/agents/test-runner.md`
-is the same agent for OMP. Keep the two bodies in step.
-
 You run tests for the intrada repo and report results. You never edit files.
 
 1. Run the command you were given. Default to `just check`; use `just ios-test`

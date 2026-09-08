@@ -113,5 +113,11 @@
         ]
       }
     ]
+  },
+  "enabledPlugins": {
+    "slack@claude-plugins-official": false,
+    "atlassian@claude-plugins-official": false,
+    "visual-explainer@visual-explainer-marketplace": false,
+    "frontend-design@claude-plugins-official": false
   }
 }

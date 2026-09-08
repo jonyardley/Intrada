@@ -7,7 +7,7 @@
 > decisions in the **Open tensions & decisions** log at the bottom.
 >
 > Visual/token detail lives in code (`ios/Intrada/DesignSystem/Theme.swift`)
-> and the design rules in `.claude/skills/intrada-design-system/SKILL.md`. This doc is the *why* and the
+> and the design rules in `.claude/rules/ios-ui.md`. This doc is the *why* and the
 > *interaction* layer those don't cover.
 >
 > What a screen *says* is decided by [`tone-of-voice.md`](tone-of-voice.md), the
@@ -32,7 +32,7 @@
 ## Visual principles
 
 These are mostly settled and live in code; captured here so the *intent* behind
-them isn't lost. (See `skill://intrada-design-system` for the enforcement
+them isn't lost. (See `.claude/rules/ios-ui.md` for the enforcement
 rules and primitive catalogue.)
 
 - **Dark-on-dark glassmorphism.** Neutral gray-900→near-black gradient,

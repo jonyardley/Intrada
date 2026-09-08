@@ -1,4 +1,4 @@
 # Snapshot-test reference images: binary, never line-merged or diffed as text.
-# (See `.claude/skills/intrada-ios-quality/SKILL.md` for how we keep these from bloating
+# (See `.claude/rules/ios-quality.md` for how we keep these from bloating
 # git history — they're re-recorded on every intentional UI change.)
 ios/IntradaTests/__Snapshots__/**/*.png binary

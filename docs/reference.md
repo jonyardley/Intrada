@@ -205,8 +205,8 @@ contract, the split cost more than it bought. Measured on that PR:
 - **The quality came from elsewhere**: adversarial review, the pre-push comment
   hook, and mutation-testing vacuous tests. All three work with one agent.
 
-The rule that came out of it — one agent per vertical slice, fan out only on
-genuinely independent work — is in `skill://intrada-parallel-streams`.
+The rule that came out of it, one agent per vertical slice and fan out only on
+genuinely independent work, is in `.claude/skills/intrada-parallel-streams/SKILL.md`.
 
 ## Where #1256 Phase B's time actually went (2026-08-07)
 
@@ -586,3 +586,30 @@ about to break one, and no amount of elapsed time makes them safer.
 dated section like this one. Otherwise nowhere: `git` is the parking space, the
 same rule that applies to dead code (#1176). Do not leave a rule in place with a
 note saying it is obsolete.
+
+## Known tech debt (moved from CLAUDE.md, 2026-09-08)
+
+- **`Set`** (`domain/set.rs`) is shell-dead and violates offline-first
+  invariant 1: no Swift screen sends a `SetEvent`, and its HTTP creates fire
+  unconditionally with no `local_first` branch or persistence op. #1348 decides
+  whether it is deleted or converted before `RoutinesScreen` is wired to it.
+- **Session reflection** (`reflection_improved`, `reflection_still_rough`,
+  `reflection_next_target`, `ReflectionField`,
+  `SessionEvent::UpdateSessionReflection`) is shell-dead the same way after
+  #1368 removed the UI. Removing it is a domain-sensitivity change (bridge plus
+  schema), so it stayed. Tracked in #1374.
+
+## Why OMP was retired (2026-09-08)
+
+Two harnesses meant every definition existed twice (reviewer, test-runner, the
+format hook, and two guides that disagreed on which agents existed), and the
+only OMP failures the repo recorded were drift between the copies and prewalk
+arming twice without firing. Every OMP mechanic has a native Claude Code home:
+role pins with effort bound are agent frontmatter `model` and `effort`, plus
+`/model` and `/effort` in-session; sticky rules near the turn are a
+`UserPromptSubmit` hook; bash patterns are the `guard-bash` hook; the `slow`
+role for silent-failure surfaces is `.claude/rules/sensitive-surfaces.md`,
+which loads when one of those files is read; compressed research is the
+`Explore` agent; isolated clones are `just worktree-new`, which also seeds the
+iOS build cache a clone did not carry. The retired `.omp/` config is
+recoverable from the commit before this section landed.

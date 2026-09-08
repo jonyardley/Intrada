@@ -120,7 +120,7 @@ specs/                # Design specs for major features
 
 | Document | Purpose |
 |----------|---------|
-| [`CLAUDE.md`](CLAUDE.md) | Development guidelines and architecture; task-scoped rules live in `.claude/skills/` |
+| [`CLAUDE.md`](CLAUDE.md) | Development guidelines and architecture; path-scoped rules in `.claude/rules/`, workflow skills in `.claude/skills/` |
 | [`docs/where-we-are.md`](docs/where-we-are.md) | Which release and phase we are on — hand-written, changed when they change |
 | [`docs/design-principles.md`](docs/design-principles.md) | Interaction and design principles (how the app should feel) |
 | [`docs/roadmap.md`](docs/roadmap.md) | Direction and the phase plan; issues/board carry scope and timing |
@@ -128,8 +128,7 @@ specs/                # Design specs for major features
 | [`docs/research-foundation.md`](docs/research-foundation.md) | Research basis for design decisions |
 | [`docs/rebuild-review.md`](docs/rebuild-review.md) | Historical record: the 2026-07 pivot assessment and the retired coach design ([`specs/intrada-practice-coach-design.md`](specs/intrada-practice-coach-design.md)) |
 | [`SETUP.md`](SETUP.md) | Deployment & configuration (Fly.io, Turso, TestFlight) |
-| [`docs/working-with-agents.md`](docs/working-with-agents.md) | Driving this repo from a coding agent (Claude Code or OMP): what loads, delegation, isolation, guardrails, worked examples |
-| [`docs/model-guide.md`](docs/model-guide.md) | Which model and reasoning effort each kind of work runs on, and what a plan must say about resourcing |
+| [`docs/working-with-agents.md`](docs/working-with-agents.md) | Driving this repo from Claude Code: what loads, the layers, model and effort, delegation, isolation, guardrails, worked examples |
 | [`docs/agentic-primer.md`](docs/agentic-primer.md) | General essay on agentic coding, with the criticisms left in. No intrada specifics; written to be read outside this repo |
 
 ## CI/CD
