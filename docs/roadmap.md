@@ -67,15 +67,16 @@ horizon.
 
 Filter `is:open is:issue` on the board to see what's currently in flight.
 
-### Current focus (2026-08)
+### Current focus
 
-The coach pivot is reversed (see the banner at the top); v0.7.0, the
-restored session-builder product, is on TestFlight. The immediate work is
-the five-phase audit backlog in [`audit-2026-08.md`](audit-2026-08.md),
-run under [`rethink-plan.md`](rethink-plan.md). See
-`just status` and the
+The coach pivot is reversed (see the banner at the top). Phase R
+([`rethink-plan.md`](rethink-plan.md)) ran the audit backlog in
+[`audit-2026-08.md`](audit-2026-08.md) and chose the next direction, pushing
+the capture line, whose first slice shipped in 2026-09. Which release is out
+and what phase we are in lives in [`where-we-are.md`](where-we-are.md), the one
+place that says it; `just status` and the
 [project board](https://github.com/users/jonyardley/projects/2)
-for what's actually in flight.
+say what is in flight.
 
 ---
 
