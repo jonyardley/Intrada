@@ -908,8 +908,21 @@ final class StoreEffectLoopTests: XCTestCase {
           exercises: [])))
 
     XCTAssertEqual(
-      try bridge.view().errorTarget, .chart(bar: 2, token: "Hxyz"),
+      try bridge.view().errorTarget, .chartBar(barNumber: 2, token: "Hxyz"),
       "the bar and the token, so the chart section can highlight in place")
+
+    _ = try bridge.update(
+      .item(
+        .addPieceInFull(
+          piece: CreateItem(
+            title: "Blue in Green", kind: .piece, composer: "Bill Evans", key: "G",
+            modality: nil, tempo: nil, notes: nil, tags: [], photoId: nil),
+          chart: "swing feel",
+          exercises: [])))
+
+    XCTAssertEqual(
+      try bridge.view().errorTarget, .chart,
+      "prose with no bars fails at no bar, so the whole section is what is marked")
 
     _ = try bridge.update(
       .item(

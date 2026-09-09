@@ -4571,15 +4571,15 @@ mod tests {
         let mut model = Model::test_default();
         assert!(app.view(&model).error_target.is_none());
 
-        model.last_error_target = Some(crate::model::FormErrorTarget::Chart {
-            bar: 3,
+        model.last_error_target = Some(crate::model::FormErrorTarget::ChartBar {
+            bar_number: 3,
             token: "(F7)".to_string(),
         });
 
         assert_eq!(
             app.view(&model).error_target,
-            Some(crate::model::FormErrorTarget::Chart {
-                bar: 3,
+            Some(crate::model::FormErrorTarget::ChartBar {
+                bar_number: 3,
                 token: "(F7)".to_string()
             })
         );

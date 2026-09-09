@@ -207,22 +207,31 @@ So the core says where, and the shell points:
 
 pub enum FormErrorTarget {
     Piece { field: FormField },
-    /// 1-based bar, 0 for the chart as a whole; `token` is what the parser
-    /// stumbled on, both already carried by `ChartParseError`.
-    Chart { bar: usize, token: String },
-    /// By position in the `exercises` the event carried. `field` is `None`
-    /// when the row is a chosen exercise rather than a written one.
+    /// A chart holding no bars at all fails at no bar, so there is no number
+    /// to hand the shell and the whole section is what is marked.
+    Chart,
+    /// Numbered from 1, with the token the parser stumbled on: both already
+    /// carried by `ChartParseError`.
+    ChartBar { bar_number: usize, token: String },
+    /// By position, from 0, in the `exercises` the event carried. `field` is
+    /// `None` when the row is a chosen exercise rather than a written one.
     Exercise { index: usize, field: Option<FormField> },
 }
 
 pub enum FormField { Title, Composer, Tempo, Notes, Tags }
 ```
 
-`ViewModel::error_target` is `Some` only while the error it belongs to is the
-one the event just set. `App::update` clears the model's copy before every
-event, so a target cannot outlive its message or point at a row the musician
-has since changed: every path other than `AddPieceInFull` sets an error and no
+`App::update` clears the model's copy before every event, so a target always
+belongs to the error the event in hand reported and can never be inherited by
+the next one. Every path other than `AddPieceInFull` sets an error and no
 target, which reads as the banner alone, exactly as today.
+
+That is the only guarantee the core can make, and it is worth being exact
+about what it is not. A target says nothing about shell state that has moved
+since: the staged list lives in Swift and is reordered there without the core
+hearing about it. And an event that never touches the error still clears the
+target, so a banner can outlive its own mark, which is the shape the shell
+already handles everywhere else.
 
 ### Key decisions, continued
 
@@ -240,6 +249,19 @@ target, which reads as the banner alone, exactly as today.
     would change every other caller of `validate_create_item`, and the screen
     would still only point once.
 
+12. **The shell owns dropping the mark.** `Exercise { index }` is a position
+    in the list the event carried, and removing or re-choosing a row rewrites
+    that list in Swift with no event sent, which would leave the mark on a row
+    that was never at fault. So the screens PR clears its own mark on any
+    change to the staged list, and treats an absent target as the banner alone
+    rather than keeping the last mark.
+
+13. **Online mode reports no target.** The refusal there is about the mode,
+    not a field, and a bare piece online falls through to the ordinary create,
+    which sets no target. The same blank composer therefore marks a field
+    local-first and raises a bare banner online, which is the offline-first
+    split decision 7 already makes.
+
 ## Tests
 
 - The whole-event property: a bad chart, a blank exercise title or an unknown
@@ -252,9 +274,10 @@ target, which reads as the banner alone, exactly as today.
   exercises staged.
 - Each target case, with the failure on the second row so a target that always
   names the first one fails: the piece field, a written row, a chosen row that
-  has gone, and the chart's bar and token.
-- The invariant: an error set by any other event reports no target, and a
-  create that then succeeds stops pointing.
+  has gone, the chart's bar and token, and a chart of prose with no bars in it.
+- The lifetime rule: an error set by any other event reports no target, a
+  create that then succeeds stops pointing, and an event that never touched the
+  error keeps the message while the mark goes.
 
 ## Open questions
 

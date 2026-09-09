@@ -38,8 +38,9 @@ pub struct Model {
     pub active_sort: LibrarySort,
     pub last_error: Option<String>,
     /// Where the current error is, when the handler that set it could say.
-    /// Cleared before every event in `App::update`, so it cannot outlive the
-    /// message it belongs to or point at a row since changed (#1595).
+    /// Cleared before every event in `App::update`, so it always belongs to the
+    /// error the event in hand reported. It says nothing about shell state that
+    /// has changed since, which is the shell's to drop (#1595).
     pub last_error_target: Option<FormErrorTarget>,
     /// Set when the user dismisses the error banner. While true, errors from
     /// HTTP failures routed through [`Model::surface_error`] are silently
@@ -206,21 +207,26 @@ pub enum SessionStatusView {
 /// Set only by the handler that reported the error, and only where the form has
 /// somewhere to point; every other path leaves it `None`, which reads as the
 /// banner alone.
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "facet_typegen", derive(facet::Facet))]
 #[cfg_attr(feature = "facet_typegen", repr(C))]
 pub enum FormErrorTarget {
     Piece {
         field: FormField,
     },
-    /// 1-based bar across the whole chart, 0 for the chart as a whole, plus the
-    /// token the parser stumbled on: both already carried by `ChartParseError`.
-    Chart {
-        bar: usize,
+    /// The chord chart as a whole, which is what a chart holding no bars at all
+    /// produces: there is nothing inside it to point at.
+    Chart,
+    /// One bar of the chord chart, numbered from 1, and the token the parser
+    /// stumbled on.
+    ChartBar {
+        bar_number: usize,
         token: String,
     },
-    /// By position in the exercises the event carried. `field` is `None` for a
-    /// chosen exercise, which has no field of its own on the form.
+    /// A staged exercise by position, from 0, in the exercises the event
+    /// carried. `field` is `None` for a chosen exercise, which has no field of
+    /// its own. The shell reorders that list without telling the core, so the
+    /// position holds only until it does (spec decision 12).
     Exercise {
         index: usize,
         field: Option<FormField>,

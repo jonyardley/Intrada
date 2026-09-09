@@ -571,9 +571,13 @@ pub fn handle_item_event(event: ItemEvent, model: &mut Model) -> Command<Effect,
                     match super::chart::parse_chart(raw, &key, modality, &Metre::default()) {
                         Ok(chart) => Some(chart),
                         Err(e) => {
-                            model.last_error_target = Some(FormErrorTarget::Chart {
-                                bar: e.bar,
-                                token: e.token.clone(),
+                            model.last_error_target = Some(if e.bar == 0 {
+                                FormErrorTarget::Chart
+                            } else {
+                                FormErrorTarget::ChartBar {
+                                    bar_number: e.bar,
+                                    token: e.token.clone(),
+                                }
                             });
                             model.last_error = Some(e.to_string());
                             return crux_core::render::render();
@@ -3820,11 +3824,56 @@ mod tests {
 
         assert_eq!(
             model.last_error_target,
-            Some(FormErrorTarget::Chart {
-                bar: 2,
+            Some(FormErrorTarget::ChartBar {
+                bar_number: 2,
                 token: "(F7)".to_string()
             }),
             "the second bar and the token in it, so the shell highlights in place"
+        );
+    }
+
+    #[test]
+    fn add_piece_in_full_points_at_the_whole_chart_when_it_holds_no_bars() {
+        let mut model = model_with_piece_and_exercise();
+
+        send(
+            &mut model,
+            ItemEvent::AddPieceInFull {
+                piece: one_pass_piece_input("Autumn Leaves"),
+                chart: Some("swing feel".to_string()),
+                exercises: vec![],
+            },
+        );
+
+        assert_eq!(
+            model.last_error_target,
+            Some(FormErrorTarget::Chart),
+            "prose with no bars in it fails at no bar, so there is no number to hand the shell"
+        );
+    }
+
+    #[test]
+    fn a_quiet_event_keeps_the_message_and_drops_the_mark() {
+        let mut model = model_with_piece_and_exercise();
+        send(
+            &mut model,
+            ItemEvent::AddPieceInFull {
+                piece: one_pass_piece_input("Autumn Leaves"),
+                chart: Some("| Cm7 | (F7) |".to_string()),
+                exercises: vec![],
+            },
+        );
+        let message = model.last_error.clone();
+        assert!(message.is_some());
+
+        let app = Intrada;
+        let _cmd = app.update(crate::app::Event::SetUtcOffset { minutes: 60 }, &mut model);
+
+        assert_eq!(model.last_error, message, "the banner keeps its sentence");
+        assert!(
+            model.last_error_target.is_none(),
+            "an event that never touched the error takes the mark with it: no target means \
+             the banner alone, never the last mark held over (#1595)"
         );
     }
 
@@ -3892,8 +3941,9 @@ mod tests {
             FormErrorTarget::Piece {
                 field: FormField::Title,
             },
-            FormErrorTarget::Chart {
-                bar: 2,
+            FormErrorTarget::Chart,
+            FormErrorTarget::ChartBar {
+                bar_number: 2,
                 token: "(F7)".to_string(),
             },
             FormErrorTarget::Exercise {
