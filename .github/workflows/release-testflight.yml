@@ -27,20 +27,20 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 60
     steps:
-      # Full history: `sentry-cli releases set-commits --auto` reads the local
-      # git log to work out what went into the release.
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-      # A tagged build with no DSN ships with crash reporting off, and nothing
-      # says so until someone needs a crash report (#1553). Fail here, before
-      # the 10x-billed macOS build, rather than after the upload.
-      - name: Require the Sentry DSN on a tagged release
+      # First step of all: a build that cannot report crashes is invisible until
+      # someone needs a crash report (#1553), so fail before the checkout and
+      # the 10x-billed macOS build rather than after the upload.
+      - name: Require the Sentry secrets on a tagged release
         if: github.ref_type == 'tag'
         env:
           SENTRY_DSN_NATIVE: ${{ secrets.SENTRY_DSN_NATIVE }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
           case "${SENTRY_DSN_NATIVE:-}" in
+            *[[:space:]]*)
+              echo "::error::SENTRY_DSN_NATIVE carries whitespace, which survives into the build and leaves the SDK rejecting the DSN at launch. Re-set it with: printf %s '<dsn>' | gh secret set SENTRY_DSN_NATIVE"
+              exit 1
+              ;;
             https://*)
               echo "Sentry DSN present: this build will report crashes."
               ;;
@@ -49,6 +49,14 @@ jobs:
               exit 1
               ;;
           esac
+          if [ -z "${SENTRY_AUTH_TOKEN:-}" ]; then
+            echo "::warning::SENTRY_AUTH_TOKEN is unset, so this build will report its crashes but no release will be created to file them against."
+          fi
+      # Full history: `sentry-cli releases set-commits --auto` reads the local
+      # git log to work out what went into the release.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       # Pin Xcode 26.5 to match local dev + the native-ios CI job.
       - uses: maxim-lobanov/setup-xcode@v1
         with:
@@ -104,14 +112,22 @@ jobs:
         run: |
           just ios-typegen
           just ios-package release
-      # xcodegen expands ${SENTRY_DSN_NATIVE} into the SENTRY_DSN build
-      # setting, which the partial Info.plist resolves at build time. Without it
-      # the app's start gate keeps Sentry off and the build reports nothing.
+      # The DSN expands into the SENTRY_DSN build setting here; ios/project.yml
+      # explains the route from there to the plist. Without it the app's start
+      # gate keeps Sentry off and the build reports nothing (#1553).
       - name: Generate Xcode project
         working-directory: ios
         env:
           SENTRY_DSN_NATIVE: ${{ secrets.SENTRY_DSN_NATIVE }}
         run: xcodegen generate
+      - name: Confirm the DSN reached the generated project
+        if: github.ref_type == 'tag'
+        run: |
+          if ! grep -qE 'SENTRY_DSN = "?https://' ios/Intrada.xcodeproj/project.pbxproj; then
+            echo "::error::The generated project carries no https SENTRY_DSN, so this build would ship with Sentry off."
+            exit 1
+          fi
+          echo "SENTRY_DSN is baked into the generated project."
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: "3.3"
@@ -128,37 +144,57 @@ jobs:
           # Empty on branch dispatch; the Fastfile then falls back to project.yml.
           MARKETING_VERSION: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
         run: bundle exec fastlane ios beta
-      # sentry-cli rather than getsentry/action-release (which ci.yml uses for
-      # the API): that action is a Docker container action and this job runs on
-      # macOS, where those cannot run. Pinned like every other tool here.
+      # sentry-cli, not ci.yml's getsentry/action-release: that is a Docker
+      # container action and cannot run on a macOS runner. The name is read off
+      # the uploaded .ipa, the three keys `SentryRelease.swift` composes (#1553).
       #
-      # The release name is read back off the .ipa that was just uploaded, from
-      # the same three Info.plist keys `SentryRelease.name(for:)` composes at
-      # runtime, so the release Sentry gets cannot drift from the one the app
-      # reports (#1553). continue-on-error: a Sentry outage must never fail a
-      # build that has already shipped to testers.
+      # Tag only, so a hand-run dispatch cannot file a release under the version
+      # sitting in project.yml. continue-on-error so a Sentry outage cannot fail
+      # a build that has already reached testers; the ERR trap is what keeps
+      # that from also hiding a fault of our own.
       - name: Create the Sentry release for this build
-        if: env.SENTRY_AUTH_TOKEN != ''
+        if: github.ref_type == 'tag' && env.SENTRY_AUTH_TOKEN != ''
         continue-on-error: true
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_PROJECT: intrada-mobile
         run: |
           set -euo pipefail
+          trap 'echo "::warning::No Sentry release was created for this build, so its crashes will arrive unattributed."' ERR
+
+          ipas=(build/*.ipa)
+          ipa="${ipas[0]}"
+          if [ ! -f "$ipa" ]; then
+            echo "::warning::No .ipa under build/, so no Sentry release was created for this build."
+            exit 0
+          fi
+
           curl -fsSL -o "$RUNNER_TEMP/sentry-cli" \
             "https://downloads.sentry-cdn.com/sentry-cli/3.7.0/sentry-cli-Darwin-universal"
           chmod +x "$RUNNER_TEMP/sentry-cli"
 
-          unzip -o -q build/Intrada.ipa "Payload/*.app/Info.plist" -d "$RUNNER_TEMP/ipa"
+          unzip -o -q "$ipa" "Payload/*.app/Info.plist" -d "$RUNNER_TEMP/ipa"
           plists=("$RUNNER_TEMP"/ipa/Payload/*.app/Info.plist)
           plist="${plists[0]}"
           key() { /usr/libexec/PlistBuddy -c "Print :$1" "$plist"; }
-          release="$(key CFBundleIdentifier)@$(key CFBundleShortVersionString)+$(key CFBundleVersion)"
+          # Separately, so a missing key trips `set -e`: in one interpolation the
+          # assignment takes only the last substitution's status and a half-built
+          # name would be created and finalised.
+          identifier="$(key CFBundleIdentifier)"
+          short_version="$(key CFBundleShortVersionString)"
+          build_number="$(key CFBundleVersion)"
+          for field in "$identifier" "$short_version" "$build_number"; do
+            if [ -z "$field" ]; then
+              echo "::error::The uploaded build's Info.plist is missing an identity field, so no release name could match its crashes."
+              exit 1
+            fi
+          done
+          release="$identifier@$short_version+$build_number"
           echo "Sentry release: $release"
 
           "$RUNNER_TEMP/sentry-cli" releases new "$release"
           "$RUNNER_TEMP/sentry-cli" releases set-commits "$release" --auto \
-            || echo "::warning::No commits associated with $release; the release itself is created."
+            || echo "::warning::Could not associate commits with $release, which is created either way. Check the Sentry GitHub integration, that the repository is associated, and the token's org:read scope."
           "$RUNNER_TEMP/sentry-cli" releases finalize "$release"
       - name: Upload IPA artifact
         if: always()

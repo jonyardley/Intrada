@@ -1,9 +1,7 @@
 import Foundation
 
-/// The name a crash arrives under. Pinned here rather than left to the Sentry
-/// SDK's default so the release the TestFlight lane creates cannot drift from
-/// the one the app reports: both compose these three Info.plist keys, and a
-/// mismatch would leave every beta crash unattributed (#1553).
+/// The name a crash arrives under, pinned rather than left to the SDK default
+/// so the release lane can compose the same string off the shipped .ipa (#1553).
 enum SentryRelease {
   static func name(bundleId: String?, shortVersion: String?, buildNumber: String?) -> String? {
     guard let bundleId, !bundleId.isEmpty,

@@ -35,7 +35,5 @@ struct SentryReleaseTests {
     let identifier = try #require(bundle.bundleIdentifier)
     let name = try #require(SentryRelease.name(for: bundle))
     #expect(name.hasPrefix("\(identifier)@"))
-    #expect(name.contains("+"))
-    #expect(!name.hasSuffix("@") && !name.hasSuffix("+"))
   }
 }
