@@ -9,7 +9,7 @@ use super::types::{CreateItem, Tempo, UpdateItem};
 pub use super::variant::Variant;
 use crate::app::{Effect, Event};
 use crate::error::LibraryError;
-use crate::model::Model;
+use crate::model::{FormErrorField, FormErrorTarget, Model};
 use crate::validation;
 
 /// Discriminates between a piece (repertoire) and an exercise (technique drill).
@@ -369,6 +369,22 @@ fn save_or_put(model: &mut Model, item: Item) -> Command<Effect, Event> {
     }
 }
 
+/// The form field a validation failure belongs to, where the add form has one
+/// to mark (#1595). Anything else, including a missing item, points nowhere.
+fn form_field(error: &LibraryError) -> Option<FormErrorField> {
+    let LibraryError::Validation { field, .. } = error else {
+        return None;
+    };
+    match field.as_str() {
+        "title" => Some(FormErrorField::Title),
+        "composer" => Some(FormErrorField::Composer),
+        "tempo" => Some(FormErrorField::Tempo),
+        "notes" => Some(FormErrorField::Notes),
+        "tags" => Some(FormErrorField::Tags),
+        _ => None,
+    }
+}
+
 pub fn handle_item_event(event: ItemEvent, model: &mut Model) -> Command<Effect, Event> {
     match event {
         ItemEvent::Add(input) => {
@@ -510,12 +526,14 @@ pub fn handle_item_event(event: ItemEvent, model: &mut Model) -> Command<Effect,
                 ..piece
             });
             if let Err(e) = validation::validate_create_item(&piece_input) {
+                model.last_error_target =
+                    form_field(&e).map(|field| FormErrorTarget::Piece { field });
                 model.last_error = Some(e.to_string());
                 return crux_core::render::render();
             }
 
             let mut entries = Vec::with_capacity(exercises.len());
-            for entry in exercises {
+            for (index, entry) in exercises.into_iter().enumerate() {
                 match entry {
                     ScaffoldEntry::New(input) => {
                         let input = validation::normalize_create_item(CreateItem {
@@ -523,6 +541,10 @@ pub fn handle_item_event(event: ItemEvent, model: &mut Model) -> Command<Effect,
                             ..input
                         });
                         if let Err(e) = validation::validate_create_item(&input) {
+                            model.last_error_target = Some(FormErrorTarget::Exercise {
+                                index,
+                                field: form_field(&e),
+                            });
                             model.last_error = Some(e.to_string());
                             return crux_core::render::render();
                         }
@@ -530,6 +552,8 @@ pub fn handle_item_event(event: ItemEvent, model: &mut Model) -> Command<Effect,
                     }
                     ScaffoldEntry::Existing { id } => {
                         if let Err(e) = validation::validate_exercise_link_target(&id, model) {
+                            model.last_error_target =
+                                Some(FormErrorTarget::Exercise { index, field: None });
                             model.last_error = Some(e.to_string());
                             return crux_core::render::render();
                         }
@@ -547,6 +571,14 @@ pub fn handle_item_event(event: ItemEvent, model: &mut Model) -> Command<Effect,
                     match super::chart::parse_chart(raw, &key, modality, &Metre::default()) {
                         Ok(chart) => Some(chart),
                         Err(e) => {
+                            model.last_error_target = Some(if e.bar == 0 {
+                                FormErrorTarget::Chart
+                            } else {
+                                FormErrorTarget::ChartBar {
+                                    bar_number: e.bar,
+                                    token: e.token.clone(),
+                                }
+                            });
                             model.last_error = Some(e.to_string());
                             return crux_core::render::render();
                         }
@@ -1135,7 +1167,7 @@ pub fn handle_item_event(event: ItemEvent, model: &mut Model) -> Command<Effect,
 mod tests {
     use super::*;
     use crate::app::Intrada;
-    use crate::model::Model;
+    use crate::model::{FormErrorField, FormErrorTarget, Model};
     use crux_core::App;
 
     fn make_piece(id: &str) -> Item {
@@ -3644,6 +3676,10 @@ mod tests {
         );
         assert!(!emits_http(&mut cmd), "refused, never half-applied");
         assert!(model.last_error.is_some(), "and said so, never silent");
+        assert!(
+            model.last_error_target.is_none(),
+            "nothing on the form is at fault, so nothing is marked"
+        );
     }
 
     #[test]
@@ -3690,6 +3726,237 @@ mod tests {
             "whitespace is not a chart, and must not be a parse error either"
         );
         assert!(model.last_error.is_none());
+    }
+
+    #[test]
+    fn add_piece_in_full_points_at_the_piece_field_that_failed() {
+        let mut model = model_with_piece_and_exercise();
+
+        send(
+            &mut model,
+            ItemEvent::AddPieceInFull {
+                piece: CreateItem {
+                    composer: None,
+                    ..one_pass_piece_input("Autumn Leaves")
+                },
+                chart: None,
+                exercises: vec![],
+            },
+        );
+
+        assert_eq!(
+            model.last_error_target,
+            Some(FormErrorTarget::Piece {
+                field: FormErrorField::Composer
+            }),
+            "the banner says a composer is required; the target says which field holds it"
+        );
+    }
+
+    #[test]
+    fn add_piece_in_full_points_at_the_written_row_that_failed() {
+        let mut model = model_with_piece_and_exercise();
+
+        send(
+            &mut model,
+            ItemEvent::AddPieceInFull {
+                piece: one_pass_piece_input("Autumn Leaves"),
+                chart: None,
+                exercises: vec![
+                    ScaffoldEntry::New(new_exercise_input("Shell voicings")),
+                    ScaffoldEntry::New(new_exercise_input("   ")),
+                ],
+            },
+        );
+
+        assert_eq!(
+            model.last_error_target,
+            Some(FormErrorTarget::Exercise {
+                index: 1,
+                field: Some(FormErrorField::Title)
+            }),
+            "the blank one is the second row, so a target that always names the first is wrong"
+        );
+    }
+
+    #[test]
+    fn add_piece_in_full_points_at_the_chosen_row_that_has_gone() {
+        let mut model = model_with_piece_and_exercise();
+
+        send(
+            &mut model,
+            ItemEvent::AddPieceInFull {
+                piece: one_pass_piece_input("Autumn Leaves"),
+                chart: None,
+                exercises: vec![
+                    ScaffoldEntry::Existing {
+                        id: "ex-1".to_string(),
+                    },
+                    ScaffoldEntry::Existing {
+                        id: "gone".to_string(),
+                    },
+                ],
+            },
+        );
+
+        assert_eq!(
+            model.last_error_target,
+            Some(FormErrorTarget::Exercise {
+                index: 1,
+                field: None
+            }),
+            "a chosen row has no field of its own to mark, only the row"
+        );
+    }
+
+    #[test]
+    fn add_piece_in_full_points_at_the_bar_the_chart_stumbled_on() {
+        let mut model = model_with_piece_and_exercise();
+
+        send(
+            &mut model,
+            ItemEvent::AddPieceInFull {
+                piece: one_pass_piece_input("Autumn Leaves"),
+                chart: Some("| Cm7 | (F7) |".to_string()),
+                exercises: vec![],
+            },
+        );
+
+        assert_eq!(
+            model.last_error_target,
+            Some(FormErrorTarget::ChartBar {
+                bar_number: 2,
+                token: "(F7)".to_string()
+            }),
+            "the second bar and the token in it, so the shell highlights in place"
+        );
+    }
+
+    #[test]
+    fn add_piece_in_full_points_at_the_whole_chart_when_it_holds_no_bars() {
+        let mut model = model_with_piece_and_exercise();
+
+        send(
+            &mut model,
+            ItemEvent::AddPieceInFull {
+                piece: one_pass_piece_input("Autumn Leaves"),
+                chart: Some("swing feel".to_string()),
+                exercises: vec![],
+            },
+        );
+
+        assert_eq!(
+            model.last_error_target,
+            Some(FormErrorTarget::Chart),
+            "prose with no bars in it fails at no bar, so there is no number to hand the shell"
+        );
+    }
+
+    #[test]
+    fn a_quiet_event_keeps_the_message_and_drops_the_mark() {
+        let mut model = model_with_piece_and_exercise();
+        send(
+            &mut model,
+            ItemEvent::AddPieceInFull {
+                piece: one_pass_piece_input("Autumn Leaves"),
+                chart: Some("| Cm7 | (F7) |".to_string()),
+                exercises: vec![],
+            },
+        );
+        let message = model.last_error.clone();
+        assert!(message.is_some());
+
+        let app = Intrada;
+        let _cmd = app.update(crate::app::Event::SetUtcOffset { minutes: 60 }, &mut model);
+
+        assert_eq!(model.last_error, message, "the banner keeps its sentence");
+        assert!(
+            model.last_error_target.is_none(),
+            "an event that never touched the error takes the mark with it: no target means \
+             the banner alone, never the last mark held over (#1595)"
+        );
+    }
+
+    #[test]
+    fn a_failure_from_anywhere_else_stops_pointing_at_the_form() {
+        let mut model = model_with_piece_and_exercise();
+
+        send(
+            &mut model,
+            ItemEvent::AddPieceInFull {
+                piece: one_pass_piece_input("Autumn Leaves"),
+                chart: Some("| Cm7 | (F7) |".to_string()),
+                exercises: vec![],
+            },
+        );
+        assert!(
+            model.last_error_target.is_some(),
+            "the chart failure points"
+        );
+
+        send(&mut model, ItemEvent::Add(new_exercise_input("   ")));
+
+        assert!(
+            model.last_error.is_some(),
+            "the next failure still says what went wrong"
+        );
+        assert!(
+            model.last_error_target.is_none(),
+            "but must not inherit where the last one pointed"
+        );
+    }
+
+    #[test]
+    fn add_piece_in_full_stops_pointing_once_the_form_is_fixed() {
+        let mut model = model_with_piece_and_exercise();
+
+        send(
+            &mut model,
+            ItemEvent::AddPieceInFull {
+                piece: one_pass_piece_input("Autumn Leaves"),
+                chart: Some("| Cm7 | (F7) |".to_string()),
+                exercises: vec![],
+            },
+        );
+        assert!(model.last_error_target.is_some());
+
+        send(
+            &mut model,
+            ItemEvent::AddPieceInFull {
+                piece: one_pass_piece_input("Autumn Leaves"),
+                chart: Some("| Cm7 | F7 |".to_string()),
+                exercises: vec![],
+            },
+        );
+
+        assert!(
+            model.last_error_target.is_none(),
+            "a create that goes through leaves nothing marked"
+        );
+    }
+
+    #[test]
+    fn form_error_target_round_trips_on_the_ffi_bincode_wire() {
+        for target in [
+            FormErrorTarget::Piece {
+                field: FormErrorField::Title,
+            },
+            FormErrorTarget::Chart,
+            FormErrorTarget::ChartBar {
+                bar_number: 2,
+                token: "(F7)".to_string(),
+            },
+            FormErrorTarget::Exercise {
+                index: 1,
+                field: Some(FormErrorField::Tempo),
+            },
+            FormErrorTarget::Exercise {
+                index: 0,
+                field: None,
+            },
+        ] {
+            crate::domain::types::assert_round_trips(target);
+        }
     }
 
     #[test]

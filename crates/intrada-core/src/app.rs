@@ -184,6 +184,9 @@ impl App for Intrada {
         event: Self::Event,
         model: &mut Self::Model,
     ) -> Command<Self::Effect, Self::Event> {
+        // Before the handler, not after: a target only ever belongs to the
+        // error the event in hand reported (#1595).
+        model.last_error_target = None;
         let command = self.handle_event(event, model);
         if model.last_error.is_some() {
             model.error_seq = model.error_seq.wrapping_add(1);
@@ -655,6 +658,7 @@ impl Intrada {
             summary,
             session_status,
             error: model.last_error.clone(),
+            error_target: model.last_error_target.clone(),
             error_seq: model.error_seq,
             analytics,
             last_practised,
@@ -4559,6 +4563,26 @@ mod tests {
         model.last_error = Some("bad request".to_string());
         let vm = app.view(&model);
         assert_eq!(vm.error.as_deref(), Some("bad request"));
+    }
+
+    #[test]
+    fn view_error_target_maps_from_the_model() {
+        let app = Intrada;
+        let mut model = Model::test_default();
+        assert!(app.view(&model).error_target.is_none());
+
+        model.last_error_target = Some(crate::model::FormErrorTarget::ChartBar {
+            bar_number: 3,
+            token: "(F7)".to_string(),
+        });
+
+        assert_eq!(
+            app.view(&model).error_target,
+            Some(crate::model::FormErrorTarget::ChartBar {
+                bar_number: 3,
+                token: "(F7)".to_string()
+            })
+        );
     }
 
     #[test]

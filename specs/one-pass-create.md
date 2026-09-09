@@ -19,6 +19,7 @@
 [#1363]: https://github.com/jonyardley/intrada/issues/1363
 [#1389]: https://github.com/jonyardley/intrada/issues/1389
 [#1108]: https://github.com/jonyardley/intrada/issues/1108
+[#1595]: https://github.com/jonyardley/intrada/issues/1595
 
 ## Problem
 
@@ -190,6 +191,77 @@ detail card, so the two surfaces agree rather than inventing a second
 vocabulary. Both sections are silent when empty: no counts, no "optional"
 captions.
 
+## Pointing at the failure
+
+Follow-on phase, issue [#1595], and the reason the screens above ship the
+banner alone. `ViewModel` carries `error` and `error_seq` and nothing else
+about a failure, so the two commonest cases are indistinguishable from Swift:
+a blank piece title and a blank staged exercise title both come out of
+`validate_title` as the same sentence, and matching the chart's `Bar 4: ...`
+on message text would put domain logic in the shell.
+
+So the core says where, and the shell points:
+
+```rust
+// crates/intrada-core/src/model.rs
+
+pub enum FormErrorTarget {
+    Piece { field: FormErrorField },
+    /// A chart holding no bars at all fails at no bar, so there is no number
+    /// to hand the shell and the whole section is what is marked.
+    Chart,
+    /// Numbered from 1, with the token the parser stumbled on: both already
+    /// carried by `ChartParseError`.
+    ChartBar { bar_number: usize, token: String },
+    /// By position, from 0, in the `exercises` the event carried. `field` is
+    /// `None` when the row is a chosen exercise rather than a written one.
+    Exercise { index: usize, field: Option<FormErrorField> },
+}
+
+pub enum FormErrorField { Title, Composer, Tempo, Notes, Tags }
+```
+
+`App::update` clears the model's copy before every event, so a target always
+belongs to the error the event in hand reported and can never be inherited by
+the next one. Every path other than `AddPieceInFull` sets an error and no
+target, which reads as the banner alone, exactly as today.
+
+That is the only guarantee the core can make, and it is worth being exact
+about what it is not. A target says nothing about shell state that has moved
+since: the staged list lives in Swift and is reordered there without the core
+hearing about it. And an event that never touches the error still clears the
+target, so a banner can outlive its own mark, which is the shape the shell
+already handles everywhere else.
+
+### Key decisions, continued
+
+9. **The target is a place, not a second verdict.** It names the section, the
+   row by index, and for a chart the bar and the offending token. The wording
+   stays the core's one sentence: the shell renders it in the banner and marks
+   the spot, it never composes a message of its own.
+
+10. **A field the form cannot show gets no target.** `validate_create_item`
+    can fail on `photo_id`, which is nothing anyone can fix in place, so the
+    field mapping is fallible and an unmapped field falls back to the banner.
+
+11. **One failure at a time stays.** Validation still stops at the first
+    error, so a form with two problems takes two presses. Collecting them all
+    would change every other caller of `validate_create_item`, and the screen
+    would still only point once.
+
+12. **The shell owns dropping the mark.** `Exercise { index }` is a position
+    in the list the event carried, and removing or re-choosing a row rewrites
+    that list in Swift with no event sent, which would leave the mark on a row
+    that was never at fault. So the screens PR clears its own mark on any
+    change to the staged list, and treats an absent target as the banner alone
+    rather than keeping the last mark.
+
+13. **Online mode reports no target.** The refusal there is about the mode,
+    not a field, and a bare piece online falls through to the ordinary create,
+    which sets no target. The same blank composer therefore marks a field
+    local-first and raises a bare banner online, which is the offline-first
+    split decision 7 already makes.
+
 ## Tests
 
 - The whole-event property: a bad chart, a blank exercise title or an unknown
@@ -200,6 +272,12 @@ captions.
 - Round-trips as above, before the screens exist.
 - Snapshots: the form with both sections collapsed, and with a chart and two
   exercises staged.
+- Each target case, with the failure on the second row so a target that always
+  names the first one fails: the piece field, a written row, a chosen row that
+  has gone, the chart's bar and token, and a chart of prose with no bars in it.
+- The lifetime rule: an error set by any other event reports no target, a
+  create that then succeeds stops pointing, and an event that never touched the
+  error keeps the message while the mark goes.
 
 ## Open questions
 

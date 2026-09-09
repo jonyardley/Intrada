@@ -37,6 +37,11 @@ pub struct Model {
     pub active_query: Option<ListQuery>,
     pub active_sort: LibrarySort,
     pub last_error: Option<String>,
+    /// Where the current error is, when the handler that set it could say.
+    /// Cleared before every event in `App::update`, so it always belongs to the
+    /// error the event in hand reported. It says nothing about shell state that
+    /// has changed since, which is the shell's to drop (#1595).
+    pub last_error_target: Option<FormErrorTarget>,
     /// Set when the user dismisses the error banner. While true, errors from
     /// HTTP failures routed through [`Model::surface_error`] are silently
     /// swallowed — avoids the "dismiss → next refetch fails → banner
@@ -198,6 +203,50 @@ pub enum SessionStatusView {
     Summary,
 }
 
+/// Where on the create form the failure the banner names actually is (#1595).
+/// Set only by the handler that reported the error, and only where the form has
+/// somewhere to point; every other path leaves it `None`, which reads as the
+/// banner alone.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "facet_typegen", derive(facet::Facet))]
+#[cfg_attr(feature = "facet_typegen", repr(C))]
+pub enum FormErrorTarget {
+    Piece {
+        field: FormErrorField,
+    },
+    /// The chord chart as a whole, which is what a chart holding no bars at all
+    /// produces: there is nothing inside it to point at.
+    Chart,
+    /// One bar of the chord chart, numbered from 1, and the token the parser
+    /// stumbled on.
+    ChartBar {
+        bar_number: usize,
+        token: String,
+    },
+    /// A staged exercise by position, from 0, in the exercises the event
+    /// carried. `field` is `None` for a chosen exercise, which has no field of
+    /// its own. The shell reorders that list without telling the core, so the
+    /// position holds only until it does (spec decision 12).
+    Exercise {
+        index: usize,
+        field: Option<FormErrorField>,
+    },
+}
+
+/// A field the add form shows. A validation failure on anything else maps to no
+/// target rather than a field nobody can reach. Named apart from the shell's own
+/// `FormField` view, which it would otherwise shadow inside the app module.
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "facet_typegen", derive(facet::Facet))]
+#[cfg_attr(feature = "facet_typegen", repr(C))]
+pub enum FormErrorField {
+    Title,
+    Composer,
+    Tempo,
+    Notes,
+    Tags,
+}
+
 /// Serializable view state sent to shells for rendering.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Default)]
 #[cfg_attr(feature = "facet_typegen", derive(facet::Facet))]
@@ -229,6 +278,8 @@ pub struct ViewModel {
     pub summary: Option<SummaryView>,
     pub session_status: SessionStatusView,
     pub error: Option<String>,
+    /// See [`Model::last_error_target`].
+    pub error_target: Option<FormErrorTarget>,
     /// See `Model::error_seq` — compare around a send instead of the message.
     pub error_seq: u64,
     pub analytics: Option<AnalyticsView>,
