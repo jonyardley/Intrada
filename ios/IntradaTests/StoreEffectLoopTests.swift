@@ -891,6 +891,72 @@ final class StoreEffectLoopTests: XCTestCase {
     XCTAssertNil(rejected.items.first { $0.title == "Orphan" }, "and no orphan exercise either")
   }
 
+  /// Real-bridge error target (#1595): three variants with different payload
+  /// shapes, one of them a nested optional enum, so only the live bridge proves
+  /// the wire holds (#846). The screens read this to point at the failure.
+  func testRealBridgeRejectedCreateCarriesWhereItFailed() throws {
+    let bridge = LiveBridge()
+    _ = try bridge.update(.startApp(apiBaseUrl: "http://localhost:3001", localFirst: true))
+
+    _ = try bridge.update(
+      .item(
+        .addPieceInFull(
+          piece: CreateItem(
+            title: "Blue in Green", kind: .piece, composer: "Bill Evans", key: "G",
+            modality: nil, tempo: nil, notes: nil, tags: [], photoId: nil),
+          chart: "| Cm7 | Hxyz |",
+          exercises: [])))
+
+    XCTAssertEqual(
+      try bridge.view().errorTarget, .chart(bar: 2, token: "Hxyz"),
+      "the bar and the token, so the chart section can highlight in place")
+
+    _ = try bridge.update(
+      .item(
+        .addPieceInFull(
+          piece: CreateItem(
+            title: "Blue in Green", kind: .piece, composer: "Bill Evans", key: "G",
+            modality: nil, tempo: nil, notes: nil, tags: [], photoId: nil),
+          chart: nil,
+          exercises: [
+            .new(
+              CreateItem(
+                title: "Enclosures", kind: .exercise, composer: nil, key: nil, modality: nil,
+                tempo: nil, notes: nil, tags: [], photoId: nil)),
+            .new(
+              CreateItem(
+                title: "   ", kind: .exercise, composer: nil, key: nil, modality: nil,
+                tempo: nil, notes: nil, tags: [], photoId: nil)),
+          ])))
+
+    XCTAssertEqual(
+      try bridge.view().errorTarget, .exercise(index: 1, field: .title),
+      "the second row is the blank one, and its title is what to mark")
+
+    _ = try bridge.update(
+      .item(
+        .addPieceInFull(
+          piece: CreateItem(
+            title: "Blue in Green", kind: .piece, composer: nil, key: "G", modality: nil,
+            tempo: nil, notes: nil, tags: [], photoId: nil),
+          chart: nil,
+          exercises: [])))
+
+    XCTAssertEqual(try bridge.view().errorTarget, .piece(field: .composer))
+
+    _ = try bridge.update(
+      .item(
+        .add(
+          CreateItem(
+            title: "", kind: .exercise, composer: nil, key: nil, modality: nil, tempo: nil,
+            notes: nil, tags: [], photoId: nil))))
+
+    let unrelated = try bridge.view()
+    XCTAssertNotNil(unrelated.error, "an ordinary create still reports what went wrong")
+    XCTAssertNil(
+      unrelated.errorTarget, "but must not leave the form pointing at the last failure")
+  }
+
   /// Real-bridge priority toggle (#763): the star sends an UpdateItem with every
   /// optional field "no change" (outer nil) and only `priority` set — a different
   /// bincode shape than the full edit, so round-trip it through the live bridge to

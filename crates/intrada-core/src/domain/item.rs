@@ -552,10 +552,8 @@ pub fn handle_item_event(event: ItemEvent, model: &mut Model) -> Command<Effect,
                     }
                     ScaffoldEntry::Existing { id } => {
                         if let Err(e) = validation::validate_exercise_link_target(&id, model) {
-                            model.last_error_target = Some(FormErrorTarget::Exercise {
-                                index,
-                                field: None,
-                            });
+                            model.last_error_target =
+                                Some(FormErrorTarget::Exercise { index, field: None });
                             model.last_error = Some(e.to_string());
                             return crux_core::render::render();
                         }
@@ -3842,7 +3840,10 @@ mod tests {
                 exercises: vec![],
             },
         );
-        assert!(model.last_error_target.is_some(), "the chart failure points");
+        assert!(
+            model.last_error_target.is_some(),
+            "the chart failure points"
+        );
 
         send(&mut model, ItemEvent::Add(new_exercise_input("   ")));
 
