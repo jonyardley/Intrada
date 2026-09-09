@@ -163,6 +163,8 @@ enum IntradaFont {
   static let tab = Font.custom(Inter.medium, size: 13, relativeTo: .footnote)
   static let segment = Font.custom(Inter.medium, size: 14, relativeTo: .subheadline)
   static let field = Font.custom(Inter.regular, size: 16, relativeTo: .callout)
+  static let chart = Font.system(.footnote, design: .monospaced)
+  static let chartEditor = Font.system(.body, design: .monospaced)
 
   private enum Inter {
     static let regular = "InterVariable"

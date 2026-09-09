@@ -3,13 +3,17 @@ import SwiftUI
 
 /// Editor for a piece's chord chart. Sends the raw text to the core, which
 /// parses it; on a parse error the core surfaces the offending token and this
-/// sheet stays open showing it inline (never a silent dismiss — #846). The chart
+/// sheet stays open showing it inline (never a silent dismiss, #846). The chart
 /// derives in the piece's key, so the key isn't edited here.
 struct ChordChartEditSheet: View {
-  let pieceId: String
+  enum Destination {
+    case piece(id: String)
+    case caller((String) -> Void)
+  }
+
+  let destination: Destination
   let pieceKey: String?
   let pieceModality: Modality?
-  let existingChart: ChordChart?
 
   @Environment(Store.self) private var store
   @Environment(\.dismiss) private var dismiss
@@ -17,11 +21,20 @@ struct ChordChartEditSheet: View {
   @State private var parseError: String?
 
   init(pieceId: String, pieceKey: String?, pieceModality: Modality?, existingChart: ChordChart?) {
-    self.pieceId = pieceId
+    destination = .piece(id: pieceId)
     self.pieceKey = pieceKey
     self.pieceModality = pieceModality
-    self.existingChart = existingChart
     _text = State(initialValue: existingChart.map(Self.reconstructText) ?? "")
+  }
+
+  init(
+    text: String, pieceKey: String?, pieceModality: Modality?,
+    onSave: @escaping (String) -> Void
+  ) {
+    destination = .caller(onSave)
+    self.pieceKey = pieceKey
+    self.pieceModality = pieceModality
+    _text = State(initialValue: text)
   }
 
   var body: some View {
@@ -48,7 +61,7 @@ struct ChordChartEditSheet: View {
         }
         ToolbarItem(placement: .confirmationAction) {
           Button("Save") { save() }
-            .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            .disabled(saveDisabled)
         }
       }
     }
@@ -78,14 +91,14 @@ struct ChordChartEditSheet: View {
     ZStack(alignment: .topLeading) {
       if text.isEmpty {
         Text("| Cm7 | F7 | Bbmaj7 |")
-          .font(.system(.body, design: .monospaced))
+          .font(IntradaFont.chartEditor)
           .foregroundStyle(IntradaColor.inkFaint)
           .padding(.horizontal, 5)
           .padding(.vertical, 8)
           .allowsHitTesting(false)
       }
       TextEditor(text: $text)
-        .font(.system(.body, design: .monospaced))
+        .font(IntradaFont.chartEditor)
         .foregroundStyle(IntradaColor.ink)
         .scrollContentBackground(.hidden)
         .frame(minHeight: 160)
@@ -127,7 +140,7 @@ struct ChordChartEditSheet: View {
         .font(IntradaFont.meta)
         .foregroundStyle(IntradaColor.inkSecondary)
       Text("Cm7  F7  Bbmaj7  Aø7  D7alt")
-        .font(.system(.footnote, design: .monospaced))
+        .font(IntradaFont.chart)
         .foregroundStyle(IntradaColor.inkFaint)
     }
     .frame(maxWidth: .infinity, alignment: .leading)
@@ -138,13 +151,26 @@ struct ChordChartEditSheet: View {
   // Optimistic send guarded on errorSeq: on a parse rejection the core bumps
   // the error, so we keep the sheet open and mirror the message inline.
   private func save() {
-    let before = store.viewModel?.errorSeq
-    store.send(.item(.setChordChart(pieceId: pieceId, rawChart: text)))
-    if store.viewModel?.errorSeq == before {
-      UINotificationFeedbackGenerator().notificationOccurred(.success)
+    switch destination {
+    case .piece(let id):
+      let before = store.viewModel?.errorSeq
+      store.send(.item(.setChordChart(pieceId: id, rawChart: text)))
+      if store.viewModel?.errorSeq == before {
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        dismiss()
+      } else {
+        parseError = store.viewModel?.error
+      }
+    case .caller(let onSave):
+      onSave(text)
       dismiss()
-    } else {
-      parseError = store.viewModel?.error
+    }
+  }
+
+  private var saveDisabled: Bool {
+    switch destination {
+    case .piece: text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    case .caller: false
     }
   }
 

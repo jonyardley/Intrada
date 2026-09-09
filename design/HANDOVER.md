@@ -1,12 +1,5 @@
 # Handover — Linked Exercises &amp; design-system reconciliation
-> **⚠️ Historical — one past session's summary, not the standing handover.** This
-> records the July 2026 *linked / related exercises* design session, a
-> notebook-era surface superseded by the practice-coach pivot (since reversed,
-> #1344). The generic filename is misleading: design handovers *into* Claude
-> Design are briefs under [`design/briefs/`](briefs/). The live direction is
-> [`docs/roadmap.md`](../docs/roadmap.md).
-> Sections 3 and 5 (file organisation, keeping things aligned) are still accurate
-> and now live canonically in [`design/design-process.md`](design-process.md).
+
 _Session summary. What changed, where it lives now, and how to keep it that way._
 
 ---

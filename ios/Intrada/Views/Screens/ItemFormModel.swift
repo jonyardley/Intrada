@@ -7,8 +7,9 @@ import SwiftUI
 final class ItemFormModel {
   /// The fields a photographed page can fill (#1436). Key and notes are not
   /// among them: nothing on a page reliably says either.
+  /// `chart` is always empty until phase D of `specs/piece-from-photo.md`.
   enum ReadField: Hashable {
-    case title, composer, marking, bpm
+    case title, composer, marking, bpm, chart
   }
 
   var kind: ItemKind
@@ -56,11 +57,21 @@ final class ItemFormModel {
       edited(.bpm)
     }
   }
+  var chartText: String {
+    get { storedChart }
+    set {
+      storedChart = newValue
+      edited(.chart)
+    }
+  }
+
+  var stagedExercises: [StagedExercise] = []
 
   private var storedTitle = ""
   private var storedComposer = ""
   private var storedMarking = ""
   private var storedBpm = ""
+  private var storedChart = ""
 
   init(kind: ItemKind = .piece) {
     self.kind = kind
@@ -105,6 +116,9 @@ final class ItemFormModel {
         take(.bpm, String(beats), weak: read.weak) { storedBpm = $0 }
       }
     }
+    if let read = draft.chartText, replaceable(.chart, storedChart) {
+      take(.chart, read.value, weak: read.weak) { storedChart = $0 }
+    }
   }
 
   private func replaceable(_ field: ReadField, _ current: String) -> Bool {
@@ -132,6 +146,14 @@ final class ItemFormModel {
       photoId: photoId)
   }
 
+  var hasStagedExtras: Bool {
+    !stagedExercises.isEmpty || emptyToNil(chartText) != nil
+  }
+
+  func scaffoldEntries() -> [ScaffoldEntry] {
+    stagedExercises.map(\.entry)
+  }
+
   func updateInput() -> UpdateItem {
     UpdateItem(
       title: title,
@@ -155,5 +177,67 @@ final class ItemFormModel {
     let beats = UInt16(bpm.trimmingCharacters(in: .whitespaces))
     if mark == nil && beats == nil { return nil }
     return Tempo(marking: mark, bpm: beats)
+  }
+}
+
+enum StagedExercise: Identifiable, Hashable {
+  case draft(id: UUID, title: String, key: String, modality: Modality?, bpm: String)
+  case existing(id: String, title: String, meta: String?)
+
+  var id: String {
+    switch self {
+    case .draft(let id, _, _, _, _): id.uuidString
+    case .existing(let id, _, _): id
+    }
+  }
+
+  var existingId: String? {
+    switch self {
+    case .draft: nil
+    case .existing(let id, _, _): id
+    }
+  }
+
+  var title: String {
+    switch self {
+    case .draft(_, let title, _, _, _): title
+    case .existing(_, let title, _): title
+    }
+  }
+
+  var meta: String? {
+    switch self {
+    case .draft(_, _, let key, let modality, let bpm):
+      let mode = modality == .minor ? "minor" : "major"
+      let parts = [
+        key.isEmpty ? nil : "\(key) \(mode)",
+        bpm.isEmpty ? nil : "\(bpm) bpm",
+      ].compactMap { $0 }
+      return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    case .existing(_, _, let meta): return meta
+    }
+  }
+
+  var entry: ScaffoldEntry {
+    switch self {
+    // Trimmed here rather than relying on the sheet to have done it, so the
+    // tempo survives whoever builds the case.
+    case .draft(_, let title, let key, let modality, let bpm):
+      .new(
+        CreateItem(
+          title: title.trimmingCharacters(in: .whitespacesAndNewlines),
+          kind: .exercise,
+          composer: nil,
+          key: key.isEmpty ? nil : key,
+          modality: modality,
+          tempo: UInt16(bpm.trimmingCharacters(in: .whitespaces)).map {
+            Tempo(marking: nil, bpm: $0)
+          },
+          notes: nil,
+          tags: [],
+          photoId: nil))
+    case .existing(let id, _, _):
+      .existing(id: id)
+    }
   }
 }

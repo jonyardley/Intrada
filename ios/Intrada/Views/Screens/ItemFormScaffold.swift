@@ -5,7 +5,7 @@ import SwiftUI
 /// confirm/cancel toolbar and the error-reconcile flow. `send` dispatches the
 /// add/update event; the scaffold owns the "don't celebrate until the core
 /// confirms" handling so both screens behave identically.
-struct ItemFormScaffold<Header: View>: View {
+struct ItemFormScaffold<Header: View, Sections: View>: View {
   @Environment(Store.self) private var store
   @Environment(\.dismiss) private var dismiss
 
@@ -21,12 +21,14 @@ struct ItemFormScaffold<Header: View>: View {
   /// as a row inside the form: once a page is read it is not a field beside
   /// title and composer, it is what fills them (#1446).
   @ViewBuilder var header: () -> Header
+  @ViewBuilder var sections: () -> Sections
   let send: () -> Void
 
   init(
     form: ItemFormModel, title: String, confirmLabel: String, composerSuggestions: [String],
     tagSuggestions: [String], showsKindPicker: Bool = true,
     @ViewBuilder header: @escaping () -> Header = { EmptyView() },
+    @ViewBuilder sections: @escaping () -> Sections = { EmptyView() },
     send: @escaping () -> Void
   ) {
     self.form = form
@@ -36,6 +38,7 @@ struct ItemFormScaffold<Header: View>: View {
     self.tagSuggestions = tagSuggestions
     self.showsKindPicker = showsKindPicker
     self.header = header
+    self.sections = sections
     self.send = send
   }
 
@@ -89,6 +92,8 @@ struct ItemFormScaffold<Header: View>: View {
                 TagChipInput(label: "Tags", tags: $form.tags, suggestions: tagSuggestions)
               }
               .cardSurface()
+
+              sections()
             }
             .padding(IntradaSpacing.card)
           }
