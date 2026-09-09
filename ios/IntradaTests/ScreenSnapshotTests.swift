@@ -52,6 +52,17 @@ final class ScreenSnapshotTests: XCTestCase {
     .image(on: .iPhone13, perceptualPrecision: 0.98, traits: .init(displayScale: 2))
   }
 
+  /// A frame tall enough to hold the whole add form: the chart and the staged
+  /// rows sit below an iPhone 13's fold, so a device-sized frame captures the
+  /// banner and nothing the marks do (#1595). Scale 1 keeps the reference
+  /// smaller than a device-sized one despite the height.
+  private var tallFormConfig: Snapshotting<UIViewController, UIImage> {
+    .image(
+      on: ViewImageConfig(
+        safeArea: .zero, size: CGSize(width: 390, height: 1500), traits: .init(displayScale: 1)),
+      perceptualPrecision: 0.98, traits: .init(displayScale: 1))
+  }
+
   /// Largest accessibility text size — proves layouts reflow rather than clip/wrap.
   private var axConfig: Snapshotting<UIViewController, UIImage> {
     .image(
@@ -760,6 +771,34 @@ final class ScreenSnapshotTests: XCTestCase {
     assertSnapshot(of: host(LibraryAddScreen(previewForm: form)), as: config)
   }
 
+  /// #1595: the banner says what, the field says where. The wash and the
+  /// recoloured label are the whole treatment, so a pixel diff is what holds
+  /// them.
+  func testLibraryAddScreenMarksTheFieldAtFault() {
+    let form = ItemFormModel(kind: .piece)
+    form.title = "Alice in Wonderland"
+    form.formError = "Composer is required"
+    form.mark(.piece(field: .composer))
+    assertSnapshot(of: host(LibraryAddScreen(previewForm: form)), as: config)
+  }
+
+  /// #1595: the whole form with a chart staged and two rows, the second one
+  /// marked. This is what holds the wiring from the target the core sent to the
+  /// row and section that carry it, which the component snapshots cannot see.
+  func testLibraryAddScreenMarksTheStagedRowInContext() {
+    let form = ItemFormModel(kind: .piece)
+    form.title = "Alice in Wonderland"
+    form.composer = "Sammy Fain"
+    form.chartText = "| Dm7 | G7 | Cmaj7 | A7alt |"
+    form.stagedExercises = [
+      .existing(id: "ex-1", title: "Shell voicings", meta: "C major"),
+      .draft(id: UUID(), title: "Untitled", key: "C", modality: .major, bpm: "80"),
+    ]
+    form.formError = "Title must be between 1 and 500 characters"
+    form.mark(.exercise(index: 1, field: .title))
+    assertSnapshot(of: host(LibraryAddScreen(previewForm: form)), as: tallFormConfig)
+  }
+
   /// #1436: the composer was read weakly, so its mark is dimmed — the one
   /// decision the design conversation settled, and one a pixel diff can hold.
   func testLibraryAddScreenReadFromAPhoto() {
@@ -799,6 +838,44 @@ final class ScreenSnapshotTests: XCTestCase {
     .background(PaperBackground())
 
     assertSnapshot(of: stack, as: .image(layout: .sizeThatFits))
+  }
+
+  /// #1595: the row the refused save named wears the wash and a danger bar in
+  /// place of its kind bar, and only that row does.
+  func testDraftItemRowAtFault() {
+    let rows = VStack(spacing: 0) {
+      DraftItemRow(title: "Shell voicings", meta: "C major", onRemove: {})
+      HairlineDivider()
+      DraftItemRow(
+        title: "Untitled", meta: nil, faulted: true, faultedField: .title, onRemove: {})
+    }
+    .background(IntradaColor.cardFill)
+    .padding(IntradaSpacing.card)
+    .frame(width: 390)
+    .background(PaperBackground())
+
+    assertSnapshot(of: rows, as: .image(layout: .sizeThatFits))
+  }
+
+  /// #1595: a refused bar puts a danger edge on the chart block, the one thing
+  /// that changes on a chart the shell cannot parse.
+  func testStagedChartCardAtFault() {
+    let card = VStack(spacing: IntradaSpacing.card) {
+      StagedChartCard(
+        text: "| Dm7 | G7 | Hxyz | Cmaj7 |", readWeakly: nil, faulted: true,
+        faultedBarNumber: 3, onEdit: {}
+      )
+      .cardSurface()
+      StagedChartCard(
+        text: "| Dm7 | G7 | Cmaj7 | A7alt |", readWeakly: nil, onEdit: {}
+      )
+      .cardSurface()
+    }
+    .padding(IntradaSpacing.card)
+    .frame(width: 390)
+    .background(PaperBackground())
+
+    assertSnapshot(of: card, as: .image(layout: .sizeThatFits))
   }
 
   func testDraftItemRows() {

@@ -59,6 +59,7 @@ struct LibraryAddScreen: View {
       sections: {
         if showsSections {
           chartSection
+            .id(FormAnchor.chart)
           exercisesSection
         }
       }
@@ -110,7 +111,8 @@ struct LibraryAddScreen: View {
         .cardSurface()
     } else {
       StagedChartCard(
-        text: form.chartText, readWeakly: form.readFrom[.chart],
+        text: form.chartText, readWeakly: form.readFrom[.chart], faulted: form.faultsChart,
+        faultedBarNumber: form.faultedBarNumber,
         onEdit: { editingChart = true }
       )
       .cardSurface()
@@ -139,10 +141,14 @@ struct LibraryAddScreen: View {
             .padding(.horizontal, IntradaSpacing.card)
             .padding(.bottom, IntradaSpacing.cardCompact)
         } else {
-          ForEach(form.stagedExercises) { staged in
+          ForEach(Array(form.stagedExercises.enumerated()), id: \.element.id) { index, staged in
+            // The anchor rides the divider: an explicit id on the row itself
+            // would override the identity `ForEach` diffs the list by.
             HairlineDivider()
+              .id(FormAnchor.row(index))
             DraftItemRow(
-              title: staged.title, meta: staged.meta,
+              title: staged.title, meta: staged.meta, faulted: form.faults(row: index),
+              faultedField: form.faultedField(row: index),
               onRemove: { form.stagedExercises.removeAll { $0.id == staged.id } })
           }
         }

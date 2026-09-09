@@ -7,6 +7,7 @@ struct TagChipInput: View {
   let label: String
   @Binding var tags: [String]
   var suggestions: [String]
+  var faulted: Bool = false
 
   @State private var draft = ""
   @FocusState private var focused: Bool
@@ -38,7 +39,7 @@ struct TagChipInput: View {
       VStack(alignment: .leading, spacing: IntradaSpacing.controlGap) {
         Text(label)
           .font(IntradaFont.metaMedium)
-          .foregroundStyle(IntradaColor.inkSecondary)
+          .foregroundStyle(faulted ? IntradaColor.danger : IntradaColor.inkSecondary)
         if !tags.isEmpty {
           FlowLayout(spacing: 6) {
             ForEach(tags, id: \.self) { tag in
@@ -54,11 +55,12 @@ struct TagChipInput: View {
           .focused($focused)
           .submitLabel(.done)
           .onSubmit { add(draft) }
+          .accessibilityHint(FaultMark.spoken(faulted))
       }
       .padding(.vertical, 10)
       .padding(.horizontal, IntradaSpacing.card)
       .frame(maxWidth: .infinity, alignment: .leading)
-      .background(IntradaColor.cardFill)
+      .faultWash(faulted, over: IntradaColor.cardFill)
       .zIndex(1)
 
       if showSuggestions {

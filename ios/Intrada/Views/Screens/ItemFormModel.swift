@@ -15,9 +15,13 @@ final class ItemFormModel {
   var kind: ItemKind
   var key = ""
   var modality: Modality?
-  var notes = ""
-  var tags: [String] = []
   var formError: String?
+  /// Where the core said the refused save failed, until the thing it points at
+  /// changes (#1595). The banner keeps its sentence either way.
+  private(set) var errorTarget: FormErrorTarget?
+  /// Bumped by every refusal, so pressing Add twice on the same fault scrolls
+  /// back to it: the target itself is unchanged, and nothing would fire on it.
+  private(set) var faultSeq = 0
   /// The page the fields were read off, carried onto the piece the form
   /// creates so it is not photographed a second time (#1436).
   var photoId: String?
@@ -64,14 +68,37 @@ final class ItemFormModel {
       edited(.chart)
     }
   }
+  var notes: String {
+    get { storedNotes }
+    set {
+      storedNotes = newValue
+      cleared(.notes)
+    }
+  }
+  var tags: [String] {
+    get { storedTags }
+    set {
+      storedTags = newValue
+      cleared(.tags)
+    }
+  }
 
-  var stagedExercises: [StagedExercise] = []
+  /// Removing or re-choosing a row rewrites the list the core numbered, so a
+  /// mark on any row cannot survive it (#1595, and decision 12 of
+  /// `specs/one-pass-create.md`).
+  var stagedExercises: [StagedExercise] = [] {
+    didSet {
+      if case .exercise = errorTarget { errorTarget = nil }
+    }
+  }
 
   private var storedTitle = ""
   private var storedComposer = ""
   private var storedMarking = ""
   private var storedBpm = ""
   private var storedChart = ""
+  private var storedNotes = ""
+  private var storedTags: [String] = []
 
   init(kind: ItemKind = .piece) {
     self.kind = kind
@@ -81,7 +108,7 @@ final class ItemFormModel {
     kind = item.itemType
     storedTitle = item.title
     storedComposer = item.subtitle
-    tags = item.tags
+    storedTags = item.tags
     // Normalise on load so editing self-heals legacy combined values
     // ("F# major") into tonic + modality even if the user never re-taps a spoke.
     let selection = KeyHelper.selection(key: item.key ?? "", modality: item.modality)
@@ -89,7 +116,7 @@ final class ItemFormModel {
     modality = selection?.mode ?? item.modality
     storedMarking = item.tempoMarking ?? ""
     storedBpm = item.tempoBpm.map(String.init) ?? ""
-    notes = item.notes ?? ""
+    storedNotes = item.notes ?? ""
   }
 
   /// A field is written when empty, or when it still holds an earlier read:
@@ -127,6 +154,57 @@ final class ItemFormModel {
 
   private func edited(_ field: ReadField) {
     readFrom[field] = nil
+    switch field {
+    case .title: cleared(.title)
+    case .composer: cleared(.composer)
+    case .marking, .bpm: cleared(.tempo)
+    case .chart: if faultsChart { errorTarget = nil }
+    }
+  }
+
+  func mark(_ target: FormErrorTarget?) {
+    errorTarget = target
+    faultSeq += 1
+  }
+
+  func clearFault() {
+    errorTarget = nil
+  }
+
+  private func cleared(_ field: FormErrorField) {
+    guard case .piece(let marked) = errorTarget, marked == field else { return }
+    errorTarget = nil
+  }
+
+  // ── What the mark is on ──
+
+  func faults(_ field: FormErrorField) -> Bool {
+    guard case .piece(let marked) = errorTarget else { return false }
+    return marked == field
+  }
+
+  var faultsChart: Bool {
+    switch errorTarget {
+    case .chart, .chartBar: true
+    default: false
+    }
+  }
+
+  var faultedBarNumber: UInt64? {
+    guard case .chartBar(let bar, _) = errorTarget else { return nil }
+    return bar
+  }
+
+  func faults(row index: Int) -> Bool {
+    guard case .exercise(let marked, _) = errorTarget else { return false }
+    return marked == UInt64(index)
+  }
+
+  func faultedField(row index: Int) -> FormErrorField? {
+    guard case .exercise(let marked, let field) = errorTarget, marked == UInt64(index) else {
+      return nil
+    }
+    return field
   }
 
   var canSubmit: Bool {

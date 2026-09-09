@@ -20,6 +20,10 @@ enum IntradaColor {
   static let accent = Color(hex: 0x4C3FA6)
   static let onAccent = Color(hex: 0xF2EFE8)
   static let danger = Color(hex: 0xB3261E)
+  /// The banner and whatever it points at wear the same wash, so the pair reads
+  /// as one thing rather than two unrelated red surfaces (#1595).
+  static let dangerWash = danger.opacity(0.10)
+  static let dangerEdge = danger.opacity(0.25)
   static let shadow = Color.black.opacity(0.06)
   static let brandGradientStart = Color(hex: 0x6346E5)
   static let brandGradientEnd = Color(hex: 0x4C3FA6)

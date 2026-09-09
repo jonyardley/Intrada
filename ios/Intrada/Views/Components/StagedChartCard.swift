@@ -1,3 +1,4 @@
+import SharedTypes
 import SwiftUI
 
 struct StagedChartCard: View {
@@ -5,6 +6,10 @@ struct StagedChartCard: View {
 
   let text: String
   let readWeakly: Bool?
+  /// True while the chart is what a refused save named, with `faultedBarNumber`
+  /// the bar it stopped at where there was one to name (#1595).
+  var faulted: Bool = false
+  var faultedBarNumber: UInt64?
   let onEdit: () -> Void
 
   var body: some View {
@@ -31,12 +36,17 @@ struct StagedChartCard: View {
       )
       .overlay(
         RoundedRectangle(cornerRadius: IntradaRadius.badge)
-          .stroke(IntradaColor.divider, lineWidth: 1)
+          .stroke(faulted ? IntradaColor.danger : IntradaColor.divider, lineWidth: 1)
       )
       .padding(.horizontal, IntradaSpacing.card)
       .padding(.bottom, readWeakly == nil ? IntradaSpacing.card : IntradaSpacing.controlGap)
       .accessibilityLabel("Chord chart, as typed")
       .accessibilityValue(text)
+      .accessibilityHint(spokenFault)
+  }
+
+  private var spokenFault: String {
+    faulted ? FaultMark.spoken(bar: faultedBarNumber) : ""
   }
 
   private var lineLimit: Int {
@@ -49,6 +59,16 @@ struct StagedChartCard: View {
     StagedChartCard(
       text: "[A]\n| Dm7 | G7 | Cmaj7 | A7alt |\n| Dm7 | G7 | Cmaj7 | Cmaj7 |",
       readWeakly: nil, onEdit: {}
+    )
+    .cardSurface()
+    .padding(IntradaSpacing.card)
+    .background(LinearGradient.paper)
+  }
+
+  #Preview("Refused at a bar") {
+    StagedChartCard(
+      text: "| Dm7 | G7 | Hxyz | Cmaj7 |", readWeakly: nil, faulted: true,
+      faultedBarNumber: 3, onEdit: {}
     )
     .cardSurface()
     .padding(IntradaSpacing.card)

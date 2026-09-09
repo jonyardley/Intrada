@@ -4,6 +4,10 @@ import SwiftUI
 struct DraftItemRow: View {
   let title: String
   let meta: String?
+  /// True while this is the row a refused save named, with `faultedField` the
+  /// field inside it, where the core could say which (#1595).
+  var faulted: Bool = false
+  var faultedField: FormErrorField?
   let onRemove: () -> Void
 
   var body: some View {
@@ -14,6 +18,9 @@ struct DraftItemRow: View {
           .font(IntradaFont.cardTitle())
           .foregroundStyle(IntradaColor.ink)
           .fixedSize(horizontal: false, vertical: true)
+          // On the title, not the row: a container is not focusable, so a hint
+          // on it is announced to nobody.
+          .accessibilityHint(faulted ? FaultMark.spoken(row: faultedField) : "")
         if let meta {
           Text(meta)
             .font(IntradaFont.meta)
@@ -34,9 +41,13 @@ struct DraftItemRow: View {
     .padding(.vertical, IntradaSpacing.controlGap)
     .padding(.leading, 20)
     .padding(.trailing, IntradaSpacing.controlGap)
-    .background(IntradaColor.cardFill)
+    .faultWash(faulted, over: IntradaColor.cardFill)
     .overlay(alignment: .leading) {
-      ItemKind.exercise.bar.frame(width: 4)
+      if faulted {
+        IntradaColor.danger.frame(width: 4)
+      } else {
+        ItemKind.exercise.bar.frame(width: 4)
+      }
     }
   }
 }
@@ -47,6 +58,9 @@ struct DraftItemRow: View {
       DraftItemRow(title: "Shell voicings", meta: "C major", onRemove: {})
       HairlineDivider()
       DraftItemRow(title: "Guide tones, ii to V to I", meta: "C major · 80 bpm", onRemove: {})
+      HairlineDivider()
+      DraftItemRow(
+        title: "Untitled", meta: nil, faulted: true, faultedField: .title, onRemove: {})
     }
     .cardSurface()
     .padding(IntradaSpacing.card)
