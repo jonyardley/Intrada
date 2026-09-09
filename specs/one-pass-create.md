@@ -206,7 +206,7 @@ So the core says where, and the shell points:
 // crates/intrada-core/src/model.rs
 
 pub enum FormErrorTarget {
-    Piece { field: FormField },
+    Piece { field: FormErrorField },
     /// A chart holding no bars at all fails at no bar, so there is no number
     /// to hand the shell and the whole section is what is marked.
     Chart,
@@ -215,10 +215,10 @@ pub enum FormErrorTarget {
     ChartBar { bar_number: usize, token: String },
     /// By position, from 0, in the `exercises` the event carried. `field` is
     /// `None` when the row is a chosen exercise rather than a written one.
-    Exercise { index: usize, field: Option<FormField> },
+    Exercise { index: usize, field: Option<FormErrorField> },
 }
 
-pub enum FormField { Title, Composer, Tempo, Notes, Tags }
+pub enum FormErrorField { Title, Composer, Tempo, Notes, Tags }
 ```
 
 `App::update` clears the model's copy before every event, so a target always

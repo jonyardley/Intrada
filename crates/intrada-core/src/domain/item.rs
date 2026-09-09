@@ -9,7 +9,7 @@ use super::types::{CreateItem, Tempo, UpdateItem};
 pub use super::variant::Variant;
 use crate::app::{Effect, Event};
 use crate::error::LibraryError;
-use crate::model::{FormErrorTarget, FormField, Model};
+use crate::model::{FormErrorField, FormErrorTarget, Model};
 use crate::validation;
 
 /// Discriminates between a piece (repertoire) and an exercise (technique drill).
@@ -371,16 +371,16 @@ fn save_or_put(model: &mut Model, item: Item) -> Command<Effect, Event> {
 
 /// The form field a validation failure belongs to, where the add form has one
 /// to mark (#1595). Anything else, including a missing item, points nowhere.
-fn form_field(error: &LibraryError) -> Option<FormField> {
+fn form_field(error: &LibraryError) -> Option<FormErrorField> {
     let LibraryError::Validation { field, .. } = error else {
         return None;
     };
     match field.as_str() {
-        "title" => Some(FormField::Title),
-        "composer" => Some(FormField::Composer),
-        "tempo" => Some(FormField::Tempo),
-        "notes" => Some(FormField::Notes),
-        "tags" => Some(FormField::Tags),
+        "title" => Some(FormErrorField::Title),
+        "composer" => Some(FormErrorField::Composer),
+        "tempo" => Some(FormErrorField::Tempo),
+        "notes" => Some(FormErrorField::Notes),
+        "tags" => Some(FormErrorField::Tags),
         _ => None,
     }
 }
@@ -1167,7 +1167,7 @@ pub fn handle_item_event(event: ItemEvent, model: &mut Model) -> Command<Effect,
 mod tests {
     use super::*;
     use crate::app::Intrada;
-    use crate::model::{FormErrorTarget, FormField, Model};
+    use crate::model::{FormErrorField, FormErrorTarget, Model};
     use crux_core::App;
 
     fn make_piece(id: &str) -> Item {
@@ -3747,7 +3747,7 @@ mod tests {
         assert_eq!(
             model.last_error_target,
             Some(FormErrorTarget::Piece {
-                field: FormField::Composer
+                field: FormErrorField::Composer
             }),
             "the banner says a composer is required; the target says which field holds it"
         );
@@ -3773,7 +3773,7 @@ mod tests {
             model.last_error_target,
             Some(FormErrorTarget::Exercise {
                 index: 1,
-                field: Some(FormField::Title)
+                field: Some(FormErrorField::Title)
             }),
             "the blank one is the second row, so a target that always names the first is wrong"
         );
@@ -3939,7 +3939,7 @@ mod tests {
     fn form_error_target_round_trips_on_the_ffi_bincode_wire() {
         for target in [
             FormErrorTarget::Piece {
-                field: FormField::Title,
+                field: FormErrorField::Title,
             },
             FormErrorTarget::Chart,
             FormErrorTarget::ChartBar {
@@ -3948,7 +3948,7 @@ mod tests {
             },
             FormErrorTarget::Exercise {
                 index: 1,
-                field: Some(FormField::Tempo),
+                field: Some(FormErrorField::Tempo),
             },
             FormErrorTarget::Exercise {
                 index: 0,

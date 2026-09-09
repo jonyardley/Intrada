@@ -212,7 +212,7 @@ pub enum SessionStatusView {
 #[cfg_attr(feature = "facet_typegen", repr(C))]
 pub enum FormErrorTarget {
     Piece {
-        field: FormField,
+        field: FormErrorField,
     },
     /// The chord chart as a whole, which is what a chart holding no bars at all
     /// produces: there is nothing inside it to point at.
@@ -229,16 +229,17 @@ pub enum FormErrorTarget {
     /// position holds only until it does (spec decision 12).
     Exercise {
         index: usize,
-        field: Option<FormField>,
+        field: Option<FormErrorField>,
     },
 }
 
-/// A field the add form shows. A validation failure on anything else maps to
-/// no target rather than a field nobody can reach.
+/// A field the add form shows. A validation failure on anything else maps to no
+/// target rather than a field nobody can reach. Named apart from the shell's own
+/// `FormField` view, which it would otherwise shadow inside the app module.
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "facet_typegen", derive(facet::Facet))]
 #[cfg_attr(feature = "facet_typegen", repr(C))]
-pub enum FormField {
+pub enum FormErrorField {
     Title,
     Composer,
     Tempo,
