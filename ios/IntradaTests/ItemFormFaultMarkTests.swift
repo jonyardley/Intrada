@@ -15,7 +15,7 @@ struct ItemFormFaultMarkTests {
     form.title = "Autumn Leaves"
     form.composer = "Joseph Kosma"
     form.stagedExercises = staging
-    form.errorTarget = target
+    form.mark(target)
     return form
   }
 
@@ -50,6 +50,45 @@ struct ItemFormFaultMarkTests {
     #expect(form.errorTarget == nil)
   }
 
+  @Test func writingNotesClearsANotesMark() {
+    let form = marked(.piece(field: .notes))
+    #expect(form.faults(.notes))
+
+    form.notes = "From the lesson"
+
+    #expect(form.errorTarget == nil)
+  }
+
+  @Test func changingTagsClearsATagsMark() {
+    let form = marked(.piece(field: .tags))
+    #expect(form.faults(.tags))
+
+    form.tags = ["standards"]
+
+    #expect(form.errorTarget == nil)
+  }
+
+  @Test func aFieldMarkSurvivesAChangeToTheStagedList() {
+    let form = marked(.piece(field: .composer), staging: twoRows())
+
+    form.stagedExercises.removeAll { $0.existingId == "ex-1" }
+
+    #expect(
+      form.faults(.composer),
+      "renumbering the rows says nothing about the composer, so only a row mark goes")
+  }
+
+  @Test func aSecondRefusalOnTheSameFieldStillCounts() {
+    let form = marked(.piece(field: .composer))
+    let first = form.faultSeq
+
+    form.mark(.piece(field: .composer))
+
+    #expect(
+      form.faultSeq > first,
+      "the target is unchanged, so the count is the only thing the scroll can watch")
+  }
+
   @Test func typingElsewhereLeavesTheMarkWhereItIs() {
     let form = marked(.piece(field: .composer))
 
@@ -73,7 +112,7 @@ struct ItemFormFaultMarkTests {
     #expect(fieldMarked.faults(.title), "a chart edit says nothing about the title")
   }
 
-  @Test func awholeChartFaultNamesNoBar() {
+  @Test func aWholeChartFaultNamesNoBar() {
     let form = marked(.chart)
 
     #expect(form.faultsChart)

@@ -7,7 +7,6 @@ struct TagChipInput: View {
   let label: String
   @Binding var tags: [String]
   var suggestions: [String]
-  /// True while tags are what a refused save named (#1595).
   var faulted: Bool = false
 
   @State private var draft = ""

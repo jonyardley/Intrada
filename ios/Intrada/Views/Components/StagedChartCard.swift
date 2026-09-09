@@ -46,9 +46,7 @@ struct StagedChartCard: View {
   }
 
   private var spokenFault: String {
-    guard faulted else { return "" }
-    guard let bar = faultedBarNumber else { return FaultMark.hint }
-    return "Bar \(bar): \(FaultMark.hint.prefix(1).lowercased())\(FaultMark.hint.dropFirst())"
+    faulted ? FaultMark.spoken(bar: faultedBarNumber) : ""
   }
 
   private var lineLimit: Int {

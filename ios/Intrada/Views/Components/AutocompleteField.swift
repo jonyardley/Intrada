@@ -10,7 +10,6 @@ struct AutocompleteField: View {
   var suggestions: [String]
   var autocapitalization: TextInputAutocapitalization = .words
   var readWeakly: Bool?
-  /// True while this is the field a refused save named (#1595).
   var faulted: Bool = false
 
   @FocusState private var focused: Bool

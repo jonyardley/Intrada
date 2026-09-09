@@ -11,7 +11,6 @@ struct FormField: View {
   /// Non-nil while the value is what a photographed page was read into, `true`
   /// when that read was weak (#1436).
   var readWeakly: Bool?
-  /// True while this is the field a refused save named (#1595).
   var faulted: Bool = false
 
   var body: some View {

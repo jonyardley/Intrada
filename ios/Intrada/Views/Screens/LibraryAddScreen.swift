@@ -109,7 +109,6 @@ struct LibraryAddScreen: View {
     if form.chartText.isEmpty {
       FormSectionRow(title: "Chord chart", accessory: .opensSheet) { editingChart = true }
         .cardSurface()
-        .faultWash(form.faultsChart)
     } else {
       StagedChartCard(
         text: form.chartText, readWeakly: form.readFrom[.chart], faulted: form.faultsChart,
@@ -143,13 +142,14 @@ struct LibraryAddScreen: View {
             .padding(.bottom, IntradaSpacing.cardCompact)
         } else {
           ForEach(Array(form.stagedExercises.enumerated()), id: \.element.id) { index, staged in
+            // The anchor rides the divider: an explicit id on the row itself
+            // would override the identity `ForEach` diffs the list by.
             HairlineDivider()
+              .id(FormAnchor.row(index))
             DraftItemRow(
               title: staged.title, meta: staged.meta, faulted: form.faults(row: index),
               faultedField: form.faultedField(row: index),
-              onRemove: { form.stagedExercises.removeAll { $0.id == staged.id } }
-            )
-            .id(FormAnchor.row(index))
+              onRemove: { form.stagedExercises.removeAll { $0.id == staged.id } })
           }
         }
         HairlineDivider()

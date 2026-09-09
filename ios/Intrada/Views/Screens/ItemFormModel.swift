@@ -18,7 +18,10 @@ final class ItemFormModel {
   var formError: String?
   /// Where the core said the refused save failed, until the thing it points at
   /// changes (#1595). The banner keeps its sentence either way.
-  var errorTarget: FormErrorTarget?
+  private(set) var errorTarget: FormErrorTarget?
+  /// Bumped by every refusal, so pressing Add twice on the same fault scrolls
+  /// back to it: the target itself is unchanged, and nothing would fire on it.
+  private(set) var faultSeq = 0
   /// The page the fields were read off, carried onto the piece the form
   /// creates so it is not photographed a second time (#1436).
   var photoId: String?
@@ -81,7 +84,8 @@ final class ItemFormModel {
   }
 
   /// Removing or re-choosing a row rewrites the list the core numbered, so a
-  /// mark on any row cannot survive it (spec decision 12).
+  /// mark on any row cannot survive it (#1595, and decision 12 of
+  /// `specs/one-pass-create.md`).
   var stagedExercises: [StagedExercise] = [] {
     didSet {
       if case .exercise = errorTarget { errorTarget = nil }
@@ -104,7 +108,7 @@ final class ItemFormModel {
     kind = item.itemType
     storedTitle = item.title
     storedComposer = item.subtitle
-    tags = item.tags
+    storedTags = item.tags
     // Normalise on load so editing self-heals legacy combined values
     // ("F# major") into tonic + modality even if the user never re-taps a spoke.
     let selection = KeyHelper.selection(key: item.key ?? "", modality: item.modality)
@@ -112,7 +116,7 @@ final class ItemFormModel {
     modality = selection?.mode ?? item.modality
     storedMarking = item.tempoMarking ?? ""
     storedBpm = item.tempoBpm.map(String.init) ?? ""
-    notes = item.notes ?? ""
+    storedNotes = item.notes ?? ""
   }
 
   /// A field is written when empty, or when it still holds an earlier read:
@@ -156,6 +160,15 @@ final class ItemFormModel {
     case .marking, .bpm: cleared(.tempo)
     case .chart: if faultsChart { errorTarget = nil }
     }
+  }
+
+  func mark(_ target: FormErrorTarget?) {
+    errorTarget = target
+    faultSeq += 1
+  }
+
+  func clearFault() {
+    errorTarget = nil
   }
 
   private func cleared(_ field: FormErrorField) {

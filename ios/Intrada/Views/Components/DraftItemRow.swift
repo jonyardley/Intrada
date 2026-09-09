@@ -18,6 +18,9 @@ struct DraftItemRow: View {
           .font(IntradaFont.cardTitle())
           .foregroundStyle(IntradaColor.ink)
           .fixedSize(horizontal: false, vertical: true)
+          // On the title, not the row: a container is not focusable, so a hint
+          // on it is announced to nobody.
+          .accessibilityHint(faulted ? FaultMark.spoken(row: faultedField) : "")
         if let meta {
           Text(meta)
             .font(IntradaFont.meta)
@@ -46,8 +49,6 @@ struct DraftItemRow: View {
         ItemKind.exercise.bar.frame(width: 4)
       }
     }
-    .accessibilityElement(children: .contain)
-    .accessibilityHint(faulted ? FaultMark.spoken(row: faultedField) : "")
   }
 }
 

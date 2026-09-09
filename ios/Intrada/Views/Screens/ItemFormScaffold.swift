@@ -111,8 +111,10 @@ struct ItemFormScaffold<Header: View, Sections: View>: View {
               }
               .padding(IntradaSpacing.card)
             }
-            .onChange(of: form.errorTarget) { _, target in
-              guard let anchor = FormAnchor(target) else { return }
+            // On the count, not the target: a second refusal on the same
+            // field is the same value, and nothing would fire.
+            .onChange(of: form.faultSeq) { _, _ in
+              guard let anchor = FormAnchor(form.errorTarget) else { return }
               withAnimation(reduceMotion ? nil : IntradaMotion.standard) {
                 proxy.scrollTo(anchor, anchor: .center)
               }
@@ -138,7 +140,7 @@ struct ItemFormScaffold<Header: View, Sections: View>: View {
   // failed local write surfaces in viewModel.error, which we keep on screen.
   private func confirm() {
     form.formError = nil
-    form.errorTarget = nil
+    form.clearFault()
     send()
     if let error = store.viewModel?.error {
       // Read in the same pass as the message: the core's update is synchronous,
@@ -146,7 +148,7 @@ struct ItemFormScaffold<Header: View, Sections: View>: View {
       let target = store.viewModel?.errorTarget
       withAnimation {
         form.formError = error
-        form.errorTarget = target
+        form.mark(target)
       }
       // Show it inline only; clear the core error so the global banner doesn't
       // also surface it behind/after this sheet (validation re-sets it directly).

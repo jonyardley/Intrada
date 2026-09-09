@@ -5,7 +5,7 @@ import SwiftUI
 /// and the field, row or section it named carries this (#1595). Everything here
 /// is a place, never a second verdict: the wording stays the core's.
 enum FaultMark {
-  static let hint = "This is what the message at the top of the form is about"
+  static let hint = "The message at the top of the form is about this"
 
   static func spoken(_ faulted: Bool) -> String {
     faulted ? hint : ""
@@ -16,7 +16,12 @@ enum FaultMark {
   /// everyone else.
   static func spoken(row field: FormErrorField?) -> String {
     guard let field else { return hint }
-    return "\(name(field)): \(hint.prefix(1).lowercased())\(hint.dropFirst())"
+    return "\(name(field)). \(hint)"
+  }
+
+  static func spoken(bar number: UInt64?) -> String {
+    guard let number else { return hint }
+    return "Bar \(number). \(hint)"
   }
 
   static func name(_ field: FormErrorField) -> String {
