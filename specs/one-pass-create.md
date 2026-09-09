@@ -19,6 +19,7 @@
 [#1363]: https://github.com/jonyardley/intrada/issues/1363
 [#1389]: https://github.com/jonyardley/intrada/issues/1389
 [#1108]: https://github.com/jonyardley/intrada/issues/1108
+[#1595]: https://github.com/jonyardley/intrada/issues/1595
 
 ## Problem
 
@@ -190,6 +191,55 @@ detail card, so the two surfaces agree rather than inventing a second
 vocabulary. Both sections are silent when empty: no counts, no "optional"
 captions.
 
+## Pointing at the failure
+
+Follow-on phase, issue [#1595], and the reason the screens above ship the
+banner alone. `ViewModel` carries `error` and `error_seq` and nothing else
+about a failure, so the two commonest cases are indistinguishable from Swift:
+a blank piece title and a blank staged exercise title both come out of
+`validate_title` as the same sentence, and matching the chart's `Bar 4: ...`
+on message text would put domain logic in the shell.
+
+So the core says where, and the shell points:
+
+```rust
+// crates/intrada-core/src/model.rs
+
+pub enum FormErrorTarget {
+    Piece { field: FormField },
+    /// 1-based bar, 0 for the chart as a whole; `token` is what the parser
+    /// stumbled on, both already carried by `ChartParseError`.
+    Chart { bar: usize, token: String },
+    /// By position in the `exercises` the event carried. `field` is `None`
+    /// when the row is a chosen exercise rather than a written one.
+    Exercise { index: usize, field: Option<FormField> },
+}
+
+pub enum FormField { Title, Composer, Tempo, Notes, Tags }
+```
+
+`ViewModel::error_target` is `Some` only while the error it belongs to is the
+one the event just set. `App::update` clears the model's copy before every
+event, so a target cannot outlive its message or point at a row the musician
+has since changed: every path other than `AddPieceInFull` sets an error and no
+target, which reads as the banner alone, exactly as today.
+
+### Key decisions, continued
+
+9. **The target is a place, not a second verdict.** It names the section, the
+   row by index, and for a chart the bar and the offending token. The wording
+   stays the core's one sentence: the shell renders it in the banner and marks
+   the spot, it never composes a message of its own.
+
+10. **A field the form cannot show gets no target.** `validate_create_item`
+    can fail on `photo_id`, which is nothing anyone can fix in place, so the
+    field mapping is fallible and an unmapped field falls back to the banner.
+
+11. **One failure at a time stays.** Validation still stops at the first
+    error, so a form with two problems takes two presses. Collecting them all
+    would change every other caller of `validate_create_item`, and the screen
+    would still only point once.
+
 ## Tests
 
 - The whole-event property: a bad chart, a blank exercise title or an unknown
@@ -200,6 +250,11 @@ captions.
 - Round-trips as above, before the screens exist.
 - Snapshots: the form with both sections collapsed, and with a chart and two
   exercises staged.
+- Each target case, with the failure on the second row so a target that always
+  names the first one fails: the piece field, a written row, a chosen row that
+  has gone, and the chart's bar and token.
+- The invariant: an error set by any other event reports no target, and a
+  create that then succeeds stops pointing.
 
 ## Open questions
 
