@@ -8,6 +8,7 @@ import SwiftUI
 struct ItemFormScaffold<Header: View, Sections: View>: View {
   @Environment(Store.self) private var store
   @Environment(\.dismiss) private var dismiss
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   @Bindable var form: ItemFormModel
   let title: String
@@ -53,49 +54,69 @@ struct ItemFormScaffold<Header: View, Sections: View>: View {
               .padding(.top, IntradaSpacing.cardCompact)
               .transition(.move(edge: .top).combined(with: .opacity))
           }
-          ScrollView {
-            VStack(spacing: IntradaSpacing.card) {
-              header()
+          ScrollViewReader { proxy in
+            ScrollView {
+              VStack(spacing: IntradaSpacing.card) {
+                header()
 
-              if showsKindPicker {
-                KindSegment(selection: $form.kind)
-              }
+                if showsKindPicker {
+                  KindSegment(selection: $form.kind)
+                }
 
-              VStack(spacing: 0) {
-                FormField(
-                  label: "Title", text: $form.title, placeholder: "Required",
-                  readWeakly: form.readFrom[.title])
-                HairlineDivider()
-                AutocompleteField(
-                  label: "Composer", text: $form.composer, suggestions: composerSuggestions,
-                  readWeakly: form.readFrom[.composer])
-                HairlineDivider()
-                KeyPicker(label: "Key", key: $form.key, modality: $form.modality)
-              }
-              .cardSurface()
-
-              VStack(spacing: 0) {
-                FormField(
-                  label: "Tempo marking", text: $form.marking, placeholder: "e.g. Allegro",
-                  readWeakly: form.readFrom[.marking])
-                HairlineDivider()
-                FormField(
-                  label: "Beats per minute", text: $form.bpm, keyboard: .numberPad,
-                  readWeakly: form.readFrom[.bpm])
-              }
-              .cardSurface()
-
-              FormField(label: "Notes", text: $form.notes, axis: .vertical)
+                VStack(spacing: 0) {
+                  FormField(
+                    label: "Title", text: $form.title, placeholder: "Required",
+                    readWeakly: form.readFrom[.title], faulted: form.faults(.title)
+                  )
+                  .id(FormAnchor.field(.title))
+                  HairlineDivider()
+                  AutocompleteField(
+                    label: "Composer", text: $form.composer, suggestions: composerSuggestions,
+                    readWeakly: form.readFrom[.composer], faulted: form.faults(.composer)
+                  )
+                  .id(FormAnchor.field(.composer))
+                  HairlineDivider()
+                  KeyPicker(label: "Key", key: $form.key, modality: $form.modality)
+                }
                 .cardSurface()
 
-              VStack(spacing: 0) {
-                TagChipInput(label: "Tags", tags: $form.tags, suggestions: tagSuggestions)
-              }
-              .cardSurface()
+                VStack(spacing: 0) {
+                  FormField(
+                    label: "Tempo marking", text: $form.marking, placeholder: "e.g. Allegro",
+                    readWeakly: form.readFrom[.marking], faulted: form.faults(.tempo))
+                  HairlineDivider()
+                  FormField(
+                    label: "Beats per minute", text: $form.bpm, keyboard: .numberPad,
+                    readWeakly: form.readFrom[.bpm], faulted: form.faults(.tempo))
+                }
+                .cardSurface()
+                .id(FormAnchor.field(.tempo))
 
-              sections()
+                FormField(
+                  label: "Notes", text: $form.notes, axis: .vertical,
+                  faulted: form.faults(.notes)
+                )
+                .cardSurface()
+                .id(FormAnchor.field(.notes))
+
+                VStack(spacing: 0) {
+                  TagChipInput(
+                    label: "Tags", tags: $form.tags, suggestions: tagSuggestions,
+                    faulted: form.faults(.tags))
+                }
+                .cardSurface()
+                .id(FormAnchor.field(.tags))
+
+                sections()
+              }
+              .padding(IntradaSpacing.card)
             }
-            .padding(IntradaSpacing.card)
+            .onChange(of: form.errorTarget) { _, target in
+              guard let anchor = FormAnchor(target) else { return }
+              withAnimation(reduceMotion ? nil : IntradaMotion.standard) {
+                proxy.scrollTo(anchor, anchor: .center)
+              }
+            }
           }
         }
       }
@@ -117,9 +138,16 @@ struct ItemFormScaffold<Header: View, Sections: View>: View {
   // failed local write surfaces in viewModel.error, which we keep on screen.
   private func confirm() {
     form.formError = nil
+    form.errorTarget = nil
     send()
     if let error = store.viewModel?.error {
-      withAnimation { form.formError = error }
+      // Read in the same pass as the message: the core's update is synchronous,
+      // and `clearError` below drops both (#1595).
+      let target = store.viewModel?.errorTarget
+      withAnimation {
+        form.formError = error
+        form.errorTarget = target
+      }
       // Show it inline only; clear the core error so the global banner doesn't
       // also surface it behind/after this sheet (validation re-sets it directly).
       store.send(.clearError)

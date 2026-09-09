@@ -760,6 +760,17 @@ final class ScreenSnapshotTests: XCTestCase {
     assertSnapshot(of: host(LibraryAddScreen(previewForm: form)), as: config)
   }
 
+  /// #1595: the banner says what, the field says where. The wash and the
+  /// recoloured label are the whole treatment, so a pixel diff is what holds
+  /// them.
+  func testLibraryAddScreenMarksTheFieldAtFault() {
+    let form = ItemFormModel(kind: .piece)
+    form.title = "Alice in Wonderland"
+    form.formError = "Composer is required"
+    form.errorTarget = .piece(field: .composer)
+    assertSnapshot(of: host(LibraryAddScreen(previewForm: form)), as: config)
+  }
+
   /// #1436: the composer was read weakly, so its mark is dimmed — the one
   /// decision the design conversation settled, and one a pixel diff can hold.
   func testLibraryAddScreenReadFromAPhoto() {
@@ -799,6 +810,44 @@ final class ScreenSnapshotTests: XCTestCase {
     .background(PaperBackground())
 
     assertSnapshot(of: stack, as: .image(layout: .sizeThatFits))
+  }
+
+  /// #1595: the row the refused save named wears the wash and a danger bar in
+  /// place of its kind bar, and only that row does.
+  func testDraftItemRowAtFault() {
+    let rows = VStack(spacing: 0) {
+      DraftItemRow(title: "Shell voicings", meta: "C major", onRemove: {})
+      HairlineDivider()
+      DraftItemRow(
+        title: "Untitled", meta: nil, faulted: true, faultedField: .title, onRemove: {})
+    }
+    .background(IntradaColor.cardFill)
+    .padding(IntradaSpacing.card)
+    .frame(width: 390)
+    .background(PaperBackground())
+
+    assertSnapshot(of: rows, as: .image(layout: .sizeThatFits))
+  }
+
+  /// #1595: a refused bar puts a danger edge on the chart block, the one thing
+  /// that changes on a chart the shell cannot parse.
+  func testStagedChartCardAtFault() {
+    let card = VStack(spacing: IntradaSpacing.card) {
+      StagedChartCard(
+        text: "| Dm7 | G7 | Hxyz | Cmaj7 |", readWeakly: nil, faulted: true,
+        faultedBarNumber: 3, onEdit: {}
+      )
+      .cardSurface()
+      StagedChartCard(
+        text: "| Dm7 | G7 | Cmaj7 | A7alt |", readWeakly: nil, onEdit: {}
+      )
+      .cardSurface()
+    }
+    .padding(IntradaSpacing.card)
+    .frame(width: 390)
+    .background(PaperBackground())
+
+    assertSnapshot(of: card, as: .image(layout: .sizeThatFits))
   }
 
   func testDraftItemRows() {

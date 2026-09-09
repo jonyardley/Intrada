@@ -15,9 +15,10 @@ final class ItemFormModel {
   var kind: ItemKind
   var key = ""
   var modality: Modality?
-  var notes = ""
-  var tags: [String] = []
   var formError: String?
+  /// Where the core said the refused save failed, until the thing it points at
+  /// changes (#1595). The banner keeps its sentence either way.
+  var errorTarget: FormErrorTarget?
   /// The page the fields were read off, carried onto the piece the form
   /// creates so it is not photographed a second time (#1436).
   var photoId: String?
@@ -64,14 +65,36 @@ final class ItemFormModel {
       edited(.chart)
     }
   }
+  var notes: String {
+    get { storedNotes }
+    set {
+      storedNotes = newValue
+      cleared(.notes)
+    }
+  }
+  var tags: [String] {
+    get { storedTags }
+    set {
+      storedTags = newValue
+      cleared(.tags)
+    }
+  }
 
-  var stagedExercises: [StagedExercise] = []
+  /// Removing or re-choosing a row rewrites the list the core numbered, so a
+  /// mark on any row cannot survive it (spec decision 12).
+  var stagedExercises: [StagedExercise] = [] {
+    didSet {
+      if case .exercise = errorTarget { errorTarget = nil }
+    }
+  }
 
   private var storedTitle = ""
   private var storedComposer = ""
   private var storedMarking = ""
   private var storedBpm = ""
   private var storedChart = ""
+  private var storedNotes = ""
+  private var storedTags: [String] = []
 
   init(kind: ItemKind = .piece) {
     self.kind = kind
@@ -127,6 +150,48 @@ final class ItemFormModel {
 
   private func edited(_ field: ReadField) {
     readFrom[field] = nil
+    switch field {
+    case .title: cleared(.title)
+    case .composer: cleared(.composer)
+    case .marking, .bpm: cleared(.tempo)
+    case .chart: if faultsChart { errorTarget = nil }
+    }
+  }
+
+  private func cleared(_ field: FormErrorField) {
+    guard case .piece(let marked) = errorTarget, marked == field else { return }
+    errorTarget = nil
+  }
+
+  // ── What the mark is on ──
+
+  func faults(_ field: FormErrorField) -> Bool {
+    guard case .piece(let marked) = errorTarget else { return false }
+    return marked == field
+  }
+
+  var faultsChart: Bool {
+    switch errorTarget {
+    case .chart, .chartBar: true
+    default: false
+    }
+  }
+
+  var faultedBarNumber: UInt64? {
+    guard case .chartBar(let bar, _) = errorTarget else { return nil }
+    return bar
+  }
+
+  func faults(row index: Int) -> Bool {
+    guard case .exercise(let marked, _) = errorTarget else { return false }
+    return marked == UInt64(index)
+  }
+
+  func faultedField(row index: Int) -> FormErrorField? {
+    guard case .exercise(let marked, let field) = errorTarget, marked == UInt64(index) else {
+      return nil
+    }
+    return field
   }
 
   var canSubmit: Bool {

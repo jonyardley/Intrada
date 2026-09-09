@@ -10,6 +10,8 @@ struct AutocompleteField: View {
   var suggestions: [String]
   var autocapitalization: TextInputAutocapitalization = .words
   var readWeakly: Bool?
+  /// True while this is the field a refused save named (#1595).
+  var faulted: Bool = false
 
   @FocusState private var focused: Bool
 
@@ -38,14 +40,14 @@ struct AutocompleteField: View {
       VStack(alignment: .leading, spacing: 4) {
         Text(label)
           .font(IntradaFont.metaMedium)
-          .foregroundStyle(IntradaColor.inkSecondary)
+          .foregroundStyle(faulted ? IntradaColor.danger : IntradaColor.inkSecondary)
         TextField(placeholder, text: $text)
           .font(IntradaFont.field)
           .foregroundStyle(IntradaColor.ink)
           .textInputAutocapitalization(autocapitalization)
           .autocorrectionDisabled()
           .focused($focused)
-          .accessibilityHint(FieldMark.spoken(readWeakly))
+          .accessibilityHint(hint)
         if let readWeakly {
           FieldMark(weak: readWeakly)
         }
@@ -55,7 +57,7 @@ struct AutocompleteField: View {
       .frame(maxWidth: .infinity, alignment: .leading)
       // Opaque fill + zIndex so the list slides *behind* the input on
       // open/close rather than over it (the `KeyPicker` reveal trick).
-      .background(IntradaColor.cardFill)
+      .faultWash(faulted, over: IntradaColor.cardFill)
       .zIndex(1)
 
       if showSuggestions {
@@ -67,6 +69,12 @@ struct AutocompleteField: View {
     // Animate only the reveal — filtered rows update instantly as you type, so
     // keystrokes stay responsive instead of re-animating the whole list.
     .animation(.snappy(duration: 0.22), value: showSuggestions)
+  }
+
+  private var hint: String {
+    [FaultMark.spoken(faulted), FieldMark.spoken(readWeakly)]
+      .filter { !$0.isEmpty }
+      .joined(separator: ". ")
   }
 
   private var suggestionList: some View {
