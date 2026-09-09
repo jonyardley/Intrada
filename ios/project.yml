@@ -15,7 +15,7 @@ settings:
   base:
     SWIFT_VERSION: "6.0"
     DEVELOPMENT_TEAM: "9S5FG4LQAF"
-    MARKETING_VERSION: "0.9.0"
+    MARKETING_VERSION: "0.10.0"
     CURRENT_PROJECT_VERSION: "1"
 
 # Local packages = generated bindings (a build precondition via `just ios-gen`,
