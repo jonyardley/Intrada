@@ -184,6 +184,8 @@ The native iOS app ships separately via TestFlight — see §5a below.
 | `MATCH_GIT_URL` | fastlane match | TestFlight (native iOS) |
 | `MATCH_GIT_BASIC_AUTHORIZATION` | fastlane match | TestFlight (native iOS) |
 | `MATCH_PASSWORD` | fastlane match | TestFlight (native iOS) |
+| `SENTRY_AUTH_TOKEN` | Sentry | Release tracking for the API deploy and TestFlight |
+| `SENTRY_DSN_NATIVE` | Sentry | Crash reporting in TestFlight builds; a tagged run fails without it |
 
 Set at: **GitHub repo → Settings → Secrets and variables → Actions**
 

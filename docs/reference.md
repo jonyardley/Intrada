@@ -73,6 +73,13 @@ plus a one-time App Store Connect and match bootstrap. Full setup and decisions:
 [`../specs/ios-testflight-cicd.md`](../specs/ios-testflight-cicd.md) and
 SETUP.md §4a.
 
+A tagged run also bakes `SENTRY_DSN_NATIVE` into the build and, after the
+upload, creates the matching Sentry release in `intrada-mobile`, so a beta
+crash resolves to a build and a commit. The name comes off the uploaded `.ipa`
+and matches what `SentryRelease.swift` reports at runtime. Miss the DSN secret
+and the lane fails at the trigger rather than shipping a build that reports
+nothing (#1553); the symbols themselves are still not uploaded (#1610).
+
 ### Git hooks
 
 Git hooks install automatically for Claude Code sessions (a `SessionStart` hook

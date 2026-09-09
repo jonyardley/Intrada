@@ -40,6 +40,9 @@ struct IntradaApp: App {
     {
       SentrySDK.start { options in
         options.dsn = dsn
+        if let release = SentryRelease.name(for: .main) {
+          options.releaseName = release
+        }
         #if DEBUG
           options.environment = "development"
           options.tracesSampleRate = 1.0
