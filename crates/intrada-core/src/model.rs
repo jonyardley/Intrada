@@ -37,6 +37,10 @@ pub struct Model {
     pub active_query: Option<ListQuery>,
     pub active_sort: LibrarySort,
     pub last_error: Option<String>,
+    /// Where the current error is, when the handler that set it could say.
+    /// Cleared before every event in `App::update`, so it cannot outlive the
+    /// message it belongs to or point at a row since changed (#1595).
+    pub last_error_target: Option<FormErrorTarget>,
     /// Set when the user dismisses the error banner. While true, errors from
     /// HTTP failures routed through [`Model::surface_error`] are silently
     /// swallowed — avoids the "dismiss → next refetch fails → banner
@@ -198,6 +202,44 @@ pub enum SessionStatusView {
     Summary,
 }
 
+/// Where on the create form the failure the banner names actually is (#1595).
+/// Set only by the handler that reported the error, and only where the form has
+/// somewhere to point; every other path leaves it `None`, which reads as the
+/// banner alone.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "facet_typegen", derive(facet::Facet))]
+#[cfg_attr(feature = "facet_typegen", repr(C))]
+pub enum FormErrorTarget {
+    Piece {
+        field: FormField,
+    },
+    /// 1-based bar across the whole chart, 0 for the chart as a whole, plus the
+    /// token the parser stumbled on: both already carried by `ChartParseError`.
+    Chart {
+        bar: usize,
+        token: String,
+    },
+    /// By position in the exercises the event carried. `field` is `None` for a
+    /// chosen exercise, which has no field of its own on the form.
+    Exercise {
+        index: usize,
+        field: Option<FormField>,
+    },
+}
+
+/// A field the add form shows. A validation failure on anything else maps to
+/// no target rather than a field nobody can reach.
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "facet_typegen", derive(facet::Facet))]
+#[cfg_attr(feature = "facet_typegen", repr(C))]
+pub enum FormField {
+    Title,
+    Composer,
+    Tempo,
+    Notes,
+    Tags,
+}
+
 /// Serializable view state sent to shells for rendering.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Default)]
 #[cfg_attr(feature = "facet_typegen", derive(facet::Facet))]
@@ -229,6 +271,8 @@ pub struct ViewModel {
     pub summary: Option<SummaryView>,
     pub session_status: SessionStatusView,
     pub error: Option<String>,
+    /// See [`Model::last_error_target`].
+    pub error_target: Option<FormErrorTarget>,
     /// See `Model::error_seq` — compare around a send instead of the message.
     pub error_seq: u64,
     pub analytics: Option<AnalyticsView>,
