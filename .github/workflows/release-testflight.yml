@@ -19,6 +19,7 @@ permissions:
 
 env:
   RUST_VERSION: "1.97.1"
+  SENTRY_ORG: jon-yardley
 
 jobs:
   testflight:
@@ -26,7 +27,28 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 60
     steps:
+      # Full history: `sentry-cli releases set-commits --auto` reads the local
+      # git log to work out what went into the release.
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      # A tagged build with no DSN ships with crash reporting off, and nothing
+      # says so until someone needs a crash report (#1553). Fail here, before
+      # the 10x-billed macOS build, rather than after the upload.
+      - name: Require the Sentry DSN on a tagged release
+        if: github.ref_type == 'tag'
+        env:
+          SENTRY_DSN_NATIVE: ${{ secrets.SENTRY_DSN_NATIVE }}
+        run: |
+          case "${SENTRY_DSN_NATIVE:-}" in
+            https://*)
+              echo "Sentry DSN present: this build will report crashes."
+              ;;
+            *)
+              echo "::error::SENTRY_DSN_NATIVE is unset or is not an https DSN, so this build would ship with Sentry off. Set it with: gh secret set SENTRY_DSN_NATIVE"
+              exit 1
+              ;;
+          esac
       # Pin Xcode 26.5 to match local dev + the native-ios CI job.
       - uses: maxim-lobanov/setup-xcode@v1
         with:
@@ -82,8 +104,13 @@ jobs:
         run: |
           just ios-typegen
           just ios-package release
+      # xcodegen expands ${SENTRY_DSN_NATIVE} into the SENTRY_DSN build
+      # setting, which the partial Info.plist resolves at build time. Without it
+      # the app's start gate keeps Sentry off and the build reports nothing.
       - name: Generate Xcode project
         working-directory: ios
+        env:
+          SENTRY_DSN_NATIVE: ${{ secrets.SENTRY_DSN_NATIVE }}
         run: xcodegen generate
       - uses: ruby/setup-ruby@v1
         with:
@@ -101,6 +128,38 @@ jobs:
           # Empty on branch dispatch; the Fastfile then falls back to project.yml.
           MARKETING_VERSION: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
         run: bundle exec fastlane ios beta
+      # sentry-cli rather than getsentry/action-release (which ci.yml uses for
+      # the API): that action is a Docker container action and this job runs on
+      # macOS, where those cannot run. Pinned like every other tool here.
+      #
+      # The release name is read back off the .ipa that was just uploaded, from
+      # the same three Info.plist keys `SentryRelease.name(for:)` composes at
+      # runtime, so the release Sentry gets cannot drift from the one the app
+      # reports (#1553). continue-on-error: a Sentry outage must never fail a
+      # build that has already shipped to testers.
+      - name: Create the Sentry release for this build
+        if: env.SENTRY_AUTH_TOKEN != ''
+        continue-on-error: true
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_PROJECT: intrada-mobile
+        run: |
+          set -euo pipefail
+          curl -fsSL -o "$RUNNER_TEMP/sentry-cli" \
+            "https://downloads.sentry-cdn.com/sentry-cli/3.7.0/sentry-cli-Darwin-universal"
+          chmod +x "$RUNNER_TEMP/sentry-cli"
+
+          unzip -o -q build/Intrada.ipa "Payload/*.app/Info.plist" -d "$RUNNER_TEMP/ipa"
+          plists=("$RUNNER_TEMP"/ipa/Payload/*.app/Info.plist)
+          plist="${plists[0]}"
+          key() { /usr/libexec/PlistBuddy -c "Print :$1" "$plist"; }
+          release="$(key CFBundleIdentifier)@$(key CFBundleShortVersionString)+$(key CFBundleVersion)"
+          echo "Sentry release: $release"
+
+          "$RUNNER_TEMP/sentry-cli" releases new "$release"
+          "$RUNNER_TEMP/sentry-cli" releases set-commits "$release" --auto \
+            || echo "::warning::No commits associated with $release; the release itself is created."
+          "$RUNNER_TEMP/sentry-cli" releases finalize "$release"
       - name: Upload IPA artifact
         if: always()
         uses: actions/upload-artifact@v7

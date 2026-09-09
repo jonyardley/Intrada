@@ -80,7 +80,21 @@ workflow_dispatch / tag v*
    (cargo-swift v0.9.0): `--platforms ios` emits the `aarch64-apple-ios` **device**
    slice alongside the simulator slice — the device slice an archive requires.
 
-6. **Internal testing only, for now.** `skip_waiting_for_build_processing: true`
+6. **A tagged build carries its Sentry release, and one that cannot report
+   does not build.** `SENTRY_DSN_NATIVE` is baked in at `xcodegen generate`,
+   where it expands into the `SENTRY_DSN` build setting the partial Info.plist
+   reads, and the lane refuses a tag outright when it is missing, before the
+   10x-billed macOS build: a shipped build with crash reporting off is
+   invisible until a tester hits a crash. After the upload the lane creates the
+   Sentry release with a pinned `sentry-cli`, not `getsentry/action-release`,
+   which is a Docker container action and cannot run on a macOS runner. The
+   release name is read back from the uploaded `.ipa`, from the same three
+   Info.plist keys `SentryRelease.name(for:)` composes at runtime, so the name
+   Sentry holds cannot drift from the one the app reports (#1553). Uploading
+   the debug symbols, so a crash names a line rather than an address, is
+   tracked in #1610.
+
+7. **Internal testing only, for now.** `skip_waiting_for_build_processing: true`
    for a fast loop. External testing (Beta App Review + changelog) is out of
    scope until there are external testers.
 
@@ -95,6 +109,7 @@ workflow_dispatch / tag v*
 | `.github/workflows/release-testflight.yml` | the lane's CI job |
 | `ios/Intrada/Info.plist` | `ITSAppUsesNonExemptEncryption = false` (export compliance) |
 | `justfile` | `just testflight` recipe (local parity) |
+| `ios/Intrada/Core/SentryRelease.swift` | the release name the app reports, composed to match the lane's |
 
 ## One-time human setup (gates the first run — CI cannot bootstrap these)
 
