@@ -632,9 +632,10 @@ _ios-test-without-building filters retry parallel="0":
     # runner hits "Application failed preflight checks (Busy)" under memory
     # pressure, which reds the gate for no test reason, and a rented 7GB
     # runner has too little to hold more than one. A 48GB dev machine holds
-    # five, which takes the UI tier from 339s to 86s. The local full tier and
-    # the self-hosted CI gate both opt in; the rented fork-pull-request path
-    # keeps its job fan-out instead (#1577).
+    # five, which takes the UI tier from 339s to 86s, so the local full tier
+    # opts in. CI does not: the self-hosted gate ran with clones for one
+    # commit and a UI test that silently skips its own setup under load
+    # reddened main (#1642). Both CI paths keep the job fan-out for now.
     flags=()
     if [ "{{parallel}}" = "1" ]; then
         flags+=(-parallel-testing-enabled YES -maximum-concurrent-test-simulator-destinations 4)

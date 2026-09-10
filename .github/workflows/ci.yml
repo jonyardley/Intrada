@@ -372,10 +372,14 @@ jobs:
           fi
       # A skip, not an only, so a test target added later joins this step
       # instead of running nowhere (#1456). The third argument is the
-      # justfile's `parallel` flag: cloned simulators, which this machine
-      # holds and a 7GB one does not.
-      - name: Test (UI, cloned simulators)
-        run: just _ios-test-without-building -skip-testing:IntradaTests 1 1
+      # justfile's `parallel` flag, and it is off: five cloned simulators
+      # saturate this machine enough that StepManagementUITests misses the
+      # 2 second window it waits for a Select All menu in, then appends
+      # instead of replacing and reds main on a docs-only commit (#1642).
+      # Sequential is the configuration the rented runners proved for months.
+      # Turn it back on with #1642, not before.
+      - name: Test (UI)
+        run: just _ios-test-without-building -skip-testing:IntradaTests 1 0
       - name: Upload snapshot failures
         if: failure()
         uses: actions/upload-artifact@v7
