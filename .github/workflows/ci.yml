@@ -360,6 +360,16 @@ jobs:
           fi
       - name: Test (unit + snapshot)
         run: just _ios-test-without-building -only-testing:IntradaTests 0
+      # The unit step leaves its device booted, and the UI step clones from
+      # it, which is one simulator more than 24GB holds: the clones then fail
+      # preflight with "Busy" and red the gate for no test reason. Scoped to
+      # this one device, never a global reset.
+      - name: Shut the test device down before cloning
+        run: |
+          udid="$(just _ios-test-sim-udid)"
+          if [ -n "$udid" ]; then
+            xcrun simctl shutdown "$udid" || true
+          fi
       # A skip, not an only, so a test target added later joins this step
       # instead of running nowhere (#1456). The third argument is the
       # justfile's `parallel` flag: cloned simulators, which this machine
