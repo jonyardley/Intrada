@@ -40,7 +40,17 @@ if ! git rev-parse --verify "$base" >/dev/null 2>&1; then
   exit 0
 fi
 
-range="$base...HEAD"
+# The merge base with no second commit, so the diff runs to the working tree
+# rather than to HEAD. Line numbers and file content then come from the same
+# tree: against HEAD, one uncommitted edit above a link renumbers every line
+# below it and the check blames whatever now sits on the old number. It also
+# means an uncommitted link is checked, which is where a link is written.
+mb=$(git merge-base "$base" HEAD 2>/dev/null || true)
+if [ -z "$mb" ]; then
+  exit 0
+fi
+
+range="$mb"
 
 # ── Reading a markdown file ─────────────────────────────────────────────────
 
@@ -61,7 +71,7 @@ link_targets() {
         print FNR "\t" substr(rest, RSTART + 2, RLENGTH - 3)
         rest = substr(rest, RSTART + RLENGTH)
       }
-      if (match(line, /^[[:space:]]{0,3}\[[^]]+\]:[[:space:]]*[^[:space:]]+/)) {
+      if (match(line, /^[[:space:]]*\[[^]]+\]:[[:space:]]*[^[:space:]]+/)) {
         def = substr(line, RSTART, RLENGTH)
         sub(/^[[:space:]]*\[[^]]+\]:[[:space:]]*/, "", def)
         print FNR "\t" def
@@ -118,13 +128,14 @@ while IFS= read -r f; do
   [ -f "$f" ] || continue
 
   # -U0 so every line in a hunk is an addition or a deletion, which is what
-  # lets the counter below track new-file line numbers by itself.
+  # lets the counter below track new-file line numbers by itself. The `+++`
+  # header arrives before any hunk, so the unset counter skips it: matching on
+  # `+++` instead would eat an added line that starts with one.
   added=$(git diff -U0 "$range" -- "$f" | awk '
     /^@@/ {
       if (match($0, /\+[0-9]+/)) { n = substr($0, RSTART + 1, RLENGTH - 1) + 0 }
       next
     }
-    /^\+\+\+/ { next }
     /^\+/ { if (n != "") { print n; n++ } }
   ')
   [ -n "$added" ] || continue
@@ -150,7 +161,7 @@ EOF
 
 # --name-status so a rename yields the path that went away, which --name-only
 # would report as the path it became.
-removed=$(git diff "$range" --name-status --diff-filter=DR 2>/dev/null | awk '$1 ~ /^[DR]/ { print $2 }' || true)
+removed=$(git diff "$range" --name-status --diff-filter=DR 2>/dev/null | awk -F'\t' '$1 ~ /^[DR]/ { print $2 }' || true)
 
 if [ -n "$removed" ]; then
   removed_names=$(printf '%s\n' "$removed" | sed 's|.*/||' | sort -u)
