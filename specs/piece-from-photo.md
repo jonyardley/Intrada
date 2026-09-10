@@ -15,9 +15,12 @@
 >
 > Status: **phase A landed** ([#1443] core, [#1449] screens; #1355 closed
 > 2026-08-29); **phase B landed** ([#1455] core, [#1457] screens, [#1461] what
-> photographing real pages taught; [#1436] closed 2026-08-29); **phase C in
-> flight** ([#1437]). D is unstarted. The rest is the design as written
-> 2026-08-29 from a feasibility review of the iOS on-device stack (appendix).
+> photographing real pages taught; [#1436] closed 2026-08-29); **phase C
+> landed** ([#1437], closed via [#1476]). **D is unstarted.** This is a
+> snapshot, not a line this spec keeps current: where it and
+> [`specs/README.md`](README.md) disagree, the index wins. The rest is the
+> design as written 2026-08-29 from a feasibility review of the iOS on-device
+> stack (appendix).
 
 [#1098]: https://github.com/jonyardley/intrada/issues/1098
 [#1355]: https://github.com/jonyardley/intrada/issues/1355
@@ -33,6 +36,7 @@
 [#1455]: https://github.com/jonyardley/intrada/pull/1455
 [#1457]: https://github.com/jonyardley/intrada/pull/1457
 [#1461]: https://github.com/jonyardley/intrada/pull/1461
+[#1476]: https://github.com/jonyardley/intrada/pull/1476
 
 ## Problem
 
