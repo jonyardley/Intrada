@@ -406,6 +406,15 @@ once.
   core + iOS together.
 - **tier** — ceremony level per CLAUDE.md Workflow: 1 just do it, 2 plan
   mode, 3 spec first.
+- **fast tier / full tier**, the two iOS test gates: `just ios-test` (unit and
+  snapshot) and `just ios-test-full` (adds XCUITests, the merge gate). Not the
+  ceremony tier above.
+- **the lane**, the TestFlight release workflow
+  (`.github/workflows/release-testflight.yml`); runs on a tag only.
+- **the stamp**, the freshness fingerprint the iOS recipes write so an
+  unchanged tree skips a stage; delete it to force every stage to run.
+- **hero**, the large block at the top of the Practice tab: the Up next
+  suggestion where one exists, the plain hero otherwise.
 - **worktree** — a separate git checkout so parallel streams don't collide.
 - **bridge** — the generated FFI boundary (Event / Effect / ViewModel)
   between the Rust core and the Swift shell.
