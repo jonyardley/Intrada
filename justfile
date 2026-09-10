@@ -74,6 +74,7 @@ hygiene:
     bash scripts/check-release-name.sh
     bash scripts/tests/hygiene-checks-test.sh
     bash scripts/tests/pr-visuals-test.sh
+    bash scripts/tests/status-release-test.sh
 
 # Print what's in flight, read from GitHub: open PRs, claimed issues, recent merges.
 status:
