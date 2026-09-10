@@ -30,6 +30,9 @@ permissions:
 env:
   RUST_VERSION: "1.97.1"
   SENTRY_ORG: jon-yardley
+  # Asserted by the self-hosted gate, which runs on a machine that updates
+  # itself. Not the rented pin below, which matches nothing we own (#1637).
+  SELFHOSTED_XCODE: "26.6"
 
 jobs:
   # Detects which paths changed in the PR — used to skip jobs whose inputs
@@ -277,6 +280,138 @@ jobs:
           category: clippy-native
           wait-for-processing: true
 
+  # The whole iOS gate in one job on a self-hosted Mac (#1577). The four
+  # `macos-26` jobs below are the shape they are because a rented runner is
+  # 3 cores and 7GB: cloned simulators fail preflight there, the UI suite is
+  # sliced to fit, and built products are uploaded between jobs because each
+  # one starts empty. A persistent machine needs none of it.
+  native-ios-selfhosted:
+    name: "Native iOS: self-hosted gate"
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 40
+    needs: changes
+    # Allow-listed rather than deny-listed: a trigger added to this workflow
+    # later has to be named here before it can reach the machine. Fork pull
+    # requests take the rented path; the repo's "require approval for all
+    # external contributors" setting is the second line, not the first.
+    if: >-
+      github.event_name == 'push'
+      || (github.event_name == 'pull_request'
+      && needs.changes.outputs.native == 'true'
+      && github.event.pull_request.head.repo.full_name == github.repository)
+    permissions:
+      contents: read
+    steps:
+      # `clean: true` would take `target/`, `ios/build` and `ios/generated`
+      # with it, which is the warm state this machine exists for.
+      # `persist-credentials: false` keeps the token out of a `.git/config`
+      # that outlives the job.
+      - uses: actions/checkout@v7
+        with:
+          clean: false
+          persist-credentials: false
+      # `_ios-inputs-fingerprint` hashes untracked filenames under `ios/`, so
+      # one stray file makes the test step refuse. No `-x`: the ignored warm
+      # caches survive, the strays do not.
+      - name: Drop untracked strays, keep the warm caches
+        run: git clean -ffd
+      # Snapshot pixels come from the iOS runtime and `swift format` defaults
+      # ship inside Xcode, so a Software Update on this machine could move the
+      # gate with no code change. Both are asserted rather than assumed.
+      - name: Assert the pinned toolchain
+        run: |
+          have="$(xcodebuild -version | head -1)"
+          if [ "$have" != "Xcode $SELFHOSTED_XCODE" ]; then
+            echo "runner is on $have, this gate expects Xcode $SELFHOSTED_XCODE (#1637)" >&2
+            exit 1
+          fi
+          if ! xcrun simctl list runtimes | grep -q "iOS 26.5 "; then
+            echo "the iOS 26.5 simulator runtime the snapshot references pin is missing" >&2
+            exit 1
+          fi
+      # Through GITHUB_ENV because the `env` context is illegal in a job-level
+      # `env:`, where it resolves to empty instead of failing.
+      - name: Pin the Rust toolchain for this job
+        run: echo "RUSTUP_TOOLCHAIN=${{ env.RUST_VERSION }}" >> "$GITHUB_ENV"
+      - name: swift format check
+        run: |
+          swift format --version
+          just ios-fmt-check
+      - name: Clippy (iOS device target)
+        run: cargo clippy -p intrada-ffi --target aarch64-apple-ios -- -D warnings
+      - name: Regenerate Swift bindings (facet typegen + cargo-swift)
+        run: just ios-gen
+      # `_ios-test-without-building` reports its counts from the newest
+      # `.xcresult`, treating one that exists as one this run wrote. That held
+      # only because every rented job started empty.
+      - name: Drop earlier result bundles
+        run: rm -rf ios/build/dd/Logs/Test
+      - name: Build for testing (just _ios-build-for-testing)
+        run: just _ios-build-for-testing
+      # The device outlives the run, so the app's UserDefaults would too, and
+      # SessionRecoveryUITests asserts a resume prompt that a leftover
+      # crash-recovery blob satisfies on its own. Scoped to this one device,
+      # never a global reset.
+      - name: Clear the app's saved state from the test device
+        run: |
+          udid="$(just _ios-test-sim-udid)"
+          if [ -n "$udid" ]; then
+            xcrun simctl uninstall "$udid" com.intrada.native || true
+          fi
+      - name: Test (unit + snapshot)
+        run: just _ios-test-without-building -only-testing:IntradaTests 0
+      # The unit step leaves its device booted, and the UI step clones from
+      # it, which is one simulator more than 24GB holds: the clones then fail
+      # preflight with "Busy" and red the gate for no test reason. Scoped to
+      # this one device, never a global reset.
+      - name: Shut the test device down before cloning
+        run: |
+          udid="$(just _ios-test-sim-udid)"
+          if [ -n "$udid" ]; then
+            xcrun simctl shutdown "$udid" || true
+          fi
+      # A skip, not an only, so a test target added later joins this step
+      # instead of running nowhere (#1456). The third argument is the
+      # justfile's `parallel` flag: cloned simulators, which this machine
+      # holds and a 7GB one does not.
+      - name: Test (UI, cloned simulators)
+        run: just _ios-test-without-building -skip-testing:IntradaTests 1 1
+      - name: Upload snapshot failures
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: snapshot-failures
+          path: ios/IntradaTests/__Snapshots__/
+          retention-days: 7
+          if-no-files-found: ignore
+      # A non-snapshot failure leaves nothing to read otherwise: the test step
+      # prints counts and the failing test's name, never its message (#1576).
+      # The only other copy is on the machine, where housekeeping deletes it.
+      - name: Upload test result bundle
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: native-ios-selfhosted-xcresult
+          path: ios/build/dd/Logs/Test/*.xcresult
+          retention-days: 7
+          if-no-files-found: ignore
+      - name: Build Release (just ios-build-release)
+        run: just ios-build-release
+      # Main only, and last: "does the real app boot through its FFI entry
+      # point", plus the visual artefact. After the tests so the launch cannot
+      # leave state on the device they read.
+      - name: Launch on simulator + screenshot
+        if: github.event_name == 'push'
+        run: REUSE_BUILD=1 bash scripts/ios-run-sim.sh "$GITHUB_WORKSPACE/ios-screenshots/native.png"
+      - name: Upload screenshot
+        if: always() && github.event_name == 'push'
+        uses: actions/upload-artifact@v7
+        with:
+          name: native-ios-screenshot
+          path: ios-screenshots/
+          retention-days: 7
+          if-no-files-found: ignore
+
   native-ios-build:
     # Native SwiftUI app, build half — regenerate bindings (facet typegen +
     # cargo-swift), build the test products once. Pinned to macos-26 + Xcode
@@ -293,7 +428,10 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 40
     needs: changes
-    if: github.event_name == 'push' || needs.changes.outputs.native == 'true'
+    if: >-
+      github.event_name == 'pull_request'
+      && needs.changes.outputs.native == 'true'
+      && github.event.pull_request.head.repo.full_name != github.repository
     steps:
       - uses: actions/checkout@v7
       # Pin Xcode 26.5 to match local dev + the recorded snapshot reference.
@@ -476,7 +614,10 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 30
     needs: [changes, native-ios-build]
-    if: github.event_name == 'push' || needs.changes.outputs.native == 'true'
+    if: >-
+      github.event_name == 'pull_request'
+      && needs.changes.outputs.native == 'true'
+      && github.event.pull_request.head.repo.full_name != github.repository
     steps:
       - uses: actions/checkout@v7
       - uses: maxim-lobanov/setup-xcode@v1
@@ -541,14 +682,18 @@ jobs:
 
   native-ios-test-unit:
     # Test half 1/2 (#1207): IntradaTests (unit + snapshot) against the
-    # products `native-ios-build` already built — no rebuild here. Also owns
-    # the main-only launch+screenshot smoke, since it already has the built
-    # app on disk via the downloaded artifact.
+    # products `native-ios-build` already built, with no rebuild here.
+    # Reached only by fork pull requests now; the smoke and screenshot it
+    # used to own moved to `native-ios-selfhosted`, which runs on main
+    # pushes (#1577).
     name: "Native iOS: unit + snapshot"
     runs-on: macos-26
     timeout-minutes: 20
     needs: [changes, native-ios-build]
-    if: github.event_name == 'push' || needs.changes.outputs.native == 'true'
+    if: >-
+      github.event_name == 'pull_request'
+      && needs.changes.outputs.native == 'true'
+      && github.event.pull_request.head.repo.full_name != github.repository
     steps:
       - uses: actions/checkout@v7
       - uses: maxim-lobanov/setup-xcode@v1
@@ -586,23 +731,6 @@ jobs:
           path: ios/build/dd/Logs/Test/*.xcresult
           retention-days: 7
           if-no-files-found: ignore
-      # REUSE_BUILD: the test step above's downloaded artifact already has
-      # build/dd/Build/Products/Intrada.app — install + launch it for the
-      # screenshot without rebuilding. Main only (~105s): the unit/snapshot
-      # run is the per-PR UI regression gate; the launch+screenshot is a "does
-      # the real app boot through its FFI entry point" smoke + visual
-      # artifact, which only main needs.
-      - name: Launch on simulator + screenshot
-        if: github.event_name == 'push'
-        run: REUSE_BUILD=1 bash scripts/ios-run-sim.sh "$GITHUB_WORKSPACE/ios-screenshots/native.png"
-      - name: Upload screenshot
-        if: always() && github.event_name == 'push'
-        uses: actions/upload-artifact@v7
-        with:
-          name: native-ios-screenshot
-          path: ios-screenshots/
-          retention-days: 7
-          if-no-files-found: ignore
 
   native-ios-test-ui:
     # Test half 2/2 (#1207): IntradaUITests against the products
@@ -621,7 +749,10 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 20
     needs: [changes, native-ios-build]
-    if: github.event_name == 'push' || needs.changes.outputs.native == 'true'
+    if: >-
+      github.event_name == 'pull_request'
+      && needs.changes.outputs.native == 'true'
+      && github.event.pull_request.head.repo.full_name != github.repository
     strategy:
       fail-fast: false
       matrix:
@@ -656,15 +787,27 @@ jobs:
   native-ios:
     name: Native iOS (build + test)
     runs-on: ubuntu-latest
-    needs: [changes, native-ios-build, native-ios-build-release, native-ios-test-unit, native-ios-test-ui]
+    needs: [changes, native-ios-selfhosted, native-ios-build, native-ios-build-release, native-ios-test-unit, native-ios-test-ui]
     if: always() && (github.event_name == 'push' || needs.changes.outputs.native == 'true')
     steps:
+      # Two paths reach this gate (#1577): the self-hosted job for same-repo
+      # events, the four hosted jobs for fork pull requests. Exactly one of
+      # them runs, so the other's `skipped` is expected. A `skipped`
+      # self-hosted result with a failed hosted fan-out still fails here.
       - name: Check fan-out results
         run: |
-          echo "build=${{ needs.native-ios-build.result }} release=${{ needs.native-ios-build-release.result }} unit=${{ needs.native-ios-test-unit.result }} ui=${{ needs.native-ios-test-ui.result }}"
+          self="${{ needs.native-ios-selfhosted.result }}"
+          echo "selfhosted=$self build=${{ needs.native-ios-build.result }} release=${{ needs.native-ios-build-release.result }} unit=${{ needs.native-ios-test-unit.result }} ui=${{ needs.native-ios-test-ui.result }}"
+          if [ "$self" = "success" ]; then
+            exit 0
+          fi
+          if [ "$self" != "skipped" ]; then
+            echo "✗ the self-hosted iOS gate did not succeed (result: $self)" >&2
+            exit 1
+          fi
           for r in "${{ needs.native-ios-build.result }}" "${{ needs.native-ios-build-release.result }}" "${{ needs.native-ios-test-unit.result }}" "${{ needs.native-ios-test-ui.result }}"; do
             if [ "$r" != "success" ]; then
-              echo "✗ native-ios fan-out did not all succeed" >&2
+              echo "✗ the hosted fallback fan-out did not all succeed" >&2
               exit 1
             fi
           done
