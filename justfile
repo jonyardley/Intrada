@@ -58,18 +58,27 @@ coverage:
     cargo llvm-cov nextest --workspace --codecov --output-path codecov.json
 
 # Spell check + unused deps + workflow lint (what CI's Security & hygiene job
-# runs). All three tools come from mise.toml (`mise install`) or brew.
-# `actionlint` falls back to mise when it is absent from PATH: bare needs mise's
-# shims, and a plain shell without `mise activate` would fail the whole gate
-# with 127, which reads as broken rather than as a tool that is not installed.
+# runs), plus the self-test proving pr-visuals.sh still classifies a modified,
+# an added and a deleted snapshot reference correctly. The three tools come
+# from mise.toml (`mise install`) or brew; the self-test needs nothing
+# installed. `actionlint` falls back to mise when it is absent from PATH: bare
+# needs mise's shims, and a plain shell without `mise activate` would fail the
+# whole gate with 127, which reads as broken rather than as a tool that is not
+# installed.
 hygiene:
     typos
     cargo-shear
     @if command -v actionlint >/dev/null 2>&1; then actionlint; else mise x -- actionlint; fi
+    bash scripts/tests/pr-visuals-test.sh
 
 # Print what's in flight, read from GitHub: open PRs, claimed issues, recent merges.
 status:
     ./scripts/generate-status.sh
+
+# Before-and-after markdown for every snapshot reference this branch changed,
+# ready to paste under "What it looks like" in a PR body (#1631).
+pr-visuals:
+    ./scripts/pr-visuals.sh
 
 project_number := "2"
 project_owner := "jonyardley"

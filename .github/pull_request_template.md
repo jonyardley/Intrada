@@ -11,6 +11,13 @@
      tokens or user data on a public repo: say a gap exists and route the detail
      to Jon. -->
 
+## What it looks like
+
+<!-- Screen changes only. Run `just pr-visuals` and paste its output here: a
+     before and after image for every snapshot reference this branch changed,
+     pinned to a commit so the pictures still resolve after the branch is
+     gone. Delete this section on a PR that touches no screen. -->
+
 ## What I checked
 
 <!-- Evidence, not reassurance. "Gates green" is one line, because it is true of
