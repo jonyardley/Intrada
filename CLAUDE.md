@@ -191,8 +191,8 @@ means driving the app on the simulator**; if you cannot, say what needs a hand c
 4. **Ship through `/ship`**, which follows
    [`.claude/skills/intrada-shipping/SKILL.md`](.claude/skills/intrada-shipping/SKILL.md).
 5. **After completing work**: close the issue and drop `in-flight` (that is the
-   status update); update `docs/roadmap.md` if a phase changed, `docs/where-we-are.md`
-   if the release did, this file if architecture did; `just worktree-rm` once merged.
+   status update); update `docs/roadmap.md` and `docs/where-we-are.md`
+   if a phase changed, this file if architecture did; `just worktree-rm` once merged.
 
 **More than one session at once** follows
 [`.claude/skills/intrada-parallel-streams/SKILL.md`](.claude/skills/intrada-parallel-streams/SKILL.md);

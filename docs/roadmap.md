@@ -183,6 +183,29 @@ understood, and neither has to lie about the other.
 A `Priority` custom field (P0/P1/P2) ranks within a pillar/layer when
 multiple items share the same horizon.
 
+### Cutting a release
+
+A milestone is one headline plus whatever rides along. **Cut when the
+headline works on the phone**, not on a day of the week: the work here is
+sporadic, so a calendar trigger fires on the empty weeks and misses the
+busy ones. v0.9.0 was the photo release and v0.10.0 was capture, both cut
+that way before it was written down.
+
+Whatever is still open in the milestone at that point rolls to the next
+one. If the headline keeps growing, cut anyway and rename the milestone: a
+version number costs nothing pre beta.
+
+**Getting a build onto a device does not need a release.** `gh workflow run
+release-testflight.yml --ref <branch>` puts a signed build on TestFlight
+from any branch in about 15 minutes. It carries no Sentry release, because
+that step is tag only, and it takes the version sitting in
+`ios/project.yml`, so its crashes arrive unattributed and it lands beside
+the released build under the same version string.
+
+**A release's write-up is its GitHub release**, generated from the
+milestone. [`where-we-are.md`](where-we-are.md) changes when the phase
+changes, not when the release does.
+
 ---
 
 ## Open questions

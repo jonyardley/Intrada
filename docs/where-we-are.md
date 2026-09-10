@@ -1,7 +1,9 @@
 # Where we are
 
-*Orientation, hand-written, changed when the phase or the release changes and
-not otherwise — so no two branches ever edit it at once. For what is in flight
+*Orientation, hand-written, changed when the phase changes and not otherwise,
+so no two branches ever edit it at once. A release does not change it: its
+write-up is its GitHub release, generated from that release's milestone
+([`roadmap.md`](roadmap.md)). For what is in flight
 right now, run `just status`; it reads GitHub, which is the source of truth.
 Direction and phases: [`roadmap.md`](roadmap.md).*
 
