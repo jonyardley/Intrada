@@ -951,6 +951,12 @@ jobs:
       # a deleted snapshot reference correctly (#1631).
       - name: pr-visuals still classifies each shape correctly
         run: bash scripts/tests/pr-visuals-test.sh
+      # ── just status ──────────────────────────────────────────────────────
+      # The release block answers whether a cut is due (#1639), and both of its
+      # GitHub reads can fail in ways a reader cannot see: an outage that
+      # printed an empty section would read as "no release in flight".
+      - name: just status still reports the release burn
+        run: bash scripts/tests/status-release-test.sh
       # ── cargo-deny ─────────────────────────────────────────────────────
       # Replaces cargo-audit. Checks advisories (same RustSec DB), license
       # compliance, crate bans, and source restrictions in one pass.
