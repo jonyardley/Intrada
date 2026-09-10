@@ -210,6 +210,15 @@ These run whether or not an agent read the rules.
   merged-PR branch and runs the comment-density and dash checks.
 - **Dash check.** `scripts/check-dashes.sh` fails on em and en dashes in changed
   lines, in CI and pre-push. `SKIP_DASH_CHECK=1` for a justified case.
+- **Link check.** `scripts/check-links.sh` fails on a markdown link added to a
+  path that does not exist, and on a file the branch renames or deletes that
+  something still links to, in `just hygiene` and CI. It reads the working
+  tree, so an uncommitted link counts; the first half reads changed lines only,
+  so a link already broken in a file nobody touched still ships. External URLs
+  are skipped. `SKIP_LINK_CHECK=1` for a justified case.
+- **Release name check.** `scripts/check-release-name.sh` fails when the app and
+  the TestFlight lane stop composing the same Sentry release name, which would
+  otherwise show up only as crashes filed under a release nobody created.
 - **Permission deny list.** `.claude/settings.json` denies `gh pr merge`,
   `git push origin main`, `fly`, `just testflight` and the destructive
   simulator resets outright. Branch protection on `main` backs the first two
