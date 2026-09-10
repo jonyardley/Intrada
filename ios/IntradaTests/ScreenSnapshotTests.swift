@@ -170,6 +170,16 @@ final class ScreenSnapshotTests: XCTestCase {
         store: .previewPracticeSuggestion), as: config)
   }
 
+  /// Dismissed but the core still has one to offer: the plain hero carries a
+  /// way back to it (#1618).
+  func testPracticeScreenSuggestionDismissed() {
+    assertSnapshot(
+      of: host(
+        PracticeScreen(
+          referenceDate: PracticeSessionView.previewReferenceDate, suggestionDismissed: true),
+        store: .previewPracticeSuggestion), as: config)
+  }
+
   func testPracticeScreenPriorities() {
     assertSnapshot(
       of: host(
@@ -181,6 +191,16 @@ final class ScreenSnapshotTests: XCTestCase {
     assertSnapshot(
       of: host(
         PracticeScreen(referenceDate: PracticeSessionView.previewReferenceDate),
+        store: .previewPracticeSuggestionPriorities), as: config)
+  }
+
+  /// Dismissed with something starred too: two secondaries (restore, then
+  /// priorities) stack under the plain hero (#1618).
+  func testPracticeScreenSuggestionDismissedPriorities() {
+    assertSnapshot(
+      of: host(
+        PracticeScreen(
+          referenceDate: PracticeSessionView.previewReferenceDate, suggestionDismissed: true),
         store: .previewPracticeSuggestionPriorities), as: config)
   }
 

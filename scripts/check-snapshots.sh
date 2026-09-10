@@ -29,7 +29,8 @@ LARGE_MAX_BYTES="${SNAPSHOT_LARGE_MAX_BYTES:-300000}"
 is_large() {
   case "$1" in
     testPracticeScreen | testPracticeScreenPopulated | testPracticeScreenPriorities | \
-      testPracticeScreenQuietDay | \
+      testPracticeScreenQuietDay | testPracticeScreenSuggestionDismissed | \
+      testPracticeScreenSuggestionDismissedPriorities | \
       testUpNextHeroNeverMarked | \
       testFocusPlayerWithReps | testFocusPlayerWithTarget | testFocusPlayerLongSession | \
       testPracticeSessionDetailAccessibilitySize | \
