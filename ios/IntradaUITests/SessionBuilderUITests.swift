@@ -138,11 +138,10 @@ final class SessionBuilderUITests: XCTestCase {
     ).firstMatch
     XCTAssertTrue(clairRow.waitForExistence(timeout: 10), "Clair library row")
     clairRow.tap()
-    // The empty state's primary action creates a new exercise (#1431); this
-    // test wants the picker, which is now the secondary action beside it.
-    let chooseExisting = app.buttons["Choose an existing exercise for this piece"]
-    XCTAssertTrue(chooseExisting.waitForExistence(timeout: 10), "related empty-state picker CTA")
-    chooseExisting.tap()
+    // The empty state's one action opens the picker (#1616).
+    let addExercise = app.buttons["Add an exercise for this piece"]
+    XCTAssertTrue(addExercise.waitForExistence(timeout: 10), "related empty-state add-exercise CTA")
+    addExercise.tap()
     let hanonPick = app.buttons.matching(
       NSPredicate(format: "label CONTAINS %@", "Hanon No. 1")
     ).firstMatch

@@ -13,14 +13,19 @@ import SwiftUI
 /// the passed-in `available` list — the picker curates its own subset rather
 /// than the core's shared Library `ListQuery`, so filtering here never disturbs
 /// the Library screen. Search and sort themselves are the core's (#1440, #1445).
+///
+/// For exercises, the picker also offers creating one inline (#1616): a
+/// drafted exercise and a toggled selection hand back together on Done.
 struct LinkedItemPickerSheet: View {
   let kind: ItemKind
   let available: [LibraryItemView]
   let linkedIds: [String]
-  let onApply: (Swift.Set<String>) -> Void
+  let onApply: (Swift.Set<String>, [StagedExercise]) -> Void
 
   @Environment(\.dismiss) private var dismiss
   @State private var selected: Swift.Set<String>
+  @State private var drafts: [StagedExercise]
+  @State private var creatingDraft = false
 
   // Shell-local filter state (not the core ListQuery).
   @State private var priorityOnly = false
@@ -33,32 +38,41 @@ struct LinkedItemPickerSheet: View {
 
   init(
     kind: ItemKind, available: [LibraryItemView], linkedIds: [String],
-    onApply: @escaping (Swift.Set<String>) -> Void
+    existingDrafts: [StagedExercise] = [],
+    onApply: @escaping (Swift.Set<String>, [StagedExercise]) -> Void
   ) {
     self.kind = kind
     self.available = available
     self.linkedIds = linkedIds
     self.onApply = onApply
     _selected = State(initialValue: Swift.Set(linkedIds))
+    _drafts = State(initialValue: existingDrafts)
   }
+
+  // Only an exercise is light enough to draft inline; a piece needs the full form.
+  private var allowsCreate: Bool { kind == .exercise }
 
   var body: some View {
     BottomSheet(
       title: copy.sheetTitle,
-      onDone: { onApply(selected) },
+      onDone: { onApply(selected, drafts) },
       leadingAction: { Button("Cancel") { dismiss() } },
       content: {
-        if available.isEmpty {
+        if available.isEmpty && !allowsCreate {
           PlaceholderContent(
             systemImage: kind.iconName, message: copy.noneAtAll)
         } else {
           VStack(spacing: 0) {
-            filterBar
+            if !available.isEmpty { filterBar }
             selectedCount
             list
           }
         }
-      })
+      }
+    )
+    .sheet(isPresented: $creatingDraft) {
+      DraftExerciseSheet(onDone: { drafts.append($0) })
+    }
   }
 
   // ── Filter bar ──
@@ -156,12 +170,8 @@ struct LinkedItemPickerSheet: View {
     withAnimation(IntradaMotion.standard) { searchRevealed = false }
   }
 
-  private var selectedItems: [LibraryItemView] {
-    available.filter { selected.contains($0.id) }
-  }
-
   @ViewBuilder private var selectedCount: some View {
-    let count = selectedItems.count
+    let count = selected.count + drafts.count
     Group {
       if count == 0 {
         Text(copy.noneSelected)
@@ -200,9 +210,17 @@ struct LinkedItemPickerSheet: View {
   private var list: some View {
     ScrollView {
       VStack(spacing: 0) {
+        if allowsCreate {
+          createTrigger
+          HairlineDivider()
+        }
+        if !drafts.isEmpty {
+          draftRows
+          HairlineDivider()
+        }
         let rows = filtered
         if rows.isEmpty {
-          Text(copy.noMatches)
+          Text(available.isEmpty ? copy.noneAtAll : copy.noMatches)
             .font(IntradaFont.meta)
             .foregroundStyle(IntradaColor.inkSecondary)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -239,6 +257,33 @@ struct LinkedItemPickerSheet: View {
       .padding(IntradaSpacing.card)
     }
     .scrollDismissesKeyboard(.interactively)
+  }
+
+  private var createTrigger: some View {
+    AddRowButton(title: "Create an exercise", style: .plain) { creatingDraft = true }
+      .padding(.horizontal, IntradaSpacing.card)
+  }
+
+  private var draftRows: some View {
+    VStack(spacing: 0) {
+      Text("New")
+        .font(IntradaFont.eyebrow)
+        .textCase(.uppercase)
+        .kerning(1.2)
+        .foregroundStyle(IntradaColor.inkFaint)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, IntradaSpacing.card)
+        .padding(.top, IntradaSpacing.cardCompact)
+        .padding(.bottom, IntradaSpacing.controlGap)
+      ForEach(Array(drafts.enumerated()), id: \.element.id) { index, draft in
+        if index > 0 {
+          HairlineDivider().padding(.leading, IntradaSpacing.card)
+        }
+        DraftItemRow(
+          title: draft.title, meta: draft.meta,
+          onRemove: { drafts.removeAll { $0.id == draft.id } })
+      }
+    }
   }
 
   // ── Rows ──
@@ -319,9 +364,7 @@ private struct PickerCopy {
   var sheetTitle: String { kind == .piece ? "Link a piece" : "Add exercises" }
 
   var noneAtAll: String {
-    kind == .piece
-      ? "No pieces in your library yet."
-      : "No exercises yet. Create one from the piece to relate it."
+    kind == .piece ? "No pieces in your library yet." : "No exercises in your library yet."
   }
 
   var noneSelected: String {
@@ -366,15 +409,15 @@ private struct PickerCopy {
           photoId: nil),
       ],
       linkedIds: ["exercise-1"],
-      onApply: { _ in })
+      onApply: { _, _ in })
   }
 
   #Preview("Empty") {
-    LinkedItemPickerSheet(kind: .exercise, available: [], linkedIds: [], onApply: { _ in })
+    LinkedItemPickerSheet(kind: .exercise, available: [], linkedIds: [], onApply: { _, _ in })
   }
 
   #Preview("Link a piece — from the exercise side") {
     LinkedItemPickerSheet(
-      kind: .piece, available: [.previewPiece], linkedIds: [], onApply: { _ in })
+      kind: .piece, available: [.previewPiece], linkedIds: [], onApply: { _, _ in })
   }
 #endif

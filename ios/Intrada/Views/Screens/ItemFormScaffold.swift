@@ -15,9 +15,6 @@ struct ItemFormScaffold<Header: View, Sections: View>: View {
   let confirmLabel: String
   let composerSuggestions: [String]
   let tagSuggestions: [String]
-  // Hidden when the caller already fixes the kind (creating an exercise from a
-  // piece), so the form can't offer a choice the core will discard anyway.
-  var showsKindPicker = true
   /// Sits above the fields. The add screen puts the scan entry here rather than
   /// as a row inside the form: once a page is read it is not a field beside
   /// title and composer, it is what fills them (#1446).
@@ -27,7 +24,7 @@ struct ItemFormScaffold<Header: View, Sections: View>: View {
 
   init(
     form: ItemFormModel, title: String, confirmLabel: String, composerSuggestions: [String],
-    tagSuggestions: [String], showsKindPicker: Bool = true,
+    tagSuggestions: [String],
     @ViewBuilder header: @escaping () -> Header = { EmptyView() },
     @ViewBuilder sections: @escaping () -> Sections = { EmptyView() },
     send: @escaping () -> Void
@@ -37,7 +34,6 @@ struct ItemFormScaffold<Header: View, Sections: View>: View {
     self.confirmLabel = confirmLabel
     self.composerSuggestions = composerSuggestions
     self.tagSuggestions = tagSuggestions
-    self.showsKindPicker = showsKindPicker
     self.header = header
     self.sections = sections
     self.send = send
@@ -59,9 +55,7 @@ struct ItemFormScaffold<Header: View, Sections: View>: View {
               VStack(spacing: IntradaSpacing.card) {
                 header()
 
-                if showsKindPicker {
-                  KindSegment(selection: $form.kind)
-                }
+                KindSegment(selection: $form.kind)
 
                 VStack(spacing: 0) {
                   FormField(
