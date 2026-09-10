@@ -42,11 +42,13 @@ struct SessionSummaryScreen: View {
             controls.fadeUp(6)
           }
           .padding(.horizontal, IntradaSpacing.card)
-          .padding(.top, 40)
+          .padding(.top, IntradaSpacing.card)
           .padding(.bottom, IntradaSpacing.card)
         }
       }
     }
+    // The recap otherwise scrolls under the status bar with nothing behind it (#1620).
+    .safeAreaInset(edge: .top, spacing: 0) { header }
     .onAppear {
       note = summary?.notes ?? ""
     }
@@ -56,6 +58,23 @@ struct SessionSummaryScreen: View {
     } message: {
       Text("This practice won't be saved.")
     }
+  }
+
+  // ── Header ──
+
+  private var header: some View {
+    VStack(spacing: 0) {
+      Text("Session complete")
+        .font(IntradaFont.cardTitle())
+        .foregroundStyle(IntradaColor.ink)
+        .lineLimit(1)
+        .minimumScaleFactor(0.8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, IntradaSpacing.card)
+        .padding(.vertical, IntradaSpacing.controlGap)
+      Rectangle().fill(IntradaColor.divider).frame(height: 1)
+    }
+    .background(IntradaColor.paperTop)
   }
 
   // ── Intention echo ──
@@ -87,7 +106,6 @@ struct SessionSummaryScreen: View {
 
   private func headline(_ summary: SummaryView) -> some View {
     VStack(alignment: .leading, spacing: 4) {
-      Eyebrow("Session complete", tint: IntradaColor.exerciseBadgeFg)
       Text(summary.totalDurationDisplay)
         .font(IntradaFont.pageTitle(34))
         .foregroundStyle(IntradaColor.ink)
