@@ -13,10 +13,12 @@
 
 ## What it looks like
 
-<!-- Screen changes only. Run `just pr-visuals` and paste its output here: a
-     before and after image for every snapshot reference this branch changed,
-     pinned to a commit so the pictures still resolve after the branch is
-     gone. Delete this section on a PR that touches no screen. -->
+<!-- Screen changes only. After pushing the branch, run `just pr-visuals` and
+     paste its output here: a before and after image for every snapshot
+     reference this branch changed, pinned to the pushed commit so the
+     pictures still resolve after the branch is gone. Run it before the push
+     and the after-images point at a commit GitHub has never seen. Delete this
+     section on a PR that touches no screen. -->
 
 ## What I checked
 
