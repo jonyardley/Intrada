@@ -138,7 +138,7 @@ struct UpNextHero: View {
       .foregroundStyle(IntradaColor.onAccent.opacity(0.78))
       .frame(maxWidth: .infinity)
       .padding(.vertical, IntradaSpacing.controlGap)
-      .accessibilityHint("Hides the suggestion and shows the usual Practice screen")
+      .accessibilityHint("Opens the session builder")
   }
 
   private var itemCountLabel: String {

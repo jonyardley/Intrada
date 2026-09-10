@@ -26,6 +26,13 @@ struct PracticeScreen: View {
       self.referenceDate = referenceDate
       _selectedDay = State(initialValue: selectedDay)
     }
+
+    /// Snapshot seed: land as if "Build my own instead" had already been
+    /// tapped (#1618), without driving the tap.
+    init(referenceDate: Date, suggestionDismissed: Bool) {
+      self.referenceDate = referenceDate
+      _suggestionDismissed = State(initialValue: suggestionDismissed)
+    }
   #endif
 
   private var sessions: [PracticeSessionView] { store.viewModel?.sessions ?? [] }
@@ -124,11 +131,16 @@ struct PracticeScreen: View {
               .session(.startBuildingFromSuggestion(now: SessionClock.nowRFC3339())),
               onSuccess: .impact)
           },
-          onBuildOwn: { withAnimation(IntradaMotion.standard) { suggestionDismissed = true } }
+          // "Build my own" is a decision, not a dismissal (#1617).
+          onBuildOwn: {
+            withAnimation(IntradaMotion.standard) { suggestionDismissed = true }
+            store.send(.session(.startBuilding))
+          }
         )
         .transition(.opacity)
       } else {
         hero
+        if showsSuggestionRestore { suggestionRestoreButton }
       }
 
       if showsPriorities { prioritiesButton }
@@ -165,6 +177,36 @@ struct PracticeScreen: View {
     }
     .buttonStyle(PressRebound())
     .accessibilityHint("Builds a session from everything you have starred")
+  }
+
+  /// True once the suggestion has been waved away but the core still has one
+  /// to offer: dismissal is not a one-way door (#1618).
+  static func showsSuggestionRestore(_ viewModel: ViewModel?, dismissed: Bool) -> Bool {
+    guard dismissed, let viewModel else { return false }
+    return viewModel.upNext != nil && viewModel.buildingSetlist == nil
+      && viewModel.activeSession == nil && viewModel.summary == nil
+  }
+
+  private var showsSuggestionRestore: Bool {
+    Self.showsSuggestionRestore(store.viewModel, dismissed: suggestionDismissed)
+  }
+
+  private var suggestionRestoreButton: some View {
+    Button {
+      withAnimation(IntradaMotion.standard) { suggestionDismissed = false }
+    } label: {
+      HStack(spacing: IntradaSpacing.controlGap) {
+        Image(systemName: "arrow.counterclockwise")
+          .accessibilityHidden(true)
+        Text("Show suggestion")
+      }
+      .font(IntradaFont.subtitle)
+      .foregroundStyle(IntradaColor.inkSecondary)
+      .frame(maxWidth: .infinity)
+      .padding(.vertical, IntradaSpacing.controlGap)
+    }
+    .buttonStyle(PressRebound())
+    .accessibilityHint("Brings back the suggested session")
   }
 
   private var hero: some View {

@@ -825,3 +825,37 @@ Four rulings.
 (held: create is where the material is fresh), the per-bar parse feedback the
 text format still wants (#1387 part 1), and the words on the two rows, which
 are matched to the detail card at the design pass rather than invented here.
+
+### T22: "Build my own instead" opens the builder, and dismissal is never a one-way door
+
+**Status:** DECIDED 2026-09-10 (jonyardley/intrada#1617, #1618). Amends T15's
+"takes the user to exactly the screen that shipped": revealing the plain hero
+and asking for a second tap turned out to be one tap too many for a decision
+the musician had already made.
+
+Two rulings, read together:
+
+- **The tap does the thing it names.** "Build my own instead" is a decision,
+  not a dismissal, so it drives straight into the empty builder in the same
+  tap that hides the suggestion. Nothing else about T15 moves: the suggestion
+  is still the hero, still suggests rather than gates, and the manual builder
+  is still exactly the screen that shipped once you are in it.
+- **A curious or accidental tap is not a one-way door.** Once dismissed, the
+  plain hero carries a text route back to the suggestion ("Show suggestion"),
+  on the same footing as T20's starred route: both are secondary text actions
+  under one primary, and both can show together, so the busiest case stacks
+  two secondaries rather than one. `suggestionDismissed` stays shell-local
+  `@State`; nothing about which sessions the core offers to suggest changes.
+
+**What this does not settle:** `specs/up-next-card.md` decision 9 still
+records the older "reveals the hero that shipped rather than opening the
+builder" reading and needs updating to match, tracked as #1629 rather than
+edited here because another stream owns `specs/` while this shipped.
+
+Options considered: leaving "Build my own instead" as dismissal-only and
+adding a separate always-visible "Build session" entry point elsewhere
+(rejected: reads as a second primary action next to Start, the exact trap T15
+and T20 both ruled out); bringing the suggestion back automatically after a
+cool-down rather than on a tap (rejected: a timer is a rule about the user's
+attention the app has no basis for, and re-litigates T15's "never a gate" in
+the other direction).
