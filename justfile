@@ -58,11 +58,13 @@ coverage:
     cargo llvm-cov nextest --workspace --codecov --output-path codecov.json
 
 # Spell check + unused deps + workflow lint + markdown links + the Sentry
-# release name contract (what CI's Security & hygiene job runs). The three tools
-# come from mise.toml (`mise install`) or brew; the three scripts need nothing
-# installed. `actionlint` falls back to mise when it is absent from PATH: bare
-# needs mise's shims, and a plain shell without `mise activate` would fail the
-# whole gate with 127, which reads as broken rather than as a tool that is not
+# release name contract (what CI's Security & hygiene job runs), plus the
+# self-test proving pr-visuals.sh still classifies a modified, an added and a
+# deleted snapshot reference correctly. The three tools come from mise.toml
+# (`mise install`) or brew; the scripts and self-tests need nothing installed.
+# `actionlint` falls back to mise when it is absent from PATH: bare needs
+# mise's shims, and a plain shell without `mise activate` would fail the whole
+# gate with 127, which reads as broken rather than as a tool that is not
 # installed. The link check is diff-scoped, so it reads committed content only.
 hygiene:
     typos
@@ -71,10 +73,16 @@ hygiene:
     bash scripts/check-links.sh
     bash scripts/check-release-name.sh
     bash scripts/tests/hygiene-checks-test.sh
+    bash scripts/tests/pr-visuals-test.sh
 
 # Print what's in flight, read from GitHub: open PRs, claimed issues, recent merges.
 status:
     ./scripts/generate-status.sh
+
+# Before-and-after markdown for every snapshot reference this branch changed,
+# ready to paste under "What it looks like" in a PR body (#1631).
+pr-visuals:
+    ./scripts/pr-visuals.sh
 
 project_number := "2"
 project_owner := "jonyardley"

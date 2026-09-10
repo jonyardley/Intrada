@@ -44,6 +44,13 @@ Activities. Those PRs carry the label and their **What I checked** names exactly
 what a person has to do by hand. Reaching for it because driving the app looked
 like effort is the failure this rule exists to stop.
 
+A screen change ships with its before and after image, not prose describing
+one. After pushing the branch, `just pr-visuals` reads the references it
+changed and prints the before/after markdown to paste under **What it looks
+like** (#1631); the images are raw.githubusercontent.com URLs pinned to the
+pushed commit, so run it after the push or they point at a commit GitHub has
+never seen.
+
 ## Codecov (Tier 2+)
 
 After CI, compare the patch-coverage comment with the **Coverage** line in the
