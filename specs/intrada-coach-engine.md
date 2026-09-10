@@ -638,9 +638,11 @@ narrates, so it is the plan changing. Only the spoken name-the-wall competes
 
 ## 8. The gate criteria schema
 
-Formalised from [`content/gates.toml`](../content/gates.toml). The gain over its
-flat bag of recognised-optional fields: the requirement becomes a closed enum, so
-an unrepresentable gate fails to parse instead of silently losing a field.
+Formalised from `content/gates.toml`, added with the Phase 0 content set
+(#1145) and removed with the rest of the coach (#1344): the path no longer
+exists, and there is no successor to point at. The gain over its flat bag of
+recognised-optional fields: the requirement becomes a closed enum, so an
+unrepresentable gate fails to parse instead of silently losing a field.
 
 > **Scoped 4 Aug 2026 (decision 18):** `judge` needs a third value —
 > `TapVerdict`, the v1 default: user-judged like `SelfConfirmed` but

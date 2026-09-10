@@ -13,7 +13,7 @@
 ## Problem
 
 A user who signs into intrada for the first time today lands directly on
-the empty Library list ([app.rs:174](../crates/intrada-web/src/app.rs:174)).
+the empty Library list (`app.rs`, in the now-deleted web shell).
 There is no welcome, no philosophy, no setting of expectations — they sign
 in with Google and are dropped into an empty screen with a `+` button.
 
@@ -100,8 +100,7 @@ first. Edits should be deliberate (PR review, not drift).
 4. **Continuation** (medium body, `text-muted`)
 
 Generous spacing between layers. Background uses the existing dark
-gradient already wired in
-[app.rs:102](../crates/intrada-web/src/app.rs:102).
+gradient already wired in `app.rs`, in the now-deleted web shell.
 
 **Per-card animated SVG mark — built from the brand vocabulary.**
 Every card (including card 1, the opener) gets a small mark composed
@@ -169,10 +168,9 @@ spacing scale.
 - Five progress dots at bottom, current one filled.
 - "Skip" link top-right — small, low-contrast (`text-muted`), present
   but not pushy. Skips to `/` and records the flag.
-- Final card's primary CTA is a Hero-size primary
-  [Button](../crates/intrada-web/src/components/button.rs): *"Get
-  started →"*. Tapping records the flag and routes to `/` (the Library
-  home).
+- Final card's primary CTA is a Hero-size primary `Button` (from the
+  now-deleted web shell): *"Get started →"*. Tapping records the flag and
+  routes to `/` (the Library home).
 
 **iOS polish** (under `[data-platform="ios"]`):
 
@@ -210,9 +208,9 @@ migrates server-side as part of that work.
 Two paths, both `#[cfg(debug_assertions)]`-gated:
 
 1. **Design catalogue entry.** Add `WelcomeCarousel` to
-   [views/design_catalogue.rs](../crates/intrada-web/src/views/design_catalogue.rs)
-   so it can be inspected in isolation at `/design`. The design route is
-   already debug-gated in `app.rs:316`.
+   `views/design_catalogue.rs` (in the now-deleted web shell) so it can be
+   inspected in isolation at `/design`. The design route is already
+   debug-gated in `app.rs`, in the same shell.
 2. **Reset button** in the design catalogue entry that clears
    `localStorage.removeItem('intrada:welcome-seen')` and reloads.
 
@@ -237,9 +235,9 @@ changes, no DB migrations.
     `welcome_carousel.rs` rather than its own module since the marks are
     short, only used here, and benefit from being adjacent to the card
     they belong to.
-- **Mount point.** Inside
-  [`AuthenticatedApp`](../crates/intrada-web/src/app.rs:125), render
-  `<WelcomeCarousel />` as a *sibling* of `<main>` (not wrapping it),
+- **Mount point.** Inside `AuthenticatedApp` (`app.rs`, in the now-deleted
+  web shell), render `<WelcomeCarousel />` as a *sibling* of `<main>` (not
+  wrapping it),
   positioned `fixed inset-0 z-[2000]` so it sits visually above the
   routed content. The app underneath continues to mount and fetch data
   so that the Library at `/` is already loaded when the carousel
