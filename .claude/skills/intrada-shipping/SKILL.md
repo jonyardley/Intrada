@@ -68,19 +68,46 @@ posted. PR descriptions are not tracking. The comment ends with
 ## PR bodies and issues
 
 Both are read cold, months later, by someone deciding whether to merge and
-working out what changed. The template is `.github/pull_request_template.md`:
+working out what changed, or deciding what to build from the body alone. The
+templates are `.github/pull_request_template.md` and
+`.github/ISSUE_TEMPLATE/issue.md`; the headings there are the headings, not a
+suggestion.
 
-1. **What this fixes**: the situation a musician would notice. No paths, symbols
-   or code.
-2. **Where this could bite**: residual risk in what ships, present tense, never
-   the branch's history. Name the fault class, not the fumble. Never spell out
-   an exploitable gap in auth, tokens or user data on a public repo; say one
-   exists and route the detail to Jon.
-3. **What I checked**: evidence, not reassurance. "Gates green" is one line;
-   the check that could have failed earns the space.
-4. **What changed where**: one line per file. Identifiers welcome.
+1. **What this fixes**: the situation the affected person would notice. For a
+   screen change that is the musician; for tooling or docs it is Jon or an
+   agent, and the body says what they hit rather than that no musician is
+   affected. No paths, symbols or code; a `just` recipe name once, when the
+   recipe is the outcome.
+2. **Where this could bite**: residual risk in what ships, present tense, one
+   paragraph per risk, each ending in its tracking issue or "deliberate, not
+   tracked". A risk an earlier PR of the same feature stated gets its issue
+   number, not a restatement. Never the branch's history. Name the fault class,
+   not the fumble. Never spell out an exploitable gap in auth, tokens or user
+   data on a public repo; say one exists and route the detail to Jon.
+3. **What it looks like**: screen changes only, the `just pr-visuals` output.
+   Deleted on a PR that touches no screen.
+4. **What I checked**: evidence, not reassurance. "Gates green" is one line
+   with counts; the check that could have failed earns the space. The
+   reviewer's findings, the defects fixed on the branch and why a check was
+   worth running belong in the self-review comment, not here.
+5. **What changed where**: one line per file. Identifiers welcome.
 
-Issues: what a person would notice, why it matters, what to do, then the
-technical reproduction last. Any term not in the glossary
-(`docs/reference.md`) is said plainly or added to it. No tick marks, symbols or
-emoji in either.
+A Tier 1 or Tier 2 body runs under 400 words before the checklist. Tier 3 and
+domain-sensitive work may run longer, and every paragraph past that is a
+distinct shipped risk or a check that could have failed. The three longest
+bodies of 2026-09 (#1612, #1628, #1601) each carried over 100 words of branch
+history in **What I checked**, which is the failure this rule exists to stop.
+Checklist lines that do not apply are deleted, not annotated.
+
+Issues: what you would notice, why it matters, what to do, then where it lives.
+Measurements, logs and reproduction steps go last even when they are the reason
+the issue exists.
+
+Any term not in the glossary (`docs/reference.md`) is said plainly or added to
+it. A phase letter, decision number or internal name ("Phase R", "T22", "the
+lane") carries the document it resolves in, the first time it appears in a
+body. **Tier** means ceremony level; the test gates are "the fast tier" and
+"the full tier".
+
+No tick marks, symbols or emoji in either, with one exemption: the attribution
+footer the harness requires a session to append.
