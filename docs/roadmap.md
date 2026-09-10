@@ -169,6 +169,17 @@ one place — the banner at the top of this doc.
 are workflow states (Backlog → Ready → In Progress → In Review → Done),
 not categories. Use the labels above to filter and slice.
 
+**Ready is the pull queue, not the release.** An issue earns Ready when
+someone could start it without asking a question first: the shape is
+settled and what it points at has been read. It says nothing about which
+build it lands in.
+
+**The milestone is the release.** Everything meant for the next cut carries
+that release's milestone, which the board already holds as a field and
+filters on. Keeping the two apart is the point: an issue can be ready to
+start and deliberately out of the cut, or in the cut and not yet
+understood, and neither has to lie about the other.
+
 A `Priority` custom field (P0/P1/P2) ranks within a pillar/layer when
 multiple items share the same horizon.
 
