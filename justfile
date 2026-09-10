@@ -629,10 +629,11 @@ _ios-test-without-building filters retry parallel="0":
     fi
     # Cloned simulators are opt-in per caller, defaulting off: a clone's test
     # runner hits "Application failed preflight checks (Busy)" under memory
-    # pressure, which reds the gate for no test reason, and CI's 7GB runner
-    # has too little to hold more than one. A 48GB dev machine holds five,
-    # which takes the UI tier from 339s to 86s, so the local full tier opts
-    # in. CI's parallelism stays the job fan-out.
+    # pressure, which reds the gate for no test reason, and a rented 7GB
+    # runner has too little to hold more than one. A 48GB dev machine holds
+    # five, which takes the UI tier from 339s to 86s. The local full tier and
+    # the self-hosted CI gate both opt in; the rented fork-pull-request path
+    # keeps its job fan-out instead (#1577).
     flags=()
     if [ "{{parallel}}" = "1" ]; then
         flags+=(-parallel-testing-enabled YES -maximum-concurrent-test-simulator-destinations 4)

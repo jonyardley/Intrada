@@ -1,0 +1,45 @@
+name: Runner housekeeping
+
+# The self-hosted Mac keeps its workspace between runs, which is where most of
+# the gate's speed comes from (#1577): warm `target/`, DerivedData and resolved
+# SwiftPM sources. The gate drops its own test result bundles at the start of
+# each run, so what is left to grow here is xcodebuild's build logs and any
+# simulator device whose runtime an Xcode update has taken away.
+on:
+  schedule:
+    - cron: "0 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prune:
+    name: Prune the self-hosted runner workspace
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      # An unset RUNNER_WORKSPACE would leave the globs below matching from
+      # the filesystem root, so fail rather than tidy the wrong tree.
+      - name: Space and workspace sizes before
+        run: |
+          set -euo pipefail
+          test -n "${RUNNER_WORKSPACE:-}"
+          df -h /System/Volumes/Data | tail -1
+          du -sh "$RUNNER_WORKSPACE"/*/ios/build "$RUNNER_WORKSPACE"/*/target 2>/dev/null || true
+      - name: Drop xcodebuild logs
+        run: |
+          set -euo pipefail
+          test -n "${RUNNER_WORKSPACE:-}"
+          rm -rf "$RUNNER_WORKSPACE"/*/ios/build/dd/Logs
+          rm -rf "$RUNNER_WORKSPACE"/*/ios/build/dd-release/Logs
+      # Only removes devices whose runtime is already gone, so it cannot take
+      # the gate's device while the iOS 26.5 runtime is still installed. If an
+      # Xcode update drops that runtime this would take it too, but the gate's
+      # own toolchain assertion has already failed by then.
+      - name: Drop simulator devices with no runtime
+        run: xcrun simctl delete unavailable
+      - name: Space after
+        run: df -h /System/Volumes/Data | tail -1

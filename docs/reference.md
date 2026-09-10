@@ -347,6 +347,63 @@ What those numbers changed:
   a rust-cache key carries the job name, so a `save-if: false` reader can only
   share with the *same* job on another ref, never with a different job.
 
+## The self-hosted iOS runner (2026-09-10, #1577)
+
+The iOS gate runs on a dedicated Mac for every same-repo push and pull request.
+Fork pull requests keep the four rented `macos-26` jobs, which is what stops
+untrusted code reaching the machine; #1636 covers proving that path still works.
+
+**The machine.** A MacBook Pro M4, 10 cores, 24GB, reachable on the home network
+as `Jons-MacBook-Pro-2.local`. Registered as repo runner `intrada-m4` with
+labels `self-hosted, macOS, ARM64, intrada-m4`. It runs lid-closed on the
+charger with idle sleep off.
+
+**Why a login is needed after a reboot.** The runner is a launchd user agent, not
+a daemon, because xcodebuild and the simulator need a real graphical session.
+FileVault stays on, so automatic login is not available, and nothing runs until
+someone logs in at the keyboard. Planned restarts go through
+`sudo fdesetup authrestart`, which gets past the disk unlock but still leaves
+the login window.
+
+**Restarting it.**
+
+```bash
+cd ~/actions-runner && ./svc.sh status    # or stop / start
+```
+
+**Its toolchain is local, not installed per run.** Xcode with the iOS 26.5
+simulator runtime, `just`, XcodeGen 2.46.0, `cargo-swift` 0.9.0 and Rust pinned
+by the workflow through `RUSTUP_TOOLCHAIN`. XcodeGen lives in `~/.local/bin`,
+which the runner finds through the `.path` file in its own directory, not
+through a shell profile.
+
+**It is single tenant.** The justfile derives the simulator device name from the
+checkout folder name, and both a local clone and the runner's workspace reduce
+to `intrada`, so both would fight over one device. Do no local iOS work on that
+machine while it is a runner.
+
+**When it is offline, same-repo CI queues rather than failing.** GitHub has no
+automatic fall back to a rented runner, so a job waits for a runner that matches
+its labels. If the gate is not starting, check the runner is online before
+looking at the workflow.
+
+**The workspace is deliberately kept warm** between runs, which is where most of
+the speed comes from, so three things the rented runners got for free by
+starting empty are now done explicitly. The gate runs `git clean -ffd`, without
+`-x`, because `_ios-inputs-fingerprint` hashes untracked filenames under `ios/`
+and one stray file makes the test step refuse. It deletes the previous run's
+result bundles, because the test recipe reports its counts from the newest
+`.xcresult` and treats one that exists as one this run wrote. And it uninstalls
+the app from the test device, because `SessionRecoveryUITests` asserts a resume
+prompt that a leftover crash-recovery blob would satisfy on its own.
+`runner-housekeeping.yml` takes the build logs weekly and leaves the caches.
+
+**The toolchain is asserted, not installed per run.** The machine updates itself,
+and both the snapshot renderer and `swift format`'s defaults move with Xcode, so
+the gate fails when `xcodebuild -version` is not the `SELFHOSTED_XCODE` value in
+`ci.yml`, or when the iOS 26.5 simulator runtime is missing. A Software Update
+therefore reds the gate with a readable message instead of changing its verdict.
+
 ## The API image build stopped caching its layers (2026-09-04)
 
 **API Docker Build** exported a buildkit layer cache to GitHub Actions
