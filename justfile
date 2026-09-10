@@ -71,6 +71,12 @@ hygiene:
 status:
     ./scripts/generate-status.sh
 
+project_number := "2"
+project_owner := "jonyardley"
+project_id := "PVT_kwHOAAr6vs4A1_pq"
+project_status_field := "PVTSSF_lAHOAAr6vs4A1_pqzgrX99A"
+project_status_in_progress := "47fc9ee4"
+
 # Claim an issue before building it, and refuse if someone already has. The
 # check in CLAUDE.md Always(1) costs four `gh` commands by hand, which is how it
 # gets skipped; this makes it one, and exits non-zero rather than warning.
@@ -97,6 +103,15 @@ claim number:
     fi
     gh issue edit {{number}} --repo "$repo" --add-label in-flight
     gh issue comment {{number}} --repo "$repo" --body "Claimed. Working on branch \`$branch\`."
+    item="$(gh project item-add {{project_number}} --owner {{project_owner}} \
+        --url "https://github.com/$repo/issues/{{number}}" --format json -q .id 2>/dev/null || true)"
+    if [ -n "$item" ] && gh project item-edit --id "$item" --project-id {{project_id}} \
+        --field-id {{project_status_field}} \
+        --single-select-option-id {{project_status_in_progress}} >/dev/null 2>&1; then
+        echo "✓ board: #{{number}} is In progress"
+    else
+        echo "! board not updated; the token needs project scope: gh auth refresh -s project" >&2
+    fi
     echo "✓ claimed #{{number}} on $branch"
 
 # Check everything (fmt → clippy → test → hygiene, cheapest first). Mirrors
