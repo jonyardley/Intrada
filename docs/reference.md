@@ -404,6 +404,27 @@ the gate fails when `xcodebuild -version` is not the `SELFHOSTED_XCODE` value in
 `ci.yml`, or when the iOS 26.5 simulator runtime is missing. A Software Update
 therefore reds the gate with a readable message instead of changing its verdict.
 
+**The agent restarts itself.** Its plist carries `KeepAlive`, so if the runner
+process dies launchd brings it straight back, verified by killing it and
+watching the pid change. `svc.sh install` regenerates that plist from a template
+and would drop the setting, so re-add it after any reinstall:
+
+```bash
+/usr/libexec/PlistBuddy -c "Add :KeepAlive bool true" \
+  ~/Library/LaunchAgents/actions.runner.jonyardley-intrada.intrada-m4.plist
+cd ~/actions-runner && ./svc.sh stop && ./svc.sh start
+```
+
+That covers process death, which is the likeliest failure. It does not cover the
+machine being off or asleep, and there is no fall back to a rented runner: a job
+whose labels match no online runner stays queued for up to 24 hours and then
+fails, so a stalled iOS pull request means check the runner first.
+
+**Cloned simulators are off in CI**, though the local full tier still uses them.
+They took the UI tier from 339 seconds to 86 in measurement, but five at once
+saturate the machine enough that a UI test which silently skips its own setup
+under load starts reddening main. #1642 hardens that test and turns them back on.
+
 ## The API image build stopped caching its layers (2026-09-04)
 
 **API Docker Build** exported a buildkit layer cache to GitHub Actions
