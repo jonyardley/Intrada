@@ -98,7 +98,7 @@ jobs:
       # than every CI run validated. Each half fails loudly when its pin is
       # missing, so a reworded cache key cannot turn the guard into a green
       # no-op.
-      - name: Version pins agree (cargo-swift and xcodegen across files)
+      - name: Version pins agree (cargo-swift, xcodegen and sentry-cli across files)
         run: |
           swift_pinned=$(grep -oE '"cargo:cargo-swift" = "[^"]+"' mise.toml | cut -d'"' -f4)
           if [ -z "$swift_pinned" ]; then
@@ -141,6 +141,21 @@ jobs:
           fi
           if [ "$xcodegen_release_pins" != "$xcodegen_pins" ]; then
             echo "release-testflight.yml pins xcodegen $xcodegen_release_pins but ci.yml pins $xcodegen_pins"
+            exit 1
+          fi
+          # sentry-cli lives in the download URL alone: mise.toml does not carry
+          # it, since nothing local runs it. So "agree" here is one exact version
+          # across the workflows, which fails loudly if the URL ever drifts back
+          # to a floating one and the lane starts taking whatever the CDN serves
+          # (#1611).
+          sentry_pins=$(grep -ohE 'sentry-cli/[0-9]+\.[0-9]+\.[0-9]+' \
+            .github/workflows/*.yml | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | sort -u || true)
+          if [ -z "$sentry_pins" ]; then
+            echo "no exact sentry-cli version in any workflow: the release lane would install whatever the CDN serves"
+            exit 1
+          fi
+          if [ "$(printf '%s\n' "$sentry_pins" | wc -l)" -gt 1 ]; then
+            echo "sentry-cli pins disagree across the workflows: $sentry_pins"
             exit 1
           fi
 
@@ -766,6 +781,28 @@ jobs:
       # it to work. Keep the pin in lockstep with mise.toml.
       - name: Workflow lint (actionlint)
         run: actionlint
+      # ── markdown links ─────────────────────────────────────────────────
+      # Links added on changed lines are diff-scoped like the dash check, so
+      # they bind without a clean sweep of every historical link first; a file
+      # the branch removes is checked against the whole tree. HEAD is detached
+      # on a PR checkout, so the base is passed explicitly; on a push to main
+      # the script sees the branch name and exits clean (#1597).
+      - name: Documentation links
+        env:
+          LINK_CHECK_BASE: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || '' }}
+        run: |
+          if [ -n "${LINK_CHECK_BASE}" ]; then
+            git fetch --no-tags origin "$GITHUB_BASE_REF"
+          fi
+          bash scripts/check-links.sh
+      # ── Sentry release name ────────────────────────────────────────────
+      # The app and the release lane compose the same name from the same three
+      # Info.plist fields, and nothing else reads the two together (#1611).
+      - name: Release name agrees across the app and the release lane
+        run: bash scripts/check-release-name.sh
+      # ── the gates above, proven against broken input ────────────────────
+      - name: Hygiene checks still bite
+        run: bash scripts/tests/hygiene-checks-test.sh
       # ── cargo-deny ─────────────────────────────────────────────────────
       # Replaces cargo-audit. Checks advisories (same RustSec DB), license
       # compliance, crate bans, and source restrictions in one pass.

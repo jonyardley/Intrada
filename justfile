@@ -57,15 +57,20 @@ msrv:
 coverage:
     cargo llvm-cov nextest --workspace --codecov --output-path codecov.json
 
-# Spell check + unused deps + workflow lint (what CI's Security & hygiene job
-# runs). All three tools come from mise.toml (`mise install`) or brew.
-# `actionlint` falls back to mise when it is absent from PATH: bare needs mise's
-# shims, and a plain shell without `mise activate` would fail the whole gate
-# with 127, which reads as broken rather than as a tool that is not installed.
+# Spell check + unused deps + workflow lint + markdown links + the Sentry
+# release name contract (what CI's Security & hygiene job runs). The three tools
+# come from mise.toml (`mise install`) or brew; the three scripts need nothing
+# installed. `actionlint` falls back to mise when it is absent from PATH: bare
+# needs mise's shims, and a plain shell without `mise activate` would fail the
+# whole gate with 127, which reads as broken rather than as a tool that is not
+# installed. The link check is diff-scoped, so it reads committed content only.
 hygiene:
     typos
     cargo-shear
     @if command -v actionlint >/dev/null 2>&1; then actionlint; else mise x -- actionlint; fi
+    bash scripts/check-links.sh
+    bash scripts/check-release-name.sh
+    bash scripts/tests/hygiene-checks-test.sh
 
 # Print what's in flight, read from GitHub: open PRs, claimed issues, recent merges.
 status:
