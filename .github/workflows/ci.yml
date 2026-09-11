@@ -408,7 +408,12 @@ jobs:
           path: ios/build/dd/Logs/Test/*.xcresult
           retention-days: 7
           if-no-files-found: ignore
+      # Main only: the `#if DEBUG` divergence check (#1177) caught one break
+      # in nine measured runs, at 32-153s a run against a 339s median gate.
+      # Paying that on every pull request was the wrong trade (#1651); a
+      # Release-only break now lands on main and gets a follow-up PR instead.
       - name: Build Release (just ios-build-release)
+        if: github.event_name == 'push'
         run: just ios-build-release
       # Main only, and last: "does the real app boot through its FFI entry
       # point", plus the visual artefact. After the tests so the launch cannot
@@ -684,7 +689,12 @@ jobs:
           key: ios-dd-release-v1-${{ runner.os }}-${{ hashFiles('ios/project.yml', 'ios/Intrada/**') }}
           restore-keys: |
             ios-dd-release-v1-${{ runner.os }}-
+      # Main only, matching the self-hosted step: see the comment there
+      # (#1651). This job's own trigger stays pull_request-from-fork only, so
+      # in the current triggers this step no longer runs; it is guarded the
+      # same way in case the job's trigger widens later.
       - name: Build Release (just ios-build-release)
+        if: github.event_name == 'push'
         run: just ios-build-release
       - name: Save Release DerivedData
         if: github.ref == 'refs/heads/main' && steps.dd-release-cache.outputs.cache-hit != 'true'
