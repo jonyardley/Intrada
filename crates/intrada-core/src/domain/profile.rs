@@ -71,13 +71,11 @@ pub enum ProfileField {
 #[cfg_attr(feature = "facet_typegen", derive(facet::Facet))]
 #[cfg_attr(feature = "facet_typegen", repr(C))]
 pub enum ProfileEvent {
-    /// The screen's Save button.
     Save(Profile),
     /// The shell replaying the stored blob at launch: no validation, no re-save.
     Loaded(Profile),
 }
 
-/// What the screens read; built from `Model::profile` on every view.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Default)]
 #[cfg_attr(feature = "facet_typegen", derive(facet::Facet))]
 pub struct ProfileView {
@@ -89,9 +87,8 @@ pub struct ProfileView {
     pub greeting: String,
 }
 
-// Walked in order: a keyword that appears inside a longer instrument name
-// ("bass" in "bass guitar", "alto" in "alto sax") must sit below every row
-// that claims the longer one, so voice and the bare "bass" come last.
+// Order-sensitive: a keyword inside a longer name ("alto" in "alto sax",
+// "piccolo" in "piccolo trumpet") sits below every row claiming the longer one.
 const ICON_KEYWORDS: &[(&str, InstrumentIcon)] = &[
     ("piano", InstrumentIcon::Piano),
     ("keyboard", InstrumentIcon::Piano),
@@ -103,17 +100,19 @@ const ICON_KEYWORDS: &[(&str, InstrumentIcon)] = &[
     ("electric bass", InstrumentIcon::ElectricGuitar),
     ("guitar", InstrumentIcon::AcousticGuitar),
     ("ukulele", InstrumentIcon::AcousticGuitar),
+    ("banjo", InstrumentIcon::AcousticGuitar),
+    ("mandolin", InstrumentIcon::AcousticGuitar),
     ("violin", InstrumentIcon::Violin),
     ("viola", InstrumentIcon::Violin),
     ("fiddle", InstrumentIcon::Violin),
     ("cello", InstrumentIcon::Cello),
     ("double bass", InstrumentIcon::Cello),
     ("flute", InstrumentIcon::Flute),
-    ("piccolo", InstrumentIcon::Flute),
     ("recorder", InstrumentIcon::Flute),
     ("clarinet", InstrumentIcon::Clarinet),
     ("oboe", InstrumentIcon::Clarinet),
     ("cor anglais", InstrumentIcon::Clarinet),
+    ("english horn", InstrumentIcon::Clarinet),
     ("bassoon", InstrumentIcon::Clarinet),
     ("sax", InstrumentIcon::Saxophone),
     ("trumpet", InstrumentIcon::Trumpet),
@@ -123,6 +122,7 @@ const ICON_KEYWORDS: &[(&str, InstrumentIcon)] = &[
     ("tuba", InstrumentIcon::Trumpet),
     ("euphonium", InstrumentIcon::Trumpet),
     ("brass", InstrumentIcon::Trumpet),
+    ("piccolo", InstrumentIcon::Flute),
     ("drum", InstrumentIcon::Drums),
     ("percussion", InstrumentIcon::Drums),
     ("timpani", InstrumentIcon::Drums),
@@ -138,7 +138,7 @@ const ICON_KEYWORDS: &[(&str, InstrumentIcon)] = &[
     ("bass", InstrumentIcon::Cello),
 ];
 
-pub fn suggest_icon(instrument: &str) -> InstrumentIcon {
+pub(crate) fn suggest_icon(instrument: &str) -> InstrumentIcon {
     let text = instrument.trim().to_lowercase();
     if text.is_empty() {
         return InstrumentIcon::Other;
@@ -150,7 +150,7 @@ pub fn suggest_icon(instrument: &str) -> InstrumentIcon {
         .unwrap_or(InstrumentIcon::Other)
 }
 
-pub fn greeting(name: &str) -> String {
+pub(crate) fn greeting(name: &str) -> String {
     let name = name.trim();
     if name.is_empty() {
         "Hello".to_string()
@@ -182,6 +182,7 @@ pub fn handle_profile_event(event: ProfileEvent, model: &mut Model) -> Command<E
                 return crux_core::render::render();
             }
             model.profile = profile.clone();
+            model.record_success();
             Command::all([
                 Command::notify_shell(AppEffect::SaveProfile(profile)).into(),
                 crux_core::render::render(),
@@ -264,6 +265,10 @@ mod tests {
             ("Trumpet", Trumpet),
             ("French horn", Trumpet),
             ("Trombone", Trumpet),
+            ("Piccolo trumpet", Trumpet),
+            ("Piccolo", Flute),
+            ("English horn", Clarinet),
+            ("Tenor banjo", AcousticGuitar),
             ("Bass trombone", Trumpet),
             ("Bass clarinet", Clarinet),
             ("Tenor sax", Saxophone),
@@ -340,7 +345,42 @@ mod tests {
         );
         assert_eq!(model.profile, fixture(), "trimmed before storing");
         assert_eq!(emits_save(&mut cmd), Some(fixture()));
-        assert!(model.last_error.is_none());
+    }
+
+    /// The save effect is fire-and-forget, so no confirmation event ever
+    /// clears the banner: an accepted save must clear it itself, or the shell
+    /// reads the second save as refused (`Store+Feedback.swift`).
+    #[test]
+    fn an_accepted_save_clears_the_error_a_rejected_one_left() {
+        let mut model = Model::test_default();
+        let _ = save(
+            &mut model,
+            Profile {
+                name: "x".repeat(MAX_PROFILE_NAME + 1),
+                ..fixture()
+            },
+        );
+        assert!(model.last_error.is_some());
+
+        let _ = save(&mut model, fixture());
+        assert_eq!(model.last_error, None);
+        assert_eq!(model.profile, fixture());
+    }
+
+    #[test]
+    fn the_cap_counts_characters_not_bytes() {
+        let mut model = Model::test_default();
+        let accented = Profile {
+            name: "é".repeat(MAX_PROFILE_NAME),
+            instrument: "ü".repeat(MAX_INSTRUMENT),
+            ..fixture()
+        };
+        let mut cmd = save(&mut model, accented.clone());
+        assert_eq!(
+            model.profile, accented,
+            "at the cap in characters, over it in bytes"
+        );
+        assert!(emits_save(&mut cmd).is_some());
     }
 
     #[test]
@@ -429,6 +469,9 @@ mod tests {
 
     const PINNED_PROFILE_HEX: &str =
         "03000000000000004a6f6e05000000000000005069616e6f010300000003000000";
+    /// The last variant of each enum and the `None` tag, so a reorder at the
+    /// tail of either enum, or a new variant appended, moves a pinned byte.
+    const PINNED_TAIL_PROFILE_HEX: &str = "000000000000000000000000000000000007000000";
 
     /// Positional bincode: a new field breaks every stored blob (#1345).
     /// Bump `Store.profileDefaultsKey`, then re-pin.
@@ -450,6 +493,27 @@ mod tests {
         let back: Profile =
             BincodeFfiFormat::deserialize(&bytes).expect("must decode on the FFI wire (#846)");
         assert_eq!(back, profile);
+
+        let tail = Profile {
+            name: String::new(),
+            instrument: String::new(),
+            icon_choice: None,
+            colour: HighlighterColour::Powder,
+        };
+        let mut bytes = Vec::new();
+        BincodeFfiFormat::serialize(&mut bytes, &tail).expect("serialize");
+        let hex: String = bytes.iter().map(|b| format!("{b:02x}")).collect();
+        assert_eq!(
+            hex, PINNED_TAIL_PROFILE_HEX,
+            "tail variants moved: bump the key, re-pin"
+        );
+        let mut bytes = Vec::new();
+        BincodeFfiFormat::serialize(&mut bytes, &InstrumentIcon::Other).expect("serialize");
+        assert_eq!(
+            bytes,
+            [12, 0, 0, 0],
+            "Other is the thirteenth icon; a variant added before it shifts every stored pick"
+        );
     }
 
     #[test]

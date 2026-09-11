@@ -17,9 +17,6 @@ pub use mcp_audit::{McpAuditEntry, McpAuditEvent};
 pub use mcp_tokens::{CreatedMcpToken, McpToken, McpTokenEvent};
 pub use metre::Metre;
 pub use oauth::{OAuthEvent, OAuthFinalizeParams};
-pub use profile::{
-    HighlighterColour, InstrumentIcon, Profile, ProfileEvent, ProfileField, ProfileView,
-};
 pub use session::{
     ActiveSession, CompletionStatus, EntryStatus, PracticeSession, SessionEvent, SessionStatus,
     SetlistEntry,

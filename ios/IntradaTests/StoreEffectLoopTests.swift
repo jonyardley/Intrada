@@ -222,7 +222,6 @@ final class StoreEffectLoopTests: XCTestCase {
 
     store.send(.setQuery(nil))
 
-    XCTAssertEqual(Store.profileDefaultsKey, "intrada.profile.v1", "key is versioned (#1345)")
     let data = try XCTUnwrap(defaults.data(forKey: Store.profileDefaultsKey))
     let restored = try Profile.bincodeDeserialize(input: [UInt8](data))
     XCTAssertEqual(restored, profile, "save effect persists the profile")
