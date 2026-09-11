@@ -137,7 +137,7 @@ struct PageCameraScreen: View {
       EmptyView()
     case .live:
       if let session = model.session {
-        // The `.photo` preset captures 4:3; a full-screen preview hid the sides the photo kept.
+        // 3:4 is the `.photo` preset's 4:3 frame held upright (PageCamera.swift).
         CameraPreview(session: session).aspectRatio(3.0 / 4.0, contentMode: .fit)
       }
     case .captured(let page, let pageFound):
