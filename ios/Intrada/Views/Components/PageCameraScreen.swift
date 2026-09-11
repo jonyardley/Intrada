@@ -137,7 +137,8 @@ struct PageCameraScreen: View {
       EmptyView()
     case .live:
       if let session = model.session {
-        CameraPreview(session: session).ignoresSafeArea()
+        // 3:4 is the `.photo` preset's 4:3 frame held upright (PageCamera.swift).
+        CameraPreview(session: session).aspectRatio(3.0 / 4.0, contentMode: .fit)
       }
     case .captured(let page, let pageFound):
       CapturedPageConfirm(page: page, pageFound: pageFound, onKeep: keep, onRetake: model.retake)
@@ -321,7 +322,7 @@ private struct CameraPreview: UIViewRepresentable {
   func makeUIView(context _: Context) -> PreviewView {
     let view = PreviewView()
     view.previewLayer?.session = session
-    view.previewLayer?.videoGravity = .resizeAspectFill
+    view.previewLayer?.videoGravity = .resizeAspect
     return view
   }
 
