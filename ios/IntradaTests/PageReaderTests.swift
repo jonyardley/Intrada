@@ -32,10 +32,8 @@ struct PageReaderTests {
     }
   }
 
-  /// The same page, captured as if the phone was turned: the raw pixels are
-  /// physically rotated and only an orientation flag says how to correct it.
-  /// Small enough to skip the shrink, the case `PhotoFileStore` used to leave
-  /// untouched (#1686).
+  /// The same page with its raw pixels physically rotated, as a camera turned
+  /// sideways would capture it (#1686).
   private func sidewaysPage(title: String, credit: String) throws -> UIImage {
     let upright = page(title: title, credit: credit)
     let rotatedSize = CGSize(width: upright.size.height, height: upright.size.width)
@@ -100,9 +98,6 @@ struct PageReaderTests {
     #expect(title.height > credit.height)
   }
 
-  /// #1686: a small library photo taken with the phone turned used to be read
-  /// on its side, because `PhotoFileStore` kept the rotation as a flag `Vision`
-  /// never looks at.
   @Test func readsATurnedPageTheRightWayUp() async throws {
     let photoId = Ulid.generate()
     defer { discard(photoId) }

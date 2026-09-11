@@ -79,8 +79,6 @@ struct PhotoFileStoreTests {
     #expect(stored.size == CGSize(width: 1024, height: 768))
   }
 
-  /// #1686: a photo under the shrink cap used to keep its rotation as a flag,
-  /// which `PageReader`'s raw `cgImage` read ignores.
   @Test func bakesInRotationEvenOnAPhotoUnderTheCap() throws {
     let photoId = Ulid.generate()
     defer { discard(photoId) }
