@@ -122,8 +122,7 @@ struct PageCropTests {
       "the buffer now matches the page, so Vision reads it the right way up")
   }
 
-  /// The one exit reachable without Vision. Every exit used to hand back the
-  /// photo with nothing to say a page was not found (#1565).
+  /// The one exit reachable without Vision.
   @Test func aPhotoWithNoBufferComesBackAsTakenAndSaysNoPageWasFound() {
     let photo = UIImage()
 

@@ -106,8 +106,6 @@ struct PageCameraModelTests {
     #expect(pageFound)
   }
 
-  /// The miss is said on the confirm, and the photo is still there to keep:
-  /// never lose the photo (#1565).
   @Test func aMissedPageIsStillOfferedAndSaysSo() async {
     let model = PageCameraModel(device: StubCamera(), crop: { .asTaken($0) })
     await model.begin()

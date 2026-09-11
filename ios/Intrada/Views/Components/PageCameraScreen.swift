@@ -214,7 +214,7 @@ struct PageCameraShutter: View {
   }
 }
 
-/// The flattened page as it will be stored, with the two ways out. Approving
+/// The page as it will be stored, with the two ways out. Approving
 /// what was kept is the whole fix: the scanner discarded shots silently.
 struct CapturedPageConfirm: View {
   let page: UIImage

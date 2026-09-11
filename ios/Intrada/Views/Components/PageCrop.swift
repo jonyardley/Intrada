@@ -24,8 +24,7 @@ enum PageCrop {
     }
   }
 
-  /// Which exit returned the original. Every one of them was silent, and a
-  /// device run has to be able to say which one fires (#1565).
+  /// Which exit returned the original, so one device run can say which fires (#1565).
   private enum Miss: String {
     case noBuffer = "no-buffer"
     case visionFailed = "vision-failed"
@@ -44,6 +43,9 @@ enum PageCrop {
     // A portrait photo would otherwise be cropped, stored and read sideways.
     let upright = image.imageOrientation == .up ? image : redrawnUpright(image)
     guard let cgImage = upright.cgImage else { return missed(image, .noBuffer) }
+    log.notice(
+      "orientation \(image.imageOrientation.rawValue, privacy: .public) upright \(cgImage.width, privacy: .public)x\(cgImage.height, privacy: .public)"
+    )
 
     let request = VNDetectDocumentSegmentationRequest()
     do {

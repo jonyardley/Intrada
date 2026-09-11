@@ -68,7 +68,7 @@ struct PhotoCaptureSources {
       }
       // The scanner route arrives cropped; a library photo does not, and the
       // work blocks long enough to drop frames. A chosen photo often has no
-      // page edges to find (a screenshot of a PDF), so a miss stays silent here.
+      // page edges to find (a screenshot of a PDF), so a miss stays silent here (#1565).
       let page = await Task.detached(priority: .userInitiated) { PageCrop.toPage(image).image }
         .value
       await write(page)
