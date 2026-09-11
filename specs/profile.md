@@ -64,9 +64,20 @@ the musician's own pick wins over the suggestion.
 
 ### Greeting
 
-`greeting(name: &str) -> String` returns "Hello, Jon" when there is a name and
-"Hello" when there is not. The wording is deliberately plain until #1690
-settles the header; changing it later is one string in one function.
+`greeting(name: &str, local_hour: u32) -> String` composes the Practice
+subtitle's opening (#1694). The bands are design-principles T25 and the
+wording tone-of-voice V6: `Morning, Jon` from 04:00 to 11:59, `Afternoon, Jon`
+from 12:00 to 17:59, `Evening, Jon` from 18:00 to 03:59. No name means an
+empty string, so the subtitle reads as it did ("No sessions yet" or "Last
+practised Tuesday"); the shell joins a non-empty greeting and the fact with
+" · " and never composes words of its own.
+
+The hour comes from `LocalClock::hour_of`, the same clock and UTC offset the
+last-practised line already uses, taken once per `view()`. The view is
+rebuilt on events, not on a timer, so a Practice screen left open across a
+band edge keeps the old word until the next event or the app comes to the
+foreground; the screens PR decides whether that needs a nudge. The screen
+greeting is a string on the wire, so changing the words changes no shape.
 
 ### Validation
 
@@ -167,7 +178,9 @@ typed, never taken from the sign-in.
 
 - **Core, test-first:** a table test of `suggest_icon` from inputs a musician
   would type ("Piano", "grand piano", "vocals", "Double bass", "bass guitar",
-  "Drums", "  flute  ", "", "theremin"); `greeting` with and without a name;
+  "Drums", "  flute  ", "", "theremin"); `greeting` at every band edge (hours
+  3, 4, 11, 12, 17, 18, 23 and 0) and empty without a name; `hour_of` either
+  side of local midnight with a positive and a negative offset;
   normalisation trims, validation rejects at cap plus one and accepts at cap;
   `Save` updates the model and emits `SaveProfile`; an over-cap `Save` keeps
   the previous profile, sets the error target and emits no save; `Loaded`

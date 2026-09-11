@@ -468,7 +468,9 @@ final class StoreEffectLoopTests: XCTestCase {
     XCTAssertEqual(view.suggestedIcon, .cello)
     XCTAssertEqual(view.icon, .cello)
     XCTAssertEqual(view.colour, .coral)
-    XCTAssertEqual(view.greeting, "Hello, Jon")
+    XCTAssertTrue(
+      ["Morning, Jon", "Afternoon, Jon", "Evening, Jon"].contains(view.greeting),
+      "the greeting follows the device clock: \(view.greeting)")
 
     _ = try bridge.update(
       .profile(
@@ -476,7 +478,7 @@ final class StoreEffectLoopTests: XCTestCase {
     let reloaded = try bridge.view().profile
     XCTAssertEqual(reloaded.icon, .harp, "the pick wins over the suggestion")
     XCTAssertEqual(reloaded.suggestedIcon, .other)
-    XCTAssertEqual(reloaded.greeting, "Hello")
+    XCTAssertEqual(reloaded.greeting, "", "no name means no greeting")
   }
 
   /// Real-bridge step round-trip (#846, #1083): `AddVariant` pushes a `Variant`
