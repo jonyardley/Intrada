@@ -847,11 +847,6 @@ Two rulings, read together:
   two secondaries rather than one. `suggestionDismissed` stays shell-local
   `@State`; nothing about which sessions the core offers to suggest changes.
 
-**What this does not settle:** `specs/up-next-card.md` decision 9 still
-records the older "reveals the hero that shipped rather than opening the
-builder" reading and needs updating to match, tracked as #1629 rather than
-edited here because another stream owns `specs/` while this shipped.
-
 Options considered: leaving "Build my own instead" as dismissal-only and
 adding a separate always-visible "Build session" entry point elsewhere
 (rejected: reads as a second primary action next to Start, the exact trap T15
