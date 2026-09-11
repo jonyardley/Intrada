@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Says a form field was filled from a photographed page rather than typed
 /// (#1436). A weak read dims the glyph only, to `inkFaintIcon`; the label
-/// stays at `inkSecondary` (#1458 — `inkFaint` fails AA on text).
+/// stays at `inkSecondary` (#1458: `inkFaint` fails AA on text).
 struct FieldMark: View {
   let weak: Bool
 

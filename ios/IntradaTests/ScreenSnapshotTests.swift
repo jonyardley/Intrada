@@ -820,7 +820,7 @@ final class ScreenSnapshotTests: XCTestCase {
   }
 
   /// #1436: the composer was read weakly, so its mark's glyph is dimmed
-  /// (#1458: the label itself stays at `inkSecondary`) — a pixel diff can
+  /// (#1458: the label itself stays at `inkSecondary`), and a pixel diff can
   /// hold that.
   func testLibraryAddScreenReadFromAPhoto() {
     assertSnapshot(of: host(addForm(from: .readPage)), as: config)
