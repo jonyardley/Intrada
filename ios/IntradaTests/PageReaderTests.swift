@@ -32,6 +32,22 @@ struct PageReaderTests {
     }
   }
 
+  /// The same page, physically rotated as a turned camera would capture it (#1686).
+  private func sidewaysPage(title: String, credit: String) throws -> UIImage {
+    let upright = page(title: title, credit: credit)
+    let rotatedSize = CGSize(width: upright.size.height, height: upright.size.width)
+    let format = UIGraphicsImageRendererFormat.default()
+    format.scale = 1
+    let rotated = UIGraphicsImageRenderer(size: rotatedSize, format: format).image { context in
+      context.cgContext.translateBy(x: rotatedSize.width / 2, y: rotatedSize.height / 2)
+      context.cgContext.rotate(by: .pi / 2)
+      context.cgContext.translateBy(x: -upright.size.width / 2, y: -upright.size.height / 2)
+      upright.draw(at: .zero)
+    }
+    let cgImage = try #require(rotated.cgImage)
+    return UIImage(cgImage: cgImage, scale: 1, orientation: .left)
+  }
+
   private func lines(from output: RecognitionOutput) throws -> [RecognisedLine] {
     guard case .page(let reading) = output else {
       Issue.record("expected a page reading, got \(output)")
@@ -79,6 +95,18 @@ struct PageReaderTests {
     let credit = try #require(read.first { $0.text.contains("Kosma") })
 
     #expect(title.height > credit.height)
+  }
+
+  @Test func readsATurnedPageTheRightWayUp() async throws {
+    let photoId = Ulid.generate()
+    defer { discard(photoId) }
+    try PhotoFileStore.write(
+      sidewaysPage(title: "Autumn Leaves", credit: "Music by Kosma"), id: photoId)
+
+    let read = try lines(from: await PageReader.read(photoId: photoId))
+
+    #expect(read.contains { $0.text.contains("Autumn") })
+    #expect(read.contains { $0.text.contains("Kosma") })
   }
 
   /// Phase A leaves bytes on disk but the core can still name an id nothing was
