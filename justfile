@@ -265,6 +265,19 @@ worktree-new name:
     [ "${#stale[@]}" -eq 0 ] || echo "  will rebuild cold: ${stale[*]}"
     echo "  cd $target && just check"
 
+    # cmux labels a workspace with the branch and PR of the directory its pane
+    # started in, so a session launched in the main checkout shows the main
+    # checkout's branch however many worktrees it cds into.
+    if [ -n "${CMUX_SOCKET_PATH:-}" ] && [ "${INTRADA_WORKTREE_CMUX:-1}" != 0 ] && command -v cmux >/dev/null; then
+        if [ -n "${CLAUDECODE:-}" ]; then
+            echo "  for a cmux sidebar that tracks this branch, start the session there:"
+            echo "  cmux new-workspace --name {{name}} --cwd $target --command claude --focus true"
+        else
+            cmux new-workspace --name "{{name}}" --cwd "$target" --command claude --focus true >/dev/null
+            echo "→ opened cmux workspace '{{name}}' running claude in the worktree"
+        fi
+    fi
+
 # Companion to worktree-new: cleans the worktree's throwaway sim (if any),
 # then removes the worktree via git. Run from any checkout; leaves the
 # branch itself intact (delete separately once merged).

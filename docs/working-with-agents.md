@@ -190,6 +190,11 @@ decoupled file set and the serialisation points.
 only in the main checkout, so Tier 1 work that wants the knowledge graph stays
 there. Once you have a worktree, edit only inside it.
 
+Run from a cmux terminal, `just worktree-new` also opens a cmux workspace in the
+new worktree with `claude` running, because the sidebar shows the branch and PR
+of the directory a session started in. Run by an agent, it prints that command
+instead of starting a second session. `INTRADA_WORKTREE_CMUX=0` turns it off.
+
 ## Build and test control
 
 The rules on driving iOS through the `just` recipes, running `just check`
