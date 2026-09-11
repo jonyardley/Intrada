@@ -31,7 +31,7 @@ enum PhotoFileStore {
 
   @discardableResult
   static func write(_ image: UIImage, id photoId: String) throws -> URL {
-    guard let data = downscaled(image).jpegData(compressionQuality: quality) else {
+    guard let data = upright(image).jpegData(compressionQuality: quality) else {
       throw Failure.couldNotEncode
     }
     let destination = try url(for: photoId)
@@ -68,11 +68,13 @@ enum PhotoFileStore {
   }
 
   /// In pixels, not points: `UIImage.size` is points, so a 2x or 3x image would
-  /// otherwise sail past a cap it is four or nine times over.
-  private static func downscaled(_ image: UIImage) -> UIImage {
+  /// otherwise sail past a cap it is four or nine times over. Always redraws,
+  /// even under the cap, since drawing is what bakes orientation into the
+  /// pixels; `jpegData` only ever writes it as a flag, which `PageReader`'s
+  /// raw `cgImage` ignores (#1686).
+  private static func upright(_ image: UIImage) -> UIImage {
     let longest = max(image.size.width, image.size.height) * image.scale
-    guard longest > longestEdge else { return image }
-    let ratio = longestEdge / longest
+    let ratio = min(1, longestEdge / longest)
     let size = CGSize(
       width: image.size.width * image.scale * ratio,
       height: image.size.height * image.scale * ratio)

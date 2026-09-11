@@ -69,7 +69,7 @@ struct PhotoFileStoreTests {
     #expect(max(stored.size.width, stored.size.height) == 2048)
   }
 
-  @Test func leavesAPageThatIsAlreadySmallEnoughAlone() throws {
+  @Test func keepsAPageThatIsAlreadySmallEnoughAtItsSize() throws {
     let photoId = Ulid.generate()
     defer { discard(photoId) }
 
@@ -77,5 +77,21 @@ struct PhotoFileStoreTests {
 
     let stored = try #require(PhotoFileStore.image(for: photoId))
     #expect(stored.size == CGSize(width: 1024, height: 768))
+  }
+
+  /// #1686: a photo under the shrink cap used to keep its rotation as a flag,
+  /// which `PageReader`'s raw `cgImage` read ignores.
+  @Test func bakesInRotationEvenOnAPhotoUnderTheCap() throws {
+    let photoId = Ulid.generate()
+    defer { discard(photoId) }
+
+    let turned = page(CGSize(width: 800, height: 600))
+    let sideways = UIImage(cgImage: try #require(turned.cgImage), scale: 1, orientation: .right)
+
+    try PhotoFileStore.write(sideways, id: photoId)
+
+    let stored = try #require(PhotoFileStore.image(for: photoId))
+    #expect(stored.imageOrientation == .up)
+    #expect(stored.size == CGSize(width: 600, height: 800))
   }
 }
