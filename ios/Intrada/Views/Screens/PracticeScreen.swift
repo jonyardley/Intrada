@@ -234,9 +234,9 @@ struct PracticeScreen: View {
       } label: {
         Image(systemName: "play.fill")
           .font(.system(size: 38))
-          .foregroundStyle(IntradaColor.accent)
+          .foregroundStyle(IntradaColor.onMarker)
           .frame(width: 96, height: 96)
-          .background(IntradaColor.playerBgTop)
+          .background(IntradaColor.marker)
           .clipShape(Circle())
           .shadow(color: .black.opacity(0.25), radius: 16, y: 8)
       }

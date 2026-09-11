@@ -41,7 +41,7 @@ struct LibraryScreen: View {
         content
       }
     }
-    // The list draws its own serif header, so suppress the nav bar here; the
+    // The list draws its own header, so suppress the nav bar here; the
     // detail keeps it for the back chevron.
     .toolbar(.hidden, for: .navigationBar)
     // The read belongs to the sheet. `onDismiss`, not the add screen's own

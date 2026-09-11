@@ -240,7 +240,7 @@ struct FocusPlayerScreen: View {
             .font(.system(size: 32))
             .foregroundStyle(IntradaColor.onAccent)
             .frame(width: 78, height: 78)
-            .background(LinearGradient.brandBar)
+            .background(LinearGradient.inkBar)
             .clipShape(Circle())
             .shadow(color: IntradaColor.ink.opacity(0.18), radius: 14, y: 6)
         }

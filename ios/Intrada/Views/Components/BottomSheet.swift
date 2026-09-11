@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Shared bottom-sheet chrome. The inline title renders serif via RootView's
+/// Shared bottom-sheet chrome. The inline title renders in Hanken Grotesk via RootView's
 /// global nav-bar appearance; Done runs `onDone` then dismisses.
 struct BottomSheet<Content: View, LeadingAction: View>: View {
   private let title: String

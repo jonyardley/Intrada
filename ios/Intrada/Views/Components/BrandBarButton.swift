@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The brand-gradient primary action bar (builder start, reflection save,
+/// The marker primary action bar (builder start, reflection save,
 /// practise-this). Generic label content so icons can lead or trail.
 struct BrandBarButton<Label: View>: View {
   private let action: () -> Void
@@ -14,12 +14,14 @@ struct BrandBarButton<Label: View>: View {
   var body: some View {
     Button(action: action) {
       HStack(spacing: IntradaSpacing.controlGap) { label }
-        .font(IntradaFont.bodyMedium)
-        .foregroundStyle(IntradaColor.onAccent)
+        .font(IntradaFont.button)
+        .foregroundStyle(IntradaColor.onMarker)
         .frame(maxWidth: .infinity)
         .padding(.vertical, IntradaSpacing.row)
         .background(
-          LinearGradient.brandBar, in: RoundedRectangle(cornerRadius: IntradaRadius.control))
+          IntradaColor.marker, in: RoundedRectangle(cornerRadius: IntradaRadius.control)
+        )
+        .shadow(color: IntradaColor.buttonShadow, radius: 1, y: 1)
     }
     .buttonStyle(.plain)
   }

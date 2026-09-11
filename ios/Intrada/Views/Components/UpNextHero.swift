@@ -120,12 +120,12 @@ struct UpNextHero: View {
         Image(systemName: "play.fill")
         Text("Start · \(suggestion.estimatedMinutes) min")
       }
-      .font(IntradaFont.bodyMedium)
-      .foregroundStyle(IntradaColor.accent)
+      .font(IntradaFont.button)
+      .foregroundStyle(IntradaColor.onMarker)
       .frame(maxWidth: .infinity)
       .padding(.vertical, IntradaSpacing.row)
       .background(
-        IntradaColor.playerBgTop, in: RoundedRectangle(cornerRadius: IntradaRadius.control))
+        IntradaColor.marker, in: RoundedRectangle(cornerRadius: IntradaRadius.control))
     }
     .buttonStyle(PressRebound())
     .accessibilityLabel("Start practising")

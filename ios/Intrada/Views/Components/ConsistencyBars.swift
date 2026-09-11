@@ -30,7 +30,7 @@ struct ConsistencyBars: View {
           RoundedRectangle(cornerRadius: 5)
             .fill(
               week.isCurrent
-                ? AnyShapeStyle(LinearGradient.brandBar)
+                ? AnyShapeStyle(LinearGradient.inkBar)
                 : AnyShapeStyle(IntradaColor.consistencyTrack)
             )
             .frame(maxWidth: .infinity)

@@ -2,7 +2,7 @@ import SharedTypes
 import SwiftUI
 
 /// Tinted icon-chip badge for an item's type — used where a type-coded list bar
-/// isn't present (e.g. the detail header). Piece = indigo, Exercise = gold.
+/// isn't present (e.g. the detail header). Piece = blue-grey, Exercise = sand.
 struct TypeBadge: View {
   let kind: ItemKind
 

@@ -84,7 +84,6 @@ struct LibraryItemCard: View {
     item.itemType == .exercise && item.variants.count > 1
   }
 
-  // The gold capsule mirrors the exercise type bar.
   private func countChip(_ text: String, @ViewBuilder leading: () -> some View) -> some View {
     HStack(spacing: 3) {
       leading()

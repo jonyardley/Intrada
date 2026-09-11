@@ -374,8 +374,6 @@
       Store(bridge: PreviewBridge(activeSession: .previewActiveReps))
     }
 
-    /// Player Summary — a completed session with scored entries. Analytics are
-    /// injected so the gold mastery toast (Clair de Lune 3 → 4) has data.
     static var previewSummary: Store {
       Store(bridge: PreviewBridge(summary: .previewSummary, analytics: .previewAnalytics))
     }

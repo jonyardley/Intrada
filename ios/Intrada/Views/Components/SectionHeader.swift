@@ -6,7 +6,7 @@ import SwiftUI
 struct Eyebrow: View {
   let text: String
   // Defaults to inkFaint; override for an eyebrow on a dark/coloured surface
-  // (the Practice hero, the gold summary headline) — a trailing `.foregroundStyle`
+  // (the Practice hero, the dark summary headline); a trailing `.foregroundStyle`
   // can't override the inner Text, so the tint must be set here.
   var tint: Color = IntradaColor.inkFaint
   init(_ text: String, tint: Color = IntradaColor.inkFaint) {

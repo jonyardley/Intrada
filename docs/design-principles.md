@@ -35,19 +35,21 @@ These are mostly settled and live in code; captured here so the *intent* behind
 them isn't lost. (See `.claude/rules/ios-ui.md` for the enforcement
 rules and primitive catalogue.)
 
-- **Dark-on-dark glassmorphism.** Neutral gray-900→near-black gradient,
-  whisper-soft white-opacity surfaces (3/5/12%). Backdrop-blur on *chrome only*
-  (header, tab bar, overlays) — never on content surfaces.
-- **Type is colour-coded.** Gold = Piece, blue = Exercise, teal = Set. The
-  mapping repeats across gradient bars, badges, and inline indicators. Colour is
-  an *accelerator* for recognition — never the only signal (see accessibility
+- **Paper, ink and one marker.** Off-white paper, white cards with a 3pt
+  corner and a faint lift, brown ink for text on paper. See T24.
+- **Type is colour-coded.** Blue-grey = Piece, sand = Exercise. The
+  mapping repeats across card bars and badges; inline dots and checks are ink
+  for both kinds. Colour is
+  an *accelerator* for recognition, never the only signal (see accessibility
   tension below).
-- **Two accent families.** Warm indigo = interactive/primary; gold/amber = warm
-  accent for achievements, streaks, progress.
-- **Warmth bias in semantics.** Danger is warm coral, not pure red; success is
-  warm teal-green. The palette leans warm even where convention is harsh.
-- **Serif headings, sans body.** Source Serif 4 for page titles (signals a
-  musical, editorial space); InterVariable for everything else.
+- **One bright colour.** The butter highlighter is the only bright colour:
+  primary buttons, the swipe under page titles, the celebration glyph.
+  Interactive colour on paper is ink.
+- **Warmth bias in semantics.** Danger is a brick red, success an olive green,
+  both pulled toward brown ink. The palette leans warm even where convention is
+  harsh.
+- **Grotesk for words, mono for metadata.** Hanken Grotesk for titles and body;
+  DM Mono for the composer, key and tempo line, like a printed programme.
 - **Reuse before creating; extend, don't clone.** Hand-rolled markup that
   duplicates a primitive is the top source of visual drift.
 
@@ -869,3 +871,23 @@ to dim into. Only the leading glyph dims, to a new `inkFaintIcon` token
 (3.29:1 on `cardFill`), which clears the 3:1 floor WCAG sets for a non-text
 graphical object. The visual difference is now the glyph alone; VoiceOver
 still speaks the weak state explicitly, so contrast is not the only channel.
+
+### T24: One marker on paper replaces indigo and serif
+
+**Status:** DECIDED 2026-09-11 (jonyardley/intrada#1676). The Claude Design
+visual direction exploration settled on "8f": paper #F7F4EF, white cards, brown
+ink #3B2A1E, 3pt corners, a faint lift, and a butter highlighter #FFE9A3 as the
+only bright colour. It retires two earlier principles: indigo as the
+interactive colour, and serif page titles.
+
+Interactive colour on paper is ink, not the marker: butter text on paper is
+about 1.1:1 and cannot carry a link or an outline. The marker is a fill, with ink
+on it (11.3:1), on primary buttons, the hero's start button and the swipe
+under page titles. The Practice hero and the celebration toast become dark ink
+surfaces with butter as their one accent, so no second hue enters.
+
+Type colours are duller pastels than the marker, so a piece badge never reads
+as a button. A check or outline stays ink for both kinds, because a pastel
+border on white misses the 3:1 WCAG sets for a control. The practice player
+stays light for now, its ink buttons included; a dark focus screen is #1679, and choosing your own marker
+is #1677.

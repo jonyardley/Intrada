@@ -1,9 +1,9 @@
-Bundled fonts — both under the SIL Open Font License, Version 1.1 (http://scripts.sil.org/OFL).
+Bundled fonts, all under the SIL Open Font License, Version 1.1 (http://scripts.sil.org/OFL).
 
-Inter (InterVariable.ttf) — v4.1
-  Copyright (c) 2016 The Inter Project Authors (https://github.com/rsms/inter)
-  Source: https://github.com/rsms/inter/releases/tag/v4.1
+Hanken Grotesk (HankenGrotesk-Regular/-Medium/-SemiBold/-Bold.ttf)
+  Copyright 2021 The Hanken Grotesk Project Authors (https://github.com/marcologous/hanken-grotesk)
+  Source: https://github.com/marcologous/hanken-grotesk/tree/HEAD/fonts/ttf
 
-Source Serif 4 (SourceSerif4Variable-Roman.ttf)
-  Copyright 2014-2023 Adobe (http://www.adobe.com/), with Reserved Font Name 'Source'.
-  Source: https://github.com/adobe-fonts/source-serif (release branch, VAR/)
+DM Mono (DMMono-Regular.ttf)
+  Copyright 2020 The DM Mono Project Authors (https://www.github.com/googlefonts/dm-mono)
+  Source: https://github.com/google/fonts/tree/main/ofl/dmmono
