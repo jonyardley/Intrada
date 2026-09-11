@@ -3,7 +3,7 @@ use crux_core::{
     Core,
 };
 
-use crate::Intrada;
+use crate::{Intrada, LibrarySort, SortDirection, SortField};
 
 // Returned (not panicked) so the shell handles it per the no-`try!` contract —
 // the crux `counter` example panics but says to do this in production.
@@ -60,6 +60,129 @@ impl CoreFFI {
     }
 }
 
+// ── Picker candidates ──
+
+/// A small, flat type crossing the plain FFI boundary, not the full
+/// `LibraryItemView`, so this shape stays stable regardless of what fields
+/// the view gains (#1653).
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+#[derive(Debug, Clone)]
+pub struct PickerCandidateArg {
+    pub id: String,
+    pub title: String,
+    pub subtitle: String,
+    pub notes: Option<String>,
+    pub tags: Vec<String>,
+    pub created_at: String,
+    pub last_practiced_at: Option<String>,
+}
+
+impl From<PickerCandidateArg> for crate::app::PickerCandidate {
+    fn from(c: PickerCandidateArg) -> Self {
+        Self {
+            id: c.id,
+            title: c.title,
+            subtitle: c.subtitle,
+            notes: c.notes,
+            tags: c.tags,
+            created_at: c.created_at,
+            last_practiced_at: c.last_practiced_at,
+        }
+    }
+}
+
+/// Core stays UniFFI-agnostic (CLAUDE.md), so `SortField` (which carries
+/// `facet::Facet` for the crux typegen path, a separate derive system) needs
+/// its own copy at this plain-call boundary.
+#[cfg_attr(feature = "uniffi", derive(uniffi::Enum))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PickerSortField {
+    DateAdded,
+    LastPracticed,
+    Title,
+}
+
+impl From<PickerSortField> for SortField {
+    fn from(field: PickerSortField) -> Self {
+        match field {
+            PickerSortField::DateAdded => Self::DateAdded,
+            PickerSortField::LastPracticed => Self::LastPracticed,
+            PickerSortField::Title => Self::Title,
+        }
+    }
+}
+
+/// Exhaustive over `SortField`, so a variant added there without a matching
+/// arm here is a compile error, not a silently unreachable picker option.
+impl From<SortField> for PickerSortField {
+    fn from(field: SortField) -> Self {
+        match field {
+            SortField::DateAdded => Self::DateAdded,
+            SortField::LastPracticed => Self::LastPracticed,
+            SortField::Title => Self::Title,
+        }
+    }
+}
+
+#[cfg_attr(feature = "uniffi", derive(uniffi::Enum))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PickerSortDirection {
+    Ascending,
+    Descending,
+}
+
+impl From<PickerSortDirection> for SortDirection {
+    fn from(direction: PickerSortDirection) -> Self {
+        match direction {
+            PickerSortDirection::Ascending => Self::Ascending,
+            PickerSortDirection::Descending => Self::Descending,
+        }
+    }
+}
+
+impl From<SortDirection> for PickerSortDirection {
+    fn from(direction: SortDirection) -> Self {
+        match direction {
+            SortDirection::Ascending => Self::Ascending,
+            SortDirection::Descending => Self::Descending,
+        }
+    }
+}
+
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+#[derive(Debug, Clone, Copy)]
+pub struct PickerSortArg {
+    pub field: PickerSortField,
+    pub direction: PickerSortDirection,
+}
+
+impl From<PickerSortArg> for LibrarySort {
+    fn from(sort: PickerSortArg) -> Self {
+        Self {
+            field: sort.field.into(),
+            direction: sort.direction.into(),
+        }
+    }
+}
+
+/// The picker sheet's own sort and search (#1653): a plain call, not an
+/// `Event` round trip, since it runs on every keystroke and must not disturb
+/// the Library screen's own `ListQuery` state. See
+/// `intrada_core::app::sort_and_filter_candidates` for the shared comparator
+/// and search predicate this calls into. Returns candidate ids in filtered,
+/// sorted order; the shell reorders its own list by them.
+#[cfg_attr(feature = "uniffi", uniffi::export)]
+#[must_use]
+pub fn sort_and_filter_picker_candidates(
+    candidates: Vec<PickerCandidateArg>,
+    sort: PickerSortArg,
+    search: String,
+) -> Vec<String> {
+    let candidates: Vec<crate::app::PickerCandidate> =
+        candidates.into_iter().map(Into::into).collect();
+    crate::app::sort_and_filter_candidates(&candidates, &sort.into(), &search)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -69,5 +192,138 @@ mod tests {
         let core = CoreFFI::new();
         let view = core.view().expect("initial view should serialize");
         assert!(!view.is_empty(), "serialized ViewModel should be non-empty");
+    }
+
+    /// Exercises the FFI-side duplicate types a caller actually constructs,
+    /// not the core types directly.
+    #[test]
+    fn sort_and_filter_picker_candidates_round_trips_through_the_ffi_types() {
+        let candidates = vec![
+            PickerCandidateArg {
+                id: "p1".to_string(),
+                title: "Clair de Lune".to_string(),
+                subtitle: "Debussy".to_string(),
+                notes: None,
+                tags: vec![],
+                created_at: "2026-01-01".to_string(),
+                last_practiced_at: None,
+            },
+            PickerCandidateArg {
+                id: "p2".to_string(),
+                title: "Ballade".to_string(),
+                subtitle: "Chopin".to_string(),
+                notes: None,
+                tags: vec![],
+                created_at: "2026-01-02".to_string(),
+                last_practiced_at: None,
+            },
+        ];
+        let sort = PickerSortArg {
+            field: PickerSortField::Title,
+            direction: PickerSortDirection::Ascending,
+        };
+
+        let ids = sort_and_filter_picker_candidates(candidates, sort, String::new());
+
+        assert_eq!(
+            ids,
+            vec!["p2", "p1"],
+            "ascending title order across the FFI boundary"
+        );
+    }
+
+    #[test]
+    fn sort_and_filter_picker_candidates_filters_by_search() {
+        let candidates = vec![PickerCandidateArg {
+            id: "p1".to_string(),
+            title: "Clair de Lune".to_string(),
+            subtitle: "Debussy".to_string(),
+            notes: None,
+            tags: vec![],
+            created_at: "2026-01-01".to_string(),
+            last_practiced_at: None,
+        }];
+        let sort = PickerSortArg {
+            field: PickerSortField::Title,
+            direction: PickerSortDirection::Ascending,
+        };
+
+        let ids = sort_and_filter_picker_candidates(candidates, sort, "nonexistent".to_string());
+
+        assert!(ids.is_empty());
+    }
+
+    /// Every `PickerSortField` and `PickerSortDirection` combination, driven
+    /// through the core enums and the reverse `From` conversions, so a
+    /// transposed arm in either `From` table is caught rather than surviving
+    /// on `Title`/`Ascending` alone.
+    #[test]
+    fn sort_and_filter_picker_candidates_covers_every_field_and_direction() {
+        let candidates = vec![
+            PickerCandidateArg {
+                id: "a".to_string(),
+                title: "Bravo".to_string(),
+                subtitle: String::new(),
+                notes: None,
+                tags: vec![],
+                created_at: "2026-01-03".to_string(),
+                last_practiced_at: Some("2026-02-02".to_string()),
+            },
+            PickerCandidateArg {
+                id: "b".to_string(),
+                title: "Alpha".to_string(),
+                subtitle: String::new(),
+                notes: None,
+                tags: vec![],
+                created_at: "2026-01-01".to_string(),
+                last_practiced_at: Some("2026-02-03".to_string()),
+            },
+            PickerCandidateArg {
+                id: "c".to_string(),
+                title: "Charlie".to_string(),
+                subtitle: String::new(),
+                notes: None,
+                tags: vec![],
+                created_at: "2026-01-02".to_string(),
+                last_practiced_at: Some("2026-02-01".to_string()),
+            },
+        ];
+
+        let cases: [(SortField, SortDirection, [&str; 3]); 6] = [
+            (
+                SortField::DateAdded,
+                SortDirection::Ascending,
+                ["b", "c", "a"],
+            ),
+            (
+                SortField::DateAdded,
+                SortDirection::Descending,
+                ["a", "c", "b"],
+            ),
+            (SortField::Title, SortDirection::Ascending, ["b", "a", "c"]),
+            (SortField::Title, SortDirection::Descending, ["c", "a", "b"]),
+            (
+                SortField::LastPracticed,
+                SortDirection::Ascending,
+                ["c", "a", "b"],
+            ),
+            (
+                SortField::LastPracticed,
+                SortDirection::Descending,
+                ["b", "a", "c"],
+            ),
+        ];
+
+        for (field, direction, expected) in cases {
+            let sort = PickerSortArg {
+                field: field.into(),
+                direction: direction.into(),
+            };
+            let ids = sort_and_filter_picker_candidates(candidates.clone(), sort, String::new());
+            assert_eq!(
+                ids, expected,
+                "field {field:?} direction {direction:?} should order {expected:?}"
+            );
+        }
     }
 }

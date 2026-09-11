@@ -1174,7 +1174,7 @@ fn build_variant_views(
 
 /// Accents folded onto their base letter, then case removed, so "Étude" files
 /// under E instead of after every ASCII title, and beside "Etude" rather than
-/// after it (#1447). The iOS shell mirrors this in `sortedLikeTheLibrary`.
+/// after it (#1447).
 fn title_sort_key(title: &str) -> String {
     use unicode_normalization::UnicodeNormalization;
     title
@@ -1186,34 +1186,71 @@ fn title_sort_key(title: &str) -> String {
 
 const RECENTLY_PRACTISED_LIMIT: usize = 5;
 
+/// The fields `compare_candidates` and `candidate_matches` read, borrowed so
+/// neither `LibraryItemView` nor `PickerCandidate` needs cloning to share one
+/// comparator and one search predicate between the Library's own sort/filter
+/// and the picker sheet's (#1653).
+struct CandidateRef<'a> {
+    id: &'a str,
+    title: &'a str,
+    subtitle: &'a str,
+    notes: Option<&'a str>,
+    tags: &'a [String],
+    created_at: &'a str,
+    last_practiced_at: Option<&'a str>,
+}
+
+impl LibraryItemView {
+    fn as_candidate_ref(&self) -> CandidateRef<'_> {
+        CandidateRef {
+            id: &self.id,
+            title: &self.title,
+            subtitle: &self.subtitle,
+            notes: self.notes.as_deref(),
+            tags: &self.tags,
+            created_at: &self.created_at,
+            last_practiced_at: self
+                .practice
+                .as_ref()
+                .and_then(|p| p.last_practiced_at.as_deref()),
+        }
+    }
+}
+
+fn compare_candidates(
+    a: &CandidateRef,
+    b: &CandidateRef,
+    sort: &LibrarySort,
+) -> std::cmp::Ordering {
+    let primary = match sort.field {
+        SortField::DateAdded => a.created_at.cmp(b.created_at),
+        SortField::Title => title_sort_key(a.title).cmp(&title_sort_key(b.title)),
+        // None = "never practised" = earliest. Option ordering puts
+        // None < Some, which is exactly that.
+        SortField::LastPracticed => a.last_practiced_at.cmp(&b.last_practiced_at),
+    };
+    let directed = match sort.direction {
+        SortDirection::Ascending => primary,
+        SortDirection::Descending => primary.reverse(),
+    };
+    // Stable tiebreaker so equal keys don't jitter between renders.
+    directed
+        .then_with(|| b.created_at.cmp(a.created_at))
+        .then_with(|| a.id.cmp(b.id))
+}
+
+fn candidate_matches(c: &CandidateRef, query_lower: &str) -> bool {
+    c.title.to_lowercase().contains(query_lower)
+        || c.subtitle.to_lowercase().contains(query_lower)
+        || c.notes
+            .is_some_and(|n| n.to_lowercase().contains(query_lower))
+        || c.tags
+            .iter()
+            .any(|t| t.to_lowercase().contains(query_lower))
+}
+
 fn sort_library_items(items: &mut [LibraryItemView], sort: &LibrarySort) {
-    items.sort_by(|a, b| {
-        let primary = match sort.field {
-            SortField::DateAdded => a.created_at.cmp(&b.created_at),
-            SortField::Title => title_sort_key(&a.title).cmp(&title_sort_key(&b.title)),
-            SortField::LastPracticed => {
-                // None = "never practised" = earliest. Option ordering puts
-                // None < Some, which is exactly that.
-                let la = a
-                    .practice
-                    .as_ref()
-                    .and_then(|p| p.last_practiced_at.as_deref());
-                let lb = b
-                    .practice
-                    .as_ref()
-                    .and_then(|p| p.last_practiced_at.as_deref());
-                la.cmp(&lb)
-            }
-        };
-        let directed = match sort.direction {
-            SortDirection::Ascending => primary,
-            SortDirection::Descending => primary.reverse(),
-        };
-        // Stable tiebreaker so equal keys don't jitter between renders.
-        directed
-            .then_with(|| b.created_at.cmp(&a.created_at))
-            .then_with(|| a.id.cmp(&b.id))
-    });
+    items.sort_by(|a, b| compare_candidates(&a.as_candidate_ref(), &b.as_candidate_ref(), sort));
 }
 
 fn apply_query_filter(items: Vec<LibraryItemView>, query: &ListQuery) -> Vec<LibraryItemView> {
@@ -1246,17 +1283,7 @@ fn apply_query_filter(items: Vec<LibraryItemView>, query: &ListQuery) -> Vec<Lib
 
             if let Some(ref text) = query.text {
                 let text_lower = text.to_lowercase();
-                let matches = item.title.to_lowercase().contains(&text_lower)
-                    || item.subtitle.to_lowercase().contains(&text_lower)
-                    || item
-                        .notes
-                        .as_ref()
-                        .is_some_and(|n| n.to_lowercase().contains(&text_lower))
-                    || item
-                        .tags
-                        .iter()
-                        .any(|t| t.to_lowercase().contains(&text_lower));
-                if !matches {
+                if !candidate_matches(&item.as_candidate_ref(), &text_lower) {
                     return false;
                 }
             }
@@ -1264,6 +1291,61 @@ fn apply_query_filter(items: Vec<LibraryItemView>, query: &ListQuery) -> Vec<Lib
             true
         })
         .collect()
+}
+
+// ── Picker candidates (#1653) ──
+
+/// The subset of `LibraryItemView` the picker sheet's sort and search read,
+/// sent from Swift across the plain FFI call in `intrada-ffi`: not the full
+/// 18-field view, only the fields `compare_candidates` and
+/// `candidate_matches` use, with no nested view type of its own.
+#[derive(Debug, Clone)]
+pub struct PickerCandidate {
+    pub id: String,
+    pub title: String,
+    pub subtitle: String,
+    pub notes: Option<String>,
+    pub tags: Vec<String>,
+    pub created_at: String,
+    pub last_practiced_at: Option<String>,
+}
+
+impl PickerCandidate {
+    fn as_candidate_ref(&self) -> CandidateRef<'_> {
+        CandidateRef {
+            id: &self.id,
+            title: &self.title,
+            subtitle: &self.subtitle,
+            notes: self.notes.as_deref(),
+            tags: &self.tags,
+            created_at: &self.created_at,
+            last_practiced_at: self.last_practiced_at.as_deref(),
+        }
+    }
+}
+
+/// The picker sheet's own sort and search, run against a candidate set the
+/// shell already holds rather than the core's shared Library `ListQuery`, so
+/// a tap in the picker never disturbs the Library screen (#1445, #1440,
+/// #1653). Returns ids in filtered, sorted order; the shell reorders its own
+/// list by them rather than the full items crossing the bridge again.
+#[must_use]
+pub fn sort_and_filter_candidates(
+    candidates: &[PickerCandidate],
+    sort: &LibrarySort,
+    search: &str,
+) -> Vec<String> {
+    let query = search.trim().to_lowercase();
+    let mut filtered: Vec<&PickerCandidate> = if query.is_empty() {
+        candidates.iter().collect()
+    } else {
+        candidates
+            .iter()
+            .filter(|c| candidate_matches(&c.as_candidate_ref(), &query))
+            .collect()
+    };
+    filtered.sort_by(|a, b| compare_candidates(&a.as_candidate_ref(), &b.as_candidate_ref(), sort));
+    filtered.into_iter().map(|c| c.id.clone()).collect()
 }
 
 /// Canonical demo dataset for `Event::LoadSampleData` — shared by every shell
@@ -6368,6 +6450,298 @@ mod tests {
             vm.sessions[0].entries[0].variant_id.as_deref(),
             Some("v-c"),
             "history entries carry their step through the view"
+        );
+    }
+
+    // ── Picker candidates (#1653) ──
+
+    fn picker_candidate(id: &str, title: &str, created_at: &str) -> PickerCandidate {
+        PickerCandidate {
+            id: id.to_string(),
+            title: title.to_string(),
+            subtitle: String::new(),
+            notes: None,
+            tags: Vec::new(),
+            created_at: created_at.to_string(),
+            last_practiced_at: None,
+        }
+    }
+
+    #[test]
+    fn sort_and_filter_candidates_sorts_by_title_ascending() {
+        let candidates = vec![
+            picker_candidate("p1", "Clair de Lune", "2026-01-01"),
+            picker_candidate("p2", "Etude", "2026-01-02"),
+            picker_candidate("p3", "Ballade", "2026-01-03"),
+        ];
+        let sort = LibrarySort {
+            field: SortField::Title,
+            direction: SortDirection::Ascending,
+        };
+
+        let ids = sort_and_filter_candidates(&candidates, &sort, "");
+
+        assert_eq!(ids, vec!["p3", "p1", "p2"], "ascending title order");
+    }
+
+    #[test]
+    fn sort_and_filter_candidates_sorts_accented_titles_beside_unaccented() {
+        let candidates = vec![
+            picker_candidate("p1", "Zephyr", "2026-01-01"),
+            picker_candidate("p2", "Étude", "2026-01-02"),
+            picker_candidate("p3", "Etude no. 2", "2026-01-03"),
+        ];
+        let sort = LibrarySort {
+            field: SortField::Title,
+            direction: SortDirection::Ascending,
+        };
+
+        let ids = sort_and_filter_candidates(&candidates, &sort, "");
+
+        assert_eq!(
+            ids,
+            vec!["p2", "p3", "p1"],
+            "Étude files under E beside Etude, matching the Library's own rule (#1447)"
+        );
+    }
+
+    // Deliberately in the wrong order for every assertion below, so a
+    // comparator that returns "equal" and leaves the input alone fails.
+    // Translated from the deleted `LibraryItemSortTests.swift` (#1653).
+    fn never_practiced_candidates() -> Vec<PickerCandidate> {
+        vec![
+            picker_candidate("b", "Scales", "2026-01-01"),
+            picker_candidate("c", "Thirds", "2026-06-01"),
+            picker_candidate("a", "Arpeggios", "2026-06-01"),
+        ]
+    }
+
+    #[test]
+    fn sort_and_filter_candidates_ties_resolve_newest_first_then_id() {
+        let candidates = never_practiced_candidates();
+        let sort = LibrarySort {
+            field: SortField::LastPracticed,
+            direction: SortDirection::Ascending,
+        };
+
+        let ids = sort_and_filter_candidates(&candidates, &sort, "");
+
+        assert_eq!(
+            ids,
+            vec!["a", "c", "b"],
+            "never-practised items tie on the primary key; the newest created_at \
+             wins the tiebreak, then id"
+        );
+    }
+
+    #[test]
+    fn sort_and_filter_candidates_tiebreak_ignores_direction() {
+        let candidates = never_practiced_candidates();
+        let sort = LibrarySort {
+            field: SortField::LastPracticed,
+            direction: SortDirection::Descending,
+        };
+
+        let ids = sort_and_filter_candidates(&candidates, &sort, "");
+
+        assert_eq!(
+            ids,
+            vec!["a", "c", "b"],
+            "reversing the sort direction does not reverse the tiebreak"
+        );
+    }
+
+    #[test]
+    fn sort_and_filter_candidates_titles_sort_case_insensitively_both_directions() {
+        let candidates = vec![
+            picker_candidate("a", "Scales", "2026-01-01"),
+            picker_candidate("b", "arpeggios", "2026-01-02"),
+        ];
+        let ascending = LibrarySort {
+            field: SortField::Title,
+            direction: SortDirection::Ascending,
+        };
+        let descending = LibrarySort {
+            field: SortField::Title,
+            direction: SortDirection::Descending,
+        };
+
+        assert_eq!(
+            sort_and_filter_candidates(&candidates, &ascending, ""),
+            vec!["b", "a"],
+            "case-insensitive ascending: arpeggios before Scales"
+        );
+        assert_eq!(
+            sort_and_filter_candidates(&candidates, &descending, ""),
+            vec!["a", "b"],
+            "case-insensitive descending: Scales before arpeggios"
+        );
+    }
+
+    #[test]
+    fn sort_and_filter_candidates_practised_item_sorts_after_never_practised() {
+        // The never-practised one is older, so the tiebreak alone would put it
+        // second; the primary key must decide first.
+        let mut practised = picker_candidate("a", "Scales", "2026-01-02");
+        practised.last_practiced_at = Some("2026-08-01".to_string());
+        let never = picker_candidate("b", "Arpeggios", "2026-01-01");
+        let candidates = vec![practised, never];
+        let sort = LibrarySort {
+            field: SortField::LastPracticed,
+            direction: SortDirection::Ascending,
+        };
+
+        let ids = sort_and_filter_candidates(&candidates, &sort, "");
+
+        assert_eq!(
+            ids,
+            vec!["b", "a"],
+            "never-practised sorts before a practised item"
+        );
+    }
+
+    #[test]
+    fn sort_and_filter_candidates_never_practiced_sorts_as_oldest() {
+        let mut never = picker_candidate("p1", "Never practised", "2026-01-01");
+        never.last_practiced_at = None;
+        let mut practiced = picker_candidate("p2", "Practised", "2026-01-02");
+        practiced.last_practiced_at = Some("2026-01-10".to_string());
+        let candidates = vec![practiced, never];
+        let sort = LibrarySort {
+            field: SortField::LastPracticed,
+            direction: SortDirection::Ascending,
+        };
+
+        let ids = sort_and_filter_candidates(&candidates, &sort, "");
+
+        assert_eq!(
+            ids,
+            vec!["p1", "p2"],
+            "never-practised sorts earliest, same rule as the Library screen"
+        );
+    }
+
+    #[test]
+    fn sort_and_filter_candidates_stable_tiebreak_on_equal_keys() {
+        let candidates = vec![
+            picker_candidate("p2", "Same title", "2026-01-01"),
+            picker_candidate("p1", "Same title", "2026-01-01"),
+        ];
+        let sort = LibrarySort {
+            field: SortField::Title,
+            direction: SortDirection::Ascending,
+        };
+
+        let ids = sort_and_filter_candidates(&candidates, &sort, "");
+
+        assert_eq!(
+            ids,
+            vec!["p1", "p2"],
+            "equal keys break ties by id, never jitter"
+        );
+    }
+
+    #[test]
+    fn sort_and_filter_candidates_empty_search_matches_everything() {
+        let candidates = vec![
+            picker_candidate("p1", "Clair de Lune", "2026-01-01"),
+            picker_candidate("p2", "Moonlight Sonata", "2026-01-02"),
+        ];
+        let sort = LibrarySort::default();
+
+        let ids = sort_and_filter_candidates(&candidates, &sort, "   ");
+
+        assert_eq!(ids.len(), 2, "whitespace-only search is no search");
+    }
+
+    #[test]
+    fn sort_and_filter_candidates_search_matches_title_subtitle_notes_and_tags() {
+        let mut by_title = picker_candidate("p1", "Moonlight Sonata", "2026-01-01");
+        by_title.subtitle = "Beethoven".to_string();
+        let mut by_subtitle = picker_candidate("p2", "Etude", "2026-01-02");
+        by_subtitle.subtitle = "Debussy arrangement".to_string();
+        let mut by_notes = picker_candidate("p3", "Ballade", "2026-01-03");
+        by_notes.notes = Some("practice slowly for debussy voicing".to_string());
+        let mut by_tag = picker_candidate("p4", "Prelude", "2026-01-04");
+        by_tag.tags = vec!["Debussy".to_string()];
+        let unrelated = picker_candidate("p5", "Nocturne", "2026-01-05");
+        let candidates = vec![by_title, by_subtitle, by_notes, by_tag, unrelated];
+        let sort = LibrarySort {
+            field: SortField::DateAdded,
+            direction: SortDirection::Ascending,
+        };
+
+        let ids = sort_and_filter_candidates(&candidates, &sort, "debussy");
+
+        assert_eq!(
+            ids,
+            vec!["p2", "p3", "p4"],
+            "case-insensitive match across subtitle, notes and tags; title itself \
+             is not a Debussy match here"
+        );
+    }
+
+    #[test]
+    fn sort_and_filter_candidates_search_matching_nothing_returns_empty() {
+        let candidates = vec![picker_candidate("p1", "Clair de Lune", "2026-01-01")];
+        let sort = LibrarySort::default();
+
+        let ids = sort_and_filter_candidates(&candidates, &sort, "nonexistent");
+
+        assert!(ids.is_empty());
+    }
+
+    #[test]
+    fn sort_library_items_and_apply_query_filter_agree_with_sort_and_filter_candidates() {
+        // Two items share both title and created_at, so the id tiebreak has to
+        // fire on both paths, and a third item is excluded by the text query
+        // built directly through apply_query_filter: this fails if either path
+        // stops sharing the comparator or the predicate (#1653).
+        let library_fixture = |id: &str, title: &str, created_at: &str, subtitle: &str| {
+            let mut view = LibraryItemView::fixture(id, title, ItemKind::Piece);
+            view.created_at = created_at.to_string();
+            view.subtitle = subtitle.to_string();
+            view
+        };
+        let mut library_items = vec![
+            library_fixture("p2", "Debussy Prelude", "2026-01-01", "practice notes"),
+            library_fixture("p1", "Debussy Prelude", "2026-01-01", "practice notes"),
+            library_fixture("p3", "Chopin Ballade", "2026-01-02", "unrelated"),
+        ];
+        let sort = LibrarySort {
+            field: SortField::Title,
+            direction: SortDirection::Ascending,
+        };
+        library_items = apply_query_filter(
+            library_items,
+            &ListQuery {
+                text: Some("practice".to_string()),
+                ..Default::default()
+            },
+        );
+        sort_library_items(&mut library_items, &sort);
+        let library_ids: Vec<String> = library_items.iter().map(|i| i.id.clone()).collect();
+
+        let picker_fixture = |id: &str, title: &str, created_at: &str, subtitle: &str| {
+            let mut candidate = picker_candidate(id, title, created_at);
+            candidate.subtitle = subtitle.to_string();
+            candidate
+        };
+        let candidates = vec![
+            picker_fixture("p2", "Debussy Prelude", "2026-01-01", "practice notes"),
+            picker_fixture("p1", "Debussy Prelude", "2026-01-01", "practice notes"),
+            picker_fixture("p3", "Chopin Ballade", "2026-01-02", "unrelated"),
+        ];
+        let picker_ids = sort_and_filter_candidates(&candidates, &sort, "practice");
+
+        assert_eq!(
+            library_ids,
+            vec!["p1", "p2"],
+            "tie on title and created_at breaks by id; p3 excluded by the text query"
+        );
+        assert_eq!(
+            library_ids, picker_ids,
+            "the Library's own path and the picker's path agree on the same input"
         );
     }
 }
