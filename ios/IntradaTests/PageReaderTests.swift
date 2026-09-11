@@ -1,4 +1,3 @@
-import IntradaCoreFFI
 import SharedTypes
 import Testing
 import UIKit
@@ -87,79 +86,5 @@ struct PageReaderTests {
   @Test func anIdWithNoBytesFails() async {
     let output = await PageReader.read(photoId: Ulid.generate())
     #expect(output == .failed)
-  }
-}
-
-/// The orientation half of cropping a chosen photo (#1436). `toPage` itself is
-/// device-only: document segmentation does not run on the simulator.
-@MainActor
-struct PageCropTests {
-  /// A photo taken holding the phone upright is a landscape buffer plus a
-  /// `.right` orientation, and `cgImage` hands back the buffer alone.
-  private func rotatedPhoto() throws -> UIImage {
-    let format = UIGraphicsImageRendererFormat.default()
-    format.scale = 1
-    let landscapeBuffer = UIGraphicsImageRenderer(
-      size: CGSize(width: 1600, height: 1200), format: format
-    ).image { context in
-      UIColor.white.setFill()
-      context.fill(CGRect(x: 0, y: 0, width: 1600, height: 1200))
-    }
-    return UIImage(cgImage: try #require(landscapeBuffer.cgImage), scale: 1, orientation: .right)
-  }
-
-  @Test func aRotatedPhotoIsRedrawnUprightBeforeAnythingReadsIt() throws {
-    let photo = try rotatedPhoto()
-    #expect(photo.size.height > photo.size.width, "the photo is portrait")
-    #expect(
-      try #require(photo.cgImage).width > #require(photo.cgImage).height,
-      "but its buffer is not, which is the whole problem")
-
-    let upright = PageCrop.redrawnUpright(photo)
-
-    #expect(upright.imageOrientation == .up)
-    #expect(
-      try #require(upright.cgImage).height > #require(upright.cgImage).width,
-      "the buffer now matches the page, so Vision reads it the right way up")
-  }
-
-  /// The device log on #1565, through the generated binding: the Rust table
-  /// proves the rule, this proves the Swift side reaches it.
-  @Test func theLoggedOutlineIsRefusedForACornerOnTheFrameEdge() {
-    let outline = PageOutline(
-      topLeft: Corner(x: 0.0069, y: 0.7891),
-      topRight: Corner(x: 1.0, y: 0.8125),
-      bottomLeft: Corner(x: 0.2292, y: 0.2461),
-      bottomRight: Corner(x: 1.0, y: 0.2695),
-      frameWidth: 3024,
-      frameHeight: 4032)
-
-    #expect(pageOutlineFault(outline: outline) == .cornerOnFrameEdge)
-  }
-
-  /// The keystone only crosses the limit in one aspect ratio, so swapping x
-  /// with y, width with height, or any two corners in the mapping flips one
-  /// of these answers.
-  @Test func everyCornerAndTheFrameReachTheCoreInTheRightField() {
-    let keystoned = { (frame: CGSize) in
-      PageCrop.outline(
-        topLeft: CGPoint(x: 0.12, y: 0.9), topRight: CGPoint(x: 0.88, y: 0.9),
-        bottomLeft: CGPoint(x: 0.05, y: 0.1), bottomRight: CGPoint(x: 0.95, y: 0.1),
-        frame: frame)
-    }
-
-    #expect(
-      pageOutlineFault(outline: keystoned(CGSize(width: 4032, height: 500))) == .edgesNotParallel)
-    #expect(pageOutlineFault(outline: keystoned(CGSize(width: 3024, height: 4032))) == nil)
-  }
-
-  /// The one exit reachable without Vision.
-  @Test func aPhotoWithNoBufferComesBackAsTakenAndSaysNoPageWasFound() {
-    let photo = UIImage()
-
-    let outcome = PageCrop.toPage(photo)
-
-    #expect(!outcome.pageFound)
-    #expect(outcome.image === photo)
   }
 }

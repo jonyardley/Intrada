@@ -32,10 +32,8 @@ back through a ViewModel field that exists for no other reason. A plain,
 synchronous `uniffi::export` function outside the event loop is the
 established shape for exactly this kind of problem in this codebase (a pure
 calculation with no state, no persistence and no network, called directly
-rather than through the event loop): `page_outline_fault`
-(`intrada-ffi/src/ffi.rs`, PR #1660, not yet on `main` at the time of writing)
-is the other instance of it, though it shares no file or symbol with this
-change, so landing order between the two PRs does not matter.
+rather than through the event loop): `page_outline_fault` (PR #1660, deleted
+with page cropping in #1684) was the other instance of it.
 
 ### Core (`intrada-core`)
 

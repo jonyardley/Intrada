@@ -11,6 +11,7 @@ import UIKit
 private final class StubCamera: PageCameraDevice {
   var session: AVCaptureSession? { nil }
   private(set) var stopCount = 0
+  let shot = UIImage()
 
   private let access: PageCameraAccess
   private let startError: Error?
@@ -34,9 +35,7 @@ private final class StubCamera: PageCameraDevice {
 
   func capture() async throws -> UIImage {
     if let captureError { throw captureError }
-    // A plain `UIImage` has no `cgImage`, so `PageCrop` returns it as taken
-    // and the transition can be tested without running Vision.
-    return UIImage()
+    return shot
   }
 }
 
@@ -100,33 +99,20 @@ struct PageCameraModelTests {
     }
   }
 
-  @Test func aFoundPageIsOfferedFlattened() async {
-    let flattened = UIImage()
-    let model = PageCameraModel(device: StubCamera(), crop: { _ in .flattened(flattened) })
+  /// Nothing sits between the shutter and the photo you approve (#1684).
+  @Test func thePhotoToApproveIsTheShotAsTaken() async {
+    let camera = StubCamera()
+    let model = PageCameraModel(device: camera)
     await model.begin()
 
     await model.takePhoto()
 
-    guard case .captured(let page, let pageFound) = model.stage else {
+    guard case .captured(let page) = model.stage else {
       Issue.record("expected captured, got \(model.stage)")
       return
     }
-    #expect(page === flattened)
-    #expect(pageFound)
-  }
-
-  @Test func aMissedPageIsStillOfferedAndSaysSo() async {
-    let model = PageCameraModel(device: StubCamera(), crop: { .asTaken($0) })
-    await model.begin()
-
-    await model.takePhoto()
-
-    guard case .captured(_, let pageFound) = model.stage else {
-      Issue.record("expected captured, got \(model.stage)")
-      return
-    }
-    #expect(!pageFound)
-    #expect(model.keep() != nil)
+    #expect(page === camera.shot)
+    #expect(model.keep() === camera.shot)
   }
 
   @Test func keepingThePageHandsItBackAndReleasesTheCamera() async {
