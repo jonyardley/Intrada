@@ -891,3 +891,25 @@ as a button. A check or outline stays ink for both kinds, because a pastel
 border on white misses the 3:1 WCAG sets for a control. The practice player
 stays light for now, its ink buttons included; a dark focus screen is #1679, and choosing your own marker
 is #1677.
+
+### T25: The Practice greeting leads the subtitle
+
+**Status:** DECIDED 2026-09-11 (jonyardley/intrada#1690). The Practice screen
+greets the musician by name at the start of the subtitle under its title, and
+the last-practised fact stays after it: "Morning, Jon · Last practised
+Tuesday". That keeps T15's ruling that last practised holds its line in the
+header, since the Up next card shows no date. Morning is 04:00 to 11:59,
+afternoon 12:00 to 17:59, evening 18:00 to 03:59; the core owns the rule and
+the string. With no name set, the subtitle stays as it was ("No sessions yet"
+or "Last practised Tuesday"). The wording is tone-of-voice V6.
+
+The rejected alternative put the greeting in the title and left "Practice" to
+the tab bar. It is warmer, but every other tab titles itself, and a title that
+changes through the day is harder to find by eye.
+
+The way into the profile is the musician's own instrument icon on their
+highlighter, top right of Practice: 36pt in the same 44pt target as the
+Library's add button, a new marker-filled trailing style rather than the ink
+one, read as "Profile" by VoiceOver. With no profile yet it shows the plain
+note on butter. It is the only way in. The mocks are
+`design/Profile and Greeting.dc.html`.

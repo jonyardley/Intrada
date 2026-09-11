@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&amp;family=DM+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #E9E9E6; color: #3B2A1E; font-family: 'Hanken Grotesk', -apple-system, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: #7A6A5A; } a:hover { color: #3B2A1E; }
+  .mono { font-family: 'DM Mono', ui-monospace, Menlo, monospace; }
+  .sys { font-family: -apple-system, 'SF Pro Text', 'Helvetica Neue', sans-serif; }
+</style>
+</helmet>
+<section style="padding: 56px 64px 100px;">
+  <div style="max-width: 900px; display: flex; flex-direction: column; gap: 10px;">
+    <div style="font-size: 11px; font-weight: 600; letter-spacing: 1.8px; text-transform: uppercase; color: #7A6A5A;">Journey · Profile</div>
+    <div style="font-size: 34px; font-weight: 600; letter-spacing: -0.02em;">Your name, your instrument, your highlighter</div>
+    <div style="font-size: 14px; line-height: 1.55; color: #5A5E69;">Feature file for <strong>#1690</strong> (part of #1689). The profile screen in display and edit, the icon picker, the instrument icons, the Practice greeting, and iPad. Tap a swatch on the editing screen: every screen here follows it. Sign out, practice defaults and account deletion stay in #1599 and are only given room. <strong>Decided 2026-09-11 (Jon):</strong> the greeting leads the Practice subtitle and the last-practised fact stays after it; the alternative, the greeting as the title, was dropped (design-principles T25, tone-of-voice V6).</div>
+  </div>
+  <div style="display: flex; gap: 48px; margin-top: 40px; flex-wrap: wrap; align-items: flex-start;">
+    <div style="display: flex; flex-direction: column; gap: 14px; width: 390px;">
+      <div style="display: flex; flex-direction: column; gap: 6px; min-height: 120px;">
+        <div style="font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: #7A6A5A;">Practice, with greeting</div>
+        <div style="font-size: 12.5px; line-height: 1.5; color: #5A5E69; white-space: pre-line; max-width: 390px;">Decided 2026-09-11: the greeting leads the subtitle and the last-practised fact stays after it, because the Up next card shows no date (T15). Morning 04:00 to 11:59, afternoon 12:00 to 17:59, evening 18:00 to 03:59; the core owns the rule and the string. No name yet: the subtitle is as today.
+The way in is your instrument icon on your highlighter, top right: 36pt in a 44pt target, a new trailing style beside the ink add button, read as "Profile" by VoiceOver. With no profile yet it shows the plain note on butter. The week strip is drawn roughly and does not change.</div>
+      </div>
+      <div style="box-shadow: 0 1px 2px rgba(59,42,30,0.08), 0 0 0 1px #DDD7CA; border-radius: 3px; overflow: hidden; width: fit-content;"><div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #F7F4EF;">
+  <div style="height: 54px;"></div>
+  <div style="padding: 8px 16px 0; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+      <div style="display: flex; flex-direction: column; gap: 3px;">
+        <div style="font-size: 29px; font-weight: 600; align-self: flex-start; padding: 0 4px; margin-left: -4px; border-radius: 3px; background: {{swipe}};">Practice</div>
+        <div class="mono" style="font-size: 12.5px; color: #7A6A5A;">Morning, Jon · Last practised yesterday</div>
+      </div>
+      <div style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+        <div style="width: 36px; height: 36px; border-radius: 999px; background: {{m}}; box-shadow: inset 0 0 0 1px #DDD7CA; display: flex; align-items: center; justify-content: center;"><svg viewBox="0 0 24 24" width="22" height="22" style="display: block; color: #3B2A1E; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0;"><g transform="translate(0 -1.5)"><path d="M12 8C14.5 8 15.8 9 15.8 10.8C15.8 12.3 14.3 12.8 14.3 14.2C14.3 15.4 16.4 15.9 16.4 18C16.4 20.2 14.3 21 12 21C9.7 21 7.6 20.2 7.6 18C7.6 15.9 9.7 15.4 9.7 14.2C9.7 12.8 8.2 12.3 8.2 10.8C8.2 9 9.5 8 12 8Z"/><path d="M12 8V4.4"/><circle cx="12" cy="3.4" r="1"/><path d="M10.4 15v2M13.6 15v2M12 21v3"/></g></svg></div>
+      </div>
+    </div>
+    <div style="height: 1px; background: #DDD7CA; margin-top: 12px;"></div>
+  <div style="padding: 24px 16px; display: flex; flex-direction: column; gap: 24px;">
+    <div style="background: linear-gradient(195deg, #3B2A1E, #56412C); border-radius: 3px; box-shadow: 0 10px 20px rgba(0,0,0,0.18); padding: 24px; display: flex; flex-direction: column; align-items: center; gap: 12px;">
+      <div style="font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.7);">Last practised</div>
+      <div style="font-size: 25px; font-weight: 600; color: #F7F4EF; text-align: center;">Cello Suite No. 1, Prelude</div>
+      <div style="width: 96px; height: 96px; border-radius: 999px; background: {{m}}; box-shadow: 0 8px 16px rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: center; margin: 8px 0;">
+        <svg viewBox="0 0 24 24" width="38" height="38" style="display: block; fill: #3B2A1E; margin-left: 4px;"><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12.2-7.5a1 1 0 0 0 0-1.72L8.5 3.64A1 1 0 0 0 7 4.5z"/></svg>
+      </div>
+      <div style="font-size: 15px; font-weight: 500; color: rgba(255,255,255,0.85);">Yesterday</div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="display: flex; justify-content: space-between; align-items: baseline;"><div style="font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: #A99C8C;">This week</div><div class="mono" style="font-size: 12.5px; color: #7A6A5A;">3 days practised</div></div>
+      <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0;">
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;"><div style="font-size: 10px; color: #7A6A5A;">M</div><div style="width: 30px; height: 30px; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; background: #3B2A1E; color: #FFFFFF;">8</div></div><div style="display: flex; flex-direction: column; align-items: center; gap: 6px;"><div style="font-size: 10px; color: #7A6A5A;">T</div><div style="width: 30px; height: 30px; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; color: #A99C8C;">9</div></div><div style="display: flex; flex-direction: column; align-items: center; gap: 6px;"><div style="font-size: 10px; color: #7A6A5A;">W</div><div style="width: 30px; height: 30px; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; background: #3B2A1E; color: #FFFFFF;">10</div></div><div style="display: flex; flex-direction: column; align-items: center; gap: 6px;"><div style="font-size: 10px; color: #7A6A5A;">T</div><div style="width: 30px; height: 30px; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; background: #3B2A1E; color: #FFFFFF;">11</div></div><div style="display: flex; flex-direction: column; align-items: center; gap: 6px;"><div style="font-size: 10px; color: #7A6A5A;">F</div><div style="width: 30px; height: 30px; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; box-shadow: inset 0 0 0 1.5px #3B2A1E;">12</div></div><div style="display: flex; flex-direction: column; align-items: center; gap: 6px;"><div style="font-size: 10px; color: #7A6A5A;">S</div><div style="width: 30px; height: 30px; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; color: #A99C8C;">13</div></div><div style="display: flex; flex-direction: column; align-items: center; gap: 6px;"><div style="font-size: 10px; color: #7A6A5A;">S</div><div style="width: 30px; height: 30px; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; color: #A99C8C;">14</div></div>
+      </div>
+    </div>
+  </div>
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 83px; background: #F3EFE8; border-top: 1px solid #DDD7CA; display: flex; justify-content: space-around; padding-top: 6px; box-sizing: border-box;">
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 2px; width: 72px;"><svg viewBox="0 0 24 24" width="26" height="26" style="display: block; color: #7A6A5A; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round;"><path d="M5 4.5v15M9 4.5v15M13 5l4.8 14.2"/></svg><div class="sys" style="font-size: 10px; font-weight: 500; color: #7A6A5A;">Library</div></div><div style="display: flex; flex-direction: column; align-items: center; gap: 2px; width: 72px;"><svg viewBox="0 0 24 24" width="26" height="26" style="display: block; color: #3B2A1E; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round;"><circle cx="12" cy="13.5" r="7"/><path d="M12 13.5V10M10 3.5h4"/></svg><div class="sys" style="font-size: 10px; font-weight: 500; color: #3B2A1E;">Practice</div></div><div style="display: flex; flex-direction: column; align-items: center; gap: 2px; width: 72px;"><svg viewBox="0 0 24 24" width="26" height="26" style="display: block; color: #7A6A5A; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round;"><path d="M4 6.5h9M4 10.5h9M4 14.5h6M17.5 16.5V6.5l3 1"/><circle cx="15.8" cy="16.6" r="1.7"/></svg><div class="sys" style="font-size: 10px; font-weight: 500; color: #7A6A5A;">Routines</div></div><div style="display: flex; flex-direction: column; align-items: center; gap: 2px; width: 72px;"><svg viewBox="0 0 24 24" width="26" height="26" style="display: block; color: #7A6A5A; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round;"><path d="M4 18l5-5.5 3.5 3L19.5 7"/></svg><div class="sys" style="font-size: 10px; font-weight: 500; color: #7A6A5A;">Progress</div></div>
+  </div>
+</div></div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 14px; width: 390px;">
+      <div style="display: flex; flex-direction: column; gap: 6px; min-height: 120px;">
+        <div style="font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: #7A6A5A;">Profile</div>
+        <div style="font-size: 12.5px; line-height: 1.5; color: #5A5E69; white-space: pre-line; max-width: 390px;">Pushed from Practice, with Practice as the back button. Edit opens a sheet, as an item page does. Your name wears your highlighter, the same swipe as a page title.</div>
+      </div>
+      <div style="box-shadow: 0 1px 2px rgba(59,42,30,0.08), 0 0 0 1px #DDD7CA; border-radius: 3px; overflow: hidden; width: fit-content;"><div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #F7F4EF;">
+  <div style="height: 54px;"></div>
+  <div style="height: 44px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; position: relative;">
+    <div class="sys" style="font-size: 17px; color: #3B2A1E; display: flex; align-items: center; gap: 4px; min-width: 88px;"><svg viewBox="0 0 12 20" width="12" height="20" style="display: block; fill: none; stroke: #3B2A1E; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round;"><path d="M10 2L2 10l8 8"/></svg><span>Practice</span></div>
+    <div style="position: absolute; left: 0; right: 0; text-align: center; font-weight: 600; font-size: 16px; pointer-events: none;">Profile</div>
+    <div class="sys" style="font-size: 17px; color: #3B2A1E;  min-width: 88px; text-align: right;">Edit</div>
+  </div>
+  <div style="padding: 0 16px; display: flex; flex-direction: column; gap: 24px;">
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 24px 0 8px;">
+      <div style="width: 88px; height: 88px; border-radius: 999px; background: {{m}}; display: flex; align-items: center; justify-content: center;"><svg viewBox="0 0 24 24" width="44" height="44" style="display: block; color: #3B2A1E; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0;"><g transform="translate(0 -1.5)"><path d="M12 8C14.5 8 15.8 9 15.8 10.8C15.8 12.3 14.3 12.8 14.3 14.2C14.3 15.4 16.4 15.9 16.4 18C16.4 20.2 14.3 21 12 21C9.7 21 7.6 20.2 7.6 18C7.6 15.9 9.7 15.4 9.7 14.2C9.7 12.8 8.2 12.3 8.2 10.8C8.2 9 9.5 8 12 8Z"/><path d="M12 8V4.4"/><circle cx="12" cy="3.4" r="1"/><path d="M10.4 15v2M13.6 15v2M12 21v3"/></g></svg></div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+        <div style="font-size: 29px; font-weight: 600; padding: 0 4px; border-radius: 3px; background: {{swipe}};">Jon</div>
+        <div class="mono" style="font-size: 12.5px; color: #7A6A5A;">Cello</div>
+      </div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: #A99C8C;">Highlighter</div>
+      <div style="background: #FFFFFF; border: 1px solid #ECE6DA; border-radius: 3px; box-shadow: 0 1px 1px rgba(59,42,30,0.05); padding: 12px 16px; display: flex; align-items: center; gap: 12px; min-height: 20px;">
+        <div style="width: 22px; height: 22px; border-radius: 999px; background: {{m}}; box-shadow: inset 0 0 0 1px #DDD7CA;"></div>
+        <div style="font-size: 15px; font-weight: 500;">{{markerName}}</div>
+      </div>
+    </div>
+    <div style="border: 1.5px dashed #C9BFB0; border-radius: 3px; height: 150px; display: flex; align-items: center; justify-content: center; padding: 0 24px; text-align: center;">
+      <div class="mono" style="font-size: 12.5px; color: #A99C8C; line-height: 1.5;">Room for sign out, practice defaults and account deletion (#1599)</div>
+    </div>
+  </div>
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 83px; background: #F3EFE8; border-top: 1px solid #DDD7CA; display: flex; justify-content: space-around; padding-top: 6px; box-sizing: border-box;">
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 2px; width: 72px;"><svg viewBox="0 0 24 24" width="26" height="26" style="display: block; color: #7A6A5A; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round;"><path d="M5 4.5v15M9 4.5v15M13 5l4.8 14.2"/></svg><div class="sys" style="font-size: 10px; font-weight: 500; color: #7A6A5A;">Library</div></div><div style="display: flex; flex-direction: column; align-items: center; gap: 2px; width: 72px;"><svg viewBox="0 0 24 24" width="26" height="26" style="display: block; color: #3B2A1E; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round;"><circle cx="12" cy="13.5" r="7"/><path d="M12 13.5V10M10 3.5h4"/></svg><div class="sys" style="font-size: 10px; font-weight: 500; color: #3B2A1E;">Practice</div></div><div style="display: flex; flex-direction: column; align-items: center; gap: 2px; width: 72px;"><svg viewBox="0 0 24 24" width="26" height="26" style="display: block; color: #7A6A5A; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round;"><path d="M4 6.5h9M4 10.5h9M4 14.5h6M17.5 16.5V6.5l3 1"/><circle cx="15.8" cy="16.6" r="1.7"/></svg><div class="sys" style="font-size: 10px; font-weight: 500; color: #7A6A5A;">Routines</div></div><div style="display: flex; flex-direction: column; align-items: center; gap: 2px; width: 72px;"><svg viewBox="0 0 24 24" width="26" height="26" style="display: block; color: #7A6A5A; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round;"><path d="M4 18l5-5.5 3.5 3L19.5 7"/></svg><div class="sys" style="font-size: 10px; font-weight: 500; color: #7A6A5A;">Progress</div></div>
+  </div>
+</div></div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 14px; width: 390px;">
+      <div style="display: flex; flex-direction: column; gap: 6px; min-height: 120px;">
+        <div style="font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: #7A6A5A;">Profile, editing</div>
+        <div style="font-size: 12.5px; line-height: 1.5; color: #5A5E69; white-space: pre-line; max-width: 390px;">The Edit sheet. Tap a swatch: every screen here follows it. The icon caption reads "Matches cello" while the icon follows the instrument, "Chosen by you" once you pick one, and "No match" beside the plain note. VoiceOver reads Change as "Change icon". The eight are the 8f marker set, in the order of the token sheet.</div>
+      </div>
+      <div style="box-shadow: 0 1px 2px rgba(59,42,30,0.08), 0 0 0 1px #DDD7CA; border-radius: 3px; overflow: hidden; width: fit-content;"><div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #F7F4EF;">
+  <div style="height: 54px;"></div>
+  <div style="height: 44px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; position: relative;">
+    <div class="sys" style="font-size: 17px; color: #3B2A1E; display: flex; align-items: center; gap: 4px; min-width: 88px;">Cancel</div>
+    <div style="position: absolute; left: 0; right: 0; text-align: center; font-weight: 600; font-size: 16px; pointer-events: none;">Profile</div>
+    <div class="sys" style="font-size: 17px; color: #3B2A1E; font-weight: 600; min-width: 88px; text-align: right;">Save</div>
+  </div>
+  <div style="padding: 16px; display: flex; flex-direction: column; gap: 16px;">
+    <div style="background: #FFFFFF; border: 1px solid #ECE6DA; border-radius: 3px; box-shadow: 0 1px 1px rgba(59,42,30,0.05); overflow: hidden; "><div style="padding: 12px 16px; display: flex; align-items: center; gap: 14px;">
+        <div style="width: 56px; height: 56px; border-radius: 999px; background: {{m}}; display: flex; align-items: center; justify-content: center;"><svg viewBox="0 0 24 24" width="30" height="30" style="display: block; color: #3B2A1E; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0;"><g transform="translate(0 -1.5)"><path d="M12 8C14.5 8 15.8 9 15.8 10.8C15.8 12.3 14.3 12.8 14.3 14.2C14.3 15.4 16.4 15.9 16.4 18C16.4 20.2 14.3 21 12 21C9.7 21 7.6 20.2 7.6 18C7.6 15.9 9.7 15.4 9.7 14.2C9.7 12.8 8.2 12.3 8.2 10.8C8.2 9 9.5 8 12 8Z"/><path d="M12 8V4.4"/><circle cx="12" cy="3.4" r="1"/><path d="M10.4 15v2M13.6 15v2M12 21v3"/></g></svg></div>
+        <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 3px;">
+          <div style="font-size: 12px; font-weight: 500; color: #7A6A5A;">Icon</div>
+          <div class="mono" style="font-size: 12.5px; color: #7A6A5A;">Matches cello</div>
+        </div>
+        <div style="font-size: 13.5px; font-weight: 700; padding: 0 14px; height: 36px; display: flex; align-items: center; border: 1px solid #DDD7CA; border-radius: 3px; background: #FFFFFF;">Change</div>
+      </div></div>
+    <div style="background: #FFFFFF; border: 1px solid #ECE6DA; border-radius: 3px; box-shadow: 0 1px 1px rgba(59,42,30,0.05); overflow: hidden; "><div style="padding: 10px 16px; display: flex; flex-direction: column; gap: 4px;">
+          <div style="font-size: 12px; font-weight: 500; color: #7A6A5A;">Name</div>
+          <div style="font-size: 16px; color: #3B2A1E; display: flex; align-items: center;">Jon</div>
+        </div><div style="height: 1px; background: #ECE6DA; margin-left: 16px;"></div><div style="padding: 10px 16px; display: flex; flex-direction: column; gap: 4px;">
+          <div style="font-size: 12px; font-weight: 500; color: #7A6A5A;">Instrument</div>
+          <div style="font-size: 16px; color: #3B2A1E; display: flex; align-items: center;">Cel<span style="display: inline-block; width: 2px; height: 20px; background: #3B2A1E; margin-left: 1px;"></span></div>
+        </div><div style="height: 1px; background: #ECE6DA; margin-left: 16px;"></div><div style="padding: 10px 16px; display: flex; align-items: center; gap: 10px; background: #FFFFFF;">
+            <svg viewBox="0 0 24 24" width="14" height="14" style="display: block; color: #A99C8C; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round;"><path d="M17 17L7 7M7 15V7h8"/></svg>
+            <div style="font-size: 14px;">Cello</div>
+          </div><div style="height: 1px; background: #ECE6DA; margin-left: 16px;"></div><div style="padding: 10px 16px; display: flex; align-items: center; gap: 10px; background: #FFFFFF;">
+            <svg viewBox="0 0 24 24" width="14" height="14" style="display: block; color: #A99C8C; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round;"><path d="M17 17L7 7M7 15V7h8"/></svg>
+            <div style="font-size: 14px;">Celtic harp</div>
+          </div></div>
+    <div style="display: flex; flex-direction: column; gap: 12px; padding-top: 8px;">
+      <div style="font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: #A99C8C;">Highlighter</div>
+      <div style="background: #FFFFFF; border: 1px solid #ECE6DA; border-radius: 3px; box-shadow: 0 1px 1px rgba(59,42,30,0.05); overflow: hidden; "><div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px 0; padding: 14px 8px 12px;">
+          <sc-for list="{{swatches}}" as="s" hint-placeholder-count="8">
+            <div onClick="{{s.pick}}" style="display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; min-height: 44px;">
+              <div style="width: 40px; height: 40px; border-radius: 999px; background: {{s.hex}}; box-shadow: {{s.ring}}; display: flex; align-items: center; justify-content: center;">
+                <sc-if value="{{s.selected}}" hint-placeholder-val="{{false}}">
+                  <svg viewBox="0 0 24 24" width="18" height="18" style="display: block; fill: none; stroke: #3B2A1E; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round;"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+                </sc-if>
+              </div>
+              <div style="font-size: 12px; font-weight: 500; text-align: center; line-height: 1.2; color: {{s.labelColor}};">{{s.name}}</div>
+            </div>
+          </sc-for>
+        </div></div>
+    </div>
+  </div>
+</div></div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 14px; width: 390px;">
+      <div style="display: flex; flex-direction: column; gap: 6px; min-height: 120px;">
+        <div style="font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: #7A6A5A;">Profile, choosing an icon</div>
+        <div style="font-size: 12.5px; line-height: 1.5; color: #5A5E69; white-space: pre-line; max-width: 390px;">Change opens a second sheet: the match first, then the other twelve, with the current icon filled in your highlighter. Picking one pins it, so changing the instrument later no longer moves the icon.</div>
+      </div>
+      <div style="box-shadow: 0 1px 2px rgba(59,42,30,0.08), 0 0 0 1px #DDD7CA; border-radius: 3px; overflow: hidden; width: fit-content;"><div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #F7F4EF;">
+  <div style="height: 54px;"></div>
+  <div style="height: 44px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; position: relative;">
+    <div class="sys" style="font-size: 17px; color: #3B2A1E; display: flex; align-items: center; gap: 4px; min-width: 88px;">Cancel</div>
+    <div style="position: absolute; left: 0; right: 0; text-align: center; font-weight: 600; font-size: 16px; pointer-events: none;">Profile</div>
+    <div class="sys" style="font-size: 17px; color: #3B2A1E; font-weight: 600; min-width: 88px; text-align: right;">Save</div>
+  </div>
+  <div style="padding: 16px; display: flex; flex-direction: column; gap: 16px;">
+    <div style="background: #FFFFFF; border: 1px solid #ECE6DA; border-radius: 3px; box-shadow: 0 1px 1px rgba(59,42,30,0.05); overflow: hidden; "><div style="padding: 12px 16px; display: flex; align-items: center; gap: 14px;">
+        <div style="width: 56px; height: 56px; border-radius: 999px; background: {{m}}; display: flex; align-items: center; justify-content: center;"><svg viewBox="0 0 24 24" width="30" height="30" style="display: block; color: #3B2A1E; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0;"><g transform="translate(0 -1.5)"><path d="M12 8C14.5 8 15.8 9 15.8 10.8C15.8 12.3 14.3 12.8 14.3 14.2C14.3 15.4 16.4 15.9 16.4 18C16.4 20.2 14.3 21 12 21C9.7 21 7.6 20.2 7.6 18C7.6 15.9 9.7 15.4 9.7 14.2C9.7 12.8 8.2 12.3 8.2 10.8C8.2 9 9.5 8 12 8Z"/><path d="M12 8V4.4"/><circle cx="12" cy="3.4" r="1"/><path d="M10.4 15v2M13.6 15v2M12 21v3"/></g></svg></div>
+        <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 3px;">
+          <div style="font-size: 12px; font-weight: 500; color: #7A6A5A;">Icon</div>
+          <div class="mono" style="font-size: 12.5px; color: #7A6A5A;">Matches cello</div>
+        </div>
+        <div style="font-size: 13.5px; font-weight: 700; padding: 0 14px; height: 36px; display: flex; align-items: center; border: 1px solid #DDD7CA; border-radius: 3px; background: #FFFFFF;">Change</div>
+      </div></div>
+    <div style="background: #FFFFFF; border: 1px solid #ECE6DA; border-radius: 3px; box-shadow: 0 1px 1px rgba(59,42,30,0.05); overflow: hidden; "><div style="padding: 10px 16px; display: flex; flex-direction: column; gap: 4px;">
+          <div style="font-size: 12px; font-weight: 500; color: #7A6A5A;">Name</div>
+          <div style="font-size: 16px; color: #3B2A1E; display: flex; align-items: center;">Jon</div>
+        </div><div style="height: 1px; background: #ECE6DA; margin-left: 16px;"></div><div style="padding: 10px 16px; display: flex; flex-direction: column; gap: 4px;">
+          <div style="font-size: 12px; font-weight: 500; color: #7A6A5A;">Instrument</div>
+          <div style="font-size: 16px; color: #3B2A1E; display: flex; align-items: center;">Cello</div>
+        </div></div>
+    <div style="display: flex; flex-direction: column; gap: 12px; padding-top: 8px;">
+      <div style="font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: #A99C8C;">Highlighter</div>
+      <div style="background: #FFFFFF; border: 1px solid #ECE6DA; border-radius: 3px; box-shadow: 0 1px 1px rgba(59,42,30,0.05); overflow: hidden; "><div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px 0; padding: 14px 8px 12px;">
+          <sc-for list="{{swatches}}" as="s" hint-placeholder-count="8">
+            <div onClick="{{s.pick}}" style="display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; min-height: 44px;">
+              <div style="width: 40px; height: 40px; border-radius: 999px; background: {{s.hex}}; box-shadow: {{s.ring}}; display: flex; align-items: center; justify-content: center;">
+                <sc-if value="{{s.selected}}" hint-placeholder-val="{{false}}">
+                  <svg viewBox="0 0 24 24" width="18" height="18" style="display: block; fill: none; stroke: #3B2A1E; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round;"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+                </sc-if>
+              </div>
+              <div style="font-size: 12px; font-weight: 500; text-align: center; line-height: 1.2; color: {{s.labelColor}};">{{s.name}}</div>
+            </div>
+          </sc-for>
+        </div></div>
+    </div>
+  </div>
+  <div style="position: absolute; inset: 0; background: rgba(26,25,23,0.32);"></div>
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; top: 212px; background: #F7F4EF; border-radius: 12px 12px 0 0; box-shadow: 0 -8px 24px rgba(0,0,0,0.12);">
+    <div style="display: flex; justify-content: center; padding-top: 6px;"><div style="width: 36px; height: 5px; border-radius: 999px; background: #DDD7CA;"></div></div>
+    <div style="height: 44px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; position: relative;">
+    <div class="sys" style="font-size: 17px; color: #3B2A1E; display: flex; align-items: center; gap: 4px; min-width: 88px;"></div>
+    <div style="position: absolute; left: 0; right: 0; text-align: center; font-weight: 600; font-size: 16px; pointer-events: none;">Icon</div>
+    <div class="sys" style="font-size: 17px; color: #3B2A1E; font-weight: 600; min-width: 88px; text-align: right;">Done</div>
+  </div>
+    <div style="padding: 8px 16px 0; display: flex; flex-direction: column; gap: 12px;">
+      <div style="font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: #A99C8C;">Matches cello</div>
+      <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px;">
+        <div style="height: 84px; padding: 0 4px; background: {{m}}; border: 1px solid #3B2A1E; border-radius: 3px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;"><svg viewBox="0 0 24 24" width="28" height="28" style="display: block; color: #3B2A1E; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0;"><g transform="translate(0 -1.5)"><path d="M12 8C14.5 8 15.8 9 15.8 10.8C15.8 12.3 14.3 12.8 14.3 14.2C14.3 15.4 16.4 15.9 16.4 18C16.4 20.2 14.3 21 12 21C9.7 21 7.6 20.2 7.6 18C7.6 15.9 9.7 15.4 9.7 14.2C9.7 12.8 8.2 12.3 8.2 10.8C8.2 9 9.5 8 12 8Z"/><path d="M12 8V4.4"/><circle cx="12" cy="3.4" r="1"/><path d="M10.4 15v2M13.6 15v2M12 21v3"/></g></svg><div style="font-size: 12px; font-weight: 500; text-align: center; line-height: 1.2; color: #3B2A1E;">Cello</div></div>
+      </div>
+      <div style="padding-top: 8px;"><div style="font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: #A99C8C;">All icons</div></div>
+      <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px;">
+        <div style="height: 84px; padding: 0 4px; background: #FFFFFF; border: 1px solid #ECE6DA; border-radius: 3px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;"><svg viewBox="0 0 24 24" width="28" height="28" style="display: block; color: #3B2A1E; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0;"><rect x="2.5" y="6" width="19" height="12" rx="1.5"/><path d="M7.25 12v6M12 12v6M16.75 12v6"/><rect x="6.25" y="6" width="2" height="6" rx=".4" fill="currentColor" stroke="none"/><rect x="11" y="6" width="2" height="6" rx=".4" fill="currentColor" stroke="none"/><rect x="15.75" y="6" width="2" height="6" rx=".4" fill="currentColor" stroke="none"/></svg><div style="font-size: 12px; font-weight: 500; text-align: center; line-height: 1.2; color: #7A6A5A;">Piano</div></div>
+        <div style="height: 84px; padding: 0 4px; background: #FFFFFF; border: 1px solid #ECE6DA; border-radius: 3px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;"><svg viewBox="0 0 24 24" width="28" height="28" style="display: block; color: #3B2A1E; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0;"><path d="M8.845 14.933A3.6 3.6 0 1 1 15.155 14.933A4.4 4.4 0 1 1 8.845 14.933Z"/><circle cx="12" cy="13.3" r="1.25"/><path d="M12 9.6V4"/><rect x="10.8" y="1.6" width="2.4" height="2.4" rx=".6"/><path d="M10.6 19.4h2.8"/></svg><div style="font-size: 12px; font-weight: 500; text-align: center; line-height: 1.2; color: #7A6A5A;">Guitar</div></div>
+        <div style="height: 84px; padding: 0 4px; background: #FFFFFF; border: 1px solid #ECE6DA; border-radius: 3px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;"><svg viewBox="0 0 24 24" width="28" height="28" style="display: block; color: #3B2A1E; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0;"><path d="M9 11.2L8.2 8.6C9.6 8.6 10.6 9.6 11 11H13C13.6 9.2 14.8 8.4 16.2 8.8L15.4 11.6C17 13.6 17.2 16.6 16.2 18.8C15.4 20.6 13.8 21.3 12 21.3C10.2 21.3 8.4 20.6 7.8 18.8C7 16.6 7.4 13.4 9 11.2Z"/><path d="M12 11V3.6"/><path d="M11 3.6V1.8L13.6 1.4L13 3.6Z"/><path d="M10.2 14.6h3.6M10.6 17.6h2.8"/></svg><div style="font-size: 12px; font-weight: 500; text-align: center; line-height: 1.2; color: #7A6A5A;">Electric guitar</div></div>
+        <div style="height: 84px; padding: 0 4px; background: #FFFFFF; border: 1px solid #ECE6DA; border-radius: 3px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;"><svg viewBox="0 0 24 24" width="28" height="28" style="display: block; color: #3B2A1E; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0;"><g transform="rotate(-38 12 12)"><path d="M12 8C14.5 8 15.8 9 15.8 10.8C15.8 12.3 14.3 12.8 14.3 14.2C14.3 15.4 16.4 15.9 16.4 18C16.4 20.2 14.3 21 12 21C9.7 21 7.6 20.2 7.6 18C7.6 15.9 9.7 15.4 9.7 14.2C9.7 12.8 8.2 12.3 8.2 10.8C8.2 9 9.5 8 12 8Z"/><path d="M12 8V4"/><circle cx="12" cy="2.9" r="1.1"/><path d="M10.4 15v2M13.6 15v2"/></g></svg><div style="font-size: 12px; font-weight: 500; text-align: center; line-height: 1.2; color: #7A6A5A;">Violin</div></div>
+        <div style="height: 84px; padding: 0 4px; background: #FFFFFF; border: 1px solid #ECE6DA; border-radius: 3px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;"><svg viewBox="0 0 24 24" width="28" height="28" style="display: block; color: #3B2A1E; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0;"><rect x="9" y="2.5" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0"/><path d="M12 17.5V21M9 21h6"/></svg><div style="font-size: 12px; font-weight: 500; text-align: center; line-height: 1.2; color: #7A6A5A;">Voice</div></div>
+        <div style="height: 84px; padding: 0 4px; background: #FFFFFF; border: 1px solid #ECE6DA; border-radius: 3px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;"><svg viewBox="0 0 24 24" width="28" height="28" style="display: block; color: #3B2A1E; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0;"><g transform="rotate(-38 12 12)"><rect x="1.5" y="10.5" width="21" height="3" rx="1.5"/><circle cx="5" cy="12" r=".6"/><circle cx="9.5" cy="12" r=".5" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r=".5" fill="currentColor" stroke="none"/><circle cx="14.5" cy="12" r=".5" fill="currentColor" stroke="none"/><circle cx="17" cy="12" r=".5" fill="currentColor" stroke="none"/></g></svg><div style="font-size: 12px; font-weight: 500; text-align: center; line-height: 1.2; color: #7A6A5A;">Flute</div></div>
+        <div style="height: 84px; padding: 0 4px; background: #FFFFFF; border: 1px solid #ECE6DA; border-radius: 3px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;"><svg viewBox="0 0 24 24" width="28" height="28" style="display: block; color: #3B2A1E; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0;"><path d="M11.2 1.8h1.6l.5 3.2h-2.6z"/><path d="M10.5 5v12.6M13.5 5v12.6M10.5 9h3"/><path d="M10.5 17.6c0 1.9-1.7 2.9-2.2 4h7.4c-.5-1.1-2.2-2.1-2.2-4"/><circle cx="12" cy="11.4" r=".55" fill="currentColor" stroke="none"/><circle cx="12" cy="13.6" r=".55" fill="currentColor" stroke="none"/><circle cx="12" cy="15.8" r=".55" fill="currentColor" stroke="none"/></svg><div style="font-size: 12px; font-weight: 500; text-align: center; line-height: 1.2; color: #7A6A5A;">Clarinet</div></div>
+        <div style="height: 84px; padding: 0 4px; background: #FFFFFF; border: 1px solid #ECE6DA; border-radius: 3px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;"><svg viewBox="0 0 24 24" width="28" height="28" style="display: block; color: #3B2A1E; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0;"><path d="M9.2 5.5V16.3C9.2 19.8 11.4 21.6 14 21.6C16.8 21.6 18.4 19.6 18.4 17V13.2L20.4 10.4H14.2L15.8 13.2V17C15.8 18.4 15.1 19.2 14 19.2C12.8 19.2 12 18.3 12 16.3V5.5Z"/><path d="M10.6 5.5C10.6 3.6 9.4 2.6 7 2.6H5"/><circle cx="10.6" cy="8.6" r=".55" fill="currentColor" stroke="none"/><circle cx="10.6" cy="11" r=".55" fill="currentColor" stroke="none"/><circle cx="10.6" cy="13.4" r=".55" fill="currentColor" stroke="none"/></svg><div style="font-size: 12px; font-weight: 500; text-align: center; line-height: 1.2; color: #7A6A5A;">Saxophone</div></div>
+        <div style="height: 84px; padding: 0 4px; background: #FFFFFF; border: 1px solid #ECE6DA; border-radius: 3px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;"><svg viewBox="0 0 24 24" width="28" height="28" style="display: block; color: #3B2A1E; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0;"><path d="M15 10C17.5 10 19.5 8.6 21.5 7V15C19.5 13.4 17.5 12 15 12Z"/><path d="M4 11H15M2.2 9.8v2.4M2.2 11H4"/><path d="M8.5 7.8V14M10.7 7.8V14M12.9 7.8V14M7.8 7.4h1.4M10 7.4h1.4M12.2 7.4h1.4"/><path d="M6 11C4.4 11 4.4 16 6 16H13.6C15 16 15.3 13.2 15 12"/></svg><div style="font-size: 12px; font-weight: 500; text-align: center; line-height: 1.2; color: #7A6A5A;">Trumpet</div></div>
+        <div style="height: 84px; padding: 0 4px; background: #FFFFFF; border: 1px solid #ECE6DA; border-radius: 3px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;"><svg viewBox="0 0 24 24" width="28" height="28" style="display: block; color: #3B2A1E; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0;"><ellipse cx="12" cy="11.4" rx="8" ry="2.6"/><path d="M4 11.4v6.2M20 11.4v6.2M4 17.6a8 2.6 0 0 0 16 0M8 13.8v6.2M16 13.8v6.2"/><path d="M8.6 8.4L15.4 2.4M15.4 8.4L8.6 2.4"/></svg><div style="font-size: 12px; font-weight: 500; text-align: center; line-height: 1.2; color: #7A6A5A;">Drums</div></div>
+        <div style="height: 84px; padding: 0 4px; background: #FFFFFF; border: 1px solid #ECE6DA; border-radius: 3px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;"><svg viewBox="0 0 24 24" width="28" height="28" style="display: block; color: #3B2A1E; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0;"><path d="M6 21.5V4.8M6 4.8C8.6 3.4 10.8 6.2 13.6 7.2C15.6 7.9 17.4 8.6 18.6 10.2L8 21.5M4.8 21.5h4.6"/><path d="M9 5.2v15.2M12 6.6v10.6M15 7.9v6.1"/></svg><div style="font-size: 12px; font-weight: 500; text-align: center; line-height: 1.2; color: #7A6A5A;">Harp</div></div>
+        <div style="height: 84px; padding: 0 4px; background: #FFFFFF; border: 1px solid #ECE6DA; border-radius: 3px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;"><svg viewBox="0 0 24 24" width="28" height="28" style="display: block; color: #3B2A1E; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0;"><ellipse cx="9" cy="17.5" rx="3.2" ry="2.3" transform="rotate(-20 9 17.5)"/><path d="M12 16.6V3.5c1.2 2.6 4.8 3.4 5 7"/></svg><div style="font-size: 12px; font-weight: 500; text-align: center; line-height: 1.2; color: #7A6A5A;">Other</div></div>
+      </div>
+    </div>
+  </div>
+</div></div>
+    </div>
+  </div>
+  <div style="display: flex; gap: 48px; margin-top: 64px; flex-wrap: wrap; align-items: flex-start;">
+    <div style="display: flex; flex-direction: column; gap: 14px; width: 1080px;">
+      <div style="display: flex; flex-direction: column; gap: 6px; min-height: 120px;">
+        <div style="font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: #7A6A5A;">Instrument icons</div>
+        <div style="font-size: 12.5px; line-height: 1.5; color: #5A5E69; white-space: pre-line; max-width: 390px;">Twelve instruments plus a plain note for anything unmatched. The bold name is the VoiceOver label; the tile label is what the picker shows. The small words are what the core would match the typed instrument against (#1691). Violin and viola lean like they are held; cello and bass stand on a spike.</div>
+      </div>
+      <div style="box-shadow: 0 1px 2px rgba(59,42,30,0.08), 0 0 0 1px #DDD7CA; border-radius: 3px; overflow: hidden; width: fit-content;"><div style="width: 1080px; height: 880px; box-sizing: border-box; padding: 40px 48px; background: #F7F4EF; display: flex; flex-direction: column; gap: 28px;">
+  <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 24px;">
+    <div style="display: flex; flex-direction: column; gap: 6px;">
+      <div style="font-size: 29px; font-weight: 600;"><span style="padding: 0 4px; border-radius: 3px; background: linear-gradient(to bottom, transparent 50%, rgba(255,233,163,0.6) 53%, #FFE9A3 58%, #FFE9A3 89%, rgba(255,233,163,0.6) 93%, transparent 96%);">Instrument icons</span></div>
+      <div class="mono" style="font-size: 12.5px; color: #7A6A5A;">24pt grid · 1.5 stroke · round caps and joins · ink on marker</div>
+    </div>
+    <div style="display: flex; align-items: flex-end; gap: 20px;">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;"><div style="width: 36px; height: 36px; border-radius: 999px; background: #FFE9A3; display: flex; align-items: center; justify-content: center;"><svg viewBox="0 0 24 24" width="22" height="22" style="display: block; color: #3B2A1E; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0;"><g transform="rotate(-38 12 12)"><path d="M12 8C14.5 8 15.8 9 15.8 10.8C15.8 12.3 14.3 12.8 14.3 14.2C14.3 15.4 16.4 15.9 16.4 18C16.4 20.2 14.3 21 12 21C9.7 21 7.6 20.2 7.6 18C7.6 15.9 9.7 15.4 9.7 14.2C9.7 12.8 8.2 12.3 8.2 10.8C8.2 9 9.5 8 12 8Z"/><path d="M12 8V4"/><circle cx="12" cy="2.9" r="1.1"/><path d="M10.4 15v2M13.6 15v2"/></g></svg></div><div style="font-size: 12px; font-weight: 500; text-align: center; line-height: 1.2; color: #7A6A5A;">36pt</div></div><div style="display: flex; flex-direction: column; align-items: center; gap: 6px;"><div style="width: 56px; height: 56px; border-radius: 999px; background: #FFE9A3; display: flex; align-items: center; justify-content: center;"><svg viewBox="0 0 24 24" width="30" height="30" style="display: block; color: #3B2A1E; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0;"><g transform="rotate(-38 12 12)"><path d="M12 8C14.5 8 15.8 9 15.8 10.8C15.8 12.3 14.3 12.8 14.3 14.2C14.3 15.4 16.4 15.9 16.4 18C16.4 20.2 14.3 21 12 21C9.7 21 7.6 20.2 7.6 18C7.6 15.9 9.7 15.4 9.7 14.2C9.7 12.8 8.2 12.3 8.2 10.8C8.2 9 9.5 8 12 8Z"/><path d="M12 8V4"/><circle cx="12" cy="2.9" r="1.1"/><path d="M10.4 15v2M13.6 15v2"/></g></svg></div><div style="font-size: 12px; font-weight: 500; text-align: center; line-height: 1.2; color: #7A6A5A;">56pt</div></div><div style="display: flex; flex-direction: column; align-items: center; gap: 6px;"><div style="width: 88px; height: 88px; border-radius: 999px; background: #FFE9A3; display: flex; align-items: center; justify-content: center;"><svg viewBox="0 0 24 24" width="44" height="44" style="display: block; color: #3B2A1E; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0;"><g transform="rotate(-38 12 12)"><path d="M12 8C14.5 8 15.8 9 15.8 10.8C15.8 12.3 14.3 12.8 14.3 14.2C14.3 15.4 16.4 15.9 16.4 18C16.4 20.2 14.3 21 12 21C9.7 21 7.6 20.2 7.6 18C7.6 15.9 9.7 15.4 9.7 14.2C9.7 12.8 8.2 12.3 8.2 10.8C8.2 9 9.5 8 12 8Z"/><path d="M12 8V4"/><circle cx="12" cy="2.9" r="1.1"/><path d="M10.4 15v2M13.6 15v2"/></g></svg></div><div style="font-size: 12px; font-weight: 500; text-align: center; line-height: 1.2; color: #7A6A5A;">88pt</div></div>
+    </div>
+  </div>
+  <div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px;">
+    <div style="background: #FFFFFF; border: 1px solid #ECE6DA; border-radius: 3px; padding: 16px; display: flex; flex-direction: column; gap: 12px; min-height: 176px; box-sizing: border-box;">
+      <svg viewBox="0 0 24 24" width="44" height="44" style="display: block; color: #3B2A1E; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0;"><rect x="2.5" y="6" width="19" height="12" rx="1.5"/><path d="M7.25 12v6M12 12v6M16.75 12v6"/><rect x="6.25" y="6" width="2" height="6" rx=".4" fill="currentColor" stroke="none"/><rect x="11" y="6" width="2" height="6" rx=".4" fill="currentColor" stroke="none"/><rect x="15.75" y="6" width="2" height="6" rx=".4" fill="currentColor" stroke="none"/></svg>
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <div style="font-size: 15px; font-weight: 600;">Piano and keys</div>
+        <div style="font-size: 12px; font-weight: 500; color: #7A6A5A;">Tile label: Piano</div>
+        <div class="mono" style="font-size: 12.5px; color: #7A6A5A; line-height: 1.45;">piano, keyboard, organ, harpsichord, synth, accordion</div>
+      </div>
+    </div>
+    <div style="background: #FFFFFF; border: 1px solid #ECE6DA; border-radius: 3px; padding: 16px; display: flex; flex-direction: column; gap: 12px; min-height: 176px; box-sizing: border-box;">
+      <svg viewBox="0 0 24 24" width="44" height="44" style="display: block; color: #3B2A1E; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0;"><path d="M8.845 14.933A3.6 3.6 0 1 1 15.155 14.933A4.4 4.4 0 1 1 8.845 14.933Z"/><circle cx="12" cy="13.3" r="1.25"/><path d="M12 9.6V4"/><rect x="10.8" y="1.6" width="2.4" height="2.4" rx=".6"/><path d="M10.6 19.4h2.8"/></svg>
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <div style="font-size: 15px; font-weight: 600;">Acoustic guitar</div>
+        <div style="font-size: 12px; font-weight: 500; color: #7A6A5A;">Tile label: Guitar</div>
+        <div class="mono" style="font-size: 12.5px; color: #7A6A5A; line-height: 1.45;">guitar, classical guitar, ukulele, lute, mandolin, banjo</div>
+      </div>
+    </div>
+    <div style="background: #FFFFFF; border: 1px solid #ECE6DA; border-radius: 3px; padding: 16px; display: flex; flex-direction: column; gap: 12px; min-height: 176px; box-sizing: border-box;">
+      <svg viewBox="0 0 24 24" width="44" height="44" style="display: block; color: #3B2A1E; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0;"><path d="M9 11.2L8.2 8.6C9.6 8.6 10.6 9.6 11 11H13C13.6 9.2 14.8 8.4 16.2 8.8L15.4 11.6C17 13.6 17.2 16.6 16.2 18.8C15.4 20.6 13.8 21.3 12 21.3C10.2 21.3 8.4 20.6 7.8 18.8C7 16.6 7.4 13.4 9 11.2Z"/><path d="M12 11V3.6"/><path d="M11 3.6V1.8L13.6 1.4L13 3.6Z"/><path d="M10.2 14.6h3.6M10.6 17.6h2.8"/></svg>
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <div style="font-size: 15px; font-weight: 600;">Electric guitar and bass</div>
+        <div style="font-size: 12px; font-weight: 500; color: #7A6A5A;">Tile label: Electric guitar</div>
+        <div class="mono" style="font-size: 12.5px; color: #7A6A5A; line-height: 1.45;">electric guitar, bass guitar, bass</div>
+      </div>
+    </div>
+    <div style="background: #FFFFFF; border: 1px solid #ECE6DA; border-radius: 3px; padding: 16px; display: flex; flex-direction: column; gap: 12px; min-height: 176px; box-sizing: border-box;">
+      <svg viewBox="0 0 24 24" width="44" height="44" style="display: block; color: #3B2A1E; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0;"><g transform="rotate(-38 12 12)"><path d="M12 8C14.5 8 15.8 9 15.8 10.8C15.8 12.3 14.3 12.8 14.3 14.2C14.3 15.4 16.4 15.9 16.4 18C16.4 20.2 14.3 21 12 21C9.7 21 7.6 20.2 7.6 18C7.6 15.9 9.7 15.4 9.7 14.2C9.7 12.8 8.2 12.3 8.2 10.8C8.2 9 9.5 8 12 8Z"/><path d="M12 8V4"/><circle cx="12" cy="2.9" r="1.1"/><path d="M10.4 15v2M13.6 15v2"/></g></svg>
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <div style="font-size: 15px; font-weight: 600;">Violin and viola</div>
+        <div style="font-size: 12px; font-weight: 500; color: #7A6A5A;">Tile label: Violin</div>
+        <div class="mono" style="font-size: 12.5px; color: #7A6A5A; line-height: 1.45;">violin, viola, fiddle</div>
+      </div>
+    </div>
+    <div style="background: #FFFFFF; border: 1px solid #ECE6DA; border-radius: 3px; padding: 16px; display: flex; flex-direction: column; gap: 12px; min-height: 176px; box-sizing: border-box;">
+      <svg viewBox="0 0 24 24" width="44" height="44" style="display: block; color: #3B2A1E; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0;"><g transform="translate(0 -1.5)"><path d="M12 8C14.5 8 15.8 9 15.8 10.8C15.8 12.3 14.3 12.8 14.3 14.2C14.3 15.4 16.4 15.9 16.4 18C16.4 20.2 14.3 21 12 21C9.7 21 7.6 20.2 7.6 18C7.6 15.9 9.7 15.4 9.7 14.2C9.7 12.8 8.2 12.3 8.2 10.8C8.2 9 9.5 8 12 8Z"/><path d="M12 8V4.4"/><circle cx="12" cy="3.4" r="1"/><path d="M10.4 15v2M13.6 15v2M12 21v3"/></g></svg>
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <div style="font-size: 15px; font-weight: 600;">Cello and double bass</div>
+        <div style="font-size: 12px; font-weight: 500; color: #7A6A5A;">Tile label: Cello</div>
+        <div class="mono" style="font-size: 12.5px; color: #7A6A5A; line-height: 1.45;">cello, double bass, upright bass, viol</div>
+      </div>
+    </div>
+    <div style="background: #FFFFFF; border: 1px solid #ECE6DA; border-radius: 3px; padding: 16px; display: flex; flex-direction: column; gap: 12px; min-height: 176px; box-sizing: border-box;">
+      <svg viewBox="0 0 24 24" width="44" height="44" style="display: block; color: #3B2A1E; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0;"><rect x="9" y="2.5" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0"/><path d="M12 17.5V21M9 21h6"/></svg>
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <div style="font-size: 15px; font-weight: 600;">Voice</div>
+        <div style="font-size: 12px; font-weight: 500; color: #7A6A5A;">Tile label: Voice</div>
+        <div class="mono" style="font-size: 12.5px; color: #7A6A5A; line-height: 1.45;">voice, singing, soprano, alto, tenor, baritone, choir</div>
+      </div>
+    </div>
+    <div style="background: #FFFFFF; border: 1px solid #ECE6DA; border-radius: 3px; padding: 16px; display: flex; flex-direction: column; gap: 12px; min-height: 176px; box-sizing: border-box;">
+      <svg viewBox="0 0 24 24" width="44" height="44" style="display: block; color: #3B2A1E; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0;"><g transform="rotate(-38 12 12)"><rect x="1.5" y="10.5" width="21" height="3" rx="1.5"/><circle cx="5" cy="12" r=".6"/><circle cx="9.5" cy="12" r=".5" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r=".5" fill="currentColor" stroke="none"/><circle cx="14.5" cy="12" r=".5" fill="currentColor" stroke="none"/><circle cx="17" cy="12" r=".5" fill="currentColor" stroke="none"/></g></svg>
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <div style="font-size: 15px; font-weight: 600;">Flute</div>
+        <div style="font-size: 12px; font-weight: 500; color: #7A6A5A;">Tile label: Flute</div>
+        <div class="mono" style="font-size: 12.5px; color: #7A6A5A; line-height: 1.45;">flute, piccolo, recorder, fife</div>
+      </div>
+    </div>
+    <div style="background: #FFFFFF; border: 1px solid #ECE6DA; border-radius: 3px; padding: 16px; display: flex; flex-direction: column; gap: 12px; min-height: 176px; box-sizing: border-box;">
+      <svg viewBox="0 0 24 24" width="44" height="44" style="display: block; color: #3B2A1E; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0;"><path d="M11.2 1.8h1.6l.5 3.2h-2.6z"/><path d="M10.5 5v12.6M13.5 5v12.6M10.5 9h3"/><path d="M10.5 17.6c0 1.9-1.7 2.9-2.2 4h7.4c-.5-1.1-2.2-2.1-2.2-4"/><circle cx="12" cy="11.4" r=".55" fill="currentColor" stroke="none"/><circle cx="12" cy="13.6" r=".55" fill="currentColor" stroke="none"/><circle cx="12" cy="15.8" r=".55" fill="currentColor" stroke="none"/></svg>
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <div style="font-size: 15px; font-weight: 600;">Clarinet and oboe</div>
+        <div style="font-size: 12px; font-weight: 500; color: #7A6A5A;">Tile label: Clarinet</div>
+        <div class="mono" style="font-size: 12.5px; color: #7A6A5A; line-height: 1.45;">clarinet, oboe, cor anglais, bassoon</div>
+      </div>
+    </div>
+    <div style="background: #FFFFFF; border: 1px solid #ECE6DA; border-radius: 3px; padding: 16px; display: flex; flex-direction: column; gap: 12px; min-height: 176px; box-sizing: border-box;">
+      <svg viewBox="0 0 24 24" width="44" height="44" style="display: block; color: #3B2A1E; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0;"><path d="M9.2 5.5V16.3C9.2 19.8 11.4 21.6 14 21.6C16.8 21.6 18.4 19.6 18.4 17V13.2L20.4 10.4H14.2L15.8 13.2V17C15.8 18.4 15.1 19.2 14 19.2C12.8 19.2 12 18.3 12 16.3V5.5Z"/><path d="M10.6 5.5C10.6 3.6 9.4 2.6 7 2.6H5"/><circle cx="10.6" cy="8.6" r=".55" fill="currentColor" stroke="none"/><circle cx="10.6" cy="11" r=".55" fill="currentColor" stroke="none"/><circle cx="10.6" cy="13.4" r=".55" fill="currentColor" stroke="none"/></svg>
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <div style="font-size: 15px; font-weight: 600;">Saxophone</div>
+        <div style="font-size: 12px; font-weight: 500; color: #7A6A5A;">Tile label: Saxophone</div>
+        <div class="mono" style="font-size: 12.5px; color: #7A6A5A; line-height: 1.45;">saxophone, sax</div>
+      </div>
+    </div>
+    <div style="background: #FFFFFF; border: 1px solid #ECE6DA; border-radius: 3px; padding: 16px; display: flex; flex-direction: column; gap: 12px; min-height: 176px; box-sizing: border-box;">
+      <svg viewBox="0 0 24 24" width="44" height="44" style="display: block; color: #3B2A1E; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0;"><path d="M15 10C17.5 10 19.5 8.6 21.5 7V15C19.5 13.4 17.5 12 15 12Z"/><path d="M4 11H15M2.2 9.8v2.4M2.2 11H4"/><path d="M8.5 7.8V14M10.7 7.8V14M12.9 7.8V14M7.8 7.4h1.4M10 7.4h1.4M12.2 7.4h1.4"/><path d="M6 11C4.4 11 4.4 16 6 16H13.6C15 16 15.3 13.2 15 12"/></svg>
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <div style="font-size: 15px; font-weight: 600;">Trumpet and brass</div>
+        <div style="font-size: 12px; font-weight: 500; color: #7A6A5A;">Tile label: Trumpet</div>
+        <div class="mono" style="font-size: 12.5px; color: #7A6A5A; line-height: 1.45;">trumpet, cornet, trombone, horn, tuba, euphonium</div>
+      </div>
+    </div>
+    <div style="background: #FFFFFF; border: 1px solid #ECE6DA; border-radius: 3px; padding: 16px; display: flex; flex-direction: column; gap: 12px; min-height: 176px; box-sizing: border-box;">
+      <svg viewBox="0 0 24 24" width="44" height="44" style="display: block; color: #3B2A1E; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0;"><ellipse cx="12" cy="11.4" rx="8" ry="2.6"/><path d="M4 11.4v6.2M20 11.4v6.2M4 17.6a8 2.6 0 0 0 16 0M8 13.8v6.2M16 13.8v6.2"/><path d="M8.6 8.4L15.4 2.4M15.4 8.4L8.6 2.4"/></svg>
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <div style="font-size: 15px; font-weight: 600;">Drums and percussion</div>
+        <div style="font-size: 12px; font-weight: 500; color: #7A6A5A;">Tile label: Drums</div>
+        <div class="mono" style="font-size: 12.5px; color: #7A6A5A; line-height: 1.45;">drums, drum kit, percussion, timpani, marimba, xylophone</div>
+      </div>
+    </div>
+    <div style="background: #FFFFFF; border: 1px solid #ECE6DA; border-radius: 3px; padding: 16px; display: flex; flex-direction: column; gap: 12px; min-height: 176px; box-sizing: border-box;">
+      <svg viewBox="0 0 24 24" width="44" height="44" style="display: block; color: #3B2A1E; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0;"><path d="M6 21.5V4.8M6 4.8C8.6 3.4 10.8 6.2 13.6 7.2C15.6 7.9 17.4 8.6 18.6 10.2L8 21.5M4.8 21.5h4.6"/><path d="M9 5.2v15.2M12 6.6v10.6M15 7.9v6.1"/></svg>
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <div style="font-size: 15px; font-weight: 600;">Harp</div>
+        <div style="font-size: 12px; font-weight: 500; color: #7A6A5A;">Tile label: Harp</div>
+        <div class="mono" style="font-size: 12.5px; color: #7A6A5A; line-height: 1.45;">harp, lyre</div>
+      </div>
+    </div>
+    <div style="background: #F3EFE8; border: 1px solid #ECE6DA; border-radius: 3px; padding: 16px; display: flex; flex-direction: column; gap: 12px; min-height: 176px; box-sizing: border-box;">
+      <svg viewBox="0 0 24 24" width="44" height="44" style="display: block; color: #3B2A1E; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0;"><ellipse cx="9" cy="17.5" rx="3.2" ry="2.3" transform="rotate(-20 9 17.5)"/><path d="M12 16.6V3.5c1.2 2.6 4.8 3.4 5 7"/></svg>
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <div style="font-size: 15px; font-weight: 600;">Anything else</div>
+        <div style="font-size: 12px; font-weight: 500; color: #7A6A5A;">Tile label: Other</div>
+        <div class="mono" style="font-size: 12.5px; color: #7A6A5A; line-height: 1.45;">no match, or left blank</div>
+      </div>
+    </div>
+  </div>
+</div></div>
+    </div>
+  </div>
+  <div style="display: flex; gap: 48px; margin-top: 64px; flex-wrap: wrap;">
+    <div style="display: flex; flex-direction: column; gap: 14px; width: 1180px;">
+      <div style="display: flex; flex-direction: column; gap: 6px; min-height: 120px;">
+        <div style="font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: #7A6A5A;">iPad: Profile</div>
+        <div style="font-size: 12.5px; line-height: 1.5; color: #5A5E69; white-space: pre-line; max-width: 390px;">iPad: Practice is one column today, not a split, so Profile pushes onto it and sits in a 560pt column. The tab strip at the top is iPadOS 18 and later; on iPadOS 17 the tab bar sits at the bottom.</div>
+      </div>
+      <div style="box-shadow: 0 1px 2px rgba(59,42,30,0.08), 0 0 0 1px #DDD7CA; border-radius: 3px; overflow: hidden; width: fit-content;"><div style="width: 1180px; height: 820px; position: relative; overflow: hidden; background: #F7F4EF;">
+  <div style="height: 24px;"></div>
+  <div style="display: flex; justify-content: center; padding: 6px 0 4px;">
+    <div style="display: flex; gap: 4px; padding: 4px; background: #F3EFE8; border: 1px solid #DDD7CA; border-radius: 999px;">
+      <div class="sys" style="font-size: 14px; font-weight: 500; padding: 7px 16px; border-radius: 999px; color: #7A6A5A;">Library</div><div class="sys" style="font-size: 14px; font-weight: 500; padding: 7px 16px; border-radius: 999px; background: #FFFFFF; color: #3B2A1E; box-shadow: 0 1px 2px rgba(59,42,30,0.1);">Practice</div><div class="sys" style="font-size: 14px; font-weight: 500; padding: 7px 16px; border-radius: 999px; color: #7A6A5A;">Routines</div><div class="sys" style="font-size: 14px; font-weight: 500; padding: 7px 16px; border-radius: 999px; color: #7A6A5A;">Progress</div>
+    </div>
+  </div>
+  <div style="height: 44px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; position: relative;">
+    <div class="sys" style="font-size: 17px; color: #3B2A1E; display: flex; align-items: center; gap: 4px; min-width: 88px;"><svg viewBox="0 0 12 20" width="12" height="20" style="display: block; fill: none; stroke: #3B2A1E; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round;"><path d="M10 2L2 10l8 8"/></svg><span>Practice</span></div>
+    <div style="position: absolute; left: 0; right: 0; text-align: center; font-weight: 600; font-size: 16px; pointer-events: none;">Profile</div>
+    <div class="sys" style="font-size: 17px; color: #3B2A1E;  min-width: 88px; text-align: right;">Edit</div>
+  </div>
+  <div style="width: 560px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px;">
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 24px 0 8px;">
+      <div style="width: 88px; height: 88px; border-radius: 999px; background: {{m}}; display: flex; align-items: center; justify-content: center;"><svg viewBox="0 0 24 24" width="44" height="44" style="display: block; color: #3B2A1E; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0;"><g transform="translate(0 -1.5)"><path d="M12 8C14.5 8 15.8 9 15.8 10.8C15.8 12.3 14.3 12.8 14.3 14.2C14.3 15.4 16.4 15.9 16.4 18C16.4 20.2 14.3 21 12 21C9.7 21 7.6 20.2 7.6 18C7.6 15.9 9.7 15.4 9.7 14.2C9.7 12.8 8.2 12.3 8.2 10.8C8.2 9 9.5 8 12 8Z"/><path d="M12 8V4.4"/><circle cx="12" cy="3.4" r="1"/><path d="M10.4 15v2M13.6 15v2M12 21v3"/></g></svg></div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+        <div style="font-size: 29px; font-weight: 600; padding: 0 4px; border-radius: 3px; background: {{swipe}};">Jon</div>
+        <div class="mono" style="font-size: 12.5px; color: #7A6A5A;">Cello</div>
+      </div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: #A99C8C;">Highlighter</div>
+      <div style="background: #FFFFFF; border: 1px solid #ECE6DA; border-radius: 3px; box-shadow: 0 1px 1px rgba(59,42,30,0.05); padding: 12px 16px; display: flex; align-items: center; gap: 12px; min-height: 20px;">
+        <div style="width: 22px; height: 22px; border-radius: 999px; background: {{m}}; box-shadow: inset 0 0 0 1px #DDD7CA;"></div>
+        <div style="font-size: 15px; font-weight: 500;">{{markerName}}</div>
+      </div>
+    </div>
+    <div style="border: 1.5px dashed #C9BFB0; border-radius: 3px; height: 150px; display: flex; align-items: center; justify-content: center; padding: 0 24px; text-align: center;">
+      <div class="mono" style="font-size: 12.5px; color: #A99C8C; line-height: 1.5;">Room for sign out, practice defaults and account deletion (#1599)</div>
+    </div>
+  </div>
+</div></div>
+    </div>
+  </div>
+</section>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":1880,"height":3000}}'>
+const MARKERS = [["Butter","#FFE9A3"],["Coral","#FFB4A2"],["Mint","#B9EBD3"],["Sky","#A9D8FF"],["Lavender","#D6CCF5"],["Sage","#CFDDB0"],["Peach","#FFD7B0"],["Powder","#C7DCE8"]];
+function swipe(hex) {
+  const n = parseInt(hex.slice(1), 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255;
+  const soft = 'rgba(' + r + ',' + g + ',' + b + ',0.6)';
+  return 'linear-gradient(to bottom, transparent 50%, ' + soft + ' 53%, ' + hex + ' 58%, ' + hex + ' 89%, ' + soft + ' 93%, transparent 96%)';
+}
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { picked: 'Butter' }; }
+  renderVals() {
+    const picked = this.state.picked;
+    const m = (MARKERS.find((x) => x[0] === picked) || MARKERS[0])[1];
+    return {
+      m: m, swipe: swipe(m), markerName: picked,
+      swatches: MARKERS.map(([name, hex]) => ({
+        name: name, hex: hex, selected: name === picked,
+        ring: name === picked ? '0 0 0 2px #FFFFFF, 0 0 0 3.5px #3B2A1E' : 'inset 0 0 0 1px #DDD7CA',
+        labelColor: name === picked ? '#3B2A1E' : '#7A6A5A',
+        pick: () => this.setState({ picked: name }),
+      })),
+    };
+  }
+}
+</script>
+</body>
+</html>

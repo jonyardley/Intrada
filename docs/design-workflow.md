@@ -17,8 +17,9 @@ trace back to `Theme.swift` — the reference visualises the tokens, it never
 defines new ones.
 
 The Claude Design workspace is the claude.ai/design project **"Intrada"**
-(`claude.ai/design/p/0e60f6f5-1dcf-404f-afe6-6f5488a4e3bc`; the older
-`cd74e299…` id is dead and 404s). **The repo stays
+(`claude.ai/design/p/1b2cc9dd-5805-44a8-9ef5-842cf606f6f9`; the older
+`0e60f6f5…` and `cd74e299…` ids 404). It is a plain project, not a design
+system, so `DesignSync list_projects` never shows it: reach it by id. **The repo stays
 canonical**: Claude Code bridges the two with `DesignSync` — pushing repo
 design files up after they change here, and pulling finished mockups down
 (design sessions save to project paths like `mockups/`; they cannot write to

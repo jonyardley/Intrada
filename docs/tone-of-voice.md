@@ -377,3 +377,16 @@ The snapshot host pins `en_US` for determinism, so committed references show
 snapshot host to `en_GB` instead would make the references read the way Jon's
 device does, at the cost of re-recording every date-bearing reference; left
 open.
+
+### V6: The Practice greeting is the one sentence in a subtitle
+
+**Decided 2026-09-11 (Jon, #1690).** Rule 9 says a subtitle is one line of
+facts. The Practice header is the exception: it opens with a greeting and the
+fact that was there stays after it, `Morning, Jon · Last practised Tuesday`.
+One of `Morning`, `Afternoon` or `Evening` by the time of day (the bands are in
+design-principles T25), then the name the musician typed. Never `Good
+morning`, never an exclamation mark, never anything about practice itself.
+
+With no name set there is no greeting, and the subtitle reads as the worked
+example above: `Last practised Tuesday`, or `No sessions yet`. Only Practice
+greets; every other header stays facts.
