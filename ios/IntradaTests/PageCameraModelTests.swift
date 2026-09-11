@@ -32,7 +32,7 @@ private final class StubCamera: PageCameraDevice {
 
   func capture() async throws -> UIImage {
     if let captureError { throw captureError }
-    // A plain `UIImage` has no `cgImage`, so `PageCrop` returns it untouched
+    // A plain `UIImage` has no `cgImage`, so `PageCrop` returns it as taken
     // and the transition can be tested without running Vision.
     return UIImage()
   }
@@ -89,6 +89,35 @@ struct PageCameraModelTests {
       Issue.record("expected captured, got \(model.stage)")
       return
     }
+  }
+
+  @Test func aFoundPageIsOfferedFlattened() async {
+    let flattened = UIImage()
+    let model = PageCameraModel(device: StubCamera(), crop: { _ in .flattened(flattened) })
+    await model.begin()
+
+    await model.takePhoto()
+
+    guard case .captured(let page, let pageFound) = model.stage else {
+      Issue.record("expected captured, got \(model.stage)")
+      return
+    }
+    #expect(page === flattened)
+    #expect(pageFound)
+  }
+
+  @Test func aMissedPageIsStillOfferedAndSaysSo() async {
+    let model = PageCameraModel(device: StubCamera(), crop: { .asTaken($0) })
+    await model.begin()
+
+    await model.takePhoto()
+
+    guard case .captured(_, let pageFound) = model.stage else {
+      Issue.record("expected captured, got \(model.stage)")
+      return
+    }
+    #expect(!pageFound)
+    #expect(model.keep() != nil)
   }
 
   @Test func keepingThePageHandsItBackAndReleasesTheCamera() async {
