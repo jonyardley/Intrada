@@ -1,3 +1,4 @@
+import IntradaCoreFFI
 import SharedTypes
 import Testing
 import UIKit
@@ -120,6 +121,20 @@ struct PageCropTests {
     #expect(
       try #require(upright.cgImage).height > #require(upright.cgImage).width,
       "the buffer now matches the page, so Vision reads it the right way up")
+  }
+
+  /// The device log on #1565, through the generated binding: the Rust table
+  /// proves the rule, this proves the Swift side reaches it.
+  @Test func theLoggedOutlineIsRefusedForACornerOnTheFrameEdge() {
+    let outline = PageOutline(
+      topLeft: Corner(x: 0.0069, y: 0.7891),
+      topRight: Corner(x: 1.0, y: 0.8125),
+      bottomLeft: Corner(x: 0.2292, y: 0.2461),
+      bottomRight: Corner(x: 1.0, y: 0.2695),
+      frameWidth: 3024,
+      frameHeight: 4032)
+
+    #expect(pageOutlineFault(outline: outline) == .cornerOnFrameEdge)
   }
 
   /// The one exit reachable without Vision.
