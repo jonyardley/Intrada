@@ -152,7 +152,17 @@ impl LocalClock {
 
     /// The user-local calendar day of a UTC instant.
     pub fn day_of(&self, instant: DateTime<Utc>) -> NaiveDate {
-        (instant + chrono::Duration::minutes(self.utc_offset_minutes as i64)).date_naive()
+        self.local(instant).date()
+    }
+
+    /// The user-local hour (0 to 23) of a UTC instant; the greeting's band.
+    pub fn local_hour_of(&self, instant: DateTime<Utc>) -> u32 {
+        use chrono::Timelike;
+        self.local(instant).hour()
+    }
+
+    fn local(&self, instant: DateTime<Utc>) -> chrono::NaiveDateTime {
+        (instant + chrono::Duration::minutes(self.utc_offset_minutes as i64)).naive_utc()
     }
 }
 

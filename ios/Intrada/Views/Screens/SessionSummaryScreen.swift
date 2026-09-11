@@ -9,6 +9,7 @@ import SwiftUI
 struct SessionSummaryScreen: View {
   @Environment(Store.self) private var store
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  @Environment(\.marker) private var marker
   @State private var note = ""
   @State private var entryNotes: [String: String] = [:]
   @State private var expandedEntryId: String?
@@ -83,7 +84,7 @@ struct SessionSummaryScreen: View {
     HStack(alignment: .top, spacing: IntradaSpacing.controlGap) {
       Image(systemName: "quote.opening")
         .font(.system(size: 15))
-        .foregroundStyle(IntradaColor.celebrationAccent)
+        .foregroundStyle(marker)
       VStack(alignment: .leading, spacing: 4) {
         Eyebrow("Your intention", tint: IntradaColor.celebrationInk)
         Text("“\(intention)”")
@@ -333,7 +334,7 @@ struct SessionSummaryScreen: View {
           .foregroundStyle(IntradaColor.onMarker)
           .frame(maxWidth: .infinity)
           .padding(.vertical, IntradaSpacing.row)
-          .background(IntradaColor.marker)
+          .background(marker)
           .clipShape(RoundedRectangle(cornerRadius: IntradaRadius.card))
       }
       .buttonStyle(PressRebound())

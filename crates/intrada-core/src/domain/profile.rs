@@ -95,6 +95,8 @@ const ICON_KEYWORDS: &[(&str, InstrumentIcon)] = &[
     ("keys", InstrumentIcon::Piano),
     ("organ", InstrumentIcon::Piano),
     ("harpsichord", InstrumentIcon::Piano),
+    ("synth", InstrumentIcon::Piano),
+    ("accordion", InstrumentIcon::Piano),
     ("electric guitar", InstrumentIcon::ElectricGuitar),
     ("bass guitar", InstrumentIcon::ElectricGuitar),
     ("electric bass", InstrumentIcon::ElectricGuitar),
@@ -107,8 +109,11 @@ const ICON_KEYWORDS: &[(&str, InstrumentIcon)] = &[
     ("fiddle", InstrumentIcon::Violin),
     ("cello", InstrumentIcon::Cello),
     ("double bass", InstrumentIcon::Cello),
+    ("upright bass", InstrumentIcon::Cello),
     ("flute", InstrumentIcon::Flute),
     ("recorder", InstrumentIcon::Flute),
+    ("fife", InstrumentIcon::Flute),
+    ("lute", InstrumentIcon::AcousticGuitar),
     ("clarinet", InstrumentIcon::Clarinet),
     ("oboe", InstrumentIcon::Clarinet),
     ("cor anglais", InstrumentIcon::Clarinet),
@@ -127,7 +132,9 @@ const ICON_KEYWORDS: &[(&str, InstrumentIcon)] = &[
     ("percussion", InstrumentIcon::Drums),
     ("timpani", InstrumentIcon::Drums),
     ("marimba", InstrumentIcon::Drums),
+    ("xylophone", InstrumentIcon::Drums),
     ("harp", InstrumentIcon::Harp),
+    ("lyre", InstrumentIcon::Harp),
     ("voice", InstrumentIcon::Voice),
     ("vocal", InstrumentIcon::Voice),
     ("sing", InstrumentIcon::Voice),
@@ -135,7 +142,9 @@ const ICON_KEYWORDS: &[(&str, InstrumentIcon)] = &[
     ("alto", InstrumentIcon::Voice),
     ("tenor", InstrumentIcon::Voice),
     ("baritone", InstrumentIcon::Voice),
-    ("bass", InstrumentIcon::Cello),
+    ("choir", InstrumentIcon::Voice),
+    ("bass", InstrumentIcon::ElectricGuitar),
+    ("viol", InstrumentIcon::Cello),
 ];
 
 pub(crate) fn suggest_icon(instrument: &str) -> InstrumentIcon {
@@ -150,23 +159,29 @@ pub(crate) fn suggest_icon(instrument: &str) -> InstrumentIcon {
         .unwrap_or(InstrumentIcon::Other)
 }
 
-pub(crate) fn greeting(name: &str) -> String {
+/// Empty without a name: the Practice subtitle then reads as it always did.
+/// Bands per design-principles T25; wording per tone-of-voice V6.
+pub(crate) fn greeting(name: &str, local_hour: u32) -> String {
     let name = name.trim();
     if name.is_empty() {
-        "Hello".to_string()
-    } else {
-        format!("Hello, {name}")
+        return String::new();
     }
+    let band = match local_hour {
+        4..=11 => "Morning",
+        12..=17 => "Afternoon",
+        _ => "Evening",
+    };
+    format!("{band}, {name}")
 }
 
-pub fn build_profile_view(profile: &Profile) -> ProfileView {
+pub fn build_profile_view(profile: &Profile, local_hour: u32) -> ProfileView {
     ProfileView {
         name: profile.name.clone(),
         instrument: profile.instrument.clone(),
         suggested_icon: suggest_icon(&profile.instrument),
         icon: profile.icon(),
         colour: profile.colour,
-        greeting: greeting(&profile.name),
+        greeting: greeting(&profile.name, local_hour),
     }
 }
 
@@ -252,7 +267,12 @@ mod tests {
             ("viola", Violin),
             ("Cello", Cello),
             ("Double bass", Cello),
-            ("Bass", Cello),
+            ("Bass", ElectricGuitar),
+            ("Upright bass", Cello),
+            ("Viol", Cello),
+            ("Choir", Voice),
+            ("Synth", Piano),
+            ("Lute", AcousticGuitar),
             ("vocals", Voice),
             ("Voice", Voice),
             ("Singer", Voice),
@@ -299,35 +319,50 @@ mod tests {
     // ── Greeting ──
 
     #[test]
-    fn greeting_uses_the_name_when_there_is_one() {
-        assert_eq!(greeting("Jon"), "Hello, Jon");
-        assert_eq!(greeting(""), "Hello");
-        assert_eq!(greeting("   "), "Hello");
+    fn greeting_follows_the_time_band_and_needs_a_name() {
+        let cases = [
+            (0, "Evening, Jon"),
+            (3, "Evening, Jon"),
+            (4, "Morning, Jon"),
+            (11, "Morning, Jon"),
+            (12, "Afternoon, Jon"),
+            (17, "Afternoon, Jon"),
+            (18, "Evening, Jon"),
+            (23, "Evening, Jon"),
+        ];
+        for (hour, expected) in cases {
+            assert_eq!(greeting("Jon", hour), expected, "at {hour}:00");
+        }
+        assert_eq!(greeting("", 9), "");
+        assert_eq!(greeting("   ", 9), "");
     }
 
     // ── View ──
 
     #[test]
     fn view_carries_both_the_suggestion_and_the_shown_icon() {
-        let view = build_profile_view(&Profile {
-            instrument: "Double bass".to_string(),
-            icon_choice: Some(InstrumentIcon::ElectricGuitar),
-            ..fixture()
-        });
+        let view = build_profile_view(
+            &Profile {
+                instrument: "Double bass".to_string(),
+                icon_choice: Some(InstrumentIcon::ElectricGuitar),
+                ..fixture()
+            },
+            9,
+        );
         assert_eq!(view.suggested_icon, InstrumentIcon::Cello);
         assert_eq!(view.icon, InstrumentIcon::ElectricGuitar);
-        assert_eq!(view.greeting, "Hello, Jon");
+        assert_eq!(view.greeting, "Morning, Jon");
         assert_eq!(view.colour, HighlighterColour::Butter);
     }
 
     #[test]
     fn view_of_an_untouched_profile_is_the_defaults() {
-        let view = build_profile_view(&Profile::default());
+        let view = build_profile_view(&Profile::default(), 9);
         assert_eq!(view.name, "");
         assert_eq!(view.instrument, "");
         assert_eq!(view.icon, InstrumentIcon::Other);
         assert_eq!(view.colour, HighlighterColour::Butter);
-        assert_eq!(view.greeting, "Hello");
+        assert_eq!(view.greeting, "");
     }
 
     // ── Events ──
@@ -454,7 +489,14 @@ mod tests {
         let mut model = Model::test_default();
         let _ = save(&mut model, fixture());
         let vm = Intrada.view(&model);
-        assert_eq!(vm.profile, build_profile_view(&fixture()));
+        assert_eq!(vm.profile.name, "Jon");
+        assert_eq!(vm.profile.icon, InstrumentIcon::Piano);
+        assert!(
+            ["Morning, Jon", "Afternoon, Jon", "Evening, Jon"]
+                .contains(&vm.profile.greeting.as_str()),
+            "the view greets from the live clock: {}",
+            vm.profile.greeting
+        );
     }
 
     #[test]
@@ -521,6 +563,6 @@ mod tests {
         assert_round_trips(Event::Profile(ProfileEvent::Save(fixture())));
         assert_round_trips(Event::Profile(ProfileEvent::Loaded(Profile::default())));
         assert_round_trips(AppEffect::SaveProfile(fixture()));
-        assert_round_trips(build_profile_view(&fixture()));
+        assert_round_trips(build_profile_view(&fixture(), 9));
     }
 }

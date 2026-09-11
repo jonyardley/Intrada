@@ -9,6 +9,7 @@ struct UpNextHero: View {
   let suggestion: SuggestedSession
   let onStart: () -> Void
   let onBuildOwn: () -> Void
+  @Environment(\.marker) private var marker
 
   var body: some View {
     VStack(alignment: .leading, spacing: IntradaSpacing.row) {
@@ -48,7 +49,7 @@ struct UpNextHero: View {
         if suggestion.priority {
           Image(systemName: "star.fill")
             .font(.system(size: 11))
-            .foregroundStyle(IntradaColor.onHeroStar)
+            .foregroundStyle(marker)
         }
         Text(suggestion.reason)
           .font(IntradaFont.subtitle)
@@ -125,7 +126,7 @@ struct UpNextHero: View {
       .frame(maxWidth: .infinity)
       .padding(.vertical, IntradaSpacing.row)
       .background(
-        IntradaColor.marker, in: RoundedRectangle(cornerRadius: IntradaRadius.control))
+        marker, in: RoundedRectangle(cornerRadius: IntradaRadius.control))
     }
     .buttonStyle(PressRebound())
     .accessibilityLabel("Start practising")

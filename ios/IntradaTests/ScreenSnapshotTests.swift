@@ -1260,4 +1260,37 @@ final class ScreenSnapshotTests: XCTestCase {
     }
     assertSnapshot(of: host(confirm), as: config)
   }
+
+  /// Every instrument icon at its three sizes (#1693): a missing or empty
+  /// asset renders blank here rather than on a device.
+  func testInstrumentIcons() {
+    let sheet = VStack(alignment: .leading, spacing: IntradaSpacing.cardCompact) {
+      ForEach(InstrumentIcon.all, id: \.self) { icon in
+        HStack(spacing: IntradaSpacing.card) {
+          InstrumentGlyph(icon: icon, size: IntradaGlyph.bar)
+          InstrumentGlyph(icon: icon, size: IntradaGlyph.tile)
+          InstrumentGlyph(icon: icon, size: IntradaGlyph.hero)
+          Text(icon.tileLabel).font(IntradaFont.body)
+        }
+      }
+    }
+    .padding(IntradaSpacing.card)
+    assertSnapshot(of: host(sheet), as: tallFormConfig)
+  }
+
+  /// The eight highlighters through the environment (#1677): a marker surface
+  /// wears whichever swatch the root sets, not the butter token.
+  func testHighlighterColours() {
+    let colours: [HighlighterColour] = [
+      .butter, .coral, .mint, .sky, .lavender, .sage, .peach, .powder,
+    ]
+    let sheet = VStack(spacing: IntradaSpacing.cardCompact) {
+      ForEach(colours, id: \.self) { colour in
+        BrandBarButton(action: {}) { Text(String(describing: colour)) }
+          .environment(\.marker, IntradaColor.marker(colour))
+      }
+    }
+    .padding(IntradaSpacing.card)
+    assertSnapshot(of: host(sheet), as: config)
+  }
 }

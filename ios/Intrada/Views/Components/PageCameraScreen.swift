@@ -227,6 +227,7 @@ struct CapturedPageConfirm: View {
   let page: UIImage
   let onKeep: () -> Void
   let onRetake: () -> Void
+  @Environment(\.marker) private var marker
 
   var body: some View {
     VStack(spacing: IntradaSpacing.section) {
@@ -245,7 +246,7 @@ struct CapturedPageConfirm: View {
           .foregroundStyle(IntradaColor.onMarker)
           .padding(.horizontal, IntradaSpacing.section)
           .padding(.vertical, IntradaSpacing.cardCompact)
-          .background(IntradaColor.marker, in: Capsule())
+          .background(marker, in: Capsule())
       }
     }
     .padding(.vertical, IntradaSpacing.section)
@@ -255,6 +256,7 @@ struct CapturedPageConfirm: View {
 struct PageCameraBlocked: View {
   let access: PageCameraAccess
   let onOpenSettings: () -> Void
+  @Environment(\.marker) private var marker
 
   var body: some View {
     VStack(spacing: IntradaSpacing.cardCompact) {
@@ -273,7 +275,7 @@ struct PageCameraBlocked: View {
           .foregroundStyle(IntradaColor.onMarker)
           .padding(.horizontal, IntradaSpacing.section)
           .padding(.vertical, IntradaSpacing.cardCompact)
-          .background(IntradaColor.marker, in: Capsule())
+          .background(marker, in: Capsule())
       }
     }
     .padding(IntradaSpacing.section)

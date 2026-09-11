@@ -670,7 +670,7 @@ impl Intrada {
             last_practised,
             sets,
             account_preferences: model.account_preferences.clone(),
-            profile: build_profile_view(&model.profile),
+            profile: build_profile_view(&model.profile, clock.local_hour_of(chrono::Utc::now())),
             delete_in_flight: model.delete_in_flight,
             account_deleted: model.account_deleted,
             mcp_tokens: model.mcp_tokens.clone(),
