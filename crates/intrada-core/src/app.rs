@@ -468,8 +468,8 @@ impl Intrada {
         // Uses Utc::now(), making view() impure: a pragmatic tradeoff, since the
         // date changes once a day and the computation fns take a `LocalClock`
         // for testability.
-        let clock =
-            crate::analytics::LocalClock::from_now(chrono::Utc::now(), model.utc_offset_minutes);
+        let now = chrono::Utc::now();
+        let clock = crate::analytics::LocalClock::from_now(now, model.utc_offset_minutes);
 
         // Derived before the filter: a narrowed library must not hide the
         // suggestion the Practice tab leads with (#1082).
@@ -670,7 +670,7 @@ impl Intrada {
             last_practised,
             sets,
             account_preferences: model.account_preferences.clone(),
-            profile: build_profile_view(&model.profile),
+            profile: build_profile_view(&model.profile, clock.hour_of(now)),
             delete_in_flight: model.delete_in_flight,
             account_deleted: model.account_deleted,
             mcp_tokens: model.mcp_tokens.clone(),
