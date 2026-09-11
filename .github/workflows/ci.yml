@@ -323,6 +323,7 @@ jobs:
       # why the machine is documented as doing no local iOS work.
       - name: Shut down simulators left from earlier runs
         run: |
+          set -euo pipefail
           xcrun simctl list devices --json \
             | python3 -c "import json,sys; [print(d['udid']) for v in json.load(sys.stdin)['devices'].values() for d in v if d['state']=='Booted']" \
             | while read -r udid; do
@@ -384,7 +385,8 @@ jobs:
       # 2 second window it waits for a Select All menu in, then appends
       # instead of replacing and reds main on a docs-only commit (#1642).
       # Sequential is the configuration the rented runners proved for months.
-      # Turn it back on with #1642, not before.
+      # Turn it back on with #1642, not before, and remember that a booted
+      # base device plus five clones is more than 24GB holds.
       - name: Test (UI)
         run: just _ios-test-without-building -skip-testing:IntradaTests 1 0
       - name: Upload snapshot failures
