@@ -41,7 +41,7 @@ Accurate about how the app works or is being built now.
 |---|---|
 | [`piece-from-photo.md`](piece-from-photo.md) | Adding a piece from a photograph of the page. Phases A, B and C shipped (#1443, #1455, #1476); Phase D unstarted (#1355, #1387) |
 | [`one-pass-create.md`](one-pass-create.md) | Adding a piece with its chord chart and exercises in one save. Core landed 2026-09-07 (#1390, PR #1591) and `ItemEvent::AddPieceInFull` has no caller in `ios/Intrada` yet: this is the screens half of a two-PR split, still owed |
-| [`picker-core-sort.md`](picker-core-sort.md) | The linked-item picker sheet's sort and search calling into the core instead of a Swift copy. Core ships in the first PR (`sort_and_filter_candidates` in `app.rs`, `sort_and_filter_picker_candidates` in `intrada-ffi`, #1653); the screens half wiring `LinkedItemPickerSheet` to it and deleting the Swift copies is a follow-up PR, not yet opened |
+| [`picker-core-sort.md`](picker-core-sort.md) | The linked-item picker sheet's sort and search calling into the core instead of a Swift copy. Core landed on main (`sort_and_filter_candidates` in `app.rs`, `sort_and_filter_picker_candidates` in `intrada-ffi`, #1653, #1662); the screens half wiring `LinkedItemPickerSheet` to it and deleting the Swift copies is #1664, open |
 | [`account-settings-and-deletion.md`](account-settings-and-deletion.md) | Settings and GDPR account deletion. `delete_account` and `AccountPreferences` exist in core and the API, but no native Settings screen does, and the spec's entry points ("mobile app via Tauri", "web header") are both dead shells. The premise needs rewriting before the UI is built |
 
 ## Shipped record, verify against the code before extending
