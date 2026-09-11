@@ -25,6 +25,10 @@ protocol PageCameraDevice: AnyObject {
   func start() async throws
   func stop()
   func capture() async throws -> UIImage
+  /// The preview layer, once `CameraPreview` has one; `onRotate` reports the
+  /// applied angle so the caller can shape the preview's box to match (#1548).
+  func attachPreviewLayer(
+    _ layer: AVCaptureVideoPreviewLayer, onRotate: @escaping (CGFloat) -> Void)
 }
 
 @MainActor
@@ -38,8 +42,25 @@ final class AVPageCameraDevice: PageCameraDevice {
   /// `AVCapturePhotoOutput` does not retain its delegate, so the capture in
   /// flight is held here or it deallocates before the photo arrives.
   private var inFlight: PhotoCaptureDelegate?
+  private var camera: AVCaptureDevice?
+  private weak var previewLayer: AVCaptureVideoPreviewLayer?
+  /// Tracks physical attitude via the gyroscope: the phone build is
+  /// portrait-only, so interface orientation can't drive this (#1548).
+  private var rotationCoordinator: AVCaptureDevice.RotationCoordinator?
+  private var rotationObservation: NSKeyValueObservation?
+  private var onRotate: ((CGFloat) -> Void)?
 
   var session: AVCaptureSession? { configured ? hardware.session : nil }
+
+  func attachPreviewLayer(
+    _ layer: AVCaptureVideoPreviewLayer, onRotate: @escaping (CGFloat) -> Void
+  ) {
+    previewLayer = layer
+    self.onRotate = onRotate
+    if let camera {
+      makeRotationCoordinator(for: camera, previewLayer: layer)
+    }
+  }
 
   func authorise() async -> PageCameraAccess {
     guard Self.isAvailable else { return .unavailable }
@@ -60,11 +81,22 @@ final class AVPageCameraDevice: PageCameraDevice {
 
   func stop() {
     guard configured else { return }
+    // The coordinator polls the gyroscope; nothing else stops it (#1548).
+    rotationObservation = nil
+    rotationCoordinator = nil
+    previewLayer = nil
+    onRotate = nil
     hardware.stopRunning()
   }
 
   func capture() async throws -> UIImage {
     defer { inFlight = nil }
+    if let connection = hardware.output.connection(with: .video),
+      let angle = rotationCoordinator?.videoRotationAngleForHorizonLevelCapture,
+      connection.isVideoRotationAngleSupported(angle)
+    {
+      connection.videoRotationAngle = angle
+    }
     return try await withCheckedThrowingContinuation { continuation in
       let delegate = PhotoCaptureDelegate { continuation.resume(with: $0) }
       inFlight = delegate
@@ -91,7 +123,34 @@ final class AVPageCameraDevice: PageCameraDevice {
     session.addInput(input)
     session.addOutput(hardware.output)
     session.commitConfiguration()
+    self.camera = camera
     configured = true
+  }
+
+  private func makeRotationCoordinator(
+    for camera: AVCaptureDevice, previewLayer: AVCaptureVideoPreviewLayer
+  ) {
+    let coordinator = AVCaptureDevice.RotationCoordinator(
+      device: camera, previewLayer: previewLayer)
+    rotationCoordinator = coordinator
+    applyPreviewAngle(coordinator.videoRotationAngleForHorizonLevelPreview)
+
+    rotationObservation = coordinator.observe(
+      \.videoRotationAngleForHorizonLevelPreview, options: [.new]
+    ) { [weak self] _, change in
+      guard let angle = change.newValue else { return }
+      Task { @MainActor in self?.applyPreviewAngle(angle) }
+    }
+  }
+
+  private func applyPreviewAngle(_ angle: CGFloat) {
+    guard let connection = previewLayer?.connection, connection.isVideoRotationAngleSupported(angle)
+    else { return }
+    connection.videoRotationAngle = angle
+    // Deferred: the first call lands inside `CameraPreview.makeUIView`, a
+    // SwiftUI view update, and `onRotate` writes `@State` (#1548).
+    let onRotate = onRotate
+    Task { @MainActor in onRotate?(angle) }
   }
 }
 
