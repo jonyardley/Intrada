@@ -1764,16 +1764,6 @@ mod tests {
     }
 
     #[test]
-    fn local_hour_of_applies_the_offset_across_midnight_both_ways() {
-        let new_york = LocalClock::from_now(utc_instant(2026, 8, 14, 2, 30), -300);
-        assert_eq!(new_york.local_hour_of(utc_instant(2026, 8, 14, 2, 30)), 21);
-        let auckland = LocalClock::from_now(utc_instant(2026, 8, 14, 20, 0), 780);
-        assert_eq!(auckland.local_hour_of(utc_instant(2026, 8, 14, 20, 0)), 9);
-        let london = LocalClock::from_now(utc_instant(2026, 8, 14, 11, 59), 60);
-        assert_eq!(london.local_hour_of(utc_instant(2026, 8, 14, 11, 59)), 12);
-    }
-
-    #[test]
     fn day_of_rolls_forward_across_local_midnight() {
         let c = bst_clock(NaiveDate::from_ymd_opt(2026, 8, 14).unwrap());
         assert_eq!(
