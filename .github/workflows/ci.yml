@@ -315,6 +315,21 @@ jobs:
       # caches survive, the strays do not.
       - name: Drop untracked strays, keep the warm caches
         run: git clean -ffd
+      # The main-only smoke below boots an iPhone by name and leaves it
+      # running, which cost nothing on a rented runner destroyed afterwards.
+      # On a single-tenant runner a device booted at job start is always left
+      # over from an earlier run, so each one is shut down by udid. Not an
+      # erase, and not a reset: a local simulator would be taken too, which is
+      # why the machine is documented as doing no local iOS work.
+      - name: Shut down simulators left from earlier runs
+        run: |
+          set -euo pipefail
+          xcrun simctl list devices --json \
+            | python3 -c "import json,sys; [print(d['udid']) for v in json.load(sys.stdin)['devices'].values() for d in v if d['state']=='Booted']" \
+            | while read -r udid; do
+                echo "shutting down stale simulator $udid"
+                xcrun simctl shutdown "$udid" || true
+              done
       # Snapshot pixels come from the iOS runtime and `swift format` defaults
       # ship inside Xcode, so a Software Update on this machine could move the
       # gate with no code change. Both are asserted rather than assumed.
@@ -351,25 +366,18 @@ jobs:
       # The device outlives the run, so the app's UserDefaults would too, and
       # SessionRecoveryUITests asserts a resume prompt that a leftover
       # crash-recovery blob satisfies on its own. Scoped to this one device,
-      # never a global reset.
+      # never a global reset. `simctl uninstall` needs a booted device and the
+      # shutdown at job start leaves this one off, so without the boot the
+      # step is a silent no-op.
       - name: Clear the app's saved state from the test device
         run: |
           udid="$(just _ios-test-sim-udid)"
           if [ -n "$udid" ]; then
+            xcrun simctl bootstatus "$udid" -b
             xcrun simctl uninstall "$udid" com.intrada.native || true
           fi
       - name: Test (unit + snapshot)
         run: just _ios-test-without-building -only-testing:IntradaTests 0
-      # The unit step leaves its device booted, and the UI step clones from
-      # it, which is one simulator more than 24GB holds: the clones then fail
-      # preflight with "Busy" and red the gate for no test reason. Scoped to
-      # this one device, never a global reset.
-      - name: Shut the test device down before cloning
-        run: |
-          udid="$(just _ios-test-sim-udid)"
-          if [ -n "$udid" ]; then
-            xcrun simctl shutdown "$udid" || true
-          fi
       # A skip, not an only, so a test target added later joins this step
       # instead of running nowhere (#1456). The third argument is the
       # justfile's `parallel` flag, and it is off: five cloned simulators
@@ -377,7 +385,8 @@ jobs:
       # 2 second window it waits for a Select All menu in, then appends
       # instead of replacing and reds main on a docs-only commit (#1642).
       # Sequential is the configuration the rented runners proved for months.
-      # Turn it back on with #1642, not before.
+      # Turn it back on with #1642, not before, and remember that a booted
+      # base device plus five clones is more than 24GB holds.
       - name: Test (UI)
         run: just _ios-test-without-building -skip-testing:IntradaTests 1 0
       - name: Upload snapshot failures

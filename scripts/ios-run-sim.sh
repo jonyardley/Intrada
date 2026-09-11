@@ -38,7 +38,9 @@ if [ -z "$UDID" ]; then
     exit 1
 fi
 
-xcrun simctl boot "$UDID" 2>/dev/null || true
+# Wait for the boot to finish: an install landing while SpringBoard is still
+# starting leaves the app refusing every launch as "Busy" (#1648).
+xcrun simctl bootstatus "$UDID" -b
 
 # REUSE_BUILD=1 reuses an existing build/dd .app (e.g. CI, right after the
 # snapshot-test step already built it) — avoids a second xcodebuild. Local

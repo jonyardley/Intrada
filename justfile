@@ -612,6 +612,10 @@ _ios-test-without-building filters retry parallel="0":
     name="$(just _ios-test-sim-name)"
     udid="$(just _ios-test-sim-udid)"
     [ -n "$udid" ] || udid=$(xcrun simctl create "$name" "iPhone 16" "iOS26.5")
+    # Booted here, not by xcodebuild: handed a shut-down device it boots it and
+    # installs the app while SpringBoard is still starting, SpringBoard never
+    # sees that install finish, and every launch is refused as "Busy" (#1648).
+    xcrun simctl bootstatus "$udid" -b
     shopt -s nullglob
     runs=(build/dd/Build/Products/*.xctestrun)
     if [ "${#runs[@]}" -ne 1 ]; then

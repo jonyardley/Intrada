@@ -362,8 +362,11 @@ charger with idle sleep off.
 a daemon, because xcodebuild and the simulator need a real graphical session.
 FileVault stays on, so automatic login is not available, and nothing runs until
 someone logs in at the keyboard. Planned restarts go through
-`sudo fdesetup authrestart`, which gets past the disk unlock but still leaves
-the login window.
+`sudo fdesetup authrestart` over SSH, which gets past the disk unlock without a
+password where a plain `sudo reboot` stops dead at the pre-boot screen, but
+still leaves the login window. Screen Sharing is enabled on the machine to get
+through that one. Off the home network both need Tailscale, which is not
+installed.
 
 **Restarting it.**
 
@@ -388,15 +391,18 @@ its labels. If the gate is not starting, check the runner is online before
 looking at the workflow.
 
 **The workspace is deliberately kept warm** between runs, which is where most of
-the speed comes from, so three things the rented runners got for free by
+the speed comes from, so four things the rented runners got for free by
 starting empty are now done explicitly. The gate runs `git clean -ffd`, without
 `-x`, because `_ios-inputs-fingerprint` hashes untracked filenames under `ios/`
 and one stray file makes the test step refuse. It deletes the previous run's
 result bundles, because the test recipe reports its counts from the newest
 `.xcresult` and treats one that exists as one this run wrote. And it uninstalls
 the app from the test device, because `SessionRecoveryUITests` asserts a resume
-prompt that a leftover crash-recovery blob would satisfy on its own.
-`runner-housekeeping.yml` takes the build logs weekly and leaves the caches.
+prompt that a leftover crash-recovery blob would satisfy on its own. And it
+shuts down any simulator still booted at job start, because the main-only launch
+smoke boots one by name and never shuts it down, so it would otherwise sit
+booted between runs for ever. `runner-housekeeping.yml` takes the build logs
+weekly and leaves the caches.
 
 **The toolchain is asserted, not installed per run.** The machine updates itself,
 and both the snapshot renderer and `swift format`'s defaults move with Xcode, so
@@ -419,6 +425,32 @@ That covers process death, which is the likeliest failure. It does not cover the
 machine being off or asleep, and there is no fall back to a rented runner: a job
 whose labels match no online runner stays queued for up to 24 hours and then
 fails, so a stalled iOS pull request means check the runner first.
+
+**Keep background load off it.** Found while diagnosing #1648: an aerial video
+wallpaper decoding continuously through WindowServer on a machine with its lid
+shut, and Spotlight indexing enabled on the volume that holds the runner's
+workspace, so it indexes DerivedData and `target/` for ever. Neither is fatal
+alone. Both are pure waste on a build machine, and both compete with the
+simulator for the same GPU and IO the gate needs.
+
+**Never install into a simulator that has only just been booted.** Handed a
+shut-down device, xcodebuild boots it itself and installs the app while
+SpringBoard is still starting. SpringBoard
+then never hears that the install finished, keeps the app marked as being
+updated, and refuses every launch with "Application failed preflight checks
+(Busy)" having run zero tests. That was #1648: six pushes chased a stranded
+simulator, a wedged service, a corrupt device, an install race, machine uptime
+and a leftover app, and the app launched by hand every time because by then
+SpringBoard was up. The first run on a fresh device, or the first after a
+reboot, passes because a cold boot is slow enough to lose the race the other
+way, which is what made the fix look like it had worked six times.
+`_ios-test-without-building` and `scripts/ios-run-sim.sh` now run
+`simctl bootstatus -b` before anything installs, which boots the device if
+needed and returns once the boot has finished, so the test recipe and the
+launch smoke are covered locally and in CI. The evidence lives in SpringBoard's own log,
+which the host's `log show` does not hold: `xcrun simctl spawn <udid> log show
+--process SpringBoard`, and the line to look for is "Cannot launch application
+scene while it's application is being updated".
 
 **Cloned simulators are off in CI**, though the local full tier still uses them.
 They took the UI tier from 339 seconds to 86 in measurement, but five at once
