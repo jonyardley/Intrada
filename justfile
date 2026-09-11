@@ -519,10 +519,6 @@ ios-build-release: _ios-sync
 _ios-test-run tier:
     #!/usr/bin/env bash
     set -euo pipefail
-    if ! bash scripts/check-sim-free.sh; then
-        echo "✗ Another agent's iOS tests are running. Wait for them to finish or use a separate worktree." >&2
-        exit 1
-    fi
     stamp=ios/build/.ios-test-stamp
     sha="$(git rev-parse HEAD)"
     if [ -z "$(git status --porcelain)" ] && [ -f "$stamp" ]; then
@@ -532,6 +528,19 @@ _ios-test-run tier:
             exit 0
         fi
     fi
+    source scripts/ios-sim-lock.sh
+    ios_sim_lock_acquire
+    _ios_test_run_cleanup() {
+        # Shut down THIS worktree's sim rather than leaving it idle, which was
+        # what actually blocked the next run under the old check-sim-free.sh
+        # heuristic (#1622). Runs on every exit path, pass or fail.
+        udid="$(just _ios-test-sim-udid 2>/dev/null || true)"
+        if [ -n "$udid" ]; then
+            xcrun simctl shutdown "$udid" 2>/dev/null || true
+        fi
+        ios_sim_lock_release
+    }
+    trap _ios_test_run_cleanup EXIT
     just _ios-test-guard
     just _ios-build-for-testing
     if [ "{{tier}}" = "fast" ]; then

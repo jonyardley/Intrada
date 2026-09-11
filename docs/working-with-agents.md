@@ -37,7 +37,7 @@ A rule lives in exactly one of these, chosen by who reads it and when.
 1. **Gates.** Branch protection, `permissions.deny`, the bash guard, CI, the git
    hooks. Enforced whether or not anyone read a rule, so the prose comes out in
    the same change that adds the gate. The comment density check, the dash
-   check and the simulator-free check are the models.
+   check and the simulator lock are the models.
 2. **`CLAUDE.md`.** Invariants every session needs: architecture, the tier
    system, the Always list. Paid on every request, so it stays under 200 lines.
 3. **Path-scoped rules.** Offline-first, the UI and tone rules, the per-screen
@@ -201,8 +201,10 @@ The rules on driving iOS through the `just` recipes, running `just check`
 before pushing, and the machine-global simulator are in `CLAUDE.md`. Beyond
 those: `just check` and `just ios-test` skip on an already-green HEAD (delete
 `target/.check-stamp` or `ios/build/.ios-test-stamp` to force a run);
-`scripts/check-sim-free.sh` blocks a test run while another agent's simulator
-or `xcodebuild` is live; `just status` reads GitHub for what is in flight.
+`scripts/ios-sim-lock.sh` serialises `just ios-test`/`ios-test-full` runs
+machine-wide, waiting rather than refusing while another agent's run holds it
+(#1622), and each run shuts down the sim it booted when it finishes; `just
+status` reads GitHub for what is in flight.
 Simulator workflow in full: [`ios-testing.md`](ios-testing.md).
 
 ## Guardrails already in place
