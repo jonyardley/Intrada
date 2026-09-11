@@ -180,6 +180,9 @@ means driving the app on the simulator**; if you cannot, say what needs a hand c
    `gh issue view N --json closedByPullRequestsReferences`. A PR already open
    means stop and say so; otherwise add `in-flight` and comment the branch, and
    drop the label when the PR closes. Handover openers start with the claim.
+   `just project-status N "In progress"` in the same step, or the board (view
+   [7](https://github.com/users/jonyardley/projects/2/views/7)) stays stuck
+   between Backlog and Done (#1660).
 2. Find the roadmap item, or discuss first; check the
    [project board](https://github.com/users/jonyardley/projects/2). Read the
    issue and what it points at before any code, then plan and state resourcing.
@@ -190,9 +193,10 @@ means driving the app on the simulator**; if you cannot, say what needs a hand c
    not just the job list: a renamed job leaves its old context "expected" for ever (#1542).
 4. **Ship through `/ship`**, which follows
    [`.claude/skills/intrada-shipping/SKILL.md`](.claude/skills/intrada-shipping/SKILL.md).
-5. **After completing work**: close the issue and drop `in-flight` (that is the
-   status update); update `docs/roadmap.md` and `docs/where-we-are.md`
-   if a phase changed, this file if architecture did; `just worktree-rm` once merged.
+5. **After completing work**: close the issue, drop `in-flight` and run
+   `just project-status N "Done"` (that is the status update); update
+   `docs/roadmap.md` and `docs/where-we-are.md` if a phase changed, this file
+   if architecture did; `just worktree-rm` once merged.
 
 **More than one session at once** follows
 [`.claude/skills/intrada-parallel-streams/SKILL.md`](.claude/skills/intrada-parallel-streams/SKILL.md);

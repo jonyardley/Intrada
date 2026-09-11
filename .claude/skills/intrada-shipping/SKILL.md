@@ -28,7 +28,10 @@ not sit in a wait.
 
 **Non-trivial PRs open as drafts.** `gh pr create --draft`, then `gh pr ready`
 only once the self-review comment is posted, its blockers are fixed and the
-deferred issues exist. CI has no draft filter, so this costs nothing.
+deferred issues exist. CI has no draft filter, so this costs nothing. Run
+`just project-status N "In review"` (the issue number, not the PR) alongside
+`gh pr ready`, or the board never leaves "In progress" (#1660). Closing the
+issue at the end of the workflow (CLAUDE.md step 5) is what moves it to Done.
 
 ## Verifying a change on the simulator
 

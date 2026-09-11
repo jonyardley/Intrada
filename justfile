@@ -80,6 +80,10 @@ hygiene:
 status:
     ./scripts/generate-status.sh
 
+# Move an issue's board Status (project 2, view 7): just project-status 1565 "In progress"
+project-status issue status:
+    ./scripts/project-status.sh {{issue}} "{{status}}"
+
 # Before-and-after markdown for every snapshot reference this branch changed,
 # ready to paste under "What it looks like" in a PR body (#1631).
 pr-visuals:
