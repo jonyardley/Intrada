@@ -14,6 +14,7 @@ use crate::domain::item::{handle_item_event, Item, ItemEvent, ItemKind};
 use crate::domain::mcp_audit::{handle_mcp_audit_event, McpAuditEvent};
 use crate::domain::mcp_tokens::{handle_mcp_token_event, McpTokenEvent};
 use crate::domain::oauth::{handle_oauth_event, OAuthEvent};
+use crate::domain::profile::{build_profile_view, handle_profile_event, Profile, ProfileEvent};
 use crate::domain::session::{
     handle_session_event, ActiveSession, PracticeSession, SessionEvent, SessionStatus,
 };
@@ -71,6 +72,7 @@ pub enum Event {
     Session(SessionEvent),
     Set(SetEvent),
     Account(AccountEvent),
+    Profile(ProfileEvent),
     McpToken(McpTokenEvent),
     McpAudit(McpAuditEvent),
     OAuth(OAuthEvent),
@@ -167,6 +169,9 @@ pub enum AppEffect {
     /// Persist the chosen library sort order (small singleton — UserDefaults
     /// on iOS / localStorage on web). Fire-and-forget; output is `()`.
     SaveLibrarySort(LibrarySort),
+    /// Persist the musician's profile (UserDefaults, key versioned per
+    /// `specs/profile.md`). Fire-and-forget; output is `()`.
+    SaveProfile(Profile),
 }
 
 impl Operation for AppEffect {
@@ -260,6 +265,7 @@ impl Intrada {
             Event::Session(session_event) => handle_session_event(session_event, model),
             Event::Set(set_event) => handle_set_event(set_event, model),
             Event::Account(account_event) => handle_account_event(account_event, model),
+            Event::Profile(profile_event) => handle_profile_event(profile_event, model),
             Event::McpToken(token_event) => handle_mcp_token_event(token_event, model),
             Event::McpAudit(audit_event) => handle_mcp_audit_event(audit_event, model),
             Event::OAuth(oauth_event) => handle_oauth_event(oauth_event, model),
@@ -664,6 +670,7 @@ impl Intrada {
             last_practised,
             sets,
             account_preferences: model.account_preferences.clone(),
+            profile: build_profile_view(&model.profile),
             delete_in_flight: model.delete_in_flight,
             account_deleted: model.account_deleted,
             mcp_tokens: model.mcp_tokens.clone(),

@@ -1,4 +1,5 @@
 use crate::domain::item::ItemKind;
+use crate::domain::profile::Profile;
 use crate::domain::types::{CreateItem, Tempo, UpdateItem};
 use crate::error::LibraryError;
 use crate::model::Model;
@@ -32,6 +33,8 @@ pub const MAX_ACHIEVED_TEMPO: u16 = 500;
 pub const MIN_METRE_BEATS: u8 = 2;
 pub const MAX_METRE_BEATS: u8 = 12;
 pub const METRE_UNITS: [u8; 3] = [2, 4, 8];
+pub const MAX_PROFILE_NAME: usize = 100;
+pub const MAX_INSTRUMENT: usize = 100;
 
 // ── Normalisation ──
 // Trim free-text on input and collapse a now-blank value to absent, so a
@@ -558,6 +561,30 @@ pub fn validate_set_entry_fields(item_id: &str, item_title: &str) -> Result<(), 
         return Err(LibraryError::Validation {
             field: "item_title".to_string(),
             message: "Entry item_title must not be empty".to_string(),
+        });
+    }
+    Ok(())
+}
+
+// ── Profile ──
+
+pub fn normalize_profile(mut profile: Profile) -> Profile {
+    profile.name = profile.name.trim().to_string();
+    profile.instrument = profile.instrument.trim().to_string();
+    profile
+}
+
+pub fn validate_profile(profile: &Profile) -> Result<(), LibraryError> {
+    if profile.name.chars().count() > MAX_PROFILE_NAME {
+        return Err(LibraryError::Validation {
+            field: "name".to_string(),
+            message: format!("Name must be {MAX_PROFILE_NAME} characters or fewer"),
+        });
+    }
+    if profile.instrument.chars().count() > MAX_INSTRUMENT {
+        return Err(LibraryError::Validation {
+            field: "instrument".to_string(),
+            message: format!("Instrument must be {MAX_INSTRUMENT} characters or fewer"),
         });
     }
     Ok(())

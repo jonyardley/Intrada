@@ -5,6 +5,7 @@ pub mod mcp_audit;
 pub mod mcp_tokens;
 pub mod metre;
 pub mod oauth;
+pub mod profile;
 pub mod session;
 pub mod set;
 pub mod types;

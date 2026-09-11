@@ -211,6 +211,58 @@ final class StoreEffectLoopTests: XCTestCase {
     XCTAssertTrue(sentEvents.isEmpty, "no stored sort → no event")
   }
 
+  // ── Profile persistence ────────────────────────────────────────────────
+
+  func testSaveProfileEffectWritesToDefaultsUnderVersionedKey() throws {
+    let defaults = try XCTUnwrap(UserDefaults(suiteName: "profile-\(UUID().uuidString)"))
+    let profile = Profile(name: "Jon", instrument: "Piano", iconChoice: .harp, colour: .sky)
+    let bridge = FakeBridge()
+    bridge.updateHandler = { _ in [Request(id: 7, effect: .app(.saveProfile(profile)))] }
+    let store = Store(bridge: bridge, session: mockSession(), sortDefaults: defaults)
+
+    store.send(.setQuery(nil))
+
+    let data = try XCTUnwrap(defaults.data(forKey: Store.profileDefaultsKey))
+    let restored = try Profile.bincodeDeserialize(input: [UInt8](data))
+    XCTAssertEqual(restored, profile, "save effect persists the profile")
+    XCTAssertTrue(bridge.emptyResolved.isEmpty, "the app effect must not be resolved (#882)")
+  }
+
+  func testRestorePersistedProfileReplaysLoaded() throws {
+    let defaults = try XCTUnwrap(UserDefaults(suiteName: "profile-\(UUID().uuidString)"))
+    let profile = Profile(name: "Jon", instrument: "Cello", iconChoice: nil, colour: .butter)
+    defaults.set(Data(try profile.bincodeSerialize()), forKey: Store.profileDefaultsKey)
+
+    let bridge = FakeBridge()
+    var sentEvents: [Event] = []
+    bridge.updateHandler = { event in
+      sentEvents.append(event)
+      return []
+    }
+    let store = Store(bridge: bridge, session: mockSession(), sortDefaults: defaults)
+
+    store.restorePersistedProfile()
+
+    XCTAssertEqual(
+      sentEvents, [.profile(.loaded(profile))],
+      "restore replays Loaded, never Save, so nothing is re-validated or re-written")
+  }
+
+  func testRestorePersistedProfileNoopWhenAbsent() throws {
+    let defaults = try XCTUnwrap(UserDefaults(suiteName: "profile-\(UUID().uuidString)"))
+    let bridge = FakeBridge()
+    var sentEvents: [Event] = []
+    bridge.updateHandler = { event in
+      sentEvents.append(event)
+      return []
+    }
+    let store = Store(bridge: bridge, session: mockSession(), sortDefaults: defaults)
+
+    store.restorePersistedProfile()
+
+    XCTAssertTrue(sentEvents.isEmpty, "no stored profile, no event")
+  }
+
   // ── Failure-soft (guarded) ─────────────────────────────────────────────
 
   func testUpdateThrowIsSwallowedWithoutCrashing() {
@@ -393,6 +445,38 @@ final class StoreEffectLoopTests: XCTestCase {
       afterEdit.items.first?.title, "Renamed",
       "edited title should apply (err=\(afterEdit.error ?? "nil"))")
     XCTAssertEqual(afterEdit.items.first?.itemType, .exercise, "edited type should apply")
+  }
+
+  /// Real-bridge profile round-trip (#846): the Swift-encoded `Profile` must
+  /// decode in the core, and the derived view must ride back.
+  func testRealBridgeProfileSaveProjectsTheView() throws {
+    let bridge = LiveBridge()
+    _ = try bridge.update(.startApp(apiBaseUrl: "http://localhost:3001", localFirst: true))
+
+    let requests = try bridge.update(
+      .profile(
+        .save(Profile(name: "  Jon ", instrument: "Double bass", iconChoice: nil, colour: .coral))))
+    let saved = requests.compactMap { request -> Profile? in
+      if case .app(.saveProfile(let profile)) = request.effect { return profile }
+      return nil
+    }
+    XCTAssertEqual(saved.map(\.name), ["Jon"], "the save effect carries the trimmed profile")
+
+    let view = try bridge.view().profile
+    XCTAssertEqual(view.name, "Jon")
+    XCTAssertEqual(view.instrument, "Double bass")
+    XCTAssertEqual(view.suggestedIcon, .cello)
+    XCTAssertEqual(view.icon, .cello)
+    XCTAssertEqual(view.colour, .coral)
+    XCTAssertEqual(view.greeting, "Hello, Jon")
+
+    _ = try bridge.update(
+      .profile(
+        .loaded(Profile(name: "", instrument: "", iconChoice: .harp, colour: .butter))))
+    let reloaded = try bridge.view().profile
+    XCTAssertEqual(reloaded.icon, .harp, "the pick wins over the suggestion")
+    XCTAssertEqual(reloaded.suggestedIcon, .other)
+    XCTAssertEqual(reloaded.greeting, "Hello")
   }
 
   /// Real-bridge step round-trip (#846, #1083): `AddVariant` pushes a `Variant`
