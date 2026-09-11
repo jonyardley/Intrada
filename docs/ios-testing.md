@@ -212,16 +212,19 @@ Rules to keep two checkouts from colliding:
 
 ## CI
 
-`.github/workflows/ci.yml` builds the app once in **Native iOS: build** on a
-pinned `macos-26` / Xcode 26.5 runner (clean host, no pty contention), then runs
-**Native iOS: unit + snapshot** and the two **Native iOS: UI** slices
-(`builder`, `rest`) against the test products that job uploads, with
-**Native iOS (build + test)** as the fan-in required check. The build job runs
-`_ios-build-for-testing` and each test job runs `_ios-test-without-building`
-against the artifact's `.xctestrun`, the same recipes local dev's full gate uses
-(#1198, #1207), so the CI and local invocations cannot drift apart. A sibling
-job, `native-ios-build-release`, carries the Release compile guard, and
-**Snapshot Hygiene** runs alongside. The job shape, the measurements behind it
-and the cache rules are written up in
+`.github/workflows/ci.yml` runs the iOS gate on the self-hosted Mac,
+**Native iOS: self-hosted gate**, for every same-repo push and pull request
+(#1577): one job, sequential steps, build then unit + snapshot then UI, on the
+warm workspace that machine exists for. Measured shape (2026-09-11 gate
+review, last 30 runs): build 19s, unit + snapshot 27s, UI 207s, gate median
+339s. Fork pull requests take the four rented `macos-26` jobs instead
+(**Native iOS: build**, **Native iOS: unit + snapshot**, the two
+**Native iOS: UI** slices), which is what keeps untrusted code off the
+machine; both paths report into **Native iOS (build + test)**, the fan-in
+required check, and **Snapshot Hygiene** runs alongside either. The self-hosted
+machine, its toolchain and its cache rules are written up in
+[`reference.md`](reference.md#the-self-hosted-ios-runner-2026-09-10-1577); the
+fanned-out rented path and its own measurements are in
 [`reference.md`](reference.md#why-the-native-ios-ci-is-shaped-the-way-it-is-2026-09-03).
-If snapshots/UI tests are green there, the local pty errors above were host-only.
+If unit/snapshot/UI tests are green there, the local pty errors above were
+host-only.
