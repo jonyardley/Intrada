@@ -46,9 +46,12 @@ just ios-test-full    # adds XCUITests (the merge gate; mirrors CI)
   (fix with `just ios-fmt`). Local green means CI green; keep the justfile and `ci.yml` in lockstep. Read
   every compile error before fixing the first: `cargo check --all-targets`, and
   the whole `just ios-test` error list.
-- **The simulator is machine-global.** `check-sim-free.sh` blocks a run while
-  another session's simulator is live and the global resets are denied; before a
-  fresh run check `xcrun simctl list devices | grep Booted` and ask if it is not yours.
+- **The simulator is machine-global.** `just ios-test`/`ios-test-full` wait on
+  a machine-wide lock (`scripts/ios-sim-lock.sh`) rather than refusing when
+  another session's run is live, and shut down the sim they booted when they
+  finish — a booted device on its own is no longer a signal of anything.
+  Global resets are still denied; a device outside that flow (someone poking
+  at Simulator.app by hand) still needs asking about before you touch it.
 - **Seed mode skips persistence**: `SEED=0 just ios-run` to test persistence.
 - **Read source with the Read tool, not `cat`.** Path-scoped rules fire on Read.
 
