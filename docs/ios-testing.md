@@ -215,14 +215,15 @@ Rules to keep two checkouts from colliding:
 `.github/workflows/ci.yml` runs the iOS gate on the self-hosted Mac,
 **Native iOS: self-hosted gate**, for every same-repo push and pull request
 (#1577): one job, sequential steps, build then unit + snapshot then UI, on the
-warm workspace that machine exists for. Measured shape (2026-09-11 gate
-review, last 30 runs): build 19s, unit + snapshot 27s, UI 207s, gate median
-339s. Fork pull requests take the four rented `macos-26` jobs instead
-(**Native iOS: build**, **Native iOS: unit + snapshot**, the two
-**Native iOS: UI** slices), which is what keeps untrusted code off the
-machine; both paths report into **Native iOS (build + test)**, the fan-in
-required check, and **Snapshot Hygiene** runs alongside either. The self-hosted
-machine, its toolchain and its cache rules are written up in
+warm workspace that machine exists for. The Release compile guard (`#if DEBUG`
+divergence, #1177) runs on pushes to main only, not on pull requests (#1651).
+Measured shape (2026-09-11 gate review, last 30 runs): build 19s, unit +
+snapshot 27s, UI 207s, gate median 339s. Fork pull requests take the four
+rented `macos-26` jobs instead (**Native iOS: build**, **Native iOS: unit +
+snapshot**, the two **Native iOS: UI** slices), which is what keeps untrusted
+code off the machine; both paths report into **Native iOS (build + test)**,
+the fan-in required check, and **Snapshot Hygiene** runs alongside either. The
+self-hosted machine, its toolchain and its cache rules are written up in
 [`reference.md`](reference.md#the-self-hosted-ios-runner-2026-09-10-1577); the
 fanned-out rented path and its own measurements are in
 [`reference.md`](reference.md#why-the-native-ios-ci-is-shaped-the-way-it-is-2026-09-03).
