@@ -1,8 +1,8 @@
 import SwiftUI
 
 /// Says a form field was filled from a photographed page rather than typed
-/// (#1436). A weak read wears the same mark, dimmed, so the difference is
-/// spoken as well and never left to contrast alone.
+/// (#1436). A weak read dims the glyph only, to `inkFaintIcon`; the label
+/// stays at `inkSecondary` (#1458 — `inkFaint` fails AA on text).
 struct FieldMark: View {
   let weak: Bool
 
@@ -10,11 +10,12 @@ struct FieldMark: View {
     HStack(spacing: 5) {
       Image(systemName: "doc.viewfinder")
         .font(.system(size: 11, weight: .medium))
+        .foregroundStyle(weak ? IntradaColor.inkFaintIcon : IntradaColor.inkSecondary)
       Text("From the photo")
         .font(IntradaFont.micro)
         .fontWeight(.medium)
+        .foregroundStyle(IntradaColor.inkSecondary)
     }
-    .foregroundStyle(weak ? IntradaColor.inkFaint : IntradaColor.inkSecondary)
     .accessibilityElement(children: .ignore)
     .accessibilityLabel(Self.spoken(weak))
   }

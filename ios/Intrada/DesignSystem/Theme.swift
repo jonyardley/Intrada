@@ -16,6 +16,10 @@ enum IntradaColor {
   static let inkSecondary = Color(hex: 0x6E6557)
   /// Eyebrow labels only — fails WCAG AA (2.9:1); metadata/body use inkSecondary.
   static let inkFaint = Color(hex: 0x9A927F)
+  /// A dimmed glyph with no text of its own to fall back on (#1458): 3.29:1 on
+  /// `cardFill`, clearing the 3:1 floor for non-text graphical objects
+  /// (WCAG 1.4.11). Never for text — `inkFaint` already fails that.
+  static let inkFaintIcon = Color(hex: 0x928A76)
 
   static let accent = Color(hex: 0x4C3FA6)
   static let onAccent = Color(hex: 0xF2EFE8)
