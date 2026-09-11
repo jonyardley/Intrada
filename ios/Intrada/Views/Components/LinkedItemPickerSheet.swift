@@ -12,7 +12,7 @@ import SwiftUI
 /// The filter bar (star / sort / tag / search) drives *shell-local* state over
 /// the passed-in `available` list — the picker curates its own subset rather
 /// than the core's shared Library `ListQuery`, so filtering here never disturbs
-/// the Library screen. Search and sort themselves are the core's (#1440, #1445).
+/// the Library screen. Search and sort themselves are the core's (#1440, #1445, #1653).
 ///
 /// For exercises, the picker also offers creating one inline (#1616): a
 /// drafted exercise and a toggled selection hand back together on Done.
@@ -203,8 +203,7 @@ struct LinkedItemPickerSheet: View {
         }
       }
     }
-    items = items.filter { $0.matchesSearch(searchText) }
-    return items.sortedLikeTheLibrary(by: sort)
+    return items.sortedAndFiltered(by: sort, search: searchText)
   }
 
   private var list: some View {
