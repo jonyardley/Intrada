@@ -294,13 +294,17 @@ What those numbers changed:
   to 20 minutes clears: the price paid is more concurrent macOS jobs (four
   rather than two, billed at 10x) and the artifact downloaded by each test
   job, in exchange for the wall clock.
-  **Update (2026-09-11, #1651):** on the self-hosted gate the guard was
-  caught once in nine measured runs (#1177), 155-197s against a 339s median.
-  Running it on every pull request paid that cost for a fault class seen
-  once, so the "Build Release" step is now guarded to `github.event_name ==
-  'push'` on both the self-hosted step and the rented `native-ios-build-release`
-  job: a Release-only break now lands on main and gets a follow-up PR within
-  the hour instead.
+  **Update (2026-09-11, #1651):** on the self-hosted gate the guard has
+  caught one break ever (#1177), across nine measured runs, all green, at
+  57s median and 32-153s against a 339s median gate. Running it on every
+  pull request paid that cost for a fault class seen once, so the "Build
+  Release" step is now guarded to `github.event_name == 'push'`. The
+  `native-ios-build-release` job it describes above ran only for fork pull
+  requests and existed solely to carry this guard on the rented path, so it
+  is deleted rather than emptied: guarding its one step the same way would
+  have left a `macos-26` runner doing setup for nothing on every fork PR,
+  while still able to fail the required check on a cache miss. A
+  Release-only break now lands on main and gets a follow-up PR instead.
 - **The test jobs stopped generating the Xcode project.** Both now run
   `xcodebuild test-without-building -xctestrun <path>` against the `.xctestrun`
   inside the downloaded `native-ios-test-products` artifact. That file is
