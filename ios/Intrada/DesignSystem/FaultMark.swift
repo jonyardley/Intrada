@@ -47,7 +47,8 @@ enum FormAnchor: Hashable {
     case .piece(let field): self = .field(field)
     case .chart, .chartBar: self = .chart
     case .exercise(let index, _): self = .row(Int(index))
-    case nil: return nil
+    // The profile screen (#1692) marks its own fields; the item form has no anchor for it.
+    case .profile, nil: return nil
     }
   }
 }

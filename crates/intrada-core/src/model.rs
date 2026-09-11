@@ -8,6 +8,7 @@ use crate::domain::chart::{ChordChart, ScaffoldKind};
 use crate::domain::item::{Item, ItemKind, Modality};
 use crate::domain::mcp_audit::McpAuditEntry;
 use crate::domain::mcp_tokens::{CreatedMcpToken, McpToken};
+use crate::domain::profile::{Profile, ProfileField, ProfileView};
 use crate::domain::session::{
     ActiveSession, ClickState, CompletionStatus, EntryStatus, PracticeSession, RepEvent,
     SessionStatus, SetlistEntry, SummarySession,
@@ -54,6 +55,8 @@ pub struct Model {
     pub practice_summaries: HashMap<String, ItemPracticeSummary>,
     /// Per-user practice defaults; `None` until first load completes.
     pub account_preferences: Option<AccountPreferences>,
+    /// Device data, not account data: survives sign-out (`specs/profile.md`).
+    pub profile: Profile,
     /// True while a `DELETE /api/account` request is outstanding.
     pub delete_in_flight: bool,
     /// One-shot terminal signal: server confirmed the account was
@@ -168,6 +171,7 @@ impl Model {
             api_base_url,
             // Device state, not user state: the next user is in the same place.
             utc_offset_minutes: self.utc_offset_minutes,
+            profile: std::mem::take(&mut self.profile),
             ..Self::default()
         };
     }
@@ -222,6 +226,9 @@ pub enum FormErrorTarget {
     ChartBar {
         bar_number: usize,
         token: String,
+    },
+    Profile {
+        field: ProfileField,
     },
     /// A staged exercise by position, from 0, in the exercises the event
     /// carried. `field` is `None` for a chosen exercise, which has no field of
@@ -286,6 +293,7 @@ pub struct ViewModel {
     pub last_practised: Option<LastPractisedView>,
     pub sets: Vec<SetView>,
     pub account_preferences: Option<AccountPreferences>,
+    pub profile: ProfileView,
     pub delete_in_flight: bool,
     pub account_deleted: bool,
     pub mcp_tokens: Vec<McpToken>,

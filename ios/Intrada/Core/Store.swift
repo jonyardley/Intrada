@@ -19,6 +19,9 @@ final class Store {
   /// Positional bincode: any change to `ActiveSession`'s graph takes a new key
   /// (#1345; pinned by the core's `active_session_blob_wire_is_pinned`).
   static let sessionInProgressKey = "intrada.session-in-progress.v2"
+  /// Positional bincode too: a field added to `Profile` takes a new key
+  /// (`specs/profile.md`; pinned by the core's `profile_blob_wire_is_pinned`).
+  static let profileDefaultsKey = "intrada.profile.v1"
   private let bridge: CoreBridge
   private let session: URLSession
   private let store: (any ItemStore)?
@@ -93,6 +96,10 @@ final class Store {
     case .clearSessionInProgress:
       sortDefaults.removeObject(forKey: Self.sessionInProgressKey)
       recoverableSession = nil
+    case .saveProfile(let profile):
+      if let bytes = guarded({ try profile.bincodeSerialize() }) {
+        sortDefaults.set(Data(bytes), forKey: Self.profileDefaultsKey)
+      }
     }
   }
 
@@ -136,6 +143,13 @@ final class Store {
       let sort = guarded({ try LibrarySort.bincodeDeserialize(input: [UInt8](data)) })
     else { return }
     send(.setSort(sort))
+  }
+
+  func restorePersistedProfile() {
+    guard let data = sortDefaults.data(forKey: Self.profileDefaultsKey),
+      let profile = guarded({ try Profile.bincodeDeserialize(input: [UInt8](data)) })
+    else { return }
+    send(.profile(.loaded(profile)))
   }
 
   private func handleHttp(_ request: HttpRequest, id: UInt32) async {

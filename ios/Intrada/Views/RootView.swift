@@ -74,6 +74,7 @@ struct RootView: View {
       } else {
         store.send(.startApp(apiBaseUrl: apiBaseURL, localFirst: true))
         store.restorePersistedSort()
+        store.restorePersistedProfile()
         store.loadRecoverableSession()
       }
     }

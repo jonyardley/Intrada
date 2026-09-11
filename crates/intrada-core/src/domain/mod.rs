@@ -5,6 +5,7 @@ pub mod mcp_audit;
 pub mod mcp_tokens;
 pub mod metre;
 pub mod oauth;
+pub mod profile;
 pub mod session;
 pub mod set;
 pub mod types;
@@ -16,6 +17,9 @@ pub use mcp_audit::{McpAuditEntry, McpAuditEvent};
 pub use mcp_tokens::{CreatedMcpToken, McpToken, McpTokenEvent};
 pub use metre::Metre;
 pub use oauth::{OAuthEvent, OAuthFinalizeParams};
+pub use profile::{
+    HighlighterColour, InstrumentIcon, Profile, ProfileEvent, ProfileField, ProfileView,
+};
 pub use session::{
     ActiveSession, CompletionStatus, EntryStatus, PracticeSession, SessionEvent, SessionStatus,
     SetlistEntry,
