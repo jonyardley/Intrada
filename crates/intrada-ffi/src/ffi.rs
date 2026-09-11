@@ -3,7 +3,7 @@ use crux_core::{
     Core,
 };
 
-use crate::Intrada;
+use crate::{page_outline, Intrada};
 
 // Returned (not panicked) so the shell handles it per the no-`try!` contract —
 // the crux `counter` example panics but says to do this in production.
@@ -60,9 +60,93 @@ impl CoreFFI {
     }
 }
 
+// ── Page outline ──
+
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+#[derive(Debug, Clone, Copy)]
+pub struct Corner {
+    pub x: f64,
+    pub y: f64,
+}
+
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+#[derive(Debug, Clone, Copy)]
+pub struct PageOutline {
+    pub top_left: Corner,
+    pub top_right: Corner,
+    pub bottom_left: Corner,
+    pub bottom_right: Corner,
+    pub frame_width: f64,
+    pub frame_height: f64,
+}
+
+#[cfg_attr(feature = "uniffi", derive(uniffi::Enum))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PageOutlineFault {
+    CornerOnFrameEdge,
+    EdgesNotParallel,
+}
+
+impl From<Corner> for page_outline::Corner {
+    fn from(c: Corner) -> Self {
+        Self { x: c.x, y: c.y }
+    }
+}
+
+impl From<page_outline::OutlineFault> for PageOutlineFault {
+    fn from(fault: page_outline::OutlineFault) -> Self {
+        match fault {
+            page_outline::OutlineFault::CornerOnFrameEdge => Self::CornerOnFrameEdge,
+            page_outline::OutlineFault::EdgesNotParallel => Self::EdgesNotParallel,
+        }
+    }
+}
+
+/// The crop runs in a detached task before the store sees the photo, so this
+/// is a plain call rather than an Event round trip (#1565).
+#[cfg_attr(feature = "uniffi", uniffi::export)]
+#[must_use]
+pub fn page_outline_fault(outline: PageOutline) -> Option<PageOutlineFault> {
+    page_outline::judge(&page_outline::PageOutline {
+        top_left: outline.top_left.into(),
+        top_right: outline.top_right.into(),
+        bottom_left: outline.bottom_left.into(),
+        bottom_right: outline.bottom_right.into(),
+        frame_width: outline.frame_width,
+        frame_height: outline.frame_height,
+    })
+    .err()
+    .map(Into::into)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn logged_outline_is_faulted_across_the_bridge_types() {
+        let corner = |x, y| Corner { x, y };
+        let outline = PageOutline {
+            top_left: corner(0.0069, 0.7891),
+            top_right: corner(1.0, 0.8125),
+            bottom_left: corner(0.2292, 0.2461),
+            bottom_right: corner(1.0, 0.2695),
+            frame_width: 3024.0,
+            frame_height: 4032.0,
+        };
+        assert_eq!(
+            page_outline_fault(outline),
+            Some(PageOutlineFault::CornerOnFrameEdge)
+        );
+        let clean = PageOutline {
+            top_left: corner(0.1, 0.9),
+            top_right: corner(0.9, 0.9),
+            bottom_left: corner(0.1, 0.1),
+            bottom_right: corner(0.9, 0.1),
+            ..outline
+        };
+        assert_eq!(page_outline_fault(clean), None);
+    }
 
     #[test]
     fn bridge_serializes_initial_view() {
