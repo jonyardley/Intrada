@@ -137,6 +137,22 @@ struct PageCropTests {
     #expect(pageOutlineFault(outline: outline) == .cornerOnFrameEdge)
   }
 
+  /// The keystone only crosses the limit in one aspect ratio, so swapping x
+  /// with y, width with height, or any two corners in the mapping flips one
+  /// of these answers.
+  @Test func everyCornerAndTheFrameReachTheCoreInTheRightField() {
+    let keystoned = { (frame: CGSize) in
+      PageCrop.outline(
+        topLeft: CGPoint(x: 0.12, y: 0.9), topRight: CGPoint(x: 0.88, y: 0.9),
+        bottomLeft: CGPoint(x: 0.05, y: 0.1), bottomRight: CGPoint(x: 0.95, y: 0.1),
+        frame: frame)
+    }
+
+    #expect(
+      pageOutlineFault(outline: keystoned(CGSize(width: 4032, height: 500))) == .edgesNotParallel)
+    #expect(pageOutlineFault(outline: keystoned(CGSize(width: 3024, height: 4032))) == nil)
+  }
+
   /// The one exit reachable without Vision.
   @Test func aPhotoWithNoBufferComesBackAsTakenAndSaysNoPageWasFound() {
     let photo = UIImage()

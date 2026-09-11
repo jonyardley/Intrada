@@ -30,7 +30,6 @@ enum PageCrop {
     case noBuffer = "no-buffer"
     case visionFailed = "vision-failed"
     case noPage = "no-page"
-    /// Vision found an outline the core would not flatten to (#1565).
     case outlineRefused = "outline-refused"
     case noCorrection = "no-correction"
     case renderFailed = "render-failed"
@@ -41,7 +40,7 @@ enum PageCrop {
   private static let log = Logger(subsystem: "com.intrada.native", category: "page-crop")
   /// Vision took about two seconds on a 12MP frame (#1565); its corners are
   /// normalised, so the crop still runs on the full photo.
-  static let visionLongSide: CGFloat = 1600
+  private static let visionLongSide: CGFloat = 1600
 
   static func toPage(_ image: UIImage) -> Outcome {
     // `cgImage` is the raw buffer with the EXIF rotation split off into
@@ -54,7 +53,8 @@ enum PageCrop {
     )
 
     let request = VNDetectDocumentSegmentationRequest()
-    let started = Date()
+    let clock = ContinuousClock()
+    let started = clock.now
     do {
       try VNImageRequestHandler(cgImage: forVision(upright, cgImage), options: [:]).perform([
         request
@@ -63,7 +63,8 @@ enum PageCrop {
       log.notice("vision error: \(String(describing: error), privacy: .public)")
       return missed(image, .visionFailed)
     }
-    log.notice("vision took \(Int(Date().timeIntervalSince(started) * 1000), privacy: .public)ms")
+    log.notice(
+      "vision took \(Int((clock.now - started) / .milliseconds(1)), privacy: .public)ms")
     guard let page = request.results?.first else { return missed(image, .noPage) }
 
     let source = CIImage(cgImage: cgImage)
@@ -78,17 +79,11 @@ enum PageCrop {
       br \(page.bottomRight.debugDescription, privacy: .public)
       """)
 
-    func corner(_ normalised: CGPoint) -> Corner {
-      Corner(x: normalised.x, y: normalised.y)
-    }
     if let fault = pageOutlineFault(
-      outline: PageOutline(
-        topLeft: corner(page.topLeft),
-        topRight: corner(page.topRight),
-        bottomLeft: corner(page.bottomLeft),
-        bottomRight: corner(page.bottomRight),
-        frameWidth: extent.width,
-        frameHeight: extent.height))
+      outline: outline(
+        topLeft: page.topLeft, topRight: page.topRight,
+        bottomLeft: page.bottomLeft, bottomRight: page.bottomRight,
+        frame: extent.size))
     {
       log.notice("outline refused: \(String(describing: fault), privacy: .public)")
       return missed(image, .outlineRefused)
@@ -125,13 +120,31 @@ enum PageCrop {
     return .asTaken(image)
   }
 
+  /// Internal so the field mapping is testable; the frame is the upright
+  /// pixel buffer Vision read, which a rotated photo's point size transposes.
+  static func outline(
+    topLeft: CGPoint, topRight: CGPoint, bottomLeft: CGPoint, bottomRight: CGPoint,
+    frame: CGSize
+  ) -> PageOutline {
+    func corner(_ normalised: CGPoint) -> Corner {
+      Corner(x: normalised.x, y: normalised.y)
+    }
+    return PageOutline(
+      topLeft: corner(topLeft),
+      topRight: corner(topRight),
+      bottomLeft: corner(bottomLeft),
+      bottomRight: corner(bottomRight),
+      frameWidth: frame.width,
+      frameHeight: frame.height)
+  }
+
   private static func forVision(_ upright: UIImage, _ cgImage: CGImage) -> CGImage {
     let longSide = CGFloat(max(cgImage.width, cgImage.height))
     guard longSide > visionLongSide else { return cgImage }
-    let scale = visionLongSide / longSide
+    let shrink = visionLongSide / longSide / upright.scale
     let size = CGSize(
-      width: (CGFloat(cgImage.width) * scale).rounded(),
-      height: (CGFloat(cgImage.height) * scale).rounded())
+      width: (CGFloat(cgImage.width) * shrink).rounded(),
+      height: (CGFloat(cgImage.height) * shrink).rounded())
     return upright.preparingThumbnail(of: size)?.cgImage ?? cgImage
   }
 
