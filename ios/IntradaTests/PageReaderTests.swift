@@ -32,8 +32,7 @@ struct PageReaderTests {
     }
   }
 
-  /// The same page with its raw pixels physically rotated, as a camera turned
-  /// sideways would capture it (#1686).
+  /// The same page, physically rotated as a turned camera would capture it (#1686).
   private func sidewaysPage(title: String, credit: String) throws -> UIImage {
     let upright = page(title: title, credit: credit)
     let rotatedSize = CGSize(width: upright.size.height, height: upright.size.width)
