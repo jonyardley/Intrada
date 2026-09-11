@@ -11,7 +11,8 @@ final class PageCameraModel {
     case preparing
     case live
     /// The cropped page, not the raw frame: what you approve is what is stored.
-    case captured(UIImage)
+    /// Without a page found it is the photo as taken, and the confirm says so.
+    case captured(UIImage, pageFound: Bool)
     case blocked(PageCameraAccess)
     /// The camera exists but would not start, usually because something else
     /// holds it. Distinct from `blocked`, whose copy says there is no camera.
@@ -27,9 +28,14 @@ final class PageCameraModel {
   private(set) var finished = false
 
   private let device: any PageCameraDevice
+  private let crop: @Sendable (UIImage) -> PageCrop.Outcome
 
-  init(device: any PageCameraDevice) {
+  init(
+    device: any PageCameraDevice,
+    crop: @escaping @Sendable (UIImage) -> PageCrop.Outcome = PageCrop.toPage
+  ) {
     self.device = device
+    self.crop = crop
   }
 
   var session: AVCaptureSession? { device.session }
@@ -65,8 +71,9 @@ final class PageCameraModel {
       let shot = try await device.capture()
       // The system scanner cropped its own output; ours has to, and the work
       // blocks long enough to drop frames.
-      let page = await Task.detached(priority: .userInitiated) { PageCrop.toPage(shot) }.value
-      stage = .captured(page)
+      let crop = crop
+      let page = await Task.detached(priority: .userInitiated) { crop(shot) }.value
+      stage = .captured(page.image, pageFound: page.pageFound)
     } catch {
       report(error, "page camera capture")
       failure = "Couldn't take the photo. Try again."
@@ -79,7 +86,7 @@ final class PageCameraModel {
 
   /// The page to keep, or `nil` if there is nothing captured to keep.
   func keep() -> UIImage? {
-    guard case .captured(let page) = stage, !finished else { return nil }
+    guard case .captured(let page, _) = stage, !finished else { return nil }
     finished = true
     device.stop()
     return page
@@ -132,8 +139,8 @@ struct PageCameraScreen: View {
       if let session = model.session {
         CameraPreview(session: session).ignoresSafeArea()
       }
-    case .captured(let page):
-      CapturedPageConfirm(page: page, onKeep: keep, onRetake: model.retake)
+    case .captured(let page, let pageFound):
+      CapturedPageConfirm(page: page, pageFound: pageFound, onKeep: keep, onRetake: model.retake)
     case .blocked(let access):
       PageCameraBlocked(access: access, onOpenSettings: openSettings)
     case .unstartable:
@@ -211,6 +218,9 @@ struct PageCameraShutter: View {
 /// what was kept is the whole fix: the scanner discarded shots silently.
 struct CapturedPageConfirm: View {
   let page: UIImage
+  /// An uncropped page shown without comment reads as the best the app can do
+  /// (#1565), so the miss is said out loud.
+  let pageFound: Bool
   let onKeep: () -> Void
   let onRetake: () -> Void
 
@@ -220,6 +230,14 @@ struct CapturedPageConfirm: View {
         .resizable()
         .scaledToFit()
         .accessibilityLabel("The page you photographed")
+
+      if !pageFound {
+        PageCameraFailure(
+          message: "Couldn't find the edges of the page. Retake it, or use it as it is."
+        )
+        .multilineTextAlignment(.center)
+        .padding(.horizontal, IntradaSpacing.card)
+      }
 
       HStack(spacing: IntradaSpacing.section) {
         Button("Retake", action: onRetake)

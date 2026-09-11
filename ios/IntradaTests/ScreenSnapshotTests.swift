@@ -1240,7 +1240,18 @@ final class ScreenSnapshotTests: XCTestCase {
   func testPageCameraConfirm() {
     let confirm = ZStack {
       IntradaColor.viewerBackdrop
-      CapturedPageConfirm(page: Self.page, onKeep: {}, onRetake: {})
+      CapturedPageConfirm(page: Self.page, pageFound: true, onKeep: {}, onRetake: {})
+        .padding(16)
+    }
+    assertSnapshot(of: host(confirm), as: config)
+  }
+
+  /// No page edges found: the photo as taken, and the confirm says so rather
+  /// than passing it off as the flattened page (#1565).
+  func testPageCameraConfirmWithoutEdges() {
+    let confirm = ZStack {
+      IntradaColor.viewerBackdrop
+      CapturedPageConfirm(page: Self.page, pageFound: false, onKeep: {}, onRetake: {})
         .padding(16)
     }
     assertSnapshot(of: host(confirm), as: config)

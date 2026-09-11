@@ -121,4 +121,15 @@ struct PageCropTests {
       try #require(upright.cgImage).height > #require(upright.cgImage).width,
       "the buffer now matches the page, so Vision reads it the right way up")
   }
+
+  /// The one exit reachable without Vision. Every exit used to hand back the
+  /// photo with nothing to say a page was not found (#1565).
+  @Test func aPhotoWithNoBufferComesBackAsTakenAndSaysNoPageWasFound() {
+    let photo = UIImage()
+
+    let outcome = PageCrop.toPage(photo)
+
+    #expect(!outcome.pageFound)
+    #expect(outcome.image === photo)
+  }
 }
