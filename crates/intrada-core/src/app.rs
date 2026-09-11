@@ -465,9 +465,7 @@ impl Intrada {
             composers
         };
 
-        // Uses Utc::now(), making view() impure: a pragmatic tradeoff, since the
-        // date changes once a day and the computation fns take a `LocalClock`
-        // for testability.
+        // view() reads the clock: the local day and the greeting's hour (#1694).
         let now = chrono::Utc::now();
         let clock = crate::analytics::LocalClock::from_now(now, model.utc_offset_minutes);
 
@@ -670,7 +668,7 @@ impl Intrada {
             last_practised,
             sets,
             account_preferences: model.account_preferences.clone(),
-            profile: build_profile_view(&model.profile, clock.local_hour_of(now)),
+            profile: build_profile_view(&model.profile, clock.hour_of(now)),
             delete_in_flight: model.delete_in_flight,
             account_deleted: model.account_deleted,
             mcp_tokens: model.mcp_tokens.clone(),

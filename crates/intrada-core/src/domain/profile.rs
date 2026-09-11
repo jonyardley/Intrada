@@ -159,19 +159,18 @@ pub(crate) fn suggest_icon(instrument: &str) -> InstrumentIcon {
         .unwrap_or(InstrumentIcon::Other)
 }
 
-/// Empty without a name: the Practice subtitle then reads as it always did.
-/// Bands per design-principles T25; wording per tone-of-voice V6.
+// Bands are design-principles T25, wording tone-of-voice V6 (#1694).
 pub(crate) fn greeting(name: &str, local_hour: u32) -> String {
     let name = name.trim();
     if name.is_empty() {
         return String::new();
     }
-    let band = match local_hour {
+    let time_of_day = match local_hour {
         4..=11 => "Morning",
         12..=17 => "Afternoon",
         _ => "Evening",
     };
-    format!("{band}, {name}")
+    format!("{time_of_day}, {name}")
 }
 
 pub fn build_profile_view(profile: &Profile, local_hour: u32) -> ProfileView {
@@ -325,8 +324,8 @@ mod tests {
     // ── Greeting ──
 
     #[test]
-    fn greeting_follows_the_time_band_and_needs_a_name() {
-        let cases = [
+    fn greeting_names_the_time_of_day_at_the_band_edges() {
+        let cases: &[(u32, &str)] = &[
             (0, "Evening, Jon"),
             (3, "Evening, Jon"),
             (4, "Morning, Jon"),
@@ -337,10 +336,14 @@ mod tests {
             (23, "Evening, Jon"),
         ];
         for (hour, expected) in cases {
-            assert_eq!(greeting("Jon", hour), expected, "at {hour}:00");
+            assert_eq!(greeting("Jon", *hour), *expected, "hour {hour}");
         }
+    }
+
+    #[test]
+    fn greeting_is_empty_without_a_name() {
         assert_eq!(greeting("", 9), "");
-        assert_eq!(greeting("   ", 9), "");
+        assert_eq!(greeting("   ", 15), "");
     }
 
     // ── View ──
@@ -494,14 +497,33 @@ mod tests {
     fn view_model_projects_the_profile() {
         let mut model = Model::test_default();
         let _ = save(&mut model, fixture());
-        let vm = Intrada.view(&model);
-        assert_eq!(vm.profile.name, "Jon");
-        assert_eq!(vm.profile.icon, InstrumentIcon::Piano);
+        let projected = Intrada.view(&model).profile;
         assert!(
             ["Morning, Jon", "Afternoon, Jon", "Evening, Jon"]
-                .contains(&vm.profile.greeting.as_str()),
-            "the view greets from the live clock: {}",
-            vm.profile.greeting
+                .contains(&projected.greeting.as_str()),
+            "the greeting follows the real clock: {}",
+            projected.greeting
+        );
+        assert_eq!(projected.name, "Jon");
+        assert_eq!(projected.instrument, "Piano");
+        assert_eq!(projected.suggested_icon, InstrumentIcon::Piano);
+        assert_eq!(projected.icon, InstrumentIcon::Piano);
+        assert_eq!(projected.colour, HighlighterColour::Butter);
+    }
+
+    // Twelve hours apart always straddles a band edge, so this cannot flake
+    // and fails if view() reads UTC instead of the musician's offset.
+    #[test]
+    fn view_greets_by_the_musicians_clock_not_utc() {
+        let mut east = Model::test_default();
+        let _ = save(&mut east, fixture());
+        east.utc_offset_minutes = 0;
+        let mut west = Model::test_default();
+        let _ = save(&mut west, fixture());
+        west.utc_offset_minutes = -720;
+        assert_ne!(
+            Intrada.view(&east).profile.greeting,
+            Intrada.view(&west).profile.greeting
         );
     }
 
