@@ -43,9 +43,10 @@ crate, which is what most UX issues are (for example #1616, #1617, #1618 and
   `ios/Intrada/DesignSystem/Theme.swift`. Check the four files above before
   assuming two shell-only streams are independent: about half the time they
   are not.
-- **One worktree per stream**, from fresh `origin/main`: `just worktree-new
-  <name>` seeds the warm `target/` and `ios/build` caches (#1205). Close the
-  second session when its task ships.
+- **One worktree per session, started in it** (CLAUDE.md, Always step 3):
+  `just worktree-new <name>` branches from fresh `origin/main` and seeds the
+  warm `target/` and `ios/build` caches (#1205). Close the session when its
+  task ships.
 - **Once you have a worktree, edit only inside it.** On 2026-09-06 a session
   working in its own worktree also wrote the change into the main checkout,
   where another session nearly committed it into an unrelated PR. A green run

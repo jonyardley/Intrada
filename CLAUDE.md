@@ -153,11 +153,11 @@ it, never wholesale; XCUITest stays on XCTest.
 Match ceremony to scope; if unsure, go one tier lighter and drift up.
 
 - **Tier 1, just do it**: bug fixes, copy, style, renames, lint, single-file
-  refactors, doc updates. Main checkout.
+  refactors, doc updates.
 - **Tier 2, plan mode** (default for feature work): a component or screen on
   existing patterns, an endpoint on established conventions, a field on a
   model. UI work does Claude Design first, and a new screen starts by reading an
-  existing one, which loads the UI rules. Worktree: `just worktree-new <name>`.
+  existing one, which loads the UI rules.
 - **Tier 3, lightweight spec** (architectural): net-new top-level features,
   Crux core or bridge changes, auth or schema changes. One `specs/<feature>.md`
   of 100 to 200 lines, riding as the first commit of Phase A, never its own PR.
@@ -182,14 +182,18 @@ means driving the app on the simulator**; if you cannot, say what needs a hand c
    `gh pr list --state open --search "N"` and
    `gh issue view N --json closedByPullRequestsReferences`. A PR already open
    means stop and say so; otherwise add `in-flight` and comment the branch, and
-   drop the label when the PR closes. Handover openers start with the claim.
+   drop the label when the PR closes. Handover openers start with the claim
+   and a fresh worktree.
    `just project-status N "In progress"` in the same step, or the board (view
    [7](https://github.com/users/jonyardley/projects/2/views/7)) stays stuck
    between Backlog and Done (#1660).
 2. Find the roadmap item, or discuss first; check the
    [project board](https://github.com/users/jonyardley/projects/2). Read the
    issue and what it points at before any code, then plan and state resourcing.
-3. **Always a feature branch and a PR; a human merges.** Branch protection
+3. **Always a feature branch in its own worktree, and a PR; a human merges.**
+   Start every session in one (`just worktree-new <name>`, then the command it
+   prints), since path-scoped rules load only under the start directory. Agents
+   touch the main checkout only for `git pull --ff-only` (#1686). Branch protection
    refuses a push to main and `gh pr merge` is denied in settings. CI green is
    the session's job: after every push watch the run to a conclusion, react, push
    again, and surface the PR only when green or stuck. Read the PR's mergeability,
