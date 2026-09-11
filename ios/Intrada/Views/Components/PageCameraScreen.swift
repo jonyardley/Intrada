@@ -40,6 +40,18 @@ final class PageCameraModel {
 
   var session: AVCaptureSession? { device.session }
 
+  func attachPreviewLayer(
+    _ layer: AVCaptureVideoPreviewLayer, onRotate: @escaping (CGFloat) -> Void
+  ) {
+    device.attachPreviewLayer(layer, onRotate: onRotate)
+  }
+
+  /// The sensor delivers 4:3 landscape; 0° and 180° are the sideways angles
+  /// against the shipped portrait case of 90° (#1548).
+  static func isLandscape(angle: CGFloat) -> Bool {
+    angle == 0 || angle == 180
+  }
+
   func begin() async {
     let access = await device.authorise()
     guard access == .allowed else {
@@ -115,6 +127,8 @@ struct PageCameraScreen: View {
   /// bodies on every core update, which re-runs this initialiser while the
   /// cover is up and would otherwise swap in a fresh unconfigured camera.
   @State private var model: PageCameraModel
+  /// Shapes the preview box to match the sensor's actual orientation (#1548).
+  @State private var previewIsLandscape = false
 
   init(device: (any PageCameraDevice)? = nil, onFinish: @escaping (PhotoCapture) -> Void) {
     _model = State(initialValue: PageCameraModel(device: device ?? AVPageCameraDevice()))
@@ -137,8 +151,12 @@ struct PageCameraScreen: View {
       EmptyView()
     case .live:
       if let session = model.session {
-        // 3:4 is the `.photo` preset's 4:3 frame held upright (PageCamera.swift).
-        CameraPreview(session: session).aspectRatio(3.0 / 4.0, contentMode: .fit)
+        CameraPreview(
+          session: session,
+          attachPreviewLayer: model.attachPreviewLayer,
+          onRotate: { previewIsLandscape = PageCameraModel.isLandscape(angle: $0) }
+        )
+        .aspectRatio(previewIsLandscape ? 4.0 / 3.0 : 3.0 / 4.0, contentMode: .fit)
       }
     case .captured(let page, let pageFound):
       CapturedPageConfirm(page: page, pageFound: pageFound, onKeep: keep, onRetake: model.retake)
@@ -318,11 +336,16 @@ struct PageCameraFailure: View {
 /// backed by one rather than a sublayer that has to be resized by hand.
 private struct CameraPreview: UIViewRepresentable {
   let session: AVCaptureSession
+  let attachPreviewLayer: (AVCaptureVideoPreviewLayer, @escaping (CGFloat) -> Void) -> Void
+  let onRotate: (CGFloat) -> Void
 
   func makeUIView(context _: Context) -> PreviewView {
     let view = PreviewView()
     view.previewLayer?.session = session
     view.previewLayer?.videoGravity = .resizeAspect
+    if let previewLayer = view.previewLayer {
+      attachPreviewLayer(previewLayer, onRotate)
+    }
     return view
   }
 

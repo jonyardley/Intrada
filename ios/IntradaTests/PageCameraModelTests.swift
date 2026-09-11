@@ -30,6 +30,8 @@ private final class StubCamera: PageCameraDevice {
 
   func stop() { stopCount += 1 }
 
+  func attachPreviewLayer(_: AVCaptureVideoPreviewLayer, onRotate _: @escaping (CGFloat) -> Void) {}
+
   func capture() async throws -> UIImage {
     if let captureError { throw captureError }
     // A plain `UIImage` has no `cgImage`, so `PageCrop` returns it as taken
@@ -42,6 +44,13 @@ private enum StubError: Error { case failed }
 
 @MainActor
 struct PageCameraModelTests {
+  @Test(arguments: [
+    (CGFloat(0), true), (CGFloat(90), false), (CGFloat(180), true), (CGFloat(270), false),
+  ])
+  func isLandscapeReadsTheSensorAngle(angle: CGFloat, landscape: Bool) {
+    #expect(PageCameraModel.isLandscape(angle: angle) == landscape)
+  }
+
   @Test func refusedAccessBlocksWithTheReason() async {
     let model = PageCameraModel(device: StubCamera(access: .denied))
 
