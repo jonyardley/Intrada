@@ -15,7 +15,7 @@ struct RecoveryPromptCard: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: IntradaSpacing.cardCompact) {
-      Eyebrow("Session in progress", tint: IntradaColor.celebrationInk)
+      Eyebrow("Session in progress", tint: IntradaColor.inkSecondary)
 
       Text("Pick up where you left off?")
         .font(IntradaFont.cardTitle())

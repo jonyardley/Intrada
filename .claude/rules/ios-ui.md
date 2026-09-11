@@ -5,9 +5,12 @@ paths:
 
 # Paper & Score: the design system rules
 
-Warm paper backgrounds, serif titles (Source Serif 4), sans body (Inter). Every
-token lives in `ios/Intrada/DesignSystem/Theme.swift`; the shareable export is
-`design/intrada-design-system.dc.html`, derived from it.
+Off-white paper, brown ink, one butter highlighter (`marker`) as the only
+bright colour; Hanken Grotesk for titles and body, DM Mono for metadata (T24 in
+`docs/design-principles.md`). Every token lives in
+`ios/Intrada/DesignSystem/Theme.swift`; the shareable export is
+`design/intrada-design-system.dc.html`, derived from it (behind the app until
+#1678).
 
 How the app should feel, and the dated T-numbered decisions log, is
 `docs/design-principles.md`: read it before a new surface, layout, flow or

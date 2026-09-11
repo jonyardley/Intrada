@@ -3,23 +3,13 @@ import SwiftUI
 
 /// The type-language pairing — colour + glyph + label per `ItemKind` — defined
 /// once here so every type-coded surface (card bars, badges, chips) stays in
-/// sync. Piece = indigo + note; Exercise = gold + dumbbell.
+/// sync. Piece = blue-grey + note; Exercise = sand + dumbbell.
 extension ItemKind {
-  var accent: Color {
-    switch self {
-    case .piece: IntradaColor.accent
-    case .exercise: IntradaColor.exerciseAccent
-    }
-  }
+  /// Ink for both kinds: a pastel border on white misses 3:1 (WCAG 1.4.11).
+  var accent: Color { IntradaColor.accent }
 
-  var onAccent: Color {
-    switch self {
-    case .piece: IntradaColor.onAccent
-    case .exercise: IntradaColor.onExercise
-    }
-  }
+  var onAccent: Color { IntradaColor.onAccent }
 
-  /// The accent read on the indigo Practice hero, where `accent` has no contrast.
   var onHeroAccent: Color {
     switch self {
     case .piece: IntradaColor.onHeroPiece
@@ -29,7 +19,7 @@ extension ItemKind {
 
   var bar: LinearGradient {
     switch self {
-    case .piece: .brandBar
+    case .piece: .pieceBar
     case .exercise: .exerciseBar
     }
   }

@@ -43,7 +43,7 @@ struct MasteryHeroCard: View {
         Text("+\(monthDelta, specifier: "%.1f") this month")
       }
       .font(IntradaFont.metaMedium)
-      .foregroundStyle(IntradaColor.successTeal)
+      .foregroundStyle(IntradaColor.success)
       Text("Climbing steadily across \(itemsCovered) pieces.")
         .font(IntradaFont.meta)
         .foregroundStyle(IntradaColor.inkSecondary)

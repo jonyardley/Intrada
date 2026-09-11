@@ -2,7 +2,7 @@ import CoreText
 import Foundation
 import os
 
-/// Registers the bundled Source Serif 4 + Inter faces with the process font
+/// Registers the bundled Hanken Grotesk + DM Mono faces with the process font
 /// manager (idempotent). The app calls this at launch; snapshot tests call it
 /// too, since they render screens without launching the app to do it for them.
 enum IntradaFonts {
@@ -12,7 +12,11 @@ enum IntradaFonts {
 
   private static let didRegister: Bool = {
     let bundle = Bundle(for: BundleToken.self)
-    for face in ["InterVariable", "SourceSerif4Variable-Roman"] {
+    // Static weights: the variable file's weights have no PostScript names on iOS (#1676).
+    for face in [
+      "HankenGrotesk-Regular", "HankenGrotesk-Medium", "HankenGrotesk-SemiBold",
+      "HankenGrotesk-Bold", "DMMono-Regular",
+    ] {
       guard let url = bundle.url(forResource: face, withExtension: "ttf") else {
         assertionFailure("Missing bundled font \(face).ttf")
         continue

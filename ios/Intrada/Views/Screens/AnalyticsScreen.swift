@@ -99,7 +99,6 @@ struct AnalyticsScreen: View {
     return total / Double(trends.count)
   }
 
-  // The biggest mover this period — the gold celebration toast at the top.
   private func topMover(_ analytics: AnalyticsView) -> ScoreChange? {
     analytics.scoreChanges.filter { $0.delta > 0 }.max { $0.delta < $1.delta }
   }

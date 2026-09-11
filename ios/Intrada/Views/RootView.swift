@@ -115,10 +115,10 @@ struct RootView: View {
     let appearance = UINavigationBarAppearance()
     appearance.configureWithTransparentBackground()
     let ink = UIColor(IntradaColor.ink)
-    if let large = UIFont(name: "SourceSerif4Variable-Semibold", size: 28) {
+    if let large = UIFont(name: IntradaFont.Hanken.semibold, size: 28) {
       appearance.largeTitleTextAttributes = [.font: large, .foregroundColor: ink]
     }
-    if let inline = UIFont(name: "SourceSerif4Variable-Semibold", size: 16) {
+    if let inline = UIFont(name: IntradaFont.Hanken.semibold, size: 16) {
       appearance.titleTextAttributes = [.font: inline, .foregroundColor: ink]
     }
     UINavigationBar.appearance().standardAppearance = appearance

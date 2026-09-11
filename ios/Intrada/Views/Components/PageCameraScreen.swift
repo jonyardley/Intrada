@@ -265,10 +265,10 @@ struct CapturedPageConfirm: View {
 
         Button("Use this photo", action: onKeep)
           .font(IntradaFont.bodyMedium)
-          .foregroundStyle(IntradaColor.onAccent)
+          .foregroundStyle(IntradaColor.onMarker)
           .padding(.horizontal, IntradaSpacing.section)
           .padding(.vertical, IntradaSpacing.cardCompact)
-          .background(LinearGradient.brandBar, in: Capsule())
+          .background(IntradaColor.marker, in: Capsule())
       }
     }
     .padding(.vertical, IntradaSpacing.section)
@@ -293,10 +293,10 @@ struct PageCameraBlocked: View {
 
         Button("Open Settings", action: onOpenSettings)
           .font(IntradaFont.bodyMedium)
-          .foregroundStyle(IntradaColor.onAccent)
+          .foregroundStyle(IntradaColor.onMarker)
           .padding(.horizontal, IntradaSpacing.section)
           .padding(.vertical, IntradaSpacing.cardCompact)
-          .background(LinearGradient.brandBar, in: Capsule())
+          .background(IntradaColor.marker, in: Capsule())
       }
     }
     .padding(IntradaSpacing.section)

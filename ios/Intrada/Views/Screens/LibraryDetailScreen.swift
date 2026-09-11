@@ -871,8 +871,8 @@ private struct LinkedExerciseRow: View {
 }
 
 /// One column in the Steps horizontal scroller: a ring (letter + progress arc)
-/// and a state caption below — Solid (accent), Current (badge gold, calm and
-/// static — no pulse; `breathe`/`metro` are retired per `design/CLAUDE.md`
+/// and a state caption below: Solid or Current, both ink (the word carries the
+/// state), calm and static, no pulse; `breathe`/`metro` are retired per `design/CLAUDE.md`
 /// "Motion"), or a dash for not yet reached.
 private struct StepRingItem: View {
   let step: VariantView
@@ -897,9 +897,7 @@ private struct StepRingItem: View {
   }
 
   private var captionColor: Color {
-    if step.isSolid { return IntradaColor.accent }
-    if step.isCurrent { return IntradaColor.exerciseBadgeFg }
-    return IntradaColor.inkFaint
+    step.isSolid || step.isCurrent ? IntradaColor.accent : IntradaColor.inkFaint
   }
 
   private var accessibilityLabel: String {

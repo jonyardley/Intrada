@@ -83,22 +83,18 @@ struct SessionSummaryScreen: View {
     HStack(alignment: .top, spacing: IntradaSpacing.controlGap) {
       Image(systemName: "quote.opening")
         .font(.system(size: 15))
-        .foregroundStyle(IntradaColor.celebrationInk)
+        .foregroundStyle(IntradaColor.celebrationAccent)
       VStack(alignment: .leading, spacing: 4) {
         Eyebrow("Your intention", tint: IntradaColor.celebrationInk)
         Text("“\(intention)”")
           .font(IntradaFont.cardTitle(15.5)).italic()
-          .foregroundStyle(IntradaColor.ink)
+          .foregroundStyle(IntradaColor.celebrationInk)
       }
     }
     .padding(IntradaSpacing.cardCompact)
     .frame(maxWidth: .infinity, alignment: .leading)
     .background(LinearGradient.celebration)
     .clipShape(RoundedRectangle(cornerRadius: IntradaRadius.card))
-    .overlay(
-      RoundedRectangle(cornerRadius: IntradaRadius.card)
-        .stroke(IntradaColor.celebrationBorder, lineWidth: 1)
-    )
     .accessibilityElement(children: .combine)
   }
 
@@ -333,11 +329,11 @@ struct SessionSummaryScreen: View {
         store.send(.session(.saveSession(now: SessionClock.nowRFC3339())))
       } label: {
         Text("Save session")
-          .font(IntradaFont.bodyMedium)
-          .foregroundStyle(IntradaColor.onAccent)
+          .font(IntradaFont.button)
+          .foregroundStyle(IntradaColor.onMarker)
           .frame(maxWidth: .infinity)
           .padding(.vertical, IntradaSpacing.row)
-          .background(LinearGradient.brandBar)
+          .background(IntradaColor.marker)
           .clipShape(RoundedRectangle(cornerRadius: IntradaRadius.card))
       }
       .buttonStyle(PressRebound())

@@ -53,7 +53,7 @@ struct RecentSessions: View {
           Text("\(trend.from) → \(trend.to)")
         }
         .font(IntradaFont.badge)
-        .foregroundStyle(up ? IntradaColor.successTeal : IntradaColor.inkSecondary)
+        .foregroundStyle(up ? IntradaColor.success : IntradaColor.inkSecondary)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(
           "Trend, \(up ? "improved" : "declined") from \(trend.from) to \(trend.to)")

@@ -131,7 +131,7 @@ private struct RepDot: View {
 
   var body: some View {
     Circle()
-      .fill(done ? IntradaColor.successTeal : Color.clear)
+      .fill(done ? IntradaColor.success : Color.clear)
       .frame(width: 11, height: 11)
       .overlay(
         Circle().strokeBorder(

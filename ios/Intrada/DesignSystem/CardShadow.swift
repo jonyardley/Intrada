@@ -6,7 +6,7 @@ extension View {
   /// `above: true` casts the shadow upward — for a bottom panel the content
   /// slides *under*, e.g. the builder's queue tray.
   func cardShadow(above: Bool = false) -> some View {
-    shadow(color: IntradaColor.shadow, radius: 5, x: 0, y: above ? -2 : 2)
+    shadow(color: IntradaColor.shadow, radius: 1, x: 0, y: above ? -1 : 1)
   }
 
   /// The deeper elevation the Practice hero sits on — the app's largest card,

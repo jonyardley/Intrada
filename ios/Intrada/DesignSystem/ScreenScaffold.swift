@@ -46,12 +46,20 @@ struct ScreenScaffold<Content: View>: View {
       .dynamicTypeSize(.xSmall ... .accessibility5)
   }
 
+  private var titleText: some View {
+    Text(title)
+      .font(IntradaFont.pageTitle())
+      .foregroundStyle(IntradaColor.ink)
+  }
+
   private var header: some View {
     HStack(alignment: .firstTextBaseline) {
       VStack(alignment: .leading, spacing: 3) {
-        Text(title)
-          .font(IntradaFont.pageTitle())
-          .foregroundStyle(IntradaColor.ink)
+        // A swipe behind a wrapped title would land under its last line only.
+        ViewThatFits(in: .horizontal) {
+          titleText.lineLimit(1).markerSwipe()
+          titleText
+        }
         if let subtitle {
           Text(subtitle)
             .font(IntradaFont.meta)

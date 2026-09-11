@@ -1,7 +1,7 @@
 import SharedTypes
 import SwiftUI
 
-/// A "was → now" mastery row on Progress. The now-figure is success teal; the
+/// A "was → now" mastery row on Progress. The now-figure is success green; the
 /// was-figure is muted. Pairs with `analytics.scoreChanges` (was = previousScore,
 /// now = currentScore). A newly-scored item (`was == nil`) shows just the figure.
 struct MasteryDelta: View {
@@ -38,7 +38,7 @@ struct MasteryDelta: View {
             .foregroundStyle(IntradaColor.inkFaint)
         }
         Text("\(now)")
-          .foregroundStyle(IntradaColor.successTeal)
+          .foregroundStyle(IntradaColor.success)
       }
       .font(IntradaFont.cardTitle(16))
     }
@@ -67,7 +67,7 @@ struct MasteryDelta: View {
   }
 }
 
-/// The gold celebration beat on the session summary — "Clair de Lune moved up
+/// The celebration beat on the session summary: "Clair de Lune moved up
 /// 3 → 4". Lands after the headline with a `toastIn` reveal (honours Reduce Motion).
 struct MasteryDeltaToast: View {
   let title: String
@@ -83,17 +83,17 @@ struct MasteryDeltaToast: View {
     HStack(spacing: 13) {
       Image(systemName: "sparkles")
         .font(.system(size: 17))
-        .foregroundStyle(IntradaColor.onExercise)
+        .foregroundStyle(IntradaColor.onMarker)
         .frame(width: 34, height: 34)
-        .background(IntradaColor.exerciseAccent, in: Circle())
+        .background(IntradaColor.celebrationAccent, in: Circle())
       VStack(alignment: .leading, spacing: 2) {
         Text(title)
           .font(IntradaFont.bodyMedium)
-          .foregroundStyle(IntradaColor.ink)
+          .foregroundStyle(IntradaColor.celebrationInk)
         if let subtitle {
           Text(subtitle)
             .font(IntradaFont.meta)
-            .foregroundStyle(IntradaColor.celebrationInk)
+            .foregroundStyle(IntradaColor.celebrationInk.opacity(0.8))
         }
       }
       Spacer(minLength: IntradaSpacing.controlGap)
@@ -102,21 +102,17 @@ struct MasteryDeltaToast: View {
           .opacity(0.45)
         Image(systemName: "arrow.right")
           .font(.system(size: 15))
-          .foregroundStyle(IntradaColor.exerciseAccent)
+          .foregroundStyle(IntradaColor.celebrationAccent)
         Text("\(now)")
       }
       .font(IntradaFont.pageTitle(22))
-      .foregroundStyle(IntradaColor.exerciseBadgeFg)
+      .foregroundStyle(IntradaColor.celebrationInk)
     }
     .padding(.vertical, 14)
     .padding(.horizontal, 16)
     .frame(maxWidth: .infinity, alignment: .leading)
     .background(LinearGradient.celebration)
-    .clipShape(RoundedRectangle(cornerRadius: 14))
-    .overlay(
-      RoundedRectangle(cornerRadius: 14)
-        .stroke(IntradaColor.celebrationBorder, lineWidth: 1)
-    )
+    .clipShape(RoundedRectangle(cornerRadius: IntradaRadius.card))
     .opacity(reveal ? 1 : 0)
     .scaleEffect(reveal ? 1 : 0.96)
     .offset(y: reveal ? 0 : -10)
