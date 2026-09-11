@@ -950,8 +950,8 @@ final class StoreEffectLoopTests: XCTestCase {
       .item(
         .addPieceInFull(
           piece: CreateItem(
-            title: "Blue in Green", kind: .piece, composer: nil, key: "G", modality: nil,
-            tempo: nil, notes: nil, tags: [], photoId: nil),
+            title: "Blue in Green", kind: .piece, composer: String(repeating: "x", count: 201),
+            key: "G", modality: nil, tempo: nil, notes: nil, tags: [], photoId: nil),
           chart: nil,
           exercises: [])))
 

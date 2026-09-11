@@ -96,34 +96,14 @@ pub fn validate_create_item(input: &CreateItem) -> Result<(), LibraryError> {
     if let Some(photo_id) = input.photo_id.as_deref() {
         validate_photo_id(photo_id)?;
     }
-    // Composer is required for pieces, optional for exercises.
-    match input.kind {
-        ItemKind::Piece => {
-            let composer = input.composer.as_deref().unwrap_or("");
-            if composer.is_empty() {
-                return Err(LibraryError::Validation {
-                    field: "composer".to_string(),
-                    message: "Composer is required".to_string(),
-                });
-            }
-            if composer.len() > MAX_COMPOSER {
-                return Err(LibraryError::Validation {
-                    field: "composer".to_string(),
-                    message: format!("Composer must be between 1 and {MAX_COMPOSER} characters"),
-                });
-            }
-        }
-        ItemKind::Exercise => {
-            if let Some(ref composer) = input.composer {
-                if composer.is_empty() || composer.len() > MAX_COMPOSER {
-                    return Err(LibraryError::Validation {
-                        field: "composer".to_string(),
-                        message: format!(
-                            "Composer must be between 1 and {MAX_COMPOSER} characters"
-                        ),
-                    });
-                }
-            }
+    // Composer is optional for both pieces and exercises; when given, it must
+    // be a sensible length.
+    if let Some(ref composer) = input.composer {
+        if composer.is_empty() || composer.len() > MAX_COMPOSER {
+            return Err(LibraryError::Validation {
+                field: "composer".to_string(),
+                message: format!("Composer must be between 1 and {MAX_COMPOSER} characters"),
+            });
         }
     }
     if let Some(ref notes) = input.notes {
@@ -820,14 +800,7 @@ mod tests {
             tags: vec![],
             photo_id: None,
         };
-        let err = validate_create_item(&input).unwrap_err();
-        match err {
-            LibraryError::Validation { field, message } => {
-                assert_eq!(field, "composer");
-                assert_eq!(message, "Composer is required");
-            }
-            _ => panic!("Expected Validation error"),
-        }
+        assert!(validate_create_item(&input).is_ok());
     }
 
     #[test]
@@ -847,7 +820,7 @@ mod tests {
         match err {
             LibraryError::Validation { field, message } => {
                 assert_eq!(field, "composer");
-                assert_eq!(message, "Composer is required");
+                assert_eq!(message, "Composer must be between 1 and 200 characters");
             }
             _ => panic!("Expected Validation error"),
         }

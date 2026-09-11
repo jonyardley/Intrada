@@ -42,12 +42,18 @@ final class CreateFaultUITests: XCTestCase {
     title.tap()
     title.typeText("Kettle of fish")
 
-    // No composer, so the piece itself is what the core refuses. The create
-    // carries a chart, so it goes through the one-pass event, not a plain add.
+    // An over-long composer, so the piece itself is what the core refuses. The
+    // create carries a chart, so it goes through the one-pass event, not a
+    // plain add.
+    let composer = app.textFields["Composer"].firstMatch
+    XCTAssertTrue(composer.waitForExistence(timeout: 5), "the composer field")
+    composer.tap()
+    composer.typeText(String(repeating: "x", count: 201))
     app.buttons["Add"].firstMatch.tap()
 
     XCTAssertTrue(
-      app.staticTexts["Composer is required"].waitForExistence(timeout: 5),
+      app.staticTexts["Composer must be between 1 and 200 characters"].waitForExistence(
+        timeout: 5),
       "the core's own sentence, on the form rather than behind it")
     XCTAssertTrue(
       app.navigationBars["New Piece"].exists,

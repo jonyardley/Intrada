@@ -2486,7 +2486,7 @@ mod tests {
     }
 
     #[test]
-    fn add_piece_with_blank_composer_is_required_error() {
+    fn add_piece_with_blank_composer_normalizes_to_none() {
         let app = Intrada;
         let mut model = Model::test_default();
 
@@ -2505,14 +2505,8 @@ mod tests {
             &mut model,
         );
 
-        assert!(
-            model.items.is_empty(),
-            "blank composer must not create a piece"
-        );
-        assert!(model
-            .last_error
-            .as_deref()
-            .is_some_and(|e| e.contains("Composer is required")));
+        assert_eq!(model.items.len(), 1, "a blank composer is not a rejection");
+        assert_eq!(model.items[0].composer, None);
     }
 
     // --- T042: Unicode handling in core ---

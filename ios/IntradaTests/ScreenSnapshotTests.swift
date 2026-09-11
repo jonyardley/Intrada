@@ -797,7 +797,7 @@ final class ScreenSnapshotTests: XCTestCase {
   func testLibraryAddScreenMarksTheFieldAtFault() {
     let form = ItemFormModel(kind: .piece)
     form.title = "Alice in Wonderland"
-    form.formError = "Composer is required"
+    form.formError = "Composer must be between 1 and 200 characters"
     form.mark(.piece(field: .composer))
     assertSnapshot(of: host(LibraryAddScreen(previewForm: form)), as: config)
   }

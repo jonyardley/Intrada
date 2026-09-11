@@ -3736,7 +3736,7 @@ mod tests {
             &mut model,
             ItemEvent::AddPieceInFull {
                 piece: CreateItem {
-                    composer: None,
+                    composer: Some("x".repeat(201)),
                     ..one_pass_piece_input("Autumn Leaves")
                 },
                 chart: None,
@@ -3749,7 +3749,7 @@ mod tests {
             Some(FormErrorTarget::Piece {
                 field: FormErrorField::Composer
             }),
-            "the banner says a composer is required; the target says which field holds it"
+            "the banner says the composer is too long; the target says which field holds it"
         );
     }
 
