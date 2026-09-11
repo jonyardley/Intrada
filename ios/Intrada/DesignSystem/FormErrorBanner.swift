@@ -27,7 +27,7 @@ struct FormErrorBanner: View {
 
 #if DEBUG
   #Preview {
-    FormErrorBanner(message: "A piece needs a composer.")
+    FormErrorBanner(message: "Composer must be between 1 and 200 characters")
       .padding()
       .background(IntradaColor.paperTop)
   }

@@ -78,7 +78,48 @@ async fn create_piece_empty_title_returns_400() {
 }
 
 #[tokio::test]
-async fn create_piece_empty_composer_returns_400() {
+async fn create_piece_no_composer_valid() {
+    let app = common::setup_test_app().await;
+    let (status, body) = common::post_json(
+        app,
+        "/api/items",
+        json!({
+            "title": "Trad. Air",
+            "kind": "piece",
+            "tags": []
+        }),
+    )
+    .await;
+
+    assert_eq!(status, StatusCode::CREATED);
+    let item: Item = common::json(&body);
+    assert_eq!(item.title, "Trad. Air");
+    assert_eq!(item.kind.to_string(), "piece");
+    assert!(item.composer.is_none());
+}
+
+#[tokio::test]
+async fn create_piece_empty_composer_normalizes_to_none() {
+    let app = common::setup_test_app().await;
+    let (status, body) = common::post_json(
+        app,
+        "/api/items",
+        json!({
+            "title": "Clair de Lune",
+            "kind": "piece",
+            "composer": "",
+            "tags": []
+        }),
+    )
+    .await;
+
+    assert_eq!(status, StatusCode::CREATED);
+    let item: Item = common::json(&body);
+    assert!(item.composer.is_none());
+}
+
+#[tokio::test]
+async fn create_piece_composer_too_long_returns_400() {
     let app = common::setup_test_app().await;
     let (status, _body) = common::post_json(
         app,
@@ -86,7 +127,7 @@ async fn create_piece_empty_composer_returns_400() {
         json!({
             "title": "Clair de Lune",
             "kind": "piece",
-            "composer": "",
+            "composer": "x".repeat(201),
             "tags": []
         }),
     )

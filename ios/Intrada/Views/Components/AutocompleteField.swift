@@ -46,6 +46,7 @@ struct AutocompleteField: View {
           .textInputAutocapitalization(autocapitalization)
           .autocorrectionDisabled()
           .focused($focused)
+          .accessibilityIdentifier(label)
           .accessibilityHint(hint)
         if let readWeakly {
           FieldMark(weak: readWeakly)
