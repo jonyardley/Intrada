@@ -66,12 +66,7 @@ struct PhotoCaptureSources {
         onFailure("Couldn't read that photo. Try another.")
         return
       }
-      // The scanner route arrives cropped; a library photo does not, and the
-      // work blocks long enough to drop frames. A chosen photo often has no
-      // page edges to find (a screenshot of a PDF), so a miss stays silent here (#1565).
-      let page = await Task.detached(priority: .userInitiated) { PageCrop.toPage(image).image }
-        .value
-      await write(page)
+      await write(image)
     } catch {
       report(error, "photo library load")
       onFailure("Couldn't read that photo. Try another.")

@@ -4,7 +4,6 @@ pub mod domain;
 pub mod error;
 pub mod http;
 pub mod model;
-pub mod page_outline;
 pub mod persistence;
 pub(crate) mod priorities;
 pub mod recognition;

@@ -1663,7 +1663,8 @@ mod real_pages {
     }
 
     /// The whole of what Vision returned for a photographed handwritten Real
-    /// Book page, cropped as the shell crops it (#1436).
+    /// Book page, recorded from a cropped photo before cropping was removed
+    /// (#1436, #1684).
     #[test]
     fn a_handwritten_real_book_page() {
         let draft = read(vec![
