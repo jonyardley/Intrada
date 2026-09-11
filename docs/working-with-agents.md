@@ -179,16 +179,17 @@ lifting `reviewer` to Fable for Fable-written work. Four rules on top:
 
 ## Isolating concurrent work
 
-Two or more branches in flight means separate working directories. Before a
-second stream, read `.claude/skills/intrada-parallel-streams/SKILL.md` for the
+Every session that edits starts in its own worktree, whether or not another is
+running (CLAUDE.md, Always step 3). Before a second stream, read `.claude/skills/intrada-parallel-streams/SKILL.md` for the
 decoupled file set and the serialisation points.
 
 `just worktree-new <name>` branches from fresh `origin/main` and seeds the warm
 `target/` and `ios/build` caches (#1205). Worktrees live at
 `$INTRADA_WORKTREE_ROOT`, default `../intrada-worktrees`. `just worktree-rm
 <name>` removes one and deletes its throwaway simulator. `graphify-out/` exists
-only in the main checkout, so Tier 1 work that wants the knowledge graph stays
-there. Once you have a worktree, edit only inside it.
+only in the main checkout: query it there by path from a worktree
+(`docs/reference.md`), never move the work there. Once you have a worktree,
+edit only inside it.
 
 Run from a cmux terminal, `just worktree-new` also opens a cmux workspace in the
 new worktree with `claude` running, because the sidebar shows the branch and PR
