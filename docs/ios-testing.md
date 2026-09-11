@@ -152,17 +152,26 @@ checkout is using**.
 
 Rules to keep two checkouts from colliding:
 
-- **`just ios-test`/`ios-test-full` are safe to run in parallel across
-  worktrees.** They name their sim per worktree
-  (`intrada-test-26-5-<worktree-basename>`), so each checkout with a distinct
-  basename gets its own device — no serialization. (Two worktree dirs that
-  sanitise to the same name — e.g. `foo.1` and `foo-1` — would share a sim;
-  slug-like worktree names avoid this.) The device model is irrelevant to
-  snapshot output (swift-snapshot-testing pins `.iPhone13`; only the iOS 26.5
-  runtime affects the pixels), so per-worktree devices change nothing about
-  pass/fail. `just ios-test-sim-clean` deletes only the current worktree's sim.
-  This removes *blocking*, not resource load — N booted sims + N Swift builds is
-  heavy, so the practical ceiling is how many parallel agents the host can take.
+- **Test runs serialise on app launch, whatever device they name** (#1621).
+  Each worktree's `just ios-test`/`ios-test-full` boots its own sim
+  (`intrada-test-26-5-<worktree-basename>`), so there is no device clash
+  between worktrees (two worktree dirs that sanitise to the same name, e.g.
+  `foo.1` and `foo-1`, would share a sim; slug-like worktree names avoid this),
+  and the device model makes no difference to snapshot output
+  (swift-snapshot-testing pins `.iPhone13`; only the iOS 26.5 runtime affects
+  the pixels). None of that stops CoreSimulatorService and SpringBoard
+  contending when two runs launch an app at the same moment. Measured on
+  2026-09-10, an M5 Pro with 18 cores and 48 GB, two worktrees each on its own
+  simulator with its own DerivedData: one worktree passed 389 tests in 42
+  seconds while the other failed at launch nine times with
+  `Busy ("Application failed preflight checks")`; the worktree that failed,
+  run alone thirty seconds later, passed 371 tests in 22 seconds with no Busy
+  lines at all (a different suite from the 389-test run, so the 22 versus 42
+  seconds is indicative, not an exact delta). Same failure surface as #1480.
+  A fast-tier run is well under a minute either way, so run test suites one
+  after another rather than planning around concurrent test launches; the
+  isolation above is real for editing and building, not for test launch.
+  `just ios-test-sim-clean` deletes only the current worktree's sim.
 - **Two overlapping runs in the *same* checkout are not safe** (#1192) — they'd
   share that checkout's simulator and DerivedData and crash each other's
   XCUITests. The recipes refuse to start when another `xcodebuild`/
@@ -177,7 +186,8 @@ Rules to keep two checkouts from colliding:
   UDID=$(xcrun simctl create "snap-$(basename "$PWD")" "iPhone 16" "iOS26.5")
   ```
   Two sessions pointed at the *same* device produce the pty contention errors
-  above; distinct devices run concurrently.
+  above; distinct devices avoid that specific clash, but still serialise on
+  app launch for the reason above.
 - **Only touch sims you created.** Delete *your* UDID (or `just
   ios-test-sim-clean` for the recipe's sim) when done; never `shutdown all` /
   `delete unavailable` / restart `CoreSimulatorService` blind.
@@ -185,7 +195,7 @@ Rules to keep two checkouts from colliding:
   to do with your diff.** After a `Busy ("Application failed preflight
   checks")` launch error under host load, this worktree's sim went on to red
   four unrelated snapshot tests, deterministically, with content identical to
-  the reference and only text metrics moved (#1467). A fresh device passed the
+  the reference and only text metrics moved (#1480). A fresh device passed the
   same build. Before believing a snapshot failure you can't explain, run it on
   a new sim: `just ios-test-sim-clean` then re-run, or create a scratch UDID
   as above.

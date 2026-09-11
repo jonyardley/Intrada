@@ -6,6 +6,10 @@ improvements, and choose the next major direction through research-backed,
 iterative decision making. Which step is live is whichever issue carries an
 open PR; when this doc and the issues disagree, the issues are right.*
 
+*Phase R closed 2026-09-09 (#1615). The stream rules below predate the
+current ones in `.claude/skills/intrada-parallel-streams/SKILL.md`, revised
+by #1623: that file is the live rule, this is a historical record.*
+
 ## Ground rules for the whole phase
 
 - **API is descoped.** `crates/intrada-api` gets compile-keeping fixes only.

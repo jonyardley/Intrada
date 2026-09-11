@@ -178,12 +178,17 @@ exactly as it does today.
    exercises before the piece, `variant_id` set where a step was chosen, and no
    planned durations, because the estimate is a projection, not stored state.
 
-9. **Dismissal is shell state.** "Build my own instead" hides the card for the
-   app run and is `@State` in Swift: no domain consequence, no persistence, and
-   the issue's "no new storage" holds. It reveals the hero that shipped rather
-   than opening the builder, so the escape hatch lands on exactly the screen
-   the user already knows. If it should ever stay dismissed across launches it
-   becomes a `crux_kv` singleton, which is a later decision, not this one.
+9. **Dismissal is shell state, and never a one-way door.** **Updated
+   2026-09-10 (#1617, #1618).** "Build my own instead" is a decision, not a
+   dismissal: the same tap that hides the card drives straight into the
+   empty builder. `suggestionDismissed` is `@State` in Swift: no domain
+   consequence, no persistence, and the issue's "no new storage" holds. The
+   plain hero it lands on carries a text route back, "Show suggestion", so a
+   curious or accidental tap is recoverable rather than final. If dismissal
+   should ever survive a relaunch it becomes a `crux_kv` singleton, which is
+   a later decision, not this one. Amends the original reading, which had the
+   tap reveal the hero for a second tap to open the builder;
+   `docs/design-principles.md` T22 records why.
 
 10. **No wire hazard to manage.** `up_next` is appended to `ViewModel`, which is
     rebuilt every render and never stored, so the positional-bincode

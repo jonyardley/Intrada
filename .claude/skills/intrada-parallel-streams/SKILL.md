@@ -1,26 +1,48 @@
 ---
 name: intrada-parallel-streams
-description: Running more than one Claude Code session or subagent against this repo at once: the decoupled file set a second stream may use, the serialisation points never edited in parallel, one agent per vertical slice, worktree mechanics, and the definition of done. Read before starting a second stream or fanning out.
+description: Running more than one Claude Code session or subagent against this repo at once: the decoupled file set a second stream may use, any number of shell-only streams once each names its screens, the serialisation points never edited in parallel, one agent per vertical slice, worktree mechanics, and the definition of done. Read before starting a second stream or fanning out.
 ---
 
 ## Stream rules
 
 The claim protocol in CLAUDE.md stops two streams building the same issue;
 these rules stop two streams colliding in the same files. Evidence base: a
-coupling analysis of 400 commits (2026-08).
+coupling analysis of 400 commits (2026-08): 31% of commits that touch
+`crates/` also touch `ios/`. That figure is about commits that touch the
+core; it says nothing about two changes that touch only Swift screens and no
+crate, which is what most UX issues are (for example #1616, #1617, #1618 and
+#1620).
 
-- **Exactly one core plus iOS vertical stream at a time.** 31% of core commits
-  also touch `ios/`.
-- A **second stream** runs only in the decoupled set: `crates/intrada-api`,
-  `docs/`, `specs/`, `design/`, or CI and tooling (`justfile`,
-  `.github/workflows/`). An API task that needs a new domain field is a core
-  change and joins the vertical stream.
-- **Serialisation points.** If your task and another live branch both touch one
-  of these, serialise: `crates/intrada-core/src/app.rs`,
-  `crates/intrada-core/src/domain/session.rs`,
-  `ios/IntradaTests/ScreenSnapshotTests.swift`,
-  `ios/Intrada/DesignSystem/PreviewSupport.swift`, `ios/project.yml`,
-  `Cargo.lock` (never pair anything with a dependency bump).
+- **One stream that touches `crates/intrada-core` or `crates/intrada-ffi`,
+  plus any number of streams that touch only `ios/` and no crate.**
+  Screen-only work carries none of the coupling the 31% figure measures, so
+  two or more shell-only streams can run at once. Each shell-only stream
+  names the screens it owns before it starts, so two streams cannot silently
+  pick up the same file. This unlocks concurrent editing, not concurrent
+  testing: every shell-only stream still queues at the test gate, one at a
+  time, because test runs serialise on app launch whatever device they name
+  (#1621; the mechanism and the recovery are in `docs/ios-testing.md`,
+  "Running alongside another checkout"). A fast-tier run is well under a
+  minute either way, so queuing costs little.
+- A **stream that touches neither the core crates nor `ios/`** keeps to the
+  decoupled set: `crates/intrada-api`, `docs/`, `specs/`, `design/`, or CI and
+  tooling (`justfile`, `.github/workflows/`). An API task that needs a new
+  domain field is a core change and joins the vertical stream.
+- **Core serialisation points.** If your task and another live branch both
+  touch one of these, serialise: `crates/intrada-core/src/app.rs`,
+  `crates/intrada-core/src/domain/session.rs`, `Cargo.lock` (never pair
+  anything with a dependency bump).
+- **Shell serialisation points.** These four govern every screen, so a
+  shell-only stream that touches one of them serialises with every other
+  live stream, core or shell: `ios/IntradaTests/ScreenSnapshotTests.swift`,
+  `ios/Intrada/DesignSystem/PreviewSupport.swift`,
+  `ios/Intrada/DesignSystem/Theme.swift`, `ios/project.yml`.
+- **Shell serialisation is common, not rare.** In the last 60 commits on
+  `origin/main`, 17 touched only `ios/` and no crate; 8 of those 17 also
+  touched `ios/IntradaTests/ScreenSnapshotTests.swift`, and 2 touched
+  `ios/Intrada/DesignSystem/Theme.swift`. Check the four files above before
+  assuming two shell-only streams are independent: about half the time they
+  are not.
 - **One worktree per stream**, from fresh `origin/main`: `just worktree-new
   <name>` seeds the warm `target/` and `ios/build` caches (#1205). Close the
   second session when its task ships.

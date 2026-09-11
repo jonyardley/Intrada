@@ -139,9 +139,12 @@ Every plan (slice plan, spec phase breakdown, handover) names, per task:
    default upward.
 2. **Where it runs**: this session, a new session, or a subagent; one fresh
    session per task unless stated.
-3. **Parallel streams**: at most one core plus iOS vertical stream, a second
-   only in the decoupled set; serialisation points named explicitly ("B after
-   A"); one stream running iOS tests at a time.
+3. **Parallel streams**: one stream touching `crates/intrada-core` or
+   `crates/intrada-ffi`, plus any number of shell-only streams that touch only
+   `ios/` and no crate and have named the screens they own; serialisation
+   points named explicitly ("B after A"); one stream running iOS tests at a
+   time, which costs little to queue behind (a fast-tier run is well under a
+   minute either way, #1621).
 
 A plan without model, effort and stream annotations is incomplete, the same way
 a phase without a test plan is.
@@ -345,9 +348,10 @@ bridge contract, so the domain-sensitivity override puts it up a tier.
 1. Contract before code, at the top of the ladder: Fable 5.1 at `xhigh`. Pin
    the `ViewModel` shape first, in one session, and write it down before either
    side is wired. `max` is reserved for migrations.
-2. This is a core plus iOS vertical slice, so **exactly one stream**. Do not
-   fan out, and do not run a second agent against this repo while it is in
-   flight.
+2. This touches `crates/`, so it is the one crate-touching stream this repo
+   allows at a time. Do not fan out, and do not start a second stream that
+   touches `crates/` while it is in flight; a shell-only stream elsewhere that
+   has named its own screens may still run.
 3. Core PR first. TDD is the default for `intrada-core`: write the failing test,
    then project the bounds. Extend the Rust `assert_round_trips` helper to the
    new view type before any screen reads it, because a stub-bridge test cannot
@@ -374,10 +378,11 @@ and the rep-target bound, and write it into the issue before either side is
 wired. A refused write with nothing on screen is the failure the offline-first
 rule exists to prevent.
 
-This is a core plus iOS slice, so exactly one stream. Do not fan out.
-Core PR only when we implement: TDD, and extend assert_round_trips for the new
-view type before any screen reads it. Screens are a second PR after this one
-is reviewed.
+This touches crates/, so it is the one crate-touching stream running. Do not
+fan out, and do not start a second stream that touches crates/ while this is
+in flight. Core PR only when we implement: TDD, and extend assert_round_trips
+for the new view type before any screen reads it. Screens are a second PR
+after this one is reviewed.
 ```
 
 Opener for the screens session, once the core PR is reviewed:
