@@ -2,7 +2,7 @@
 # Machine-wide advisory lock serialising iOS Simulator test runs (#1622).
 # CoreSimulatorService and SpringBoard are machine-global, so two
 # xcodebuild/XCTest runs against DISTINCT simulator devices can still crash
-# each other's XCUITests (#1192, measured in #1621) — this lock is the sole
+# each other's XCUITests (#1192, measured in #1621), so this lock is the sole
 # busy signal now. It replaces check-sim-free.sh's "any booted simulator"
 # heuristic, which false-positived on a leftover-but-idle sim nobody shut
 # down after an earlier run: a booted device no longer means anything by
@@ -18,8 +18,8 @@
 #   ios_sim_lock_acquire
 #   trap ios_sim_lock_release EXIT
 #
-# IOS_SIM_LOCK_DIR and IOS_SIM_LOCK_TIMEOUT override the path and wait (in
-# seconds) — both for tests, so this can be exercised without a 900s wait.
+# IOS_SIM_LOCK_DIR and IOS_SIM_LOCK_TIMEOUT override the path and wait, in
+# seconds, both for tests, so this can be exercised without a 900s wait.
 
 IOS_SIM_LOCK_DIR="${IOS_SIM_LOCK_DIR:-/tmp/intrada-ios-test.lock}"
 IOS_SIM_LOCK_TIMEOUT="${IOS_SIM_LOCK_TIMEOUT:-900}"
@@ -32,7 +32,7 @@ ios_sim_lock_acquire() {
         # trap, so a dead PID means the lock is stale, not held.
         if [ -f "$IOS_SIM_LOCK_DIR/pid" ] \
             && ! kill -0 "$(cat "$IOS_SIM_LOCK_DIR/pid" 2>/dev/null || echo 0)" 2>/dev/null; then
-            echo "⚠ stale iOS simulator lock ($holder, holder process gone) — clearing it" >&2
+            echo "⚠ stale iOS simulator lock ($holder, holder process gone): clearing it" >&2
             rm -rf "$IOS_SIM_LOCK_DIR"
             continue
         fi
