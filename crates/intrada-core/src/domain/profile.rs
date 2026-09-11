@@ -150,7 +150,7 @@ pub(crate) fn suggest_icon(instrument: &str) -> InstrumentIcon {
         .unwrap_or(InstrumentIcon::Other)
 }
 
-// Bands are design-principles T25; the wording is tone-of-voice V6.
+// Bands are design-principles T25, wording tone-of-voice V6 (#1694).
 pub(crate) fn greeting(name: &str, local_hour: u32) -> String {
     let name = name.trim();
     if name.is_empty() {
@@ -477,21 +477,33 @@ mod tests {
     fn view_model_projects_the_profile() {
         let mut model = Model::test_default();
         let _ = save(&mut model, fixture());
-        let vm = Intrada.view(&model);
-        let projected = vm.profile;
-        let expected = build_profile_view(&fixture(), 9);
+        let projected = Intrada.view(&model).profile;
         assert!(
             ["Morning, Jon", "Afternoon, Jon", "Evening, Jon"]
                 .contains(&projected.greeting.as_str()),
             "the greeting follows the real clock: {}",
             projected.greeting
         );
-        assert_eq!(
-            ProfileView {
-                greeting: expected.greeting.clone(),
-                ..projected
-            },
-            expected
+        assert_eq!(projected.name, "Jon");
+        assert_eq!(projected.instrument, "Piano");
+        assert_eq!(projected.suggested_icon, InstrumentIcon::Piano);
+        assert_eq!(projected.icon, InstrumentIcon::Piano);
+        assert_eq!(projected.colour, HighlighterColour::Butter);
+    }
+
+    // Twelve hours apart always straddles a band edge, so this cannot flake
+    // and fails if view() reads UTC instead of the musician's offset.
+    #[test]
+    fn view_greets_by_the_musicians_clock_not_utc() {
+        let mut east = Model::test_default();
+        let _ = save(&mut east, fixture());
+        east.utc_offset_minutes = 0;
+        let mut west = Model::test_default();
+        let _ = save(&mut west, fixture());
+        west.utc_offset_minutes = -720;
+        assert_ne!(
+            Intrada.view(&east).profile.greeting,
+            Intrada.view(&west).profile.greeting
         );
     }
 

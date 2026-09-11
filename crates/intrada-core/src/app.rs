@@ -465,9 +465,7 @@ impl Intrada {
             composers
         };
 
-        // Uses Utc::now(), making view() impure: a pragmatic tradeoff, since the
-        // date changes once a day and the computation fns take a `LocalClock`
-        // for testability.
+        // view() reads the clock: the local day and the greeting's hour (#1694).
         let now = chrono::Utc::now();
         let clock = crate::analytics::LocalClock::from_now(now, model.utc_offset_minutes);
 

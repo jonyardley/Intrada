@@ -4,7 +4,7 @@
 use std::cmp::Reverse;
 use std::collections::{HashMap, HashSet};
 
-use chrono::{DateTime, Datelike, NaiveDate, Timelike, Utc};
+use chrono::{DateTime, Datelike, NaiveDate, NaiveDateTime, Timelike, Utc};
 use serde::{Deserialize, Serialize};
 
 use crate::domain::item::{Item, ItemKind};
@@ -152,7 +152,7 @@ impl LocalClock {
 
     /// The user-local calendar day of a UTC instant.
     pub fn day_of(&self, instant: DateTime<Utc>) -> NaiveDate {
-        self.local(instant).date_naive()
+        self.local(instant).date()
     }
 
     /// The user-local hour (0 to 23) of a UTC instant.
@@ -160,8 +160,8 @@ impl LocalClock {
         self.local(instant).hour()
     }
 
-    fn local(&self, instant: DateTime<Utc>) -> DateTime<Utc> {
-        instant + chrono::Duration::minutes(self.utc_offset_minutes as i64)
+    fn local(&self, instant: DateTime<Utc>) -> NaiveDateTime {
+        (instant + chrono::Duration::minutes(self.utc_offset_minutes as i64)).naive_utc()
     }
 }
 
@@ -1790,11 +1790,11 @@ mod tests {
         assert_eq!(bst.hour_of(utc_instant(2026, 8, 13, 23, 30)), 0);
         assert_eq!(bst.hour_of(utc_instant(2026, 8, 13, 10, 59)), 11);
         assert_eq!(bst.hour_of(utc_instant(2026, 8, 13, 11, 0)), 12);
-        let new_york = LocalClock {
+        let utc_minus_five = LocalClock {
             today: NaiveDate::from_ymd_opt(2026, 8, 13).unwrap(),
             utc_offset_minutes: -300,
         };
-        assert_eq!(new_york.hour_of(utc_instant(2026, 8, 14, 3, 59)), 22);
+        assert_eq!(utc_minus_five.hour_of(utc_instant(2026, 8, 14, 3, 59)), 22);
     }
 
     #[test]
