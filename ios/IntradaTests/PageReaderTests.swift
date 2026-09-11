@@ -105,8 +105,10 @@ struct PageReaderTests {
 
     let read = try lines(from: await PageReader.read(photoId: photoId))
 
-    #expect(read.contains { $0.text.contains("Autumn") })
-    #expect(read.contains { $0.text.contains("Kosma") })
+    let title = try #require(read.first { $0.text.contains("Autumn") })
+    let credit = try #require(read.first { $0.text.contains("Kosma") })
+    #expect(title.width > title.height, "the title reads as a wide band, not a tall sideways one")
+    #expect(credit.y > 0.6, "the credit sits near the foot of an upright page")
   }
 
   /// Phase A leaves bytes on disk but the core can still name an id nothing was
