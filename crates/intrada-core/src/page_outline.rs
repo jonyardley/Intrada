@@ -9,8 +9,9 @@ pub struct Corner {
 }
 
 /// Corners are normalised to the frame (0 to 1 on each axis), as Vision
-/// reports them. The frame size is needed because angles measured in
-/// normalised space are squashed by the photo's aspect ratio.
+/// reports them. The frame size is the upright pixel buffer Vision was given,
+/// not the image's display size: angles measured in normalised space are
+/// squashed by the photo's aspect ratio, and a rotated photo transposes it.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct PageOutline {
     pub top_left: Corner,
@@ -27,14 +28,18 @@ pub enum OutlineFault {
     /// photo's edge, not the page's.
     CornerOnFrameEdge,
     /// A flat page photographed at any sensible angle keeps opposite edges
-    /// close to parallel; a wide skew means the outline took in the surround.
+    /// within about 16 degrees of parallel (an A4 sheet at 35cm, tilted 25
+    /// degrees); a wider skew means the outline took in the surround.
     EdgesNotParallel,
+    /// Two corners coincide, so there is no page to flatten to.
+    Collapsed,
 }
 
-pub const FRAME_EDGE_MARGIN: f64 = 0.01;
-pub const MAX_OPPOSITE_EDGE_SKEW_DEGREES: f64 = 12.0;
+const FRAME_EDGE_MARGIN: f64 = 0.01;
+const MAX_OPPOSITE_EDGE_SKEW_DEGREES: f64 = 25.0;
+const MIN_EDGE_PIXELS: f64 = 1.0;
 
-pub fn judge(outline: &PageOutline) -> Result<(), OutlineFault> {
+pub fn fault(outline: &PageOutline) -> Option<OutlineFault> {
     let corners = [
         outline.top_left,
         outline.top_right,
@@ -45,7 +50,7 @@ pub fn judge(outline: &PageOutline) -> Result<(), OutlineFault> {
         .iter()
         .any(|c| on_frame_edge(c.x) || on_frame_edge(c.y))
     {
-        return Err(OutlineFault::CornerOnFrameEdge);
+        return Some(OutlineFault::CornerOnFrameEdge);
     }
 
     let edge = |from: Corner, to: Corner| {
@@ -58,12 +63,18 @@ pub fn judge(outline: &PageOutline) -> Result<(), OutlineFault> {
     let right = edge(outline.bottom_right, outline.top_right);
     let top = edge(outline.top_left, outline.top_right);
     let bottom = edge(outline.bottom_left, outline.bottom_right);
+    if [left, right, top, bottom]
+        .iter()
+        .any(|(dx, dy)| dx.hypot(*dy) < MIN_EDGE_PIXELS)
+    {
+        return Some(OutlineFault::Collapsed);
+    }
     if skew_degrees(left, right) > MAX_OPPOSITE_EDGE_SKEW_DEGREES
         || skew_degrees(top, bottom) > MAX_OPPOSITE_EDGE_SKEW_DEGREES
     {
-        return Err(OutlineFault::EdgesNotParallel);
+        return Some(OutlineFault::EdgesNotParallel);
     }
-    Ok(())
+    None
 }
 
 fn on_frame_edge(value: f64) -> bool {
@@ -97,7 +108,7 @@ mod tests {
 
     #[test]
     fn judges_outlines_from_their_corners() {
-        let cases: Vec<(&str, PageOutline, Result<(), OutlineFault>)> = vec![
+        let cases: Vec<(&str, PageOutline, Option<OutlineFault>)> = vec![
             (
                 "device log 2026-09-11: spiral book running off the right of the frame",
                 outline(
@@ -106,60 +117,90 @@ mod tests {
                     (0.2292, 0.2461),
                     (1.0, 0.2695),
                 ),
-                Err(OutlineFault::CornerOnFrameEdge),
+                Some(OutlineFault::CornerOnFrameEdge),
             ),
             (
-                "the same outline pulled inside the frame still leans 17 degrees",
+                "the logged lean of 17 degrees alone is within what a tilted camera does",
                 outline(
                     (0.05, 0.7891),
                     (0.95, 0.8125),
                     (0.2731, 0.2461),
                     (0.95, 0.2695),
                 ),
-                Err(OutlineFault::EdgesNotParallel),
+                None,
+            ),
+            (
+                "left edge leaning 30 degrees against a vertical right edge",
+                outline(
+                    (0.05, 0.7891),
+                    (0.95, 0.8125),
+                    (0.468, 0.2461),
+                    (0.95, 0.2695),
+                ),
+                Some(OutlineFault::EdgesNotParallel),
             ),
             (
                 "clean page square on",
                 outline((0.1, 0.9), (0.9, 0.9), (0.1, 0.1), (0.9, 0.1)),
-                Ok(()),
+                None,
             ),
             (
-                "page keystoned about 8 degrees by a tilted camera",
-                outline((0.12, 0.9), (0.88, 0.9), (0.05, 0.1), (0.95, 0.1)),
-                Ok(()),
+                "A4 sheet at 35cm tilted 20 degrees, pinhole projection, 12.5 degree skew",
+                outline(
+                    (0.215, 0.7841),
+                    (0.785, 0.7841),
+                    (0.1182, 0.1195),
+                    (0.8818, 0.1195),
+                ),
+                None,
             ),
             (
-                "top edge sloping 22 degrees against a level bottom edge",
-                outline((0.1, 0.95), (0.9, 0.7), (0.1, 0.1), (0.9, 0.1)),
-                Err(OutlineFault::EdgesNotParallel),
+                "top edge sloping 34 degrees against a level bottom edge",
+                outline((0.1, 0.95), (0.9, 0.55), (0.1, 0.1), (0.9, 0.1)),
+                Some(OutlineFault::EdgesNotParallel),
             ),
             (
                 "corner just inside the frame margin",
                 outline((0.011, 0.9), (0.9, 0.9), (0.011, 0.1), (0.9, 0.1)),
-                Ok(()),
+                None,
             ),
             (
                 "corner on the frame margin",
                 outline((0.009, 0.9), (0.9, 0.9), (0.1, 0.1), (0.9, 0.1)),
-                Err(OutlineFault::CornerOnFrameEdge),
+                Some(OutlineFault::CornerOnFrameEdge),
             ),
             (
                 "corner on the top of the frame",
                 outline((0.1, 0.9), (0.9, 0.995), (0.1, 0.1), (0.9, 0.1)),
-                Err(OutlineFault::CornerOnFrameEdge),
+                Some(OutlineFault::CornerOnFrameEdge),
+            ),
+            (
+                "only the bottom left corner off the left of the frame",
+                outline((0.1, 0.9), (0.9, 0.9), (0.005, 0.1), (0.9, 0.1)),
+                Some(OutlineFault::CornerOnFrameEdge),
+            ),
+            (
+                "only the bottom right corner off the bottom of the frame",
+                outline((0.1, 0.9), (0.9, 0.9), (0.1, 0.1), (0.9, 0.003)),
+                Some(OutlineFault::CornerOnFrameEdge),
+            ),
+            (
+                "all four corners on one point",
+                outline((0.5, 0.5), (0.5, 0.5), (0.5, 0.5), (0.5, 0.5)),
+                Some(OutlineFault::Collapsed),
             ),
         ];
         for (name, outline, expected) in cases {
-            assert_eq!(judge(&outline), expected, "{name}");
+            assert_eq!(fault(&outline), expected, "{name}");
         }
     }
 
     #[test]
     fn skew_is_measured_in_pixels_not_normalised_space() {
-        let mut square = outline((0.12, 0.9), (0.88, 0.9), (0.05, 0.1), (0.95, 0.1));
-        assert_eq!(judge(&square), Ok(()));
-        square.frame_width = 4032.0;
-        square.frame_height = 1000.0;
-        assert_eq!(judge(&square), Err(OutlineFault::EdgesNotParallel));
+        let mut keystoned = outline((0.12, 0.9), (0.88, 0.9), (0.05, 0.1), (0.95, 0.1));
+        assert_eq!(fault(&keystoned), None);
+        keystoned.frame_width = 4032.0;
+        keystoned.frame_height = 500.0;
+        assert_eq!(fault(&keystoned), Some(OutlineFault::EdgesNotParallel));
     }
 }

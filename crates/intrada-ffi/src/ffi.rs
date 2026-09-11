@@ -69,6 +69,8 @@ pub struct Corner {
     pub y: f64,
 }
 
+/// Frame size is the upright pixel buffer Vision was given, not the image's
+/// display size: a rotated photo transposes the two and every angle is wrong.
 #[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
 #[derive(Debug, Clone, Copy)]
 pub struct PageOutline {
@@ -85,6 +87,7 @@ pub struct PageOutline {
 pub enum PageOutlineFault {
     CornerOnFrameEdge,
     EdgesNotParallel,
+    Collapsed,
 }
 
 impl From<Corner> for page_outline::Corner {
@@ -98,6 +101,7 @@ impl From<page_outline::OutlineFault> for PageOutlineFault {
         match fault {
             page_outline::OutlineFault::CornerOnFrameEdge => Self::CornerOnFrameEdge,
             page_outline::OutlineFault::EdgesNotParallel => Self::EdgesNotParallel,
+            page_outline::OutlineFault::Collapsed => Self::Collapsed,
         }
     }
 }
@@ -107,7 +111,7 @@ impl From<page_outline::OutlineFault> for PageOutlineFault {
 #[cfg_attr(feature = "uniffi", uniffi::export)]
 #[must_use]
 pub fn page_outline_fault(outline: PageOutline) -> Option<PageOutlineFault> {
-    page_outline::judge(&page_outline::PageOutline {
+    page_outline::fault(&page_outline::PageOutline {
         top_left: outline.top_left.into(),
         top_right: outline.top_right.into(),
         bottom_left: outline.bottom_left.into(),
@@ -115,7 +119,6 @@ pub fn page_outline_fault(outline: PageOutline) -> Option<PageOutlineFault> {
         frame_width: outline.frame_width,
         frame_height: outline.frame_height,
     })
-    .err()
     .map(Into::into)
 }
 
@@ -123,29 +126,29 @@ pub fn page_outline_fault(outline: PageOutline) -> Option<PageOutlineFault> {
 mod tests {
     use super::*;
 
+    // Swapping x with y, width with height, or any two corners in the mapping
+    // changes this answer: the skew only crosses the limit in this aspect ratio.
     #[test]
-    fn logged_outline_is_faulted_across_the_bridge_types() {
+    fn mirror_types_map_every_field_onto_the_core_outline() {
         let corner = |x, y| Corner { x, y };
-        let outline = PageOutline {
-            top_left: corner(0.0069, 0.7891),
-            top_right: corner(1.0, 0.8125),
-            bottom_left: corner(0.2292, 0.2461),
-            bottom_right: corner(1.0, 0.2695),
-            frame_width: 3024.0,
-            frame_height: 4032.0,
+        let keystoned = PageOutline {
+            top_left: corner(0.12, 0.9),
+            top_right: corner(0.88, 0.9),
+            bottom_left: corner(0.05, 0.1),
+            bottom_right: corner(0.95, 0.1),
+            frame_width: 4032.0,
+            frame_height: 500.0,
         };
         assert_eq!(
-            page_outline_fault(outline),
-            Some(PageOutlineFault::CornerOnFrameEdge)
+            page_outline_fault(keystoned),
+            Some(PageOutlineFault::EdgesNotParallel)
         );
-        let clean = PageOutline {
-            top_left: corner(0.1, 0.9),
-            top_right: corner(0.9, 0.9),
-            bottom_left: corner(0.1, 0.1),
-            bottom_right: corner(0.9, 0.1),
-            ..outline
+        let upright = PageOutline {
+            frame_width: 3024.0,
+            frame_height: 4032.0,
+            ..keystoned
         };
-        assert_eq!(page_outline_fault(clean), None);
+        assert_eq!(page_outline_fault(upright), None);
     }
 
     #[test]
