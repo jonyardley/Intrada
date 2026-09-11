@@ -26,7 +26,7 @@ struct DraftExerciseSheet: View {
             }
             .cardSurface()
 
-            Text("It joins the list here and is written when you add the piece.")
+            Text("It joins the list here.")
               .font(IntradaFont.meta)
               .foregroundStyle(IntradaColor.inkSecondary)
               .fixedSize(horizontal: false, vertical: true)

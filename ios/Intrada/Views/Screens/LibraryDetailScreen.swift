@@ -15,7 +15,6 @@ struct LibraryDetailScreen: View {
   @State private var editingSteps: Bool
   @State private var showingPicker = false
   @State private var showingPiecePicker = false
-  @State private var creatingExercise = false
   @State private var editingChart = false
   @State private var showingScaffold = false
   @State private var showingAddSteps = false
@@ -126,7 +125,7 @@ struct LibraryDetailScreen: View {
         kind: .exercise,
         available: allExercises,
         linkedIds: item.linkedExercises.map(\.id),
-        onApply: { applyLinkChanges($0) }
+        onApply: applyLinkChanges
       )
       .environment(store)
     }
@@ -135,15 +134,9 @@ struct LibraryDetailScreen: View {
         kind: .piece,
         available: allPieces,
         linkedIds: linkedPieceIds,
-        onApply: { applyPieceLinkChanges($0) }
+        onApply: { ids, _ in applyPieceLinkChanges(ids) }
       )
       .environment(store)
-    }
-    // The read belongs to the sheet. `onDismiss`, not the add screen's own
-    // `onDisappear`, which the scanner's full-screen cover also triggers.
-    .sheet(isPresented: $creatingExercise, onDismiss: { store.send(.discardPhotoDraft) }) {
-      LibraryAddScreen(relatedToPieceId: item.id)
-        .environment(store)
     }
     .sheet(isPresented: $editingChart) {
       ChordChartEditSheet(
@@ -290,34 +283,20 @@ struct LibraryDetailScreen: View {
   }
 
   // The brand bar belongs to the empty state, where there is one obvious next
-  // step; once the card holds exercises both actions recede (T18).
+  // step; once the card holds exercises the action recedes (T18).
   private var populatedFooterActions: some View {
-    HStack(spacing: 0) {
-      Button {
-        creatingExercise = true
-      } label: {
-        Label("Create an exercise", systemImage: "plus")
-          .font(IntradaFont.bodyMedium)
-          .foregroundStyle(IntradaColor.accent)
-          .frame(maxWidth: .infinity)
-          .padding(.vertical, IntradaSpacing.cardCompact)
-          .contentShape(Rectangle())
-      }
-      .buttonStyle(.plain)
-      .accessibilityLabel("Create an exercise for this piece")
-      Button {
-        showingPicker = true
-      } label: {
-        Text("Choose one")
-          .font(IntradaFont.bodyMedium)
-          .foregroundStyle(IntradaColor.accent)
-          .frame(maxWidth: .infinity)
-          .padding(.vertical, IntradaSpacing.cardCompact)
-          .contentShape(Rectangle())
-      }
-      .buttonStyle(.plain)
-      .accessibilityLabel("Choose an existing exercise for this piece")
+    Button {
+      showingPicker = true
+    } label: {
+      Label("Add exercise", systemImage: "plus")
+        .font(IntradaFont.bodyMedium)
+        .foregroundStyle(IntradaColor.accent)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, IntradaSpacing.cardCompact)
+        .contentShape(Rectangle())
     }
+    .buttonStyle(.plain)
+    .accessibilityLabel("Add an exercise for this piece")
     .padding(.horizontal, IntradaSpacing.controlGap)
     .padding(.vertical, IntradaSpacing.controlGap)
   }
@@ -465,23 +444,11 @@ struct LibraryDetailScreen: View {
         .font(IntradaFont.body)
         .foregroundStyle(IntradaColor.inkSecondary)
         .fixedSize(horizontal: false, vertical: true)
-      BrandBarButton(action: { creatingExercise = true }) {
+      BrandBarButton(action: { showingPicker = true }) {
         Image(systemName: "plus")
-        Text("Create an exercise")
+        Text("Add exercise")
       }
-      .accessibilityLabel("Create an exercise for this piece")
-      Button {
-        showingPicker = true
-      } label: {
-        Text("Choose one from the library")
-          .font(IntradaFont.bodyMedium)
-          .foregroundStyle(IntradaColor.accent)
-          .frame(maxWidth: .infinity)
-          .padding(.vertical, IntradaSpacing.controlGap)
-          .contentShape(Rectangle())
-      }
-      .buttonStyle(.plain)
-      .accessibilityLabel("Choose an existing exercise for this piece")
+      .accessibilityLabel("Add an exercise for this piece")
     }
     .frame(maxWidth: .infinity, alignment: .leading)
     .padding(.horizontal, IntradaSpacing.card)
@@ -722,10 +689,10 @@ struct LibraryDetailScreen: View {
     }
   }
 
-  // Reconcile the picker's final set against what's linked now: link the added,
-  // unlink the removed. A failed write surfaces on the global banner (#846), so
-  // the success haptic only fires when every write landed.
-  private func applyLinkChanges(_ selected: Swift.Set<String>) {
+  // Links, unlinks and creates+links each draft (#1431); a failed write
+  // surfaces on the banner rather than rolling back (#846), so the haptic only
+  // fires once everything lands.
+  private func applyLinkChanges(_ selected: Swift.Set<String>, _ drafts: [StagedExercise]) {
     let current = Swift.Set(item.linkedExercises.map(\.id))
     let toLink = selected.subtracting(current)
     let toUnlink = current.subtracting(selected)
@@ -740,7 +707,13 @@ struct LibraryDetailScreen: View {
       store.send(.item(.unlinkExercise(pieceId: item.id, exerciseId: id)))
       if store.viewModel?.errorSeq != before { ok = false }
     }
-    if ok && !(toLink.isEmpty && toUnlink.isEmpty) {
+    for draft in drafts {
+      guard case .new(let input) = draft.entry else { continue }
+      let before = store.viewModel?.errorSeq
+      store.send(.item(.addLinkedExercise(pieceId: item.id, input: input)))
+      if store.viewModel?.errorSeq != before { ok = false }
+    }
+    if ok && !(toLink.isEmpty && toUnlink.isEmpty && drafts.isEmpty) {
       UINotificationFeedbackGenerator().notificationOccurred(.success)
     }
   }

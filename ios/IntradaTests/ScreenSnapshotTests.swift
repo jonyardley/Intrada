@@ -1114,7 +1114,21 @@ final class ScreenSnapshotTests: XCTestCase {
           photoId: nil),
       ],
       linkedIds: ["exercise-1"],
-      onApply: { _ in })
+      onApply: { _, _ in })
+    assertSnapshot(of: host(sheet), as: config)
+  }
+
+  // #1616: the create trigger plus a drafted row, alongside the ordinary list.
+  func testLinkedExercisePickerWithDraft() {
+    let sheet = LinkedItemPickerSheet(
+      kind: .exercise,
+      available: [.previewExercise],
+      linkedIds: [],
+      existingDrafts: [
+        .draft(
+          id: UUID(), title: "Guide tones, ii to V to I", key: "C", modality: .major, bpm: "80")
+      ],
+      onApply: { _, _ in })
     assertSnapshot(of: host(sheet), as: config)
   }
 
@@ -1123,7 +1137,7 @@ final class ScreenSnapshotTests: XCTestCase {
       kind: .piece,
       available: [.previewPiece, piece(id: "piece-9", "Blue Bossa", "Kenny Dorham")],
       linkedIds: [LibraryItemView.previewPiece.id],
-      onApply: { _ in })
+      onApply: { _, _ in })
     assertSnapshot(of: host(sheet), as: config)
   }
 

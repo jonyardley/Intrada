@@ -7,24 +7,13 @@ import SwiftUI
 struct LibraryAddScreen: View {
   @Environment(Store.self) private var store
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
-  @Environment(\.dynamicTypeSize) private var typeSize
   @State private var form: ItemFormModel
   @State private var expandsExercises = false
   @State private var editingChart = false
-  @State private var writingExercise = false
   @State private var choosingExercises = false
-  /// Set when the exercise is being written for a piece: the core creates and
-  /// links it in one event, so it can never land unlinked (#1431).
-  private let relatedToPieceId: String?
 
   init(defaultKind: ItemKind = .piece) {
     _form = State(initialValue: ItemFormModel(kind: defaultKind))
-    relatedToPieceId = nil
-  }
-
-  init(relatedToPieceId: String) {
-    _form = State(initialValue: ItemFormModel(kind: .exercise))
-    self.relatedToPieceId = relatedToPieceId
   }
 
   #if DEBUG
@@ -32,12 +21,10 @@ struct LibraryAddScreen: View {
       let form = ItemFormModel(kind: .piece)
       form.formError = previewError
       _form = State(initialValue: form)
-      relatedToPieceId = nil
     }
 
     init(previewForm: ItemFormModel) {
       _form = State(initialValue: previewForm)
-      relatedToPieceId = nil
     }
   #endif
 
@@ -48,7 +35,6 @@ struct LibraryAddScreen: View {
       confirmLabel: "Add",
       composerSuggestions: store.viewModel?.availableComposers ?? [],
       tagSuggestions: store.viewModel?.availableTags ?? [],
-      showsKindPicker: relatedToPieceId == nil,
       header: {
         ScanPageEntry(
           photoId: recognition?.photoId,
@@ -87,20 +73,18 @@ struct LibraryAddScreen: View {
         pieceModality: form.modality,
         onSave: { form.chartText = $0 })
     }
-    .sheet(isPresented: $writingExercise) {
-      DraftExerciseSheet(onDone: { form.stagedExercises.append($0) })
-    }
     .sheet(isPresented: $choosingExercises) {
       LinkedItemPickerSheet(
         kind: .exercise,
         available: store.viewModel?.allItems.filter { $0.itemType == .exercise } ?? [],
         linkedIds: form.stagedExercises.compactMap(\.existingId),
+        existingDrafts: form.stagedExercises.filter { $0.existingId == nil },
         onApply: applyChosen)
     }
   }
 
   private var showsSections: Bool {
-    relatedToPieceId == nil && form.kind == .piece
+    form.kind == .piece
   }
 
   // ── Chord chart ──
@@ -159,45 +143,13 @@ struct LibraryAddScreen: View {
     .cardSurface()
   }
 
-  @ViewBuilder private var exercisesActions: some View {
-    if stacksActions {
-      VStack(spacing: 0) {
-        actionButton(
-          "Create an exercise", icon: "plus",
-          spoken: "Create an exercise for this piece"
-        ) { writingExercise = true }
-        HairlineDivider()
-        actionButton(
-          "Choose one from the library",
-          spoken: "Choose an existing exercise for this piece"
-        ) { choosingExercises = true }
-      }
-    } else {
-      HStack(spacing: 0) {
-        actionButton("Create an exercise", spoken: "Create an exercise for this piece") {
-          writingExercise = true
-        }
-        actionButton("Choose one", spoken: "Choose an existing exercise for this piece") {
-          choosingExercises = true
-        }
-      }
-      .padding(IntradaSpacing.controlGap)
-    }
-  }
-
-  private var stacksActions: Bool {
-    form.stagedExercises.isEmpty || typeSize.isAccessibilitySize
-  }
-
-  private func actionButton(
-    _ title: String, icon: String? = nil, spoken: String, action: @escaping () -> Void
-  ) -> some View {
-    Button(action: action) {
+  private var exercisesActions: some View {
+    Button {
+      choosingExercises = true
+    } label: {
       HStack(spacing: 6) {
-        if let icon {
-          Image(systemName: icon)
-        }
-        Text(title)
+        Image(systemName: "plus")
+        Text("Add exercise")
       }
       .font(IntradaFont.bodyMedium)
       .foregroundStyle(IntradaColor.accent)
@@ -206,13 +158,12 @@ struct LibraryAddScreen: View {
       .contentShape(Rectangle())
     }
     .buttonStyle(.plain)
-    .accessibilityLabel(spoken)
+    .accessibilityLabel("Add an exercise for this piece")
   }
 
   // `Swift.Set`, because `SharedTypes` exports a domain `Set` that shadows the
   // standard library type in this file (#1348).
-  private func applyChosen(_ ids: Swift.Set<String>) {
-    let drafts = form.stagedExercises.filter { $0.existingId == nil }
+  private func applyChosen(_ ids: Swift.Set<String>, _ drafts: [StagedExercise]) {
     form.stagedExercises =
       drafts
       + (store.viewModel?.allItems ?? [])
@@ -221,9 +172,7 @@ struct LibraryAddScreen: View {
   }
 
   private func send() {
-    if let pieceId = relatedToPieceId {
-      store.send(.item(.addLinkedExercise(pieceId: pieceId, input: form.createInput())))
-    } else if showsSections && form.hasStagedExtras {
+    if showsSections && form.hasStagedExtras {
       store.send(
         .item(
           .addPieceInFull(
