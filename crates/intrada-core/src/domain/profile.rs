@@ -107,6 +107,7 @@ const ICON_KEYWORDS: &[(&str, InstrumentIcon)] = &[
     ("violin", InstrumentIcon::Violin),
     ("viola", InstrumentIcon::Violin),
     ("fiddle", InstrumentIcon::Violin),
+    ("bassoon", InstrumentIcon::Clarinet),
     ("cello", InstrumentIcon::Cello),
     ("double bass", InstrumentIcon::Cello),
     ("upright bass", InstrumentIcon::Cello),
@@ -118,7 +119,6 @@ const ICON_KEYWORDS: &[(&str, InstrumentIcon)] = &[
     ("oboe", InstrumentIcon::Clarinet),
     ("cor anglais", InstrumentIcon::Clarinet),
     ("english horn", InstrumentIcon::Clarinet),
-    ("bassoon", InstrumentIcon::Clarinet),
     ("sax", InstrumentIcon::Saxophone),
     ("trumpet", InstrumentIcon::Trumpet),
     ("cornet", InstrumentIcon::Trumpet),
@@ -143,8 +143,8 @@ const ICON_KEYWORDS: &[(&str, InstrumentIcon)] = &[
     ("tenor", InstrumentIcon::Voice),
     ("baritone", InstrumentIcon::Voice),
     ("choir", InstrumentIcon::Voice),
-    ("bass", InstrumentIcon::ElectricGuitar),
     ("viol", InstrumentIcon::Cello),
+    ("bass", InstrumentIcon::ElectricGuitar),
 ];
 
 pub(crate) fn suggest_icon(instrument: &str) -> InstrumentIcon {
@@ -273,6 +273,12 @@ mod tests {
             ("Choir", Voice),
             ("Synth", Piano),
             ("Lute", AcousticGuitar),
+            ("Accordion", Piano),
+            ("Fife", Flute),
+            ("Xylophone", Drums),
+            ("Lyre", Harp),
+            ("Double bassoon", Clarinet),
+            ("Bass viol", Cello),
             ("vocals", Voice),
             ("Voice", Voice),
             ("Singer", Voice),

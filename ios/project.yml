@@ -60,7 +60,8 @@ targets:
         # Only the camera needs a reason string: the library route is
         # `PhotosPicker`, which runs out of process and reads nothing we hold.
         INFOPLIST_KEY_NSCameraUsageDescription: To scan the page you practise from.
-        # App icon = the Icon Composer AppIcon.icon bundle (no asset catalog).
+        # App icon = the Icon Composer AppIcon.icon bundle, not the asset
+        # catalogue (which holds the instrument icons only, #1693).
         # actool rasterises back-compat PNG icons for iOS 17/18; iOS 26 gets the
         # layered Liquid Glass rendering.
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon

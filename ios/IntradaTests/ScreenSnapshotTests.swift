@@ -1274,6 +1274,7 @@ final class ScreenSnapshotTests: XCTestCase {
         }
       }
     }
+    .foregroundStyle(IntradaColor.ink)
     .padding(IntradaSpacing.card)
     assertSnapshot(of: host(sheet), as: tallFormConfig)
   }

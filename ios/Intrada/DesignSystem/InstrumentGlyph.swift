@@ -22,7 +22,6 @@ extension InstrumentIcon {
     }
   }
 
-  /// What a picker tile says.
   var tileLabel: String {
     switch self {
     case .piano: "Piano"
@@ -41,7 +40,6 @@ extension InstrumentIcon {
     }
   }
 
-  /// What VoiceOver reads.
   var accessibilityLabel: String {
     switch self {
     case .piano: "Piano and keys"
@@ -70,8 +68,8 @@ extension InstrumentIcon {
   }
 }
 
-/// One instrument icon drawn in ink at a `IntradaGlyph` size. The asset is a
-/// template, so the tint is whatever `foregroundStyle` the caller sets.
+/// One instrument icon at a `IntradaGlyph` size, tinted by the inherited
+/// foreground style: ink on paper, the highlighter where the design says so.
 struct InstrumentGlyph: View {
   let icon: InstrumentIcon
   var size: CGFloat = IntradaGlyph.tile
@@ -82,7 +80,6 @@ struct InstrumentGlyph: View {
       .resizable()
       .scaledToFit()
       .frame(width: size, height: size)
-      .foregroundStyle(IntradaColor.ink)
       .accessibilityLabel(icon.accessibilityLabel)
   }
 }

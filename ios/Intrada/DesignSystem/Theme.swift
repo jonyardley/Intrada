@@ -192,14 +192,6 @@ enum IntradaSpacing {
 }
 
 /// Corner-radius tokens. `card` is the rounding every card / inset surface uses.
-/// Instrument icon sizes from the profile mock (#1690): the header button, a
-/// picker tile, the profile hero.
-enum IntradaGlyph {
-  static let bar: CGFloat = 36
-  static let tile: CGFloat = 56
-  static let hero: CGFloat = 88
-}
-
 enum IntradaRadius {
   static let card: CGFloat = 3
   /// Interactive control buttons (rep Clean/Missed, etc.).
@@ -212,6 +204,14 @@ enum IntradaRadius {
   static let hero: CGFloat = 3
   /// Fully-rounded pills (filter tabs, the rep/consistency chrome).
   static let pill: CGFloat = 999
+}
+
+/// Instrument icon sizes from the profile mock (#1690): the header button, a
+/// picker tile, the profile hero.
+enum IntradaGlyph {
+  static let bar: CGFloat = 36
+  static let tile: CGFloat = 56
+  static let hero: CGFloat = 88
 }
 
 /// Named motion tokens — the "engaging refresh" springs, the signature `fadeUp`
