@@ -859,3 +859,18 @@ and T20 both ruled out); bringing the suggestion back automatically after a
 cool-down rather than on a tap (rejected: a timer is a rule about the user's
 attention the app has no basis for, and re-litigates T15's "never a gate" in
 the other direction).
+
+### T23: A weak photo read dims the glyph, never the label
+
+**Status:** DECIDED 2026-09-11 (jonyardley/intrada#1458). #1436 settled that a
+weak read wears the same "From the photo" mark, dimmed, with the difference
+also spoken to VoiceOver. The dim chosen was `inkFaint` on the whole mark, but
+`inkFaint` is documented as failing WCAG AA on text (2.9:1) and the mark is
+10pt body text, not an eyebrow.
+
+The label ("From the photo") stays at `inkSecondary` in both states: it is
+text, so the 4.5:1 AA floor applies and there is almost no headroom above it
+to dim into. Only the leading glyph dims, to a new `inkFaintIcon` token
+(3.29:1 on `cardFill`), which clears the 3:1 floor WCAG sets for a non-text
+graphical object. The visual difference is now the glyph alone; VoiceOver
+still speaks the weak state explicitly, so contrast is not the only channel.
