@@ -90,12 +90,11 @@ jobs:
       # cargo-swift's bundled uniffi-bindgen must match our uniffi runtime
       # contract exactly (native-ios-build's "Install cargo-swift" comment), so
       # its pin must agree across mise.toml and every workflow that installs it.
-      # xcodegen has two lockstep occurrences in THIS file (native-ios-build and
-      # native-ios-build-release must generate from the same release) plus a
-      # third in release-testflight.yml, which now installs the identical
-      # pinned release zip instead of an unpinned `brew install xcodegen`
-      # (#1556), so all three copies are compared here. A bump to one copy
-      # and not its siblings silently installs a mismatched
+      # xcodegen appears in native-ios-build in THIS file, plus a second copy
+      # in release-testflight.yml, which now installs the identical pinned
+      # release zip instead of an unpinned `brew install xcodegen` (#1556),
+      # so both copies are compared here. A bump to one copy and not the
+      # other silently installs a mismatched
       # cargo-swift/uniffi-bindgen pair (the #846 class CLAUDE.md warns
       # about) or builds the Xcode project from a different XcodeGen release
       # than every CI run validated. Each half fails loudly when its pin is
@@ -408,7 +407,13 @@ jobs:
           path: ios/build/dd/Logs/Test/*.xcresult
           retention-days: 7
           if-no-files-found: ignore
+      # Main only: the `#if DEBUG` divergence check has caught one break ever
+      # (#1177), across nine measured runs, all green, at 32-153s a run
+      # against a 339s median gate. Paying that on every pull request was the
+      # wrong trade (#1651); a Release-only break now lands on main and gets
+      # a follow-up PR instead.
       - name: Build Release (just ios-build-release)
+        if: github.event_name == 'push'
         run: just ios-build-release
       # Main only, and last: "does the real app boot through its FFI entry
       # point", plus the visual artefact. After the tests so the launch cannot
@@ -435,8 +440,7 @@ jobs:
     # Fanned out (#1207): this job builds once and uploads the built test
     # products (app + .xctest bundles, not all of DerivedData) as an artifact;
     # `native-ios-test-unit` and `native-ios-test-ui` consume it in parallel
-    # instead of each rebuilding, and `native-ios-build-release` compiles the
-    # Release configuration alongside them rather than ahead of them.
+    # instead of each rebuilding.
     name: "Native iOS: build"
     runs-on: macos-26
     timeout-minutes: 40
@@ -507,11 +511,8 @@ jobs:
       # formula to pin to, and current Homebrew rejects installing a loose
       # formula file outside a tap, so a version pin would need a full
       # homebrew-core git clone at a fixed commit — much heavier than the
-      # 4MB release zip. `native-ios-build` and `native-ios-build-release`
-      # both resolve xcodegen independently within one CI run, so a formula
-      # bump landing mid-run could generate the two projects from different
-      # versions. Bump this WITH the identical step in
-      # `native-ios-build-release`, in lockstep.
+      # 4MB release zip. Bump this WITH the identical pin in
+      # release-testflight.yml, in lockstep.
       - name: Install xcodegen
         if: steps.xcodegen-cache.outputs.cache-hit != 'true'
         run: |
@@ -614,84 +615,6 @@ jobs:
         with:
           path: ios/build/dd
           key: ${{ steps.dd-cache.outputs.cache-primary-key }}
-
-  native-ios-build-release:
-    # Debug and Release diverge on `#if DEBUG`-gated code (#1177): the Debug
-    # test build can't catch a non-DEBUG-gated file that references a
-    # DEBUG-only symbol. Compile-only, no signing, no tests. Runs beside the
-    # test jobs rather than ahead of them, since nothing downstream reads its
-    # output (timings in docs/reference.md). `needs: native-ios-build` only
-    # for the bindings cache that job guarantees, which is what keeps the Rust
-    # toolchain out of here.
-    name: "Native iOS: Release build"
-    runs-on: macos-26
-    timeout-minutes: 30
-    needs: [changes, native-ios-build]
-    if: >-
-      github.event_name == 'pull_request'
-      && needs.changes.outputs.native == 'true'
-      && github.event.pull_request.head.repo.full_name != github.repository
-    steps:
-      - uses: actions/checkout@v7
-      - uses: maxim-lobanov/setup-xcode@v1
-        with:
-          xcode-version: "26.5"
-      - uses: taiki-e/install-action@v2.87.4
-        with:
-          tool: just
-      - name: Cache xcodegen
-        id: xcodegen-cache
-        uses: actions/cache@v6
-        with:
-          path: |
-            /usr/local/bin/xcodegen
-            /usr/local/share/xcodegen
-          key: xcodegen-2.46.0-${{ runner.os }}-${{ runner.arch }}
-      # See the identical step + comment in native-ios-build: pinned to
-      # 2.46.0 in lockstep across both jobs that generate the project.
-      - name: Install xcodegen
-        if: steps.xcodegen-cache.outputs.cache-hit != 'true'
-        run: |
-          curl -fsSL -o /tmp/xcodegen.zip https://github.com/yonaskolb/XcodeGen/releases/download/2.46.0/xcodegen.zip
-          unzip -q /tmp/xcodegen.zip -d /tmp
-          /tmp/xcodegen/install.sh
-      # xcodegen fails ("Invalid local package") without ios/generated, and
-      # `ios-build-release`'s `_ios-sync` reads the stamp inside it to decide
-      # whether to regenerate: on a hit it doesn't, so no cargo is needed.
-      # This job has no Rust toolchain, so a miss is fatal either way and had
-      # better say so here rather than inside cargo-swift.
-      - name: Restore generated Swift bindings
-        uses: actions/cache/restore@v6
-        with:
-          path: ios/generated
-          key: ios-bindings-cargoswift-0.9.0-${{ runner.os }}-${{ hashFiles('crates/intrada-core/src/**', 'crates/intrada-ffi/src/**', 'crates/intrada-core/Cargo.toml', 'crates/intrada-ffi/Cargo.toml', 'Cargo.lock') }}
-          fail-on-cache-miss: true
-      - name: Restore SwiftPM packages
-        uses: actions/cache/restore@v6
-        with:
-          path: ios/build/spm
-          key: ios-spm-v1-${{ runner.os }}-${{ hashFiles('ios/project.yml') }}
-          restore-keys: |
-            ios-spm-v1-${{ runner.os }}-
-      # Release compiles into its own derivedDataPath, so it needs its own
-      # cache: without one this was a cold rebuild of the whole dependency
-      # tree every run. Restore here, save on main only, below.
-      - name: Restore Release DerivedData
-        id: dd-release-cache
-        uses: actions/cache/restore@v6
-        with:
-          path: ios/build/dd-release
-          key: ios-dd-release-v1-${{ runner.os }}-${{ hashFiles('ios/project.yml', 'ios/Intrada/**') }}
-          restore-keys: |
-            ios-dd-release-v1-${{ runner.os }}-
-      - name: Build Release (just ios-build-release)
-        run: just ios-build-release
-      - name: Save Release DerivedData
-        if: github.ref == 'refs/heads/main' && steps.dd-release-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v6
-        with:
-          path: ios/build/dd-release
-          key: ${{ steps.dd-release-cache.outputs.cache-primary-key }}
 
   native-ios-test-unit:
     # Test half 1/2 (#1207): IntradaTests (unit + snapshot) against the
@@ -800,17 +723,17 @@ jobs:
   native-ios:
     name: Native iOS (build + test)
     runs-on: ubuntu-latest
-    needs: [changes, native-ios-selfhosted, native-ios-build, native-ios-build-release, native-ios-test-unit, native-ios-test-ui]
+    needs: [changes, native-ios-selfhosted, native-ios-build, native-ios-test-unit, native-ios-test-ui]
     if: always() && (github.event_name == 'push' || needs.changes.outputs.native == 'true')
     steps:
       # Two paths reach this gate (#1577): the self-hosted job for same-repo
-      # events, the four hosted jobs for fork pull requests. Exactly one of
+      # events, the three hosted jobs for fork pull requests. Exactly one of
       # them runs, so the other's `skipped` is expected. A `skipped`
       # self-hosted result with a failed hosted fan-out still fails here.
       - name: Check fan-out results
         run: |
           self="${{ needs.native-ios-selfhosted.result }}"
-          echo "selfhosted=$self build=${{ needs.native-ios-build.result }} release=${{ needs.native-ios-build-release.result }} unit=${{ needs.native-ios-test-unit.result }} ui=${{ needs.native-ios-test-ui.result }}"
+          echo "selfhosted=$self build=${{ needs.native-ios-build.result }} unit=${{ needs.native-ios-test-unit.result }} ui=${{ needs.native-ios-test-ui.result }}"
           if [ "$self" = "success" ]; then
             exit 0
           fi
@@ -818,7 +741,7 @@ jobs:
             echo "✗ the self-hosted iOS gate did not succeed (result: $self)" >&2
             exit 1
           fi
-          for r in "${{ needs.native-ios-build.result }}" "${{ needs.native-ios-build-release.result }}" "${{ needs.native-ios-test-unit.result }}" "${{ needs.native-ios-test-ui.result }}"; do
+          for r in "${{ needs.native-ios-build.result }}" "${{ needs.native-ios-test-unit.result }}" "${{ needs.native-ios-test-ui.result }}"; do
             if [ "$r" != "success" ]; then
               echo "✗ the hosted fallback fan-out did not all succeed" >&2
               exit 1

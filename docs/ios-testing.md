@@ -219,9 +219,9 @@ pinned `macos-26` / Xcode 26.5 runner (clean host, no pty contention), then runs
 **Native iOS (build + test)** as the fan-in required check. The build job runs
 `_ios-build-for-testing` and each test job runs `_ios-test-without-building`
 against the artifact's `.xctestrun`, the same recipes local dev's full gate uses
-(#1198, #1207), so the CI and local invocations cannot drift apart. A sibling
-job, `native-ios-build-release`, carries the Release compile guard, and
-**Snapshot Hygiene** runs alongside. The job shape, the measurements behind it
-and the cache rules are written up in
+(#1198, #1207), so the CI and local invocations cannot drift apart, and
+**Snapshot Hygiene** runs alongside. The Release compile guard (`#if DEBUG`
+divergence, #1177) runs on pushes to main only, not on this path (#1651). The
+job shape, the measurements behind it and the cache rules are written up in
 [`reference.md`](reference.md#why-the-native-ios-ci-is-shaped-the-way-it-is-2026-09-03).
 If snapshots/UI tests are green there, the local pty errors above were host-only.
