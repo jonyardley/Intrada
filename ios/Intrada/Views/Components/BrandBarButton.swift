@@ -5,6 +5,7 @@ import SwiftUI
 struct BrandBarButton<Label: View>: View {
   private let action: () -> Void
   private let label: Label
+  @Environment(\.marker) private var marker
 
   init(action: @escaping () -> Void, @ViewBuilder label: () -> Label) {
     self.action = action
@@ -19,7 +20,7 @@ struct BrandBarButton<Label: View>: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, IntradaSpacing.row)
         .background(
-          IntradaColor.marker, in: RoundedRectangle(cornerRadius: IntradaRadius.control)
+          marker, in: RoundedRectangle(cornerRadius: IntradaRadius.control)
         )
         .shadow(color: IntradaColor.buttonShadow, radius: 1, y: 1)
     }

@@ -77,6 +77,7 @@ struct MasteryDeltaToast: View {
 
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @Environment(\.intradaMotionDisabled) private var motionDisabled
+  @Environment(\.marker) private var marker
   @State private var shown = false
 
   var body: some View {
@@ -85,7 +86,7 @@ struct MasteryDeltaToast: View {
         .font(.system(size: 17))
         .foregroundStyle(IntradaColor.onMarker)
         .frame(width: 34, height: 34)
-        .background(IntradaColor.celebrationAccent, in: Circle())
+        .background(marker, in: Circle())
       VStack(alignment: .leading, spacing: 2) {
         Text(title)
           .font(IntradaFont.bodyMedium)
@@ -102,7 +103,7 @@ struct MasteryDeltaToast: View {
           .opacity(0.45)
         Image(systemName: "arrow.right")
           .font(.system(size: 15))
-          .foregroundStyle(IntradaColor.celebrationAccent)
+          .foregroundStyle(marker)
         Text("\(now)")
       }
       .font(IntradaFont.pageTitle(22))

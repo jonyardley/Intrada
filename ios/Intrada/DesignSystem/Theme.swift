@@ -1,3 +1,4 @@
+import SharedTypes
 import SwiftUI
 
 /// Every colour, gradient, and type style the native shell draws traces back to
@@ -22,8 +23,22 @@ enum IntradaColor {
   /// No brand hue: the interactive colour on paper is ink (#1676).
   static let accent = ink
   static let onAccent = Color(hex: 0xFFFFFF)
-  /// The one bright colour; butter until a musician can choose their own (#1677).
+  /// The one bright colour. Butter is the default; views read the chosen one
+  /// from `@Environment(\.marker)` (#1677), never this token directly.
   static let marker = Color(hex: 0xFFE9A3)
+  /// The eight marker pastels, in the order of the token sheet.
+  static func marker(_ colour: HighlighterColour) -> Color {
+    switch colour {
+    case .butter: marker
+    case .coral: Color(hex: 0xFFB4A2)
+    case .mint: Color(hex: 0xB9EBD3)
+    case .sky: Color(hex: 0xA9D8FF)
+    case .lavender: Color(hex: 0xD6CCF5)
+    case .sage: Color(hex: 0xCFDDB0)
+    case .peach: Color(hex: 0xFFD7B0)
+    case .powder: Color(hex: 0xC7DCE8)
+    }
+  }
   static let onMarker = ink
   static let danger = Color(hex: 0x9C4A3A)
   /// The banner and whatever it points at wear the same wash, so the pair reads
@@ -50,9 +65,6 @@ enum IntradaColor {
   static let masteryTrack = Color(hex: 0xEDE8DC)
   static let dialTrack = Color(hex: 0xEDE8DC)
   static let timerTrack = Color(hex: 0xEDE8DC)
-  /// The Focus-player click while it is sounding: marker, opaque
-  /// so the tempo steppers reveal beside it without ghosting.
-  static let clickActiveBg = marker
   static let consistencyTrack = Color(hex: 0xEDE8DC)
   /// A "missed" rep is taupe, never red — calm, not shaming.
   static let repMissedFg = Color(hex: 0x756A5C)
@@ -78,10 +90,8 @@ enum IntradaColor {
   /// Read `ItemKind.onHeroAccent`, not these directly.
   static let onHeroExercise = exerciseBadgeBg
   static let onHeroPiece = pieceBadgeBg
-  static let onHeroStar = marker
   static let celebrationBg = ink
   static let celebrationInk = paperTop
-  static let celebrationAccent = marker
   /// The full-screen photo viewer's ground. Warm near-black from the ink family
   /// rather than paper: cream around a photograph tints how you read the page.
   static let viewerBackdrop = Color(hex: 0x1A1917)
@@ -194,6 +204,14 @@ enum IntradaRadius {
   static let hero: CGFloat = 3
   /// Fully-rounded pills (filter tabs, the rep/consistency chrome).
   static let pill: CGFloat = 999
+}
+
+/// Instrument icon sizes from the profile mock (#1690): the header button, a
+/// picker tile, the profile hero.
+enum IntradaGlyph {
+  static let bar: CGFloat = 36
+  static let tile: CGFloat = 56
+  static let hero: CGFloat = 88
 }
 
 /// Named motion tokens — the "engaging refresh" springs, the signature `fadeUp`

@@ -5,6 +5,7 @@ struct PracticeScreen: View {
   @Environment(Store.self) private var store
   @Environment(\.calendar) private var calendar
   @Environment(\.locale) private var locale
+  @Environment(\.marker) private var marker
 
   // Injected so the weeks + auto-selection are deterministic in snapshots;
   // production uses "now".
@@ -236,7 +237,7 @@ struct PracticeScreen: View {
           .font(.system(size: 38))
           .foregroundStyle(IntradaColor.onMarker)
           .frame(width: 96, height: 96)
-          .background(IntradaColor.marker)
+          .background(marker)
           .clipShape(Circle())
           .shadow(color: .black.opacity(0.25), radius: 16, y: 8)
       }

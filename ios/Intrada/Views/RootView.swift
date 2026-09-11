@@ -50,6 +50,7 @@ struct RootView: View {
     // no interactive dismiss to honour.
     .fullScreenCover(isPresented: playerBinding) {
       PlayerHost().environment(store).environment(\.screenWakeLock, wakeLock)
+        .environment(\.marker, marker)
     }
     // App-level surfaces below the status bar, above all tabs. Empty when there's
     // nothing to show, so it adds no inset (keeps the plain shell unchanged).
@@ -83,6 +84,13 @@ struct RootView: View {
     .onChange(of: scenePhase) { _, phase in
       if phase == .active { store.reportUtcOffset() }
     }
+    .environment(\.marker, marker)
+  }
+
+  /// The core's chosen highlighter, applied above every tab and the player
+  /// cover so the whole app follows one swatch (#1677).
+  private var marker: Color {
+    IntradaColor.marker(store.viewModel?.profile.colour ?? .butter)
   }
 
   private var playerBinding: Binding<Bool> {

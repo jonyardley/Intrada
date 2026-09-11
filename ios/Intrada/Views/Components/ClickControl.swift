@@ -18,6 +18,7 @@ struct ClickControl: View {
   let onStep: (Int) -> Void
 
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  @Environment(\.marker) private var marker
 
   var body: some View {
     HStack(spacing: IntradaSpacing.controlGap) {
@@ -49,7 +50,7 @@ struct ClickControl: View {
         .foregroundStyle(tint)
         .padding(.horizontal, IntradaSpacing.cardCompact)
         .frame(minHeight: 44)
-        .background(isRunning ? IntradaColor.clickActiveBg : .clear, in: Capsule())
+        .background(isRunning ? marker : .clear, in: Capsule())
     }
     .buttonStyle(PressRebound())
     .accessibilityLabel(isRunning ? "Stop the click" : "Start the click")
