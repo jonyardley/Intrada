@@ -269,16 +269,20 @@ struct SessionSummaryScreen: View {
   private func metaLine(_ entry: SetlistEntryView, unfinished: Bool) -> String {
     if unfinished { return "Saved for next time" }
     var parts = [entry.itemType.label]
-    if let tempo = entry.achievedTempo { parts.append("\(tempo) bpm") }
+    if let tempo = entry.plays.last?.achievedTempo { parts.append("\(tempo) bpm") }
     return parts.joined(separator: " · ")
   }
 
+  // One selector for the last play, reading and writing the same play so the
+  // dial cannot show a mean it would then overwrite. #1739 Phase B gives each
+  // variation a row of its own.
   private func scoreRow(_ entry: SetlistEntryView) -> some View {
     ScoreSelector(
-      score: entry.score.map(Int.init) ?? 0,
+      score: entry.plays.last?.score.map(Int.init) ?? 0,
       accessibilityLabel: "Mark for \(entry.itemTitle)"
     ) { next in
-      store.send(.session(.updateEntryScore(entryId: entry.id, score: next)))
+      guard let playId = entry.plays.last?.id else { return }
+      store.send(.session(.updateEntryScore(entryId: entry.id, playId: playId, score: next)))
     }
     .padding(.leading, 19)
   }

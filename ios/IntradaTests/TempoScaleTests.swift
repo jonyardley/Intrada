@@ -38,32 +38,6 @@ final class TempoScaleTests: XCTestCase {
   }
 }
 
-@MainActor
-final class ReflectionSheetStepSelectionTests: XCTestCase {
-  private func step(_ id: String, _ position: UInt64) -> VariantView {
-    VariantView(
-      id: id, label: id, position: position, latestScore: nil, scoreHistory: [], isSolid: false,
-      isCurrent: false)
-  }
-
-  func testNoStepsResolvesToNil() {
-    XCTAssertNil(ReflectionSheet.initialVariantId(currentVariantId: nil, variants: []))
-  }
-
-  func testCurrentVariantIdWinsWhenPresent() {
-    let variants = [step("s1", 0), step("s2", 1)]
-    XCTAssertEqual(
-      ReflectionSheet.initialVariantId(currentVariantId: "s2", variants: variants), "s2")
-  }
-
-  func testFallsBackToFirstStepByPositionWhenNoCurrentVariant() {
-    let variants = [step("s1", 0), step("s2", 1)]
-    XCTAssertEqual(
-      ReflectionSheet.initialVariantId(currentVariantId: nil, variants: variants), "s1",
-      "never leaves the picker unset — defaults to the first step")
-  }
-}
-
 /// The shell half of the tempo evidence contract (#1420): if `userSet` ever
 /// stops tracking the stepper, every tempo becomes unevidenced and the trend
 /// goes silently empty — the #846 failure mode with no other guard on it.

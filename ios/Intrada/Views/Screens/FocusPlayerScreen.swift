@@ -34,7 +34,6 @@ struct FocusPlayerScreen: View {
         itemTitle: target.title, elapsedDisplay: target.elapsedDisplay,
         tempoTarget: target.tempoTargetBpm, startingTempoBpm: target.startingTempoBpm,
         tempoUnit: target.tempoUnit,
-        variants: target.variants, currentVariantId: target.currentVariantId,
         onSave: { result in handleReflection(target, result) },
         onSkip: { handleSkipRating() }
       )
@@ -285,10 +284,9 @@ struct FocusPlayerScreen: View {
     /// The unit the stepper counts in, which is the click's when the player
     /// chose one and crotchets when they did not.
     var tempoUnit: UInt8 { clickState?.metre.unit ?? 4 }
-    /// The item's step ladder, if any. Empty when the item isn't in the
-    /// library (shouldn't happen) or has no steps.
-    let variants: [VariantView]
-    let currentVariantId: String?
+    /// The play the sheet's mark and tempo land on (#1739). The open play at
+    /// the moment the item ended, which `NextItem` then closes.
+    let playId: String?
   }
 
   private func presentReflection(_ active: ActiveSessionView) {
@@ -307,17 +305,12 @@ struct FocusPlayerScreen: View {
     // nothing.
     click.stop()
     let entry = active.entries[pos]
-    let item = store.viewModel?.items.first(where: { $0.id == entry.itemId })
     reflecting = ReflectionTarget(
       id: entry.id, title: active.currentItemTitle,
       elapsedDisplay: SessionClock.clockDisplay(elapsed),
       tempoTargetBpm: active.currentItemTempoBpm, startingTempoBpm: startingTempoBpm,
       clickSounding: clickSounding, clickState: clickState,
-      // The entry's own tag (set ahead of time via EntrySettingsSheet) wins
-      // over the item's derived "current step" — otherwise a pre-assigned
-      // step would be silently overwritten on save.
-      variants: item?.variants ?? [],
-      currentVariantId: entry.variantId ?? item?.variants.first(where: \.isCurrent)?.id)
+      playId: entry.plays.last?.id)
   }
 
   // Notes first (no status guard — surfaces a validation error before advancing);
@@ -331,8 +324,12 @@ struct FocusPlayerScreen: View {
       if store.viewModel?.errorSeq != before { return }
     }
     store.send(.session(.nextItem(now: SessionClock.nowRFC3339())))
+    guard let playId = target.playId else {
+      reflecting = nil
+      return
+    }
     if let score = result.score {
-      store.send(.session(.updateEntryScore(entryId: target.id, score: score)))
+      store.send(.session(.updateEntryScore(entryId: target.id, playId: playId, score: score)))
     }
     // Always sent: the two facts go over as observed and the core rules on
     // whether they amount to evidence (#1420). Deciding here would be domain
@@ -340,13 +337,10 @@ struct FocusPlayerScreen: View {
     store.send(
       .session(
         .updateEntryTempo(
-          entryId: target.id, tempo: result.achievedTempo,
+          entryId: target.id, playId: playId, tempo: result.achievedTempo,
           observed: TempoObservation(
             userSet: result.tempoUserSet, clickSounding: target.clickSounding),
           click: target.clickState)))
-    if !target.variants.isEmpty {
-      store.send(.session(.setEntryVariant(entryId: target.id, variantId: result.variantId)))
-    }
     reflecting = nil
   }
 

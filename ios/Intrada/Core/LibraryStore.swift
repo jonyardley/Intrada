@@ -737,6 +737,11 @@ final class LibraryStore: ItemStore {
   // Entries (a nested, optional-heavy aggregate) go to JSON via a Codable DTO,
   // not bincode: bincode is positional, so a future field change would fail to
   // decode old rows — unacceptable when the device is the only copy.
+  /// The per-play fields below `plannedDurationSecs` are LEGACY: every row
+  /// written before #1739 carries them at entry level and has no `plays`, and
+  /// `decodeEntries` folds them into one play. Nothing writes them any more,
+  /// and nothing on device is rewritten (#1739 decision 8). The v5 migration
+  /// still reads `score`, which is why it stays.
   private struct StoredEntry: Codable {
     var id: String
     var itemId: String
@@ -746,17 +751,35 @@ final class LibraryStore: ItemStore {
     var durationSecs: UInt64
     var status: String
     var notes: String?
-    var score: UInt8?
     var intention: String?
+    var plannedDurationSecs: UInt32?
+    var groupId: String?
+    var plannedVariationId: String?
+    var plannedRepTarget: UInt8?
+    var plays: [StoredPlay]?
+
+    var score: UInt8?
     var repTarget: UInt8?
     var repCount: UInt8?
     var repTargetReached: Bool?
     var repHistory: [StoredRepEvent]?
-    var plannedDurationSecs: UInt32?
     var achievedTempo: UInt16?
-    var groupId: String?
     var variantId: String?
     var clickPattern: StoredClickState?
+  }
+
+  private struct StoredPlay: Codable {
+    var id: String
+    var variationId: String?
+    var startedAt: String
+    var seconds: UInt64
+    var repTarget: UInt8?
+    var repCount: UInt8?
+    var repTargetReached: Bool?
+    var repHistory: [StoredRepEvent]?
+    var achievedTempo: UInt16?
+    var clickPattern: StoredClickState?
+    var score: UInt8?
   }
 
   private struct StoredClickState: Codable {
@@ -803,22 +826,64 @@ final class LibraryStore: ItemStore {
     }
   }
 
+  private static func storedPlay(_ p: VariationPlay) -> StoredPlay {
+    StoredPlay(
+      id: p.id, variationId: p.variationId, startedAt: p.startedAt, seconds: p.seconds,
+      repTarget: p.repTarget, repCount: p.repCount, repTargetReached: p.repTargetReached,
+      repHistory: p.repHistory.map {
+        $0.map { StoredRepEvent(action: repActionString($0.action), at: $0.at) }
+      },
+      achievedTempo: p.achievedTempo, clickPattern: storedClick(p.clickPattern), score: p.score)
+  }
+
   private static func encodeEntries(_ entries: [SetlistEntry]) -> String {
     let dtos = entries.map { e in
       StoredEntry(
         id: e.id, itemId: e.itemId, itemTitle: e.itemTitle, itemType: kindString(e.itemType),
         position: e.position, durationSecs: e.durationSecs, status: entryStatusString(e.status),
-        notes: e.notes, score: e.score, intention: e.intention, repTarget: e.repTarget,
-        repCount: e.repCount, repTargetReached: e.repTargetReached,
-        repHistory: e.repHistory.map {
-          $0.map { StoredRepEvent(action: repActionString($0.action), at: $0.at) }
-        },
-        plannedDurationSecs: e.plannedDurationSecs, achievedTempo: e.achievedTempo,
-        groupId: e.groupId, variantId: e.variantId, clickPattern: storedClick(e.clickPattern))
+        notes: e.notes, intention: e.intention, plannedDurationSecs: e.plannedDurationSecs,
+        groupId: e.groupId, plannedVariationId: e.plannedVariationId,
+        plannedRepTarget: e.plannedRepTarget, plays: e.plays.map(storedPlay))
     }
     guard let data = try? JSONEncoder().encode(dtos), let json = String(data: data, encoding: .utf8)
     else { return "[]" }
     return json
+  }
+
+  /// A row written before #1739 has no `plays` and carries one score, one rep
+  /// count and one tempo on the entry itself. It folds into a single play so
+  /// the record survives; nothing on device is rewritten (#1739 decision 8).
+  /// An entry that was skipped or never reached keeps no play, which is what a
+  /// zero-play entry means.
+  private static func plays(from d: StoredEntry, sessionStartedAt: String) -> [VariationPlay] {
+    if let stored = d.plays, !stored.isEmpty {
+      return stored.map { p in
+        VariationPlay(
+          id: p.id, variationId: p.variationId, startedAt: p.startedAt, seconds: p.seconds,
+          repTarget: p.repTarget, repCount: p.repCount, repTargetReached: p.repTargetReached,
+          repHistory: p.repHistory.map {
+            $0.map { RepEvent(action: repAction(from: $0.action), at: $0.at ?? sessionStartedAt) }
+          },
+          achievedTempo: p.achievedTempo, clickPattern: clickState(p.clickPattern), score: p.score)
+      }
+    }
+
+    // A mark or a banked repetition is a record of practice whatever the status
+    // says: rows written before #1739 froze rep state on a skip, and the core
+    // still keeps that play, so the fold must not lose it on the way in.
+    let recorded = d.score != nil || (d.repCount ?? 0) > 0
+    guard entryStatus(from: d.status) == .completed || recorded else { return [] }
+
+    return [
+      VariationPlay(
+        id: "\(d.id)-play", variationId: d.variantId, startedAt: sessionStartedAt,
+        seconds: d.durationSecs, repTarget: d.repTarget, repCount: d.repCount,
+        repTargetReached: d.repTargetReached,
+        repHistory: d.repHistory.map {
+          $0.map { RepEvent(action: repAction(from: $0.action), at: $0.at ?? sessionStartedAt) }
+        },
+        achievedTempo: d.achievedTempo, clickPattern: clickState(d.clickPattern), score: d.score)
+    ]
   }
 
   private static func decodeEntries(_ json: String, sessionStartedAt: String) -> [SetlistEntry] {
@@ -829,13 +894,10 @@ final class LibraryStore: ItemStore {
       SetlistEntry(
         id: d.id, itemId: d.itemId, itemTitle: d.itemTitle, itemType: kind(from: d.itemType),
         position: d.position, durationSecs: d.durationSecs, status: entryStatus(from: d.status),
-        notes: d.notes, score: d.score, intention: d.intention, repTarget: d.repTarget,
-        repCount: d.repCount, repTargetReached: d.repTargetReached,
-        repHistory: d.repHistory.map {
-          $0.map { RepEvent(action: repAction(from: $0.action), at: $0.at ?? sessionStartedAt) }
-        },
-        plannedDurationSecs: d.plannedDurationSecs, achievedTempo: d.achievedTempo,
-        groupId: d.groupId, variantId: d.variantId, clickPattern: clickState(d.clickPattern))
+        notes: d.notes, intention: d.intention, plannedDurationSecs: d.plannedDurationSecs,
+        groupId: d.groupId, plannedVariationId: d.plannedVariationId ?? d.variantId,
+        plannedRepTarget: d.plannedRepTarget ?? d.repTarget,
+        plays: plays(from: d, sessionStartedAt: sessionStartedAt))
     }
   }
 

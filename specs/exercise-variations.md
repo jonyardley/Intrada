@@ -78,7 +78,10 @@ PracticeSession
    `SetlistEntry`. Two places holding one number is how this bug arrived; it
    does not get to stay for convenience. The entry keeps `id`, `item_id`,
    `item_title`, `item_type`, `position`, `duration_secs`, `status`, `notes`,
-   `intention`, `planned_duration_secs` and `group_id`.
+   `intention`, `planned_duration_secs` and `group_id`, and gains
+   `planned_rep_target`: `SetRepTarget` is a Building-phase event, so the
+   builder's target is a plan on the same footing as decision 5's
+   `planned_variation_id`, and every play the entry opens starts from it.
 
 5. **`variant_id` becomes `planned_variation_id` and stays on the entry.** A
    refinement of decision 4, not an exception to it: the Building phase's
@@ -102,9 +105,13 @@ PracticeSession
    rides with the entry today (#1499).
 
 8. **Old history is read, not migrated.** Saved sessions store entries as a
-   JSON column, so `SetlistEntry`'s deserialiser folds the legacy per-entry
-   fields into one synthesised play when `plays` is absent or empty. Nothing
-   on device is rewritten and no GRDB migration lands. The crash-recovery blob
+   JSON column written and read by the shell, so the fold lives in Swift, in
+   `LibraryStore.decodeEntries`: a row with no `plays` folds its legacy
+   per-entry fields into one synthesised play, and a skipped row folds into
+   none. Rust never decodes that JSON, so a serde shim there would be dead
+   code that passed its own tests and never ran. Nothing on device is
+   rewritten and no GRDB migration lands. The API's flat columns fold the same
+   way on read, in `intrada-api/src/db/sessions.rs`. The crash-recovery blob
    is positional bincode, where a removed field cannot be defaulted, so
    `Store.sessionInProgressKey` bumps to `v3` **in the same PR as the shape
    change**: one resume prompt is lost across the upgrade, as with `group_id`
@@ -131,7 +138,8 @@ PracticeSession
 |---|---|---|
 | `SetEntryVariant { entry_id, variant_id }` | Building | Sets `planned_variation_id`; no longer valid in Active or Summary |
 | `SwitchVariation { entry_id, variation_id }` | Active | New. Closes the open play, opens another |
-| `RepGotIt` / `RepMissed` / `SetRepTarget` | Active | Retarget the open play; no new argument |
+| `RepGotIt` / `RepMissed` | Active | Bank on the open play; no new argument |
+| `SetRepTarget { entry_id, target }` | Building | Sets `planned_rep_target`, which seeds every play the entry opens |
 | `UpdateEntryScore { entry_id, play_id, score }` | Active, Summary | Gains `play_id` so the sheet can score one row |
 | `UpdateEntryTempo { entry_id, play_id, tempo }` | Active, Summary | Gains `play_id` |
 | `UpdateEntryNotes` | unchanged | Notes stay on the entry: a note is about the item, not one play |
@@ -143,16 +151,29 @@ PracticeSession
 - At most `MAX_PLAYS_PER_ENTRY` (24) plays per entry, bounding the blob on the
   tier where the device is the only copy.
 - `play_id` must belong to the named entry.
-- `FinishSession` drops any play with no score, no repetitions and under five
-  seconds, so a mis-tap on the picker does not litter the record.
+- Every terminal transition (finishing, ending early, and moving off an item)
+  drops any play with no score, no repetitions and under five seconds, so a
+  stray tap on the picker does not litter the record. A practised entry always
+  keeps at least one play, so decision 3's invariant holds and the shell can
+  never hold a `play_id` the core has just deleted.
+- A skipped entry keeps only the plays that banked a mark or a repetition, which
+  is what freezing rep state on a skip meant before plays existed.
 - `SwitchVariation` to the currently open variation writes nothing.
 
 ## ViewModel
 
-- `SetlistEntryView` gains `plays: Vec<VariationPlayView>` and
-  `score_summary: Option<u8>`; loses the per-play fields it mirrors today.
+- `SetlistEntryView` gains `plays: Vec<VariationPlayView>`,
+  `score_summary: Option<u8>`, `planned_variation_id` and
+  `planned_rep_target`; loses the per-play fields it mirrors today.
+- `VariationPlayView` resolves `variation_label` from the library, tombstones
+  included, so a session practised on a variation that has since been deleted
+  still says what it was.
+- `ActiveSessionView` gains `current_variation_id` and
+  `current_variation_label`, which is what the player's picker reads.
 - `VariantView` loses `is_current`; `is_solid` and `score_history` stay, with
-  history derived from plays rather than entries.
+  history derived from plays rather than entries. The Up next card keeps the
+  same recommendation by applying the rule itself (`suggestion.rs`) until
+  #1501 replaces it.
 - `ladder_is_all_keys` is untouched, so the Library row still says Keys when
   every live variation names one (#1464 then makes the exercise detail screen
   agree with it).
@@ -165,11 +186,14 @@ PracticeSession
   five-second drop at `FinishSession`; validation rejections (dead variation,
   foreign `play_id`, cap exceeded, `SetEntryVariant` outside Building); a
   piece gets exactly one unattributed play; `score_summary` means correctly
-  and is `None` when no play carries a mark; per-variation history reads plays.
-- **The decode shim:** a legacy entry JSON with `score`, `variantId`,
+  and is `None` when no play carries a mark; per-variation history reads plays;
+  a skip drops the play that recorded nothing and keeps one that banked
+  repetitions, which is what freezing rep state on skip meant before plays.
+- **The decode shim, in Swift:** a legacy entry JSON with `score`, `variantId`,
   `repCount`, `achievedTempo` and no `plays` decodes to one play carrying all
-  four, and an entry with `plays` ignores the legacy keys. Table test from
-  strings a shipped build actually wrote, not ones invented here (#1256).
+  four; a skipped legacy row decodes to none; and an entry with `plays`
+  ignores the legacy keys. Table test from strings a shipped build actually
+  wrote, not ones invented here (#1256).
 - **Bridge (#846):** `assert_round_trips` for `VariationPlay` in
   `SetlistEntry` in `SaveSession`, `SwitchVariation`, the two `play_id`
   events and `VariationPlayView`; plus a `LiveBridge` Swift test driving
@@ -181,11 +205,17 @@ PracticeSession
 ## Phases
 
 - **Phase A, core.** This spec as the first commit, then the types, events,
-  shim, validation, derivation and ViewModel projections, plus the
-  `sessionInProgressKey` bump. One PR, reviewed before Phase B starts.
+  validation, derivation and ViewModel projections, plus the
+  `sessionInProgressKey` bump. Because the fold lives in the shell and the
+  removed fields are read by screens and by the API, Phase A also carries the
+  Swift persistence codec, the API's column fold, and the mechanical read-site
+  edits that keep the app and the server compiling. No new UI. One PR,
+  reviewed before Phase B starts.
 - **Phase B, screens.** The player's variation picker, the item-complete
-  sheet's rows, the Progress screen's per-variation surface, and the #1733 and
-  #1735 renames folded in. Same working session as Phase A (#1348, #1374).
+  sheet's rows (the picker it replaces left the sheet in Phase A, since
+  decision 5 takes `SetEntryVariant` out of Active), the Progress screen's
+  per-variation surface, and the #1733 and #1735 renames folded in. Same
+  working session as Phase A (#1348, #1374).
 - **Phase C, the unblocked.** #1478 (a variation typed "E flat major" reads as
   a key) and #1464 (the exercise detail screen says Steps). #1501 and #1107
   follow outside this milestone.
