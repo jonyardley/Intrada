@@ -126,17 +126,13 @@ final class ScreenSnapshotTests: XCTestCase {
     assertSnapshot(of: host(NavigationStack { LibraryScreen() }), as: config)
   }
 
-  /// The split only lays out at regular width, so it needs an iPad frame rather
-  /// than the pinned iPhone. Scale 1 keeps the reference small at that size:
-  /// the paper gradient fills the whole frame, so 2x doubles the whole bill.
   func testLibrarySplitViewEmptyDetail() {
     assertSnapshot(
       of: host(LibrarySplitView(), store: .previewLibrary), as: splitConfig)
   }
 
-  /// The column line must stop below the top strip rather than running past
-  /// the tabs (#1682). The nav bar itself is out of frame here (this window
-  /// lays out none); see `LibrarySplitAlignmentTests` for header alignment.
+  /// The column line must stop below the top strip, not run past the tabs
+  /// (#1682); see `LibrarySplitAlignmentTests` for header alignment.
   func testLibrarySplitViewWithSelection() {
     assertSnapshot(
       of: host(LibrarySplitView(previewSelection: "piece-1"), store: .previewLibrary),

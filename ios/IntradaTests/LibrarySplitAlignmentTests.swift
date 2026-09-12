@@ -4,25 +4,18 @@ import UIKit
 
 @testable import Intrada
 
-/// The detail column keeps a nav bar for the star and Edit while the list hid
-/// its own, so the detail's scaffold started a nav bar lower and the two header
-/// rules ended at different heights (#1682). A `UIHostingController` with no
-/// window lays out no nav bar at all, so the snapshot reference cannot see this:
-/// it only shows up in a real window.
+/// #1682 only shows up in a real window: a windowless `UIHostingController`
+/// lays out no nav bar at all, so the snapshot suite cannot catch it.
 @MainActor
 struct LibrarySplitAlignmentTests {
   private static let size = CGSize(width: 1194, height: 834)
   /// Sub-pixel rounding only. The drift this covers was a whole nav bar.
   private static let tolerance: CGFloat = 1
 
-  /// Each column's nav bar bottom edge, ordered left to right. A hidden bar
-  /// reserves nothing, so it counts as zero rather than being dropped.
   private func navigationBarBottomEdges(selecting id: String?) -> [CGFloat] {
     IntradaFonts.register()
     let vc = UIHostingController(
       rootView: LibrarySplitView(previewSelection: id)
-        // The suite hosts on an iPhone, where the split takes its compact
-        // branch and lays out no columns at all.
         .environment(\.horizontalSizeClass, .regular)
         .environment(Store.previewLibrary)
         .environment(\.locale, Locale(identifier: "en_US"))
@@ -52,8 +45,6 @@ struct LibrarySplitAlignmentTests {
     }
   }
 
-  /// Whatever chrome each column carries, both must carry the same amount of
-  /// it, or their header rules cannot land on the same line.
   @Test func bothColumnsReserveTheSameTopChrome() {
     let edges = navigationBarBottomEdges(selecting: "piece-1")
 
@@ -66,8 +57,7 @@ struct LibrarySplitAlignmentTests {
       "columns reserve different top chrome: list \(edges[0]), detail \(edges[1])")
   }
 
-  /// #1681's launch state: nothing selected, so the detail column is a bare
-  /// placeholder with no title and no toolbar.
+  /// #1681's launch state: nothing selected, so the detail column is bare.
   @Test func bothColumnsReserveTheSameTopChromeWithNoSelection() {
     let edges = navigationBarBottomEdges(selecting: nil)
 

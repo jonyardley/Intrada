@@ -28,10 +28,8 @@ struct LibrarySplitView: View {
       HStack(spacing: 0) {
         NavigationStack { LibraryScreen(selection: $selectedId) }
           .frame(maxWidth: 380)
-        // Inset to the safe area so the line starts below the top strip rather
-        // than running up behind the tabs, where nothing else has a border
-        // (#1682). `PaperBackground` ignores the safe area, which is what lets
-        // the columns, and so a plain `Divider`, reach the top of the screen.
+        // PaperBackground ignores the safe area, so without this the line
+        // runs up behind the tabs instead of starting below them (#1682).
         Divider().safeAreaPadding(.top)
         NavigationStack {
           detailColumn
@@ -59,10 +57,7 @@ struct LibrarySplitView: View {
           systemImage: "sidebar.left", message: "Select an item to see its details.",
           glyphTint: IntradaColor.inkFainter)
       }
-      // With nothing selected there is no title or toolbar to give this
-      // column its own nav bar, so it reserves none and the two columns'
-      // header rules land at different heights. Force an empty one so both
-      // columns still reserve the same top chrome (#1682).
+      // No title or toolbar here means no nav bar; force one for chrome parity (#1682).
       .toolbar(.visible, for: .navigationBar)
     }
   }
