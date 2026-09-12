@@ -86,7 +86,8 @@ struct ScreenScaffold<Content: View, Trailing: View>: View {
       // Combine only the title block so the trailing action stays its own
       // VoiceOver element rather than being merged into the heading.
       .accessibilityElement(children: .combine)
-      .accessibilityLabel(subtitle.map { "\(title), \($0)" } ?? title)
+      .accessibilityLabel(
+        subtitle.map { "\(title), \($0.replacingOccurrences(of: " · ", with: ", "))" } ?? title)
       Spacer(minLength: 12)
       if let trailing {
         Button(action: trailing.action) {

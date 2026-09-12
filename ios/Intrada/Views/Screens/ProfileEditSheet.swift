@@ -8,24 +8,18 @@ struct ProfileEditSheet: View {
   @Environment(Store.self) private var store
   @Environment(\.dismiss) private var dismiss
 
-  @State private var name: String
-  @State private var instrument: String
+  @State private var name = ""
+  @State private var instrument = ""
   @State private var iconChoice: InstrumentIcon?
-  @State private var colour: HighlighterColour
+  @State private var colour: HighlighterColour = .butter
   @State private var formError: String?
   @State private var faultedField: ProfileField?
   @State private var choosingIcon = false
 
-  init() {
-    _name = State(initialValue: "")
-    _instrument = State(initialValue: "")
-    _iconChoice = State(initialValue: nil)
-    _colour = State(initialValue: .butter)
-  }
+  init() {}
 
   #if DEBUG
     init(previewError: String, field: ProfileField) {
-      self.init()
       _formError = State(initialValue: previewError)
       _faultedField = State(initialValue: field)
     }
@@ -110,7 +104,7 @@ struct ProfileEditSheet: View {
       Button("Change") { choosingIcon = true }
         .font(IntradaFont.button)
         .foregroundStyle(IntradaColor.ink)
-        .padding(.horizontal, 14)
+        .padding(.horizontal, IntradaSpacing.cardCompact)
         .frame(height: 36)
         .background(IntradaColor.cardFill)
         .overlay(
@@ -131,7 +125,7 @@ struct ProfileEditSheet: View {
         autocapitalization: .words, faulted: faultedField == .name)
       HairlineDivider()
       AutocompleteField(
-        label: "Instrument", text: $instrument, placeholder: "What you play",
+        label: "Instrument", text: $instrument, placeholder: "e.g. Cello",
         suggestions: InstrumentNames.suggestions, faulted: faultedField == .instrument)
     }
     .cardSurface()
@@ -178,8 +172,7 @@ struct ProfileEditSheet: View {
     }
   }
 
-  // The same shape as the item form's confirm: never dismiss or celebrate
-  // until the core has accepted, and show a refusal inline (#1595).
+  // Never dismiss or celebrate until the core has accepted (#1595).
   private func save() {
     formError = nil
     faultedField = nil

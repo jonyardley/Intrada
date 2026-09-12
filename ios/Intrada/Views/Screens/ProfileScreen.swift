@@ -44,10 +44,11 @@ struct ProfileScreen: View {
             .font(IntradaFont.pageTitle())
             .foregroundStyle(IntradaColor.ink)
             .lineLimit(1)
+            .minimumScaleFactor(0.6)
             .padding(.horizontal, 4)
             .markerSwipe()
         } else {
-          Text("Add your name")
+          Text("Add a name")
             .font(IntradaFont.pageTitle())
             .foregroundStyle(IntradaColor.inkSecondary)
         }
@@ -64,7 +65,7 @@ struct ProfileScreen: View {
 
   private var instrumentLine: String {
     if let instrument = profile?.instrument, !instrument.isEmpty { return instrument }
-    return "What you play"
+    return "Add an instrument"
   }
 
   private var highlighter: some View {

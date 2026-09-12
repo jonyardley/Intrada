@@ -10,8 +10,6 @@ struct InstrumentIconPicker: View {
 
   var body: some View {
     BottomSheet(title: "Icon", detents: [.large]) {
-      EmptyView()
-    } content: {
       ScrollView {
         VStack(alignment: .leading, spacing: IntradaSpacing.cardCompact) {
           if suggested != .other {
@@ -20,7 +18,7 @@ struct InstrumentIconPicker: View {
               .padding(.bottom, IntradaSpacing.cardCompact)
           }
           Eyebrow("All icons")
-          grid(of: InstrumentIcon.all.filter { $0 != suggested })
+          grid(of: InstrumentIcon.all.filter { suggested == .other || $0 != suggested })
         }
         .padding(.horizontal, IntradaSpacing.card)
         .padding(.top, IntradaSpacing.controlGap)
@@ -33,7 +31,9 @@ struct InstrumentIconPicker: View {
 
   private func grid(of icons: [InstrumentIcon]) -> some View {
     LazyVGrid(
-      columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 4), spacing: 10
+      columns: Array(
+        repeating: GridItem(.flexible(), spacing: IntradaSpacing.controlGap), count: 4),
+      spacing: IntradaSpacing.controlGap
     ) {
       ForEach(icons, id: \.self) { icon in
         tile(icon)

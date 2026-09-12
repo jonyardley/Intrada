@@ -145,6 +145,10 @@ final class Store {
     send(.setSort(sort))
   }
 
+  func forgetPersistedProfile() {
+    sortDefaults.removeObject(forKey: Self.profileDefaultsKey)
+  }
+
   func restorePersistedProfile() {
     guard let data = sortDefaults.data(forKey: Self.profileDefaultsKey),
       let profile = guarded({ try Profile.bincodeDeserialize(input: [UInt8](data)) })
