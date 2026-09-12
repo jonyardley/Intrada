@@ -987,13 +987,6 @@ pub fn handle_session_event(event: SessionEvent, model: &mut Model) -> Command<E
             entry_id,
             variant_id,
         } => {
-            if !model.local_first {
-                // Steps are local-first-only until sync (#1083; invariant 6
-                // consciously scoped); surfaced, never a silent no-op.
-                model.last_error = Some("Variations aren't available online yet".to_string());
-                return crux_core::render::render();
-            }
-
             // The plan is a Building-phase thing: once practice starts, the
             // record is the plays and `SwitchVariation` is what changes it
             // (#1739 decision 5).
@@ -1233,9 +1226,10 @@ pub fn handle_session_event(event: SessionEvent, model: &mut Model) -> Command<E
             let entry = create_entry(&new_item_id, &title, item_type, position);
             building.entries.push(entry);
             model.last_error = None;
+            model.record_success();
 
             Command::all([
-                crate::http::create_item(&model.api_base_url, &item, &new_item_id),
+                crate::persistence::save_item(item),
                 crux_core::render::render(),
             ])
         }
@@ -1627,11 +1621,12 @@ pub fn handle_session_event(event: SessionEvent, model: &mut Model) -> Command<E
             let position = active.entries.len();
             let entry = create_entry(&new_item_id, &title, item_type, position);
             active.entries.push(entry);
-            model.last_error = None;
-
             let save_effect_session = AppEffect::SaveSessionInProgress(active.clone());
+            model.last_error = None;
+            model.record_success();
+
             Command::all([
-                crate::http::create_item(&model.api_base_url, &item, &new_item_id),
+                crate::persistence::save_item(item),
                 Command::notify_shell(save_effect_session).into(),
                 crux_core::render::render(),
             ])
@@ -1685,11 +1680,6 @@ pub fn handle_session_event(event: SessionEvent, model: &mut Model) -> Command<E
             variation_id,
             now,
         } => {
-            if !model.local_first {
-                model.last_error = Some("Variations aren't available online yet".to_string());
-                return crux_core::render::render();
-            }
-
             if !matches!(model.session_status, SessionStatus::Active(_)) {
                 model.last_error = Some("Not in active state".to_string());
                 return crux_core::render::render();
@@ -1926,21 +1916,12 @@ pub fn handle_session_event(event: SessionEvent, model: &mut Model) -> Command<E
             model.last_error = None;
 
             let clear = Command::notify_shell(AppEffect::ClearSessionInProgress).into();
-            if model.local_first {
-                // No server callback to clear the dismiss-mute, so record success here.
-                model.record_success();
-                Command::all([
-                    crate::persistence::save_session(practice_session),
-                    clear,
-                    crux_core::render::render(),
-                ])
-            } else {
-                Command::all([
-                    crate::http::create_session(&model.api_base_url, &practice_session),
-                    clear,
-                    crux_core::render::render(),
-                ])
-            }
+            model.record_success();
+            Command::all([
+                crate::persistence::save_session(practice_session),
+                clear,
+                crux_core::render::render(),
+            ])
         }
 
         SessionEvent::DiscardSession => {
@@ -1989,10 +1970,7 @@ pub fn handle_session_event(event: SessionEvent, model: &mut Model) -> Command<E
             model.practice_summaries = crate::app::build_practice_summaries(&model.sessions);
             model.last_error = None;
 
-            Command::all([
-                crate::http::delete_session(&model.api_base_url, &id),
-                crux_core::render::render(),
-            ])
+            crux_core::render::render()
         }
     }
 }
@@ -2067,7 +2045,6 @@ mod tests {
                     metre: None,
                 },
             ],
-            api_base_url: "http://localhost:3001".to_string(),
             ..Default::default()
         }
     }
@@ -2075,6 +2052,20 @@ mod tests {
     fn update(model: &mut Model, event: Event) {
         let app = Intrada;
         let _cmd = app.update(event, model);
+    }
+
+    fn saved_item_ids(cmd: &mut Command<Effect, Event>) -> Vec<String> {
+        cmd.effects()
+            .filter_map(|e| match e {
+                Effect::Persistence(req) => match &req.operation {
+                    crate::persistence::PersistenceOperation::SaveItem(item) => {
+                        Some(item.id.clone())
+                    }
+                    _ => None,
+                },
+                _ => None,
+            })
+            .collect()
     }
 
     // --- Block grouping (related exercises travel with a piece) ---
@@ -2110,7 +2101,6 @@ mod tests {
                 mk("ex-C", "Sight-reading", ItemKind::Exercise, &[]),
                 mk("ex-D", "Trills", ItemKind::Exercise, &[]),
             ],
-            api_base_url: "http://localhost:3001".to_string(),
             ..Default::default()
         }
     }
@@ -2347,7 +2337,6 @@ mod tests {
     #[test]
     fn start_building_from_suggestion_makes_no_network_call() {
         let mut m = suggestion_model();
-        m.local_first = true;
         let app = Intrada;
         let mut cmd = app.update(
             Event::Session(SessionEvent::StartBuildingFromSuggestion { now: Utc::now() }),
@@ -2482,7 +2471,6 @@ mod tests {
     #[test]
     fn start_building_with_priorities_makes_no_network_call() {
         let mut m = linked_model();
-        m.local_first = true;
         star(&mut m, &["piece-P"]);
         let app = Intrada;
         let mut cmd = app.update(
@@ -3449,6 +3437,25 @@ mod tests {
         assert_eq!(model.items.len(), 4);
     }
 
+    /// A piece invented mid-practice is a library item like any other, so it
+    /// must reach the store: the recovered session names its id, and an id with
+    /// no row behind it is a setlist entry pointing at nothing.
+    #[test]
+    fn add_new_item_mid_session_persists_the_new_item() {
+        let (mut model, _start) = model_with_active_session(2);
+
+        let mut cmd = Intrada.update(
+            Event::Session(SessionEvent::AddNewItemMidSession {
+                title: "New Scale".to_string(),
+                item_type: ItemKind::Exercise,
+            }),
+            &mut model,
+        );
+
+        let new_id = model.items.last().expect("the item was created").id.clone();
+        assert_eq!(saved_item_ids(&mut cmd), vec![new_id]);
+    }
+
     // --- Summary Phase Tests ---
 
     fn model_with_summary() -> Model {
@@ -3699,9 +3706,8 @@ mod tests {
     }
 
     #[test]
-    fn local_first_save_session_persists_and_skips_http() {
+    fn save_session_persists_the_session_locally() {
         let mut model = model_with_summary();
-        model.local_first = true;
         let app = Intrada;
         let mut cmd = app.update(
             Event::Session(SessionEvent::SaveSession { now: Utc::now() }),
@@ -3711,29 +3717,7 @@ mod tests {
         assert!(
             cmd.effects().any(|e| matches!(e, Effect::Persistence(req)
                 if matches!(&req.operation, crate::persistence::PersistenceOperation::SaveSession(s) if s.id == id))),
-            "local-first save persists the session locally"
-        );
-        assert!(
-            !cmd.effects().any(|e| matches!(e, Effect::Http(_))),
-            "local-first save makes no HTTP request"
-        );
-    }
-
-    #[test]
-    fn online_save_session_uses_http_not_persistence() {
-        let mut model = model_with_summary();
-        let app = Intrada;
-        let mut cmd = app.update(
-            Event::Session(SessionEvent::SaveSession { now: Utc::now() }),
-            &mut model,
-        );
-        assert!(
-            cmd.effects().any(|e| matches!(e, Effect::Http(_))),
-            "online save POSTs to the server"
-        );
-        assert!(
-            !cmd.effects().any(|e| matches!(e, Effect::Persistence(_))),
-            "online save makes no local persistence write"
+            "the saved session reaches the on-device store"
         );
     }
 
@@ -4654,7 +4638,6 @@ mod tests {
     /// as on iOS; steps are gated to that mode (#1083).
     fn model_with_exercise_building() -> (Model, String) {
         let mut model = model_with_library();
-        model.local_first = true;
         give_exercise_a_ladder(&mut model);
         update(&mut model, Event::Session(SessionEvent::StartBuilding));
         update(
@@ -4787,7 +4770,6 @@ mod tests {
         // was meant to practise. It records no play, so it contributes nothing
         // to per-variation history and the stats stay clean.
         let mut model = model_with_library();
-        model.local_first = true;
         give_exercise_a_ladder(&mut model);
         let now = Utc::now();
         update(&mut model, Event::Session(SessionEvent::StartBuilding));
@@ -4887,25 +4869,6 @@ mod tests {
             Some("v-c"),
             "the first play is seeded from the plan, so the record names it too"
         );
-    }
-
-    #[test]
-    fn set_entry_variant_online_mode_is_scoped_out_gracefully() {
-        // Invariant 6 consciously scoped (#1083): steps are local-first-only
-        // until sync; online surfaces the scope-out and changes nothing.
-        let (mut model, entry_id) = model_with_exercise_building();
-        model.local_first = false;
-
-        update(
-            &mut model,
-            Event::Session(SessionEvent::SetEntryVariant {
-                entry_id,
-                variant_id: Some("v-c".to_string()),
-            }),
-        );
-
-        assert!(model.last_error.is_some(), "surfaced, not silent");
-        assert_eq!(planned_variation(&model), None);
     }
 
     #[test]
@@ -5512,6 +5475,25 @@ mod tests {
         }
     }
 
+    /// Same reason as the mid-session create: the builder mints a real library
+    /// item, so it has to land in the store rather than only in memory.
+    #[test]
+    fn add_new_item_to_setlist_persists_the_new_item() {
+        let mut model = model_with_library();
+        update(&mut model, Event::Session(SessionEvent::StartBuilding));
+
+        let mut cmd = Intrada.update(
+            Event::Session(SessionEvent::AddNewItemToSetlist {
+                title: "New Piece".to_string(),
+                item_type: ItemKind::Piece,
+            }),
+            &mut model,
+        );
+
+        let new_id = model.items.last().expect("the item was created").id.clone();
+        assert_eq!(saved_item_ids(&mut cmd), vec![new_id]);
+    }
+
     #[test]
     fn test_add_new_item_to_setlist_exercise() {
         let mut model = model_with_library();
@@ -5592,7 +5574,6 @@ mod tests {
     #[test]
     fn test_set_entry_variant_tags_the_rung_while_building() {
         let mut model = model_with_library();
-        model.local_first = true;
         give_exercise_a_ladder(&mut model);
         update(&mut model, Event::Session(SessionEvent::StartBuilding));
         update(
@@ -5646,7 +5627,6 @@ mod tests {
     #[test]
     fn test_set_entry_variant_unknown_entry_surfaces_error() {
         let mut model = model_with_library();
-        model.local_first = true;
         update(&mut model, Event::Session(SessionEvent::StartBuilding));
         update(
             &mut model,
@@ -6834,7 +6814,6 @@ mod tests {
         use crate::domain::variant::Variant;
 
         let mut model = model_with_library();
-        model.local_first = true;
         let now = Utc::now();
         let exercise = model
             .items

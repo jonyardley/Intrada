@@ -23,17 +23,15 @@ final class Store {
   /// (`specs/profile.md`; pinned by the core's `profile_blob_wire_is_pinned`).
   static let profileDefaultsKey = "intrada.profile.v1"
   private let bridge: CoreBridge
-  private let session: URLSession
   private let store: (any ItemStore)?
   private let sortDefaults: UserDefaults
 
   init(
-    bridge: CoreBridge = LiveBridge(), session: URLSession = .shared,
+    bridge: CoreBridge = LiveBridge(),
     store: (any ItemStore)? = nil, sortDefaults: UserDefaults = .standard,
     degraded: Bool = false
   ) {
     self.bridge = bridge
-    self.session = session
     self.degraded = degraded
     // Default to in-memory so tests/previews never touch disk; the real app
     // passes an on-disk store. `try?` (not `guarded`) because `self` isn't fully
@@ -54,8 +52,6 @@ final class Store {
       switch request.effect {
       case .render:
         refreshView()
-      case .http(let httpRequest):
-        Task { await self.handleHttp(httpRequest, id: request.id) }
       case .app(let appEffect):
         // notify_shell effect: fire-and-forget, must not be resolved (#882).
         handleAppEffect(appEffect)
@@ -156,11 +152,6 @@ final class Store {
     send(.profile(.loaded(profile)))
   }
 
-  private func handleHttp(_ request: HttpRequest, id: UInt32) async {
-    let result = await Self.execute(request, session: session)
-    process(guarded { try bridge.resolve(id, httpResult: result) } ?? [])
-  }
-
   /// Failure (or no store) → `.failed` so the core surfaces it, not a phantom ack (#816).
   private func persistenceOutput(for operation: PersistenceOperation) -> PersistenceOutput {
     guard let store else { return .failed }
@@ -194,43 +185,6 @@ final class Store {
     do { return try work() } catch {
       report(error, "bridge")
       return nil
-    }
-  }
-
-  /// No auth yet (foundation scope).
-  private static func execute(_ request: HttpRequest, session: URLSession) async -> HttpResult {
-    guard let url = URL(string: request.url) else {
-      return .err(.url("Invalid URL: \(request.url)"))
-    }
-
-    var urlRequest = URLRequest(url: url)
-    urlRequest.httpMethod = request.method
-    for header in request.headers {
-      urlRequest.setValue(header.value, forHTTPHeaderField: header.name)
-    }
-    if !request.body.isEmpty {
-      urlRequest.httpBody = Data(request.body)
-    }
-
-    do {
-      let (data, response) = try await session.data(for: urlRequest)
-      guard let http = response as? HTTPURLResponse else {
-        return .err(.io("Invalid response type"))
-      }
-      let headers: [HttpHeader] = http.allHeaderFields.compactMap { key, value in
-        guard let name = key as? String, let val = value as? String else { return nil }
-        return HttpHeader(name: name, value: val)
-      }
-      return .ok(
-        HttpResponse(
-          status: UInt16(http.statusCode),
-          headers: headers,
-          body: [UInt8](data)
-        ))
-    } catch let error as URLError where error.code == .timedOut {
-      return .err(.timeout)
-    } catch {
-      return .err(.io(error.localizedDescription))
     }
   }
 }

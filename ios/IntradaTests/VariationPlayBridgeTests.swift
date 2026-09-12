@@ -9,7 +9,7 @@ import XCTest
 final class VariationPlayBridgeTests: XCTestCase {
 
   private func exerciseWithTwoVariations(_ bridge: LiveBridge) throws -> String {
-    _ = try bridge.update(.startApp(apiBaseUrl: "http://localhost:3001", localFirst: true))
+    _ = try bridge.update(.startApp)
     _ = try bridge.update(
       .item(
         .add(

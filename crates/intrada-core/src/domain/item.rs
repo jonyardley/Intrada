@@ -261,11 +261,6 @@ pub(crate) fn scaffold_already_linked(
 /// deleted one costs the user their photo, and the write that would justify
 /// deleting can still fail after the delete has run (spec, key decision 2).
 fn set_photo(model: &mut Model, id: String, next: Option<String>) -> Command<Effect, Event> {
-    if !model.local_first {
-        model.last_error = Some("Photos aren't available online yet".to_string());
-        return crux_core::render::render();
-    }
-
     if let Some(photo_id) = next.as_deref() {
         if let Err(e) = validation::validate_photo_id(photo_id) {
             model.last_error = Some(e.to_string());
@@ -297,11 +292,6 @@ fn set_photo(model: &mut Model, id: String, next: Option<String>) -> Command<Eff
 /// A session-local override of the metre lives in the shell's click; this is
 /// the piece's own, and the chart's beat split follows it.
 fn set_metre(model: &mut Model, id: String, next: Option<Metre>) -> Command<Effect, Event> {
-    if !model.local_first {
-        model.last_error = Some("Time signatures aren't available online yet".to_string());
-        return crux_core::render::render();
-    }
-
     if let Some(ref metre) = next {
         if let Err(e) = validation::validate_metre(metre) {
             model.last_error = Some(e.to_string());
@@ -352,21 +342,12 @@ fn read_photo(model: &mut Model, photo_id: String) -> Command<Effect, Event> {
     ])
 }
 
-fn save_or_put(model: &mut Model, item: Item) -> Command<Effect, Event> {
-    if model.local_first {
-        // No server callback to clear the dismiss-mute later (online does that
-        // on ItemUpdated), so record the success here.
-        model.record_success();
-        Command::all([
-            crate::persistence::save_item(item),
-            crux_core::render::render(),
-        ])
-    } else {
-        Command::all([
-            crate::http::update_item(&model.api_base_url, &item),
-            crux_core::render::render(),
-        ])
-    }
+fn persist_item(model: &mut Model, item: Item) -> Command<Effect, Event> {
+    model.record_success();
+    Command::all([
+        crate::persistence::save_item(item),
+        crux_core::render::render(),
+    ])
 }
 
 /// The form field a validation failure belongs to, where the add form has one
@@ -418,29 +399,13 @@ pub fn handle_item_event(event: ItemEvent, model: &mut Model) -> Command<Effect,
             model.items.push(item.clone());
             model.last_error = None;
 
-            if model.local_first {
-                // Client ulid is canonical, no temp-id replacement. No
-                // ItemCreated callback to clear the dismiss-mute, so do it here.
-                model.record_success();
-                Command::all([
-                    crate::persistence::save_item(item),
-                    crux_core::render::render(),
-                ])
-            } else {
-                let temp_id = item.id.clone();
-                Command::all([
-                    crate::http::create_item(&model.api_base_url, &item, &temp_id),
-                    crux_core::render::render(),
-                ])
-            }
+            model.record_success();
+            Command::all([
+                crate::persistence::save_item(item),
+                crux_core::render::render(),
+            ])
         }
         ItemEvent::AddLinkedExercise { piece_id, input } => {
-            if !model.local_first {
-                model.last_error =
-                    Some("Related exercises aren't available online yet".to_string());
-                return crux_core::render::render();
-            }
-
             if let Err(e) = validation::validate_piece_host(&piece_id, model) {
                 model.last_error = Some(e.to_string());
                 return crux_core::render::render();
@@ -504,21 +469,6 @@ pub fn handle_item_event(event: ItemEvent, model: &mut Model) -> Command<Effect,
             chart,
             exercises,
         } => {
-            // Only the chart and the links are local-first-only: the online
-            // create reassigns ids server-side, so links minted here would
-            // dangle (#1108). A bare piece is an ordinary create, and refusing
-            // it here would name two things the musician never used.
-            if !model.local_first {
-                if chart.is_some() || !exercises.is_empty() {
-                    model.last_error = Some(
-                        "Chord charts and related exercises aren't available online yet"
-                            .to_string(),
-                    );
-                    return crux_core::render::render();
-                }
-                return handle_item_event(ItemEvent::Add(piece), model);
-            }
-
             // Everything is validated before anything is written: no half-made
             // piece, no orphan exercise.
             let piece_input = validation::normalize_create_item(CreateItem {
@@ -700,7 +650,7 @@ pub fn handle_item_event(event: ItemEvent, model: &mut Model) -> Command<Effect,
             model.last_error = None;
 
             let item = item.clone();
-            save_or_put(model, item)
+            persist_item(model, item)
         }
         ItemEvent::Delete { id } => {
             let len_before = model.items.len();
@@ -711,18 +661,11 @@ pub fn handle_item_event(event: ItemEvent, model: &mut Model) -> Command<Effect,
             }
             model.last_error = None;
 
-            if model.local_first {
-                model.record_success();
-                Command::all([
-                    crate::persistence::delete_item(id, chrono::Utc::now()),
-                    crux_core::render::render(),
-                ])
-            } else {
-                Command::all([
-                    crate::http::delete_item(&model.api_base_url, &id),
-                    crux_core::render::render(),
-                ])
-            }
+            model.record_success();
+            Command::all([
+                crate::persistence::delete_item(id, chrono::Utc::now()),
+                crux_core::render::render(),
+            ])
         }
         ItemEvent::SetPhoto { id, photo_id } => set_photo(model, id, Some(photo_id)),
         ItemEvent::ClearPhoto { id } => set_photo(model, id, None),
@@ -749,7 +692,7 @@ pub fn handle_item_event(event: ItemEvent, model: &mut Model) -> Command<Effect,
             model.last_error = None;
 
             let item = item.clone();
-            save_or_put(model, item)
+            persist_item(model, item)
         }
         ItemEvent::RemoveTags { id, tags } => {
             let Some(item) = model.items.iter_mut().find(|i| i.id == id) else {
@@ -764,7 +707,7 @@ pub fn handle_item_event(event: ItemEvent, model: &mut Model) -> Command<Effect,
             model.last_error = None;
 
             let item = item.clone();
-            save_or_put(model, item)
+            persist_item(model, item)
         }
         ItemEvent::LinkExercise {
             piece_id,
@@ -787,7 +730,7 @@ pub fn handle_item_event(event: ItemEvent, model: &mut Model) -> Command<Effect,
             model.last_error = None;
 
             let piece = piece.clone();
-            save_or_put(model, piece)
+            persist_item(model, piece)
         }
         ItemEvent::UnlinkExercise {
             piece_id,
@@ -803,7 +746,7 @@ pub fn handle_item_event(event: ItemEvent, model: &mut Model) -> Command<Effect,
             model.last_error = None;
 
             let piece = piece.clone();
-            save_or_put(model, piece)
+            persist_item(model, piece)
         }
         ItemEvent::ReorderLinkedExercises {
             piece_id,
@@ -833,7 +776,7 @@ pub fn handle_item_event(event: ItemEvent, model: &mut Model) -> Command<Effect,
             model.last_error = None;
 
             let piece = piece.clone();
-            save_or_put(model, piece)
+            persist_item(model, piece)
         }
         ItemEvent::SetChordChart {
             piece_id,
@@ -877,7 +820,7 @@ pub fn handle_item_event(event: ItemEvent, model: &mut Model) -> Command<Effect,
             model.last_error = None;
 
             let piece = piece.clone();
-            save_or_put(model, piece)
+            persist_item(model, piece)
         }
         ItemEvent::ClearChordChart { piece_id } => {
             let Some(piece) = model.items.iter_mut().find(|i| i.id == piece_id) else {
@@ -889,16 +832,9 @@ pub fn handle_item_event(event: ItemEvent, model: &mut Model) -> Command<Effect,
             model.last_error = None;
 
             let piece = piece.clone();
-            save_or_put(model, piece)
+            persist_item(model, piece)
         }
         ItemEvent::SetVariants { id, labels } => {
-            if !model.local_first {
-                // Steps are local-first-only until sync (#1083; invariant 6
-                // consciously scoped); surfaced, never a silent no-op.
-                model.last_error = Some("Variations aren't available online yet".to_string());
-                return crux_core::render::render();
-            }
-
             let labels = validation::normalize_variant_labels(labels);
             if let Err(e) = validation::validate_variant_host(&id, model)
                 .and_then(|()| validation::validate_variant_labels(&labels))
@@ -935,7 +871,7 @@ pub fn handle_item_event(event: ItemEvent, model: &mut Model) -> Command<Effect,
             model.last_error = None;
 
             let item = item.clone();
-            save_or_put(model, item)
+            persist_item(model, item)
         }
         ItemEvent::CommitScaffold { piece_id, kinds } => {
             if let Err(e) = validation::validate_chart_host(&piece_id, model) {
@@ -1014,37 +950,15 @@ pub fn handle_item_event(event: ItemEvent, model: &mut Model) -> Command<Effect,
 
             model.items.extend(new_exercises.iter().cloned());
 
-            if model.local_first {
-                // No server callback to clear the dismiss-mute, so record here.
-                model.record_success();
-                let mut batch = new_exercises;
-                batch.push(piece);
-                Command::all([
-                    crate::persistence::save_items(batch),
-                    crux_core::render::render(),
-                ])
-            } else {
-                // Online batch is deferred with the web/API work (invariant 6):
-                // compiles against existing plumbing, non-atomic, untested path.
-                // FIXME(#1108): these links use the client ulid, but create_item
-                // is the temp-id path where the server reassigns the id — the
-                // online links would dangle. Reconcile ids before wiring web.
-                let mut cmds: Vec<Command<Effect, Event>> = new_exercises
-                    .iter()
-                    .map(|ex| crate::http::create_item(&model.api_base_url, ex, &ex.id))
-                    .collect();
-                cmds.push(crate::http::update_item(&model.api_base_url, &piece));
-                cmds.push(crux_core::render::render());
-                Command::all(cmds)
-            }
+            model.record_success();
+            let mut batch = new_exercises;
+            batch.push(piece);
+            Command::all([
+                crate::persistence::save_items(batch),
+                crux_core::render::render(),
+            ])
         }
         ItemEvent::AddVariant { item_id, label } => {
-            if !model.local_first {
-                // Same scope-out as SetVariants (#1083; invariant 6).
-                model.last_error = Some("Variations aren't available online yet".to_string());
-                return crux_core::render::render();
-            }
-
             if let Err(e) = validation::validate_variant_host(&item_id, model) {
                 model.last_error = Some(e.to_string());
                 return crux_core::render::render();
@@ -1082,19 +996,13 @@ pub fn handle_item_event(event: ItemEvent, model: &mut Model) -> Command<Effect,
             model.last_error = None;
 
             let item = item.clone();
-            save_or_put(model, item)
+            persist_item(model, item)
         }
         ItemEvent::RenameVariant {
             item_id,
             variant_id,
             new_label,
         } => {
-            if !model.local_first {
-                // Same scope-out as SetVariants/AddVariant (#1083; invariant 6).
-                model.last_error = Some("Variations aren't available online yet".to_string());
-                return crux_core::render::render();
-            }
-
             if let Err(e) = validation::validate_variant_host(&item_id, model) {
                 model.last_error = Some(e.to_string());
                 return crux_core::render::render();
@@ -1158,7 +1066,7 @@ pub fn handle_item_event(event: ItemEvent, model: &mut Model) -> Command<Effect,
             model.last_error = None;
 
             let item = item.clone();
-            save_or_put(model, item)
+            persist_item(model, item)
         }
     }
 }
@@ -1219,8 +1127,6 @@ mod tests {
     fn model_with_piece_and_exercise() -> Model {
         Model {
             items: vec![make_piece("piece-1"), make_exercise("ex-1")],
-            local_first: true,
-            api_base_url: "http://localhost:3001".to_string(),
             ..Default::default()
         }
     }
@@ -1236,11 +1142,6 @@ mod tests {
     ) -> crux_core::Command<crate::app::Effect, crate::app::Event> {
         let app = Intrada;
         app.update(crate::app::Event::Item(event), model)
-    }
-
-    fn emits_http(cmd: &mut crux_core::Command<crate::app::Effect, crate::app::Event>) -> bool {
-        cmd.effects()
-            .any(|e| matches!(e, crate::app::Effect::Http(_)))
     }
 
     fn emits_save(
@@ -1312,26 +1213,6 @@ mod tests {
         assert_eq!(beats_of(&model, "piece-1"), vec![2, 1]);
         assert!(model.last_error.is_none());
         assert!(emits_save(&mut cmd, "piece-1"));
-        assert!(!emits_http(&mut cmd), "local-first (invariant 1)");
-    }
-
-    /// The server drops the metre (invariant 6 scoped), so an online write would
-    /// be wiped by its own response; the honest answer is to refuse, as SetPhoto does.
-    #[test]
-    fn set_metre_online_refuses_rather_than_silently_losing_it() {
-        let mut model = model_with_piece_and_exercise();
-        model.local_first = false;
-        let mut cmd = send_cmd(
-            &mut model,
-            ItemEvent::SetMetre {
-                id: "piece-1".to_string(),
-                metre: Some(Metre::default()),
-            },
-        );
-        assert!(model.last_error.is_some());
-        let piece = model.items.iter().find(|i| i.id == "piece-1").unwrap();
-        assert_eq!(piece.metre, None);
-        assert!(!emits_http(&mut cmd));
     }
 
     #[test]
@@ -1433,10 +1314,6 @@ mod tests {
             emits_save(&mut cmd, "piece-1"),
             "local-first persists the piece"
         );
-        assert!(
-            !emits_http(&mut cmd),
-            "local-first stores no HTTP (invariant 1)"
-        );
     }
 
     #[test]
@@ -1517,10 +1394,6 @@ mod tests {
             emits_save(&mut cmd, "ex-1"),
             "local-first persists the item"
         );
-        assert!(
-            !emits_http(&mut cmd),
-            "local-first stores no HTTP (invariant 1)"
-        );
     }
 
     #[test]
@@ -1542,32 +1415,6 @@ mod tests {
             .map(|v| (v.position, v.label.as_str()))
             .collect();
         assert_eq!(ladder, vec![(0, "F"), (1, "Bb"), (2, "Eb")]);
-    }
-
-    #[test]
-    fn add_variant_online_mode_is_scoped_out_gracefully() {
-        // Invariant 6 consciously scoped, same gate as SetVariants: online
-        // add-then-drop (server has no step storage, the ItemUpdated echo
-        // would wipe the ladder) is the silent-loss class, so refuse loudly.
-        let mut model = model_with_piece_and_exercise();
-        model.local_first = false;
-
-        let mut cmd = send_cmd(
-            &mut model,
-            ItemEvent::AddVariant {
-                item_id: "ex-1".to_string(),
-                label: "F major".to_string(),
-            },
-        );
-
-        let ex = model.items.iter().find(|i| i.id == "ex-1").unwrap();
-        assert!(ex.variants.is_empty(), "model unchanged");
-        assert!(
-            model.last_error.is_some(),
-            "scope-out is surfaced, not silent"
-        );
-        assert!(!emits_http(&mut cmd), "no HTTP");
-        assert!(!emits_save(&mut cmd, "ex-1"), "nothing persisted");
     }
 
     #[test]
@@ -1876,37 +1723,6 @@ mod tests {
     }
 
     #[test]
-    fn rename_variant_online_mode_is_scoped_out_gracefully() {
-        let mut model = model_with_piece_and_exercise();
-        send(
-            &mut model,
-            ItemEvent::SetVariants {
-                id: "ex-1".to_string(),
-                labels: vec!["C".to_string()],
-            },
-        );
-        let c_id = exercise_variants(&model)[0].id.clone();
-        model.local_first = false;
-
-        let mut cmd = send_cmd(
-            &mut model,
-            ItemEvent::RenameVariant {
-                item_id: "ex-1".to_string(),
-                variant_id: c_id,
-                new_label: "Do".to_string(),
-            },
-        );
-
-        assert_eq!(exercise_variants(&model)[0].label, "C", "model unchanged");
-        assert!(
-            model.last_error.is_some(),
-            "scope-out is surfaced, not silent"
-        );
-        assert!(!emits_http(&mut cmd), "no HTTP");
-        assert!(!emits_save(&mut cmd, "ex-1"), "nothing persisted");
-    }
-
-    #[test]
     fn rename_variant_event_round_trips_on_the_ffi_bincode_wire() {
         crate::domain::types::assert_round_trips(crate::app::Event::Item(
             ItemEvent::RenameVariant {
@@ -2046,10 +1862,6 @@ mod tests {
         let batch = emits_save_items(&mut cmd).expect("a SaveItems batch is persisted");
         assert_eq!(batch.len(), 3, "two exercises + the piece, one transaction");
         assert!(batch.contains(&"piece-1".to_string()));
-        assert!(
-            !emits_http(&mut cmd),
-            "local-first commit makes no HTTP (invariant 1)"
-        );
     }
 
     #[test]
@@ -2276,7 +2088,6 @@ mod tests {
             emits_save(&mut cmd, "ex-1"),
             "local-first persists the exercise"
         );
-        assert!(!emits_http(&mut cmd), "no HTTP (invariant 1)");
     }
 
     #[test]
@@ -2645,30 +2456,6 @@ mod tests {
         );
         assert!(!emits_save(&mut cmd, "ex-1"), "nothing to persist");
         assert!(model.last_error.is_none());
-    }
-
-    #[test]
-    fn set_variants_online_mode_is_scoped_out_gracefully() {
-        // Invariant 6 consciously scoped (#1083): steps are local-first-only
-        // until sync. Online must surface that; never mutate, never POST.
-        let mut model = model_with_piece_and_exercise();
-        model.local_first = false;
-
-        let mut cmd = send_cmd(
-            &mut model,
-            ItemEvent::SetVariants {
-                id: "ex-1".to_string(),
-                labels: vec!["C".to_string()],
-            },
-        );
-
-        assert!(exercise_variants(&model).is_empty(), "model unchanged");
-        assert!(
-            model.last_error.is_some(),
-            "scope-out is surfaced, not silent"
-        );
-        assert!(!emits_http(&mut cmd), "no HTTP");
-        assert!(!emits_save(&mut cmd, "ex-1"), "nothing persisted");
     }
 
     #[test]
@@ -3066,10 +2853,6 @@ mod tests {
         let batch = emits_save_items(&mut cmd).expect("a SaveItems batch is persisted");
         assert_eq!(batch.len(), 2, "the exercise + the piece, one transaction");
         assert!(batch.contains(&"piece-1".to_string()));
-        assert!(
-            !emits_http(&mut cmd),
-            "local-first create makes no HTTP (invariant 1)"
-        );
     }
 
     #[test]
@@ -3157,27 +2940,6 @@ mod tests {
         );
     }
 
-    #[test]
-    fn add_linked_exercise_online_mode_is_scoped_out_gracefully() {
-        let mut model = model_with_piece_and_exercise();
-        model.local_first = false;
-
-        let mut cmd = send_cmd(
-            &mut model,
-            ItemEvent::AddLinkedExercise {
-                piece_id: "piece-1".to_string(),
-                input: new_exercise_input("Shell voicings"),
-            },
-        );
-
-        assert!(model.last_error.is_some());
-        assert!(
-            !model.items.iter().any(|i| i.title == "Shell voicings"),
-            "online would link against a client ulid the server reassigns (#1108)"
-        );
-        assert!(!emits_http(&mut cmd));
-    }
-
     // ── The photo a piece is created with ──
 
     /// The page the form was read off is the page you practise from: adding
@@ -3186,8 +2948,7 @@ mod tests {
     #[test]
     fn a_piece_created_from_a_scan_keeps_the_page_it_was_read_from() {
         let app = crate::app::Intrada;
-        let mut model = Model::test_default();
-        model.local_first = true;
+        let mut model = Model::default();
 
         let _ = app.update(
             crate::app::Event::Item(ItemEvent::Add(crate::domain::types::CreateItem {
@@ -3212,8 +2973,7 @@ mod tests {
     #[test]
     fn a_create_naming_an_unreadable_photo_is_refused() {
         let app = crate::app::Intrada;
-        let mut model = Model::test_default();
-        model.local_first = true;
+        let mut model = Model::default();
 
         let _ = app.update(
             crate::app::Event::Item(ItemEvent::Add(crate::domain::types::CreateItem {
@@ -3279,10 +3039,6 @@ mod tests {
             "the photo is part of the item's state, so it moves updated_at for LWW"
         );
         assert!(emits_save(&mut cmd, "piece-1"));
-        assert!(
-            !emits_http(&mut cmd),
-            "photos are device-local (invariant 1)"
-        );
     }
 
     #[test]
@@ -3409,33 +3165,6 @@ mod tests {
     }
 
     #[test]
-    fn photo_events_are_refused_online() {
-        for event in [
-            set_photo_event("piece-1", PHOTO),
-            ItemEvent::ClearPhoto {
-                id: "piece-1".to_string(),
-            },
-        ] {
-            let mut model = model_with_piece_and_exercise();
-            model.local_first = false;
-            model.items[0].photo_id = Some(OTHER_PHOTO.to_string());
-
-            let mut cmd = send_cmd(&mut model, event);
-
-            assert!(model.last_error.is_some());
-            assert_eq!(
-                photo_of(&model, "piece-1").as_deref(),
-                Some(OTHER_PHOTO),
-                "the item is left exactly as it was"
-            );
-            assert!(
-                !emits_http(&mut cmd),
-                "there is no server surface for photos"
-            );
-        }
-    }
-
-    #[test]
     fn deleting_an_item_leaves_its_photo_file_alone() {
         let mut model = model_with_piece_and_exercise();
         send(&mut model, set_photo_event("piece-1", PHOTO));
@@ -3538,7 +3267,6 @@ mod tests {
             2,
             "the new exercise and the piece in one transaction, never one write each"
         );
-        assert!(!emits_http(&mut cmd), "local-first create makes no HTTP");
         assert!(model.last_error.is_none());
     }
 
@@ -3651,55 +3379,6 @@ mod tests {
         assert!(piece.chord_chart.is_none());
         assert!(piece.linked_exercise_ids.is_empty());
         assert_eq!(emits_save_items(&mut cmd).map(|b| b.len()), Some(1));
-        assert!(model.last_error.is_none());
-    }
-
-    #[test]
-    fn add_piece_in_full_is_refused_online() {
-        let mut model = model_with_piece_and_exercise();
-        model.local_first = false;
-        let before = model.items.len();
-
-        let mut cmd = send_cmd(
-            &mut model,
-            ItemEvent::AddPieceInFull {
-                piece: one_pass_piece_input("Autumn Leaves"),
-                chart: None,
-                exercises: vec![ScaffoldEntry::New(new_exercise_input("Shell voicings"))],
-            },
-        );
-
-        assert_eq!(
-            model.items.len(),
-            before,
-            "the online create path reassigns ids server-side, so the links would dangle"
-        );
-        assert!(!emits_http(&mut cmd), "refused, never half-applied");
-        assert!(model.last_error.is_some(), "and said so, never silent");
-        assert!(
-            model.last_error_target.is_none(),
-            "nothing on the form is at fault, so nothing is marked"
-        );
-    }
-
-    #[test]
-    fn add_piece_in_full_takes_a_bare_piece_online() {
-        let mut model = model_with_piece_and_exercise();
-        model.local_first = false;
-
-        let mut cmd = send_cmd(
-            &mut model,
-            ItemEvent::AddPieceInFull {
-                piece: one_pass_piece_input("Autumn Leaves"),
-                chart: None,
-                exercises: vec![],
-            },
-        );
-
-        assert!(
-            emits_http(&mut cmd),
-            "with nothing local-first about it, this is an ordinary create and must not be refused"
-        );
         assert!(model.last_error.is_none());
     }
 

@@ -1545,7 +1545,7 @@ mod tests {
 
         #[test]
         fn read_photo_requests_recognition_and_marks_the_photo_as_reading() {
-            let mut model = Model::test_default();
+            let mut model = Model::default();
             let mut cmd = read_photo(&mut model);
 
             assert!(cmd.effects().any(|e| matches!(e, Effect::Recognition(req)
@@ -1589,7 +1589,7 @@ mod tests {
         /// projection and not only the model.
         #[test]
         fn a_read_in_progress_is_visible_in_the_view() {
-            let mut model = Model::test_default();
+            let mut model = Model::default();
             let _ = read_photo(&mut model);
 
             let view = Intrada.view(&model).photo_recognition;
@@ -1598,17 +1598,9 @@ mod tests {
             assert!(view.draft.is_none());
         }
 
-        /// Offline-first invariant 1: recognition is on-device, end to end.
-        #[test]
-        fn reading_a_page_issues_no_http() {
-            let mut model = Model::test_default();
-            let mut cmd = read_photo(&mut model);
-            assert!(!cmd.effects().any(|e| matches!(e, Effect::Http(_))));
-        }
-
         #[test]
         fn an_unreadable_photo_id_surfaces_an_error_and_requests_nothing() {
-            let mut model = Model::test_default();
+            let mut model = Model::default();
             let mut cmd = Intrada.update(
                 Event::Item(ItemEvent::ReadPhoto {
                     photo_id: "not-a-ulid".to_string(),
@@ -1622,7 +1614,7 @@ mod tests {
 
         #[test]
         fn a_read_page_becomes_the_draft_the_form_is_filled_from() {
-            let mut model = Model::test_default();
+            let mut model = Model::default();
             let _ = read_photo(&mut model);
             let _ = Intrada.update(
                 photo_read(RecognitionOutput::Page(printed_page())),
@@ -1643,7 +1635,7 @@ mod tests {
         /// exactly as clean as a sharp one.
         #[test]
         fn a_weak_read_is_flagged_as_one_in_the_view() {
-            let mut blurry = Model::test_default();
+            let mut blurry = Model::default();
             let _ = read_photo(&mut blurry);
             let mut lines = printed_page().lines;
             lines[0].confidence = 0.2;
@@ -1670,7 +1662,7 @@ mod tests {
         /// fields. Surfacing this as a banner would be the wrong story.
         #[test]
         fn a_device_without_recognition_is_an_outcome_not_an_error() {
-            let mut model = Model::test_default();
+            let mut model = Model::default();
             let _ = read_photo(&mut model);
             let _ = Intrada.update(photo_read(RecognitionOutput::Unsupported), &mut model);
 
@@ -1683,7 +1675,7 @@ mod tests {
 
         #[test]
         fn a_failed_read_is_surfaced_as_failed_not_as_an_empty_draft() {
-            let mut model = Model::test_default();
+            let mut model = Model::default();
             let _ = read_photo(&mut model);
             let _ = Intrada.update(photo_read(RecognitionOutput::Failed), &mut model);
 
@@ -1698,7 +1690,7 @@ mod tests {
         #[test]
         fn a_read_never_lands_on_a_photo_it_did_not_come_from() {
             const OTHER: &str = "01JB0000000000000000000001";
-            let mut model = Model::test_default();
+            let mut model = Model::default();
 
             let _ = read_photo(&mut model);
             let _ = Intrada.update(
@@ -1727,7 +1719,7 @@ mod tests {
         /// repopulate the form they have since left.
         #[test]
         fn a_late_read_is_dropped_once_the_user_has_moved_on() {
-            let mut model = Model::test_default();
+            let mut model = Model::default();
             let _ = read_photo(&mut model);
             let _ = Intrada.update(Event::DiscardPhotoDraft, &mut model);
             let _ = Intrada.update(
@@ -1739,7 +1731,7 @@ mod tests {
 
         #[test]
         fn discarding_clears_a_draft_the_user_has_finished_with() {
-            let mut model = Model::test_default();
+            let mut model = Model::default();
             let _ = read_photo(&mut model);
             let _ = Intrada.update(
                 photo_read(RecognitionOutput::Page(printed_page())),
@@ -1757,7 +1749,7 @@ mod tests {
         /// (spec non-goal "no silent write").
         #[test]
         fn reading_a_page_never_writes_an_item() {
-            let mut model = Model::test_default();
+            let mut model = Model::default();
             let mut cmd = read_photo(&mut model);
             assert!(!cmd.effects().any(|e| matches!(e, Effect::Persistence(_))));
 
@@ -1780,7 +1772,7 @@ mod tests {
 
         #[test]
         fn the_view_projection_round_trips_on_ffi_bincode_wire() {
-            let mut model = Model::test_default();
+            let mut model = Model::default();
             let _ = read_photo(&mut model);
             let _ = Intrada.update(
                 photo_read(RecognitionOutput::Page(printed_page())),
