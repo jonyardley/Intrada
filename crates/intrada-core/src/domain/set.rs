@@ -39,12 +39,9 @@ pub struct SetEntry {
 pub enum SetEvent {
     SaveBuildingAsSet {
         name: String,
-        /// Shell-generated ulid echoed back via `SetSaveSucceeded` (#663).
-        request_id: String,
     },
     SaveSummaryAsSet {
         name: String,
-        request_id: String,
     },
     LoadSetIntoSetlist {
         set_id: String,
@@ -64,7 +61,7 @@ pub enum SetEvent {
 
 pub fn handle_set_event(event: SetEvent, model: &mut Model) -> Command<Effect, Event> {
     match event {
-        SetEvent::SaveBuildingAsSet { name, request_id } => {
+        SetEvent::SaveBuildingAsSet { name } => {
             let building = match &model.session_status {
                 SessionStatus::Building(b) => b,
                 _ => {
@@ -103,16 +100,13 @@ pub fn handle_set_event(event: SetEvent, model: &mut Model) -> Command<Effect, E
                 updated_at: now,
             };
 
-            model.sets.push(set.clone());
+            model.sets.push(set);
             model.last_error = None;
 
-            Command::all([
-                crate::http::create_set(&model.api_base_url, &set, request_id),
-                crux_core::render::render(),
-            ])
+            crux_core::render::render()
         }
 
-        SetEvent::SaveSummaryAsSet { name, request_id } => {
+        SetEvent::SaveSummaryAsSet { name } => {
             let summary = match &model.session_status {
                 SessionStatus::Summary(s) => s,
                 _ => {
@@ -151,13 +145,10 @@ pub fn handle_set_event(event: SetEvent, model: &mut Model) -> Command<Effect, E
                 updated_at: now,
             };
 
-            model.sets.push(set.clone());
+            model.sets.push(set);
             model.last_error = None;
 
-            Command::all([
-                crate::http::create_set(&model.api_base_url, &set, request_id),
-                crux_core::render::render(),
-            ])
+            crux_core::render::render()
         }
 
         SetEvent::LoadSetIntoSetlist { set_id } => {
@@ -219,10 +210,7 @@ pub fn handle_set_event(event: SetEvent, model: &mut Model) -> Command<Effect, E
             model.sets.retain(|r| r.id != id);
             model.last_error = None;
 
-            Command::all([
-                crate::http::delete_set(&model.api_base_url, &id),
-                crux_core::render::render(),
-            ])
+            crux_core::render::render()
         }
 
         SetEvent::UpdateSet { id, name, entries } => {
@@ -252,13 +240,9 @@ pub fn handle_set_event(event: SetEvent, model: &mut Model) -> Command<Effect, E
                 entry.position = i;
             }
 
-            let updated = set.clone();
             model.last_error = None;
 
-            Command::all([
-                crate::http::update_set(&model.api_base_url, &updated),
-                crux_core::render::render(),
-            ])
+            crux_core::render::render()
         }
 
         SetEvent::UpdateSetFromBuilding => {
@@ -312,8 +296,6 @@ pub fn handle_set_event(event: SetEvent, model: &mut Model) -> Command<Effect, E
                 entry.position = i;
             }
 
-            let updated = set.clone();
-
             // Update the snapshot so status flips to UnmodifiedFromSource
             let building = match &mut model.session_status {
                 SessionStatus::Building(b) => b,
@@ -324,10 +306,7 @@ pub fn handle_set_event(event: SetEvent, model: &mut Model) -> Command<Effect, E
 
             model.last_error = None;
 
-            Command::all([
-                crate::http::update_set(&model.api_base_url, &updated),
-                crux_core::render::render(),
-            ])
+            crux_core::render::render()
         }
     }
 }
@@ -341,7 +320,6 @@ mod tests {
 
     fn model_with_building(entries: Vec<SetlistEntry>) -> Model {
         Model {
-            api_base_url: "http://localhost:3001".to_string(),
             session_status: SessionStatus::Building(BuildingSession {
                 entries,
                 ..Default::default()
@@ -402,7 +380,6 @@ mod tests {
         let _cmd = handle_set_event(
             SetEvent::SaveBuildingAsSet {
                 name: "Morning Warm-up".to_string(),
-                request_id: "req-test".to_string(),
             },
             &mut model,
         );
@@ -422,7 +399,6 @@ mod tests {
         let _cmd = handle_set_event(
             SetEvent::SaveBuildingAsSet {
                 name: "Test".to_string(),
-                request_id: "req-test".to_string(),
             },
             &mut model,
         );
@@ -441,7 +417,6 @@ mod tests {
         let _cmd = handle_set_event(
             SetEvent::SaveBuildingAsSet {
                 name: "".to_string(),
-                request_id: "req-test".to_string(),
             },
             &mut model,
         );
@@ -456,7 +431,6 @@ mod tests {
         let _cmd = handle_set_event(
             SetEvent::SaveBuildingAsSet {
                 name: "   ".to_string(),
-                request_id: "req-test".to_string(),
             },
             &mut model,
         );
@@ -471,7 +445,6 @@ mod tests {
         let _cmd = handle_set_event(
             SetEvent::SaveBuildingAsSet {
                 name: "x".repeat(201),
-                request_id: "req-test".to_string(),
             },
             &mut model,
         );
@@ -486,7 +459,6 @@ mod tests {
         let _cmd = handle_set_event(
             SetEvent::SaveBuildingAsSet {
                 name: "x".repeat(200),
-                request_id: "req-test".to_string(),
             },
             &mut model,
         );
@@ -501,7 +473,6 @@ mod tests {
         let _cmd = handle_set_event(
             SetEvent::SaveBuildingAsSet {
                 name: "Test".to_string(),
-                request_id: "req-test".to_string(),
             },
             &mut model,
         );
@@ -512,11 +483,10 @@ mod tests {
 
     #[test]
     fn save_building_wrong_status_fails() {
-        let mut model = Model::test_default(); // Idle status
+        let mut model = Model::default(); // Idle status
         let _cmd = handle_set_event(
             SetEvent::SaveBuildingAsSet {
                 name: "Test".to_string(),
-                request_id: "req-test".to_string(),
             },
             &mut model,
         );
@@ -530,7 +500,6 @@ mod tests {
         use crate::domain::session::{CompletionStatus, SummarySession};
 
         let mut model = Model {
-            api_base_url: "http://localhost:3001".to_string(),
             session_status: SessionStatus::Summary(SummarySession {
                 id: "session-1".to_string(),
                 entries: sample_setlist_entries(),
@@ -550,7 +519,6 @@ mod tests {
         let _cmd = handle_set_event(
             SetEvent::SaveSummaryAsSet {
                 name: "Post-Session Set".to_string(),
-                request_id: "req-test".to_string(),
             },
             &mut model,
         );
@@ -563,11 +531,10 @@ mod tests {
 
     #[test]
     fn save_summary_wrong_status_fails() {
-        let mut model = Model::test_default(); // Idle status
+        let mut model = Model::default(); // Idle status
         let _cmd = handle_set_event(
             SetEvent::SaveSummaryAsSet {
                 name: "Test".to_string(),
-                request_id: "req-test".to_string(),
             },
             &mut model,
         );
@@ -621,7 +588,7 @@ mod tests {
 
     #[test]
     fn load_set_not_building_fails() {
-        let mut model = Model::test_default();
+        let mut model = Model::default();
         model.sets.push(sample_set());
 
         let _cmd = handle_set_event(
@@ -649,7 +616,7 @@ mod tests {
 
     #[test]
     fn delete_set_removes_from_model() {
-        let mut model = Model::test_default();
+        let mut model = Model::default();
         model.sets.push(sample_set());
         assert_eq!(model.sets.len(), 1);
 
@@ -666,7 +633,7 @@ mod tests {
 
     #[test]
     fn update_set_changes_name_and_entries() {
-        let mut model = Model::test_default();
+        let mut model = Model::default();
         model.sets.push(sample_set());
 
         let new_entries = vec![SetEntry {
@@ -695,7 +662,7 @@ mod tests {
 
     #[test]
     fn update_set_invalid_name_fails() {
-        let mut model = Model::test_default();
+        let mut model = Model::default();
         model.sets.push(sample_set());
 
         let _cmd = handle_set_event(
@@ -720,7 +687,7 @@ mod tests {
 
     #[test]
     fn update_set_empty_entries_fails() {
-        let mut model = Model::test_default();
+        let mut model = Model::default();
         model.sets.push(sample_set());
 
         let _cmd = handle_set_event(
@@ -739,7 +706,7 @@ mod tests {
 
     #[test]
     fn update_set_not_found_fails() {
-        let mut model = Model::test_default();
+        let mut model = Model::default();
 
         let _cmd = handle_set_event(
             SetEvent::UpdateSet {

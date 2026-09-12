@@ -5,24 +5,18 @@ use crux_core::capability::Operation;
 use crux_core::macros::effect;
 use crux_core::render::RenderOperation;
 use crux_core::{App, Command};
-use crux_http::HttpRequest;
 use serde::{Deserialize, Serialize};
 
 use crate::analytics::compute_analytics;
-use crate::domain::account::{handle_account_event, AccountEvent};
 use crate::domain::item::{handle_item_event, Item, ItemEvent, ItemKind};
-use crate::domain::mcp_audit::{handle_mcp_audit_event, McpAuditEvent};
-use crate::domain::mcp_tokens::{handle_mcp_token_event, McpTokenEvent};
-use crate::domain::oauth::{handle_oauth_event, OAuthEvent};
 use crate::domain::profile::{build_profile_view, handle_profile_event, Profile, ProfileEvent};
 use crate::domain::session::{
     handle_session_event, ActiveSession, PracticeSession, SessionEvent, SessionStatus,
 };
 #[cfg(test)]
 use crate::domain::session::{CompletionStatus, EntryStatus, SetlistEntry};
-use crate::domain::set::{handle_set_event, Set, SetEvent};
+use crate::domain::set::{handle_set_event, SetEvent};
 use crate::domain::types::{LibrarySort, ListQuery, SortDirection, SortField};
-use crate::http;
 use crate::model::{
     build_active_session_view, build_blocks, build_summary_view, entry_to_view, session_to_view,
     BuildingSetlistView, ItemPracticeSummary, LibraryItemView, LinkedExerciseView, Model,
@@ -42,13 +36,9 @@ pub struct Intrada;
 #[cfg_attr(feature = "facet_typegen", repr(C))]
 pub enum Event {
     // ── Lifecycle ────────────────────────────────────────────────────
-    /// Shell provides the API base URL on startup.
+    /// Hydrate the library and sessions from the on-device store at launch.
     /// Named `StartApp` (not `Init`) to avoid Swift keyword collision.
-    StartApp {
-        api_base_url: String,
-        /// iOS passes true (Library local-first); web passes false (online).
-        local_first: bool,
-    },
+    StartApp,
     /// Shell reports the device's UTC offset (minutes east of UTC) at launch
     /// and on foreground, so analytics turn days over at the user's midnight,
     /// not UTC's (#1330).
@@ -57,12 +47,6 @@ pub enum Event {
     },
     /// Demo dataset, opt-in only (e.g. iOS `--seed-sample-data`) — never in production.
     LoadSampleData,
-    /// Fetch all data from the API (items, sessions, sets).
-    FetchAll,
-    /// Re-fetch a single resource kind after a mutation (refresh-after-mutate).
-    RefetchItems,
-    RefetchSessions,
-    RefetchSets,
     /// Reset all user-scoped state so the next sign-in doesn't inherit the
     /// previous user's data (#645).
     SignedOut,
@@ -71,47 +55,9 @@ pub enum Event {
     Item(ItemEvent),
     Session(SessionEvent),
     Set(SetEvent),
-    Account(AccountEvent),
     Profile(ProfileEvent),
-    McpToken(McpTokenEvent),
-    McpAudit(McpAuditEvent),
-    OAuth(OAuthEvent),
-
-    // ── Data loaded callbacks ───────────────────────────────────────
-    DataLoaded {
-        items: Vec<Item>,
-    },
-    SessionsLoaded {
-        sessions: Vec<PracticeSession>,
-    },
-    SetsLoaded {
-        sets: Vec<Set>,
-    },
-
-    // ── Write-confirmation callbacks ────────────────────────────────
-    // Temp-id mutate-response: see CLAUDE.md "Mutate response".
-    ItemCreated {
-        temp_id: String,
-        item: Item,
-    },
-    ItemUpdated {
-        item: Item,
-    },
-    SetUpdated {
-        set: Set,
-    },
-    /// Server confirmed `Save{Building,Summary}AsSet`. `request_id` echoes
-    /// the shell's dispatch tag so per-form promotion stays isolated (#663).
-    SetSaveSucceeded {
-        request_id: String,
-    },
-    /// Server confirmed a delete — model already updated optimistically.
-    DeleteConfirmed,
-    /// Server confirmed session creation — model already updated optimistically.
-    SessionSaved,
 
     // ── Error handling ──────────────────────────────────────────────
-    LoadFailed(String),
     ClearError,
     SetQuery(Option<ListQuery>),
     /// User chose a library sort order; persist it and re-render.
@@ -147,8 +93,7 @@ pub enum Event {
 #[effect(facet_typegen)]
 pub enum Effect {
     Render(RenderOperation),
-    Http(HttpRequest),
-    /// Shell-only side effects that are NOT HTTP (localStorage only).
+    /// Shell-only side effects that are not relational persistence.
     App(AppEffect),
     /// Local-first persistence (the core's first effect with typed-data output).
     Persistence(PersistenceOperation),
@@ -157,7 +102,7 @@ pub enum Effect {
     Recognition(RecognitionOperation),
 }
 
-/// Non-HTTP side-effect operations handled by the shell (localStorage only).
+/// Singleton side-effect operations handled by the shell (UserDefaults).
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "facet_typegen", derive(facet::Facet))]
 #[cfg_attr(feature = "facet_typegen", repr(C))]
@@ -208,21 +153,8 @@ impl Intrada {
     fn handle_event(&self, event: Event, model: &mut Model) -> Command<Effect, Event> {
         match event {
             // ── Lifecycle ────────────────────────────────────────────
-            Event::StartApp {
-                api_base_url,
-                local_first,
-            } => {
-                model.api_base_url = api_base_url;
-                model.local_first = local_first;
-                if local_first {
-                    Command::all([persistence::load_items(), persistence::load_sessions()])
-                } else {
-                    Command::all([
-                        http::fetch_items(&model.api_base_url),
-                        http::fetch_sessions(&model.api_base_url),
-                        http::fetch_sets(&model.api_base_url),
-                    ])
-                }
+            Event::StartApp => {
+                Command::all([persistence::load_items(), persistence::load_sessions()])
             }
             Event::SetUtcOffset { minutes } => {
                 model.utc_offset_minutes = minutes;
@@ -232,24 +164,9 @@ impl Intrada {
                 model.items = sample_items();
                 model.sessions = sample_sessions();
                 model.practice_summaries = build_practice_summaries(&model.sessions);
-                // Seed mode is offline (DEBUG/CI) — keep writes local so a demo
-                // edit doesn't surprise-POST to the API.
-                model.local_first = true;
-                // crux_http panics on a relative URL; demo mode skips StartApp, so set one.
-                if model.api_base_url.is_empty() {
-                    "http://localhost:3001".clone_into(&mut model.api_base_url);
-                }
                 model.last_error = None;
                 crux_core::render::render()
             }
-            Event::FetchAll => Command::all([
-                http::fetch_items(&model.api_base_url),
-                http::fetch_sessions(&model.api_base_url),
-                http::fetch_sets(&model.api_base_url),
-            ]),
-            Event::RefetchItems => http::fetch_items(&model.api_base_url),
-            Event::RefetchSessions => http::fetch_sessions(&model.api_base_url),
-            Event::RefetchSets => http::fetch_sets(&model.api_base_url),
             Event::SignedOut => {
                 model.reset_for_sign_out();
                 // The crash-recovery blob isn't user-scoped, so clear it too —
@@ -264,72 +181,9 @@ impl Intrada {
             Event::Item(item_event) => handle_item_event(item_event, model),
             Event::Session(session_event) => handle_session_event(session_event, model),
             Event::Set(set_event) => handle_set_event(set_event, model),
-            Event::Account(account_event) => handle_account_event(account_event, model),
             Event::Profile(profile_event) => handle_profile_event(profile_event, model),
-            Event::McpToken(token_event) => handle_mcp_token_event(token_event, model),
-            Event::McpAudit(audit_event) => handle_mcp_audit_event(audit_event, model),
-            Event::OAuth(oauth_event) => handle_oauth_event(oauth_event, model),
-
-            // ── Data loaded callbacks ────────────────────────────────
-            Event::DataLoaded { items } => {
-                model.items = items;
-                model.record_success();
-                crux_core::render::render()
-            }
-            Event::SessionsLoaded { sessions } => {
-                model.sessions = sessions;
-                model.practice_summaries = build_practice_summaries(&model.sessions);
-                model.record_success();
-                crux_core::render::render()
-            }
-            Event::SetsLoaded { sets } => {
-                model.sets = sets;
-                model.record_success();
-                crux_core::render::render()
-            }
-
-            // ── Write-confirmation callbacks ─────────────────────────
-            Event::ItemCreated { temp_id, item } => {
-                if let Some(existing) = model.items.iter_mut().find(|i| i.id == temp_id) {
-                    *existing = item.clone();
-                } else {
-                    model.items.push(item.clone());
-                }
-                model.record_success();
-                crux_core::render::render()
-            }
-            Event::ItemUpdated { item } => {
-                if let Some(existing) = model.items.iter_mut().find(|i| i.id == item.id) {
-                    *existing = item;
-                }
-                model.record_success();
-                crux_core::render::render()
-            }
-            Event::SetUpdated { set } => {
-                if let Some(existing) = model.sets.iter_mut().find(|r| r.id == set.id) {
-                    *existing = set;
-                }
-                model.record_success();
-                crux_core::render::render()
-            }
-            Event::DeleteConfirmed | Event::SessionSaved => {
-                // Model already updated optimistically — just record the success.
-                model.record_success();
-                crux_core::render::render()
-            }
-            Event::SetSaveSucceeded { request_id } => {
-                model.last_set_save_request_id = Some(request_id);
-                model.record_success();
-                crate::http::fetch_sets(&model.api_base_url)
-            }
 
             // ── Error handling ───────────────────────────────────────
-            Event::LoadFailed(msg) => {
-                // surface_error does the dismiss-mute check + dedupe (#346); always
-                // render anyway so domain *Failed state changes (rollback) flush.
-                model.surface_error(msg);
-                crux_core::render::render()
-            }
             Event::ClearError => {
                 model.dismiss_error();
                 crux_core::render::render()
@@ -679,20 +533,7 @@ impl Intrada {
             analytics,
             last_practised,
             sets,
-            account_preferences: model.account_preferences.clone(),
             profile: build_profile_view(&model.profile, clock.hour_of(now)),
-            delete_in_flight: model.delete_in_flight,
-            account_deleted: model.account_deleted,
-            mcp_tokens: model.mcp_tokens.clone(),
-            mcp_audit: model.mcp_audit.clone(),
-            mcp_audit_loaded: model.mcp_audit_loaded,
-            mcp_audit_loading: model.mcp_audit_loading,
-            mcp_tokens_loaded: model.mcp_tokens_loaded,
-            mcp_tokens_loading: model.mcp_tokens_loading,
-            just_created_token: model.just_created_token.clone(),
-            oauth_in_flight: model.oauth_in_flight,
-            oauth_redirect_url: model.oauth_redirect_url.clone(),
-            last_set_save_request_id: model.last_set_save_request_id.clone(),
             up_next,
             has_priorities,
             photo_recognition: photo_recognition_view(&model.photo_recognition),
@@ -1681,8 +1522,7 @@ mod tests {
     fn charted_piece_surfaces_a_scaffold_preview_in_the_view() {
         use crate::domain::item::ItemEvent;
         let app = Intrada;
-        let mut model = Model::test_default();
-        model.local_first = true;
+        let mut model = Model::default();
 
         let now = chrono::Utc::now();
         model.items.push(Item {
@@ -1732,61 +1572,6 @@ mod tests {
     }
 
     #[test]
-    fn test_data_loaded_populates_model() {
-        let app = Intrada;
-        let mut model = Model::test_default();
-
-        let now = chrono::Utc::now();
-        let items = vec![
-            Item {
-                id: "piece1".to_string(),
-                title: "Clair de Lune".to_string(),
-                kind: ItemKind::Piece,
-                composer: Some("Debussy".to_string()),
-                key: Some("Db Major".to_string()),
-                modality: None,
-                tempo: None,
-                notes: None,
-                tags: vec![],
-                created_at: now,
-                updated_at: now,
-                linked_exercise_ids: vec![],
-                priority: false,
-                chord_chart: None,
-                variants: vec![],
-                photo_id: None,
-                metre: None,
-            },
-            Item {
-                id: "ex1".to_string(),
-                title: "C Major Scale".to_string(),
-                kind: ItemKind::Exercise,
-                composer: None,
-                key: Some("C Major".to_string()),
-                modality: None,
-                tempo: None,
-                notes: None,
-                tags: vec![],
-                created_at: now,
-                updated_at: now,
-                linked_exercise_ids: vec![],
-                priority: false,
-                chord_chart: None,
-                variants: vec![],
-                photo_id: None,
-                metre: None,
-            },
-        ];
-
-        let _cmd = app.update(Event::DataLoaded { items }, &mut model);
-
-        assert_eq!(model.items.len(), 2);
-        assert_eq!(model.items[0].title, "Clair de Lune");
-        assert_eq!(model.items[1].title, "C Major Scale");
-        assert!(model.last_error.is_none());
-    }
-
-    #[test]
     fn test_clear_error() {
         let app = Intrada;
         let mut model = Model {
@@ -1800,84 +1585,6 @@ mod tests {
     }
 
     #[test]
-    fn test_load_failed_does_not_set_last_set_save_request_id() {
-        // Failure must not surface a request_id — would flip "Saved" on a
-        // failed save (#449).
-        let app = Intrada;
-        let mut model = Model {
-            api_base_url: "http://localhost:3001".to_string(),
-            last_set_save_request_id: Some("req-old".to_string()),
-            ..Default::default()
-        };
-
-        let _cmd = app.update(
-            Event::LoadFailed("Failed to save set: timeout".to_string()),
-            &mut model,
-        );
-
-        assert_eq!(
-            model.last_set_save_request_id.as_deref(),
-            Some("req-old"),
-            "request_id must not change on failure"
-        );
-        assert_eq!(
-            model.last_error.as_deref(),
-            Some("Failed to save set: timeout")
-        );
-    }
-
-    #[test]
-    fn test_set_save_succeeded_records_request_id_and_clears_error() {
-        let app = Intrada;
-        let mut model = Model {
-            api_base_url: "http://localhost:3001".to_string(),
-            last_set_save_request_id: Some("req-old".to_string()),
-            last_error: Some("Failed to save set: timeout".to_string()),
-            error_muted: true,
-            ..Default::default()
-        };
-
-        let _cmd = app.update(
-            Event::SetSaveSucceeded {
-                request_id: "req-new".to_string(),
-            },
-            &mut model,
-        );
-
-        assert_eq!(model.last_set_save_request_id.as_deref(), Some("req-new"));
-        assert!(model.last_error.is_none());
-        assert!(!model.error_muted);
-        let vm = app.view(&model);
-        assert_eq!(vm.last_set_save_request_id.as_deref(), Some("req-new"));
-    }
-
-    #[test]
-    fn test_concurrent_set_saves_only_promote_matching_form() {
-        // The invariant behind #663: each success overwrites with its own id.
-        let app = Intrada;
-        let mut model = Model {
-            api_base_url: "http://localhost:3001".to_string(),
-            ..Default::default()
-        };
-
-        let _cmd = app.update(
-            Event::SetSaveSucceeded {
-                request_id: "req-A".to_string(),
-            },
-            &mut model,
-        );
-        assert_eq!(model.last_set_save_request_id.as_deref(), Some("req-A"));
-
-        let _cmd = app.update(
-            Event::SetSaveSucceeded {
-                request_id: "req-B".to_string(),
-            },
-            &mut model,
-        );
-        assert_eq!(model.last_set_save_request_id.as_deref(), Some("req-B"));
-    }
-
-    #[test]
     fn test_signed_out_resets_user_scoped_state() {
         let app = Intrada;
         let now = chrono::Utc::now();
@@ -1885,7 +1592,6 @@ mod tests {
         // Populate a model with state from a fully signed-in user across
         // every sensitive field that could leak to the next user (#645).
         let mut model = Model {
-            api_base_url: "http://localhost:3001".to_string(),
             items: vec![Item {
                 id: "i1".to_string(),
                 title: "Clair de Lune".to_string(),
@@ -1929,50 +1635,24 @@ mod tests {
             }),
             last_error: Some("connection lost".to_string()),
             error_muted: true,
-            mcp_tokens: vec![crate::domain::mcp_tokens::McpToken {
-                id: "tok1".to_string(),
-                name: "ci-bot".to_string(),
-                prefix: "intr_pat_".to_string(),
-                last_used_at: None,
-                created_at: now,
-                revoked_at: None,
-            }],
-            mcp_tokens_loaded: true,
-            mcp_audit: vec![crate::domain::mcp_audit::McpAuditEntry {
-                id: "audit1".to_string(),
-                token_id: None,
-                token_name: None,
-                token_prefix: None,
-                tool: "list_items".to_string(),
-                args_hash: "abc".to_string(),
-                created_at: now,
-            }],
-            mcp_audit_loaded: true,
             ..Default::default()
         };
 
         let _cmd = app.update(Event::SignedOut, &mut model);
 
-        // api_base_url is set at startup, not per-user — must survive.
-        assert_eq!(model.api_base_url, "http://localhost:3001");
-        // Everything else returns to Default — exhaustive checks across the
-        // most sensitive fields (anything visible in the ViewModel between
-        // sign-out and first refetch).
+        // Everything user-scoped returns to Default: exhaustive checks across
+        // the fields the next user would otherwise see in the ViewModel.
         assert!(model.items.is_empty());
         assert!(model.sessions.is_empty());
         assert!(matches!(model.session_status, SessionStatus::Idle));
         assert!(model.last_error.is_none());
         assert!(!model.error_muted);
-        assert!(model.mcp_tokens.is_empty());
-        assert!(!model.mcp_tokens_loaded);
-        assert!(model.mcp_audit.is_empty());
-        assert!(!model.mcp_audit_loaded);
     }
 
     #[test]
     fn test_view_empty_model() {
         let app = Intrada;
-        let model = Model::test_default();
+        let model = Model::default();
         let vm = app.view(&model);
 
         assert!(vm.items.is_empty());
@@ -1986,7 +1666,6 @@ mod tests {
         let app = Intrada;
         let mut model = Model::default();
         let _ = app.update(Event::LoadSampleData, &mut model);
-        assert_eq!(model.api_base_url, "http://localhost:3001");
         let id = model.items[0].id.clone();
 
         let _ = app.update(
@@ -2097,7 +1776,7 @@ mod tests {
         };
         let model = Model {
             items: vec![item],
-            ..Model::test_default()
+            ..Model::default()
         };
 
         let view = app.view(&model);
@@ -2256,7 +1935,7 @@ mod tests {
     #[test]
     fn test_set_query_filters_by_type() {
         let app = Intrada;
-        let mut model = Model::test_default();
+        let mut model = Model::default();
         let now = chrono::Utc::now();
 
         model.items.push(Item {
@@ -2320,7 +1999,7 @@ mod tests {
     #[test]
     fn set_sort_updates_model_and_emits_save_effect() {
         let app = Intrada;
-        let mut model = Model::test_default();
+        let mut model = Model::default();
 
         let sort = LibrarySort {
             field: SortField::Title,
@@ -2339,7 +2018,7 @@ mod tests {
     #[test]
     fn test_set_query_filters_by_text() {
         let app = Intrada;
-        let mut model = Model::test_default();
+        let mut model = Model::default();
         let now = chrono::Utc::now();
 
         model.items.push(Item {
@@ -2394,7 +2073,7 @@ mod tests {
     #[test]
     fn test_set_query_filters_by_tags() {
         let app = Intrada;
-        let mut model = Model::test_default();
+        let mut model = Model::default();
         let now = chrono::Utc::now();
 
         model.items.push(Item {
@@ -2449,7 +2128,7 @@ mod tests {
     #[test]
     fn test_query_tags_match_any_not_all() {
         let app = Intrada;
-        let mut model = Model::test_default();
+        let mut model = Model::default();
         let now = chrono::Utc::now();
         let mk = |id: &str, title: &str, tags: &[&str]| Item {
             id: id.to_string(),
@@ -2495,7 +2174,7 @@ mod tests {
     #[test]
     fn view_exposes_sorted_unique_available_tags() {
         let app = Intrada;
-        let mut model = Model::test_default();
+        let mut model = Model::default();
         let now = chrono::Utc::now();
         let mk = |id: &str, tags: &[&str]| Item {
             id: id.to_string(),
@@ -2533,7 +2212,7 @@ mod tests {
         // Regression (mirrors available_tags, #851): the composer pool must stay
         // the full-library vocabulary when filtered to a composer-less type.
         let app = Intrada;
-        let mut model = Model::test_default();
+        let mut model = Model::default();
         let now = chrono::Utc::now();
         let mk = |id: &str, kind: ItemKind, composer: Option<&str>| Item {
             id: id.to_string(),
@@ -2577,7 +2256,7 @@ mod tests {
     #[test]
     fn add_normalises_whitespace_composer() {
         let app = Intrada;
-        let mut model = Model::test_default();
+        let mut model = Model::default();
 
         // Whitespace-only composer on an exercise stores as None, not "   ".
         let _ = app.update(
@@ -2620,7 +2299,7 @@ mod tests {
     #[test]
     fn add_piece_with_blank_composer_normalizes_to_none() {
         let app = Intrada;
-        let mut model = Model::test_default();
+        let mut model = Model::default();
 
         let _ = app.update(
             Event::Item(ItemEvent::Add(crate::domain::types::CreateItem {
@@ -2646,7 +2325,7 @@ mod tests {
     #[test]
     fn test_unicode_in_item_add() {
         let app = Intrada;
-        let mut model = Model::test_default();
+        let mut model = Model::default();
 
         let _cmd = app.update(
             Event::Item(ItemEvent::Add(crate::domain::types::CreateItem {
@@ -2685,7 +2364,7 @@ mod tests {
     #[test]
     fn test_performance_10k_items() {
         let app = Intrada;
-        let mut model = Model::test_default();
+        let mut model = Model::default();
         let now = chrono::Utc::now();
 
         // Populate 10,000 items (5k pieces + 5k exercises).
@@ -2893,7 +2572,7 @@ mod tests {
     fn test_view_practice_summary_with_setlist_sessions() {
         let app = Intrada;
         let now = chrono::Utc::now();
-        let mut model = Model::test_default();
+        let mut model = Model::default();
 
         let p1 = Item {
             id: "p1".to_string(),
@@ -3023,7 +2702,7 @@ mod tests {
     fn test_score_history_multiple_sessions() {
         let app = Intrada;
         let now = chrono::Utc::now();
-        let mut model = Model::test_default();
+        let mut model = Model::default();
 
         model.items.push(Item {
             id: "p1".to_string(),
@@ -3141,7 +2820,7 @@ mod tests {
     fn test_score_history_no_scored_sessions() {
         let app = Intrada;
         let now = chrono::Utc::now();
-        let mut model = Model::test_default();
+        let mut model = Model::default();
 
         model.items.push(Item {
             id: "p1".to_string(),
@@ -3216,7 +2895,7 @@ mod tests {
     fn test_score_history_item_multiple_times_in_one_session() {
         let app = Intrada;
         let now = chrono::Utc::now();
-        let mut model = Model::test_default();
+        let mut model = Model::default();
 
         model.items.push(Item {
             id: "p1".to_string(),
@@ -3319,7 +2998,7 @@ mod tests {
     fn test_score_history_skipped_entries_excluded() {
         let app = Intrada;
         let now = chrono::Utc::now();
-        let mut model = Model::test_default();
+        let mut model = Model::default();
 
         model.items.push(Item {
             id: "p1".to_string(),
@@ -3389,23 +3068,6 @@ mod tests {
     // --- Lifecycle events ---
 
     #[test]
-    fn test_start_app_sets_api_base_url() {
-        let app = Intrada;
-        let mut model = Model::default();
-        assert!(model.api_base_url.is_empty());
-
-        let _cmd = app.update(
-            Event::StartApp {
-                api_base_url: "https://api.example.com".to_string(),
-                local_first: false,
-            },
-            &mut model,
-        );
-
-        assert_eq!(model.api_base_url, "https://api.example.com");
-    }
-
-    #[test]
     fn set_utc_offset_updates_model() {
         let app = Intrada;
         let mut model = Model::default();
@@ -3420,8 +3082,6 @@ mod tests {
     fn set_utc_offset_round_trips_on_ffi_bincode_wire() {
         crate::domain::types::assert_round_trips(Event::SetUtcOffset { minutes: -300 });
     }
-
-    // --- Data loaded callbacks ---
 
     fn make_session(
         id: &str,
@@ -3473,24 +3133,6 @@ mod tests {
             reflection_still_rough: None,
             reflection_next_target: None,
         }
-    }
-
-    #[test]
-    fn test_sessions_loaded_populates_model_and_summaries() {
-        let app = Intrada;
-        let mut model = Model::test_default();
-
-        let sessions = vec![make_session("s1", "item-1", Some(4), Some(120))];
-        let _cmd = app.update(Event::SessionsLoaded { sessions }, &mut model);
-
-        assert_eq!(model.sessions.len(), 1);
-        let summary = model.practice_summaries.get("item-1");
-        assert!(summary.is_some());
-        let summary = summary.unwrap();
-        assert_eq!(summary.session_count, 1);
-        assert_eq!(summary.total_minutes, 5);
-        assert_eq!(summary.latest_score, Some(4));
-        assert_eq!(summary.latest_tempo, Some(120));
     }
 
     // ── The tempo trend (#1420) ──
@@ -3617,345 +3259,20 @@ mod tests {
         assert_eq!(summary.last_practiced_at, Some(later.to_rfc3339()));
     }
 
-    #[test]
-    fn test_sets_loaded_populates_model() {
-        use crate::domain::set::{Set, SetEntry};
-
-        let app = Intrada;
-        let mut model = Model::test_default();
-        let now = chrono::Utc::now();
-
-        let sets = vec![Set {
-            id: "r1".to_string(),
-            name: "Warm-up".to_string(),
-            entries: vec![SetEntry {
-                id: "re1".to_string(),
-                item_id: "item-1".to_string(),
-                item_title: "Scales".to_string(),
-                item_type: ItemKind::Exercise,
-                position: 0,
-            }],
-            created_at: now,
-            updated_at: now,
-        }];
-
-        let _cmd = app.update(Event::SetsLoaded { sets }, &mut model);
-
-        assert_eq!(model.sets.len(), 1);
-        assert_eq!(model.sets[0].name, "Warm-up");
-    }
-
-    // --- Write-confirmation callbacks ---
-
-    #[test]
-    fn test_item_updated_replaces_existing() {
-        let app = Intrada;
-        let now = chrono::Utc::now();
-        let mut model = Model {
-            items: vec![Item {
-                id: "p1".to_string(),
-                title: "Old Title".to_string(),
-                kind: ItemKind::Piece,
-                composer: Some("Composer".to_string()),
-                key: None,
-                modality: None,
-                tempo: None,
-                notes: None,
-                tags: vec![],
-                created_at: now,
-                updated_at: now,
-                linked_exercise_ids: vec![],
-                priority: false,
-                chord_chart: None,
-                variants: vec![],
-                photo_id: None,
-                metre: None,
-            }],
-            ..Model::test_default()
-        };
-
-        let updated = Item {
-            id: "p1".to_string(),
-            title: "New Title".to_string(),
-            kind: ItemKind::Piece,
-            composer: Some("Composer".to_string()),
-            key: None,
-            modality: None,
-            tempo: None,
-            notes: None,
-            tags: vec![],
-            created_at: now,
-            updated_at: now,
-            linked_exercise_ids: vec![],
-            priority: false,
-            chord_chart: None,
-            variants: vec![],
-            photo_id: None,
-            metre: None,
-        };
-
-        let _cmd = app.update(Event::ItemUpdated { item: updated }, &mut model);
-
-        assert_eq!(model.items.len(), 1);
-        assert_eq!(model.items[0].title, "New Title");
-    }
-
-    #[test]
-    fn test_item_updated_ignores_unknown_id() {
-        let app = Intrada;
-        let now = chrono::Utc::now();
-        let mut model = Model {
-            items: vec![Item {
-                id: "p1".to_string(),
-                title: "Original".to_string(),
-                kind: ItemKind::Piece,
-                composer: None,
-                key: None,
-                modality: None,
-                tempo: None,
-                notes: None,
-                tags: vec![],
-                created_at: now,
-                updated_at: now,
-                linked_exercise_ids: vec![],
-                priority: false,
-                chord_chart: None,
-                variants: vec![],
-                photo_id: None,
-                metre: None,
-            }],
-            ..Model::test_default()
-        };
-
-        let unknown = Item {
-            id: "unknown".to_string(),
-            title: "Ghost".to_string(),
-            kind: ItemKind::Piece,
-            composer: None,
-            key: None,
-            modality: None,
-            tempo: None,
-            notes: None,
-            tags: vec![],
-            created_at: now,
-            updated_at: now,
-            linked_exercise_ids: vec![],
-            priority: false,
-            chord_chart: None,
-            variants: vec![],
-            photo_id: None,
-            metre: None,
-        };
-
-        let _cmd = app.update(Event::ItemUpdated { item: unknown }, &mut model);
-
-        assert_eq!(model.items.len(), 1);
-        assert_eq!(model.items[0].title, "Original");
-    }
-
-    #[test]
-    fn test_set_updated_replaces_existing() {
-        use crate::domain::set::Set;
-
-        let app = Intrada;
-        let now = chrono::Utc::now();
-        let mut model = Model {
-            sets: vec![Set {
-                id: "r1".to_string(),
-                name: "Old Set".to_string(),
-                entries: vec![],
-                created_at: now,
-                updated_at: now,
-            }],
-            ..Model::test_default()
-        };
-
-        let updated = Set {
-            id: "r1".to_string(),
-            name: "Renamed Set".to_string(),
-            entries: vec![],
-            created_at: now,
-            updated_at: now,
-        };
-
-        let _cmd = app.update(Event::SetUpdated { set: updated }, &mut model);
-
-        assert_eq!(model.sets[0].name, "Renamed Set");
-    }
-
-    #[test]
-    fn test_delete_confirmed_is_noop() {
-        let app = Intrada;
-        let mut model = Model::test_default();
-        model.items.push(Item {
-            id: "p1".to_string(),
-            title: "Still Here".to_string(),
-            kind: ItemKind::Piece,
-            composer: None,
-            key: None,
-            modality: None,
-            tempo: None,
-            notes: None,
-            tags: vec![],
-            created_at: chrono::Utc::now(),
-            updated_at: chrono::Utc::now(),
-            linked_exercise_ids: vec![],
-            priority: false,
-            chord_chart: None,
-            variants: vec![],
-            photo_id: None,
-            metre: None,
-        });
-
-        let _cmd = app.update(Event::DeleteConfirmed, &mut model);
-
-        // Model unchanged — optimistic delete already happened
-        assert_eq!(model.items.len(), 1);
-    }
-
     // --- Error handling ---
-
-    #[test]
-    fn test_load_failed_sets_error() {
-        let app = Intrada;
-        let mut model = Model::test_default();
-
-        let _cmd = app.update(
-            Event::LoadFailed("Connection refused".to_string()),
-            &mut model,
-        );
-
-        assert_eq!(model.last_error, Some("Connection refused".to_string()));
-    }
-
-    #[test]
-    fn test_load_failed_dedupes_identical_messages() {
-        // Identical messages no-op so the shell doesn't re-render with the
-        // same text. (#346) Separate from mount-stability — this is just
-        // belt-and-braces for repeated retries with the same error.
-        let app = Intrada;
-        let mut model = Model::test_default();
-
-        let _ = app.update(Event::LoadFailed("timeout".to_string()), &mut model);
-        let _ = app.update(Event::LoadFailed("timeout".to_string()), &mut model);
-        let _ = app.update(Event::LoadFailed("timeout".to_string()), &mut model);
-
-        assert_eq!(model.last_error, Some("timeout".to_string()));
-    }
-
-    #[test]
-    fn test_load_failed_distinct_message_replaces_existing() {
-        // A user-action error (save/delete) must surface even if a stale
-        // load-error banner is still up — otherwise the user has no
-        // feedback that their action failed. Burst re-animation is
-        // suppressed at the shell mount level, not by swallowing distinct
-        // messages here.
-        let app = Intrada;
-        let mut model = Model {
-            last_error: Some("Failed to load items".to_string()),
-            ..Model::test_default()
-        };
-
-        let _ = app.update(
-            Event::LoadFailed("Failed to save item: 409 conflict".to_string()),
-            &mut model,
-        );
-
-        assert_eq!(
-            model.last_error,
-            Some("Failed to save item: 409 conflict".to_string())
-        );
-    }
-
-    #[test]
-    fn test_load_failed_after_dismiss_is_muted_until_success() {
-        // After the user dismisses the banner, subsequent failures stay
-        // suppressed — otherwise every retry/refetch against a still-broken
-        // backend pops the banner back up (#346). Once a success arrives,
-        // the mute clears and new failures surface again.
-        let app = Intrada;
-        let mut model = Model::test_default();
-
-        let _ = app.update(Event::LoadFailed("first".to_string()), &mut model);
-        let _ = app.update(Event::ClearError, &mut model);
-        assert!(model.error_muted);
-
-        // Muted: a different LoadFailed while still broken stays hidden.
-        let _ = app.update(Event::LoadFailed("second".to_string()), &mut model);
-        assert_eq!(model.last_error, None);
-
-        // Success unmutes — system has recovered.
-        let _ = app.update(Event::DataLoaded { items: vec![] }, &mut model);
-        assert!(!model.error_muted);
-
-        // Now a new failure surfaces.
-        let _ = app.update(Event::LoadFailed("third".to_string()), &mut model);
-        assert_eq!(model.last_error, Some("third".to_string()));
-    }
-
-    #[test]
-    fn test_burst_after_dismiss_stays_muted() {
-        // Mirrors the user-reported reproduction in #346: dismiss, then a
-        // burst of distinct failures (e.g. parallel refetches against a
-        // still-broken backend) all stay suppressed.
-        let app = Intrada;
-        let mut model = Model::test_default();
-
-        let _ = app.update(Event::LoadFailed("Failed to load items".into()), &mut model);
-        let _ = app.update(Event::ClearError, &mut model);
-
-        for msg in [
-            "Failed to load items: timeout",
-            "Failed to load sessions: 503",
-            "Failed to load sets: connection refused",
-            "Failed to load analytics: timeout",
-        ] {
-            let _ = app.update(Event::LoadFailed(msg.into()), &mut model);
-            assert_eq!(model.last_error, None, "burst msg should stay muted: {msg}");
-            assert!(model.error_muted, "mute should persist across burst");
-        }
-    }
 
     #[test]
     fn test_clear_error_sets_muted_flag() {
         let app = Intrada;
         let mut model = Model {
             last_error: Some("some error".to_string()),
-            ..Model::test_default()
+            ..Model::default()
         };
 
         let _ = app.update(Event::ClearError, &mut model);
 
         assert_eq!(model.last_error, None);
         assert!(model.error_muted);
-    }
-
-    #[test]
-    fn test_sessions_loaded_unmutes() {
-        // Any confirmed API success should unmute, not just DataLoaded —
-        // otherwise the muted state could persist forever if items never
-        // load again (e.g. user goes straight into the sessions tab).
-        let app = Intrada;
-        let mut model = Model {
-            error_muted: true,
-            ..Model::test_default()
-        };
-
-        let _ = app.update(Event::SessionsLoaded { sessions: vec![] }, &mut model);
-        assert!(!model.error_muted);
-    }
-
-    #[test]
-    fn test_data_loaded_clears_previous_error() {
-        let app = Intrada;
-        let mut model = Model {
-            last_error: Some("Old error".to_string()),
-            ..Model::test_default()
-        };
-
-        let _cmd = app.update(Event::DataLoaded { items: vec![] }, &mut model);
-
-        assert!(model.last_error.is_none());
     }
 
     // --- View: session status mapping ---
@@ -3970,7 +3287,7 @@ mod tests {
                 session_intention: Some("Focus on dynamics".to_string()),
                 ..Default::default()
             }),
-            ..Model::test_default()
+            ..Model::default()
         };
 
         let vm = app.view(&model);
@@ -4016,7 +3333,7 @@ mod tests {
                 created_at: now,
                 updated_at: now,
             }],
-            ..Model::test_default()
+            ..Model::default()
         };
 
         let vm = app.view(&model);
@@ -4058,7 +3375,7 @@ mod tests {
     #[test]
     fn test_view_empty_sessions() {
         let app = Intrada;
-        let model = Model::test_default();
+        let model = Model::default();
         let vm = app.view(&model);
         assert!(vm.sessions.is_empty());
     }
@@ -4134,7 +3451,7 @@ mod tests {
         // Wiring only: the ranking and the wording are pinned in
         // suggestion::tests, which can hold the clock still.
         let app = Intrada;
-        let mut model = Model::test_default();
+        let mut model = Model::default();
         let now = chrono::Utc::now();
         let mut piece = make_item("p1", "Sonata", ItemKind::Piece, now);
         piece.linked_exercise_ids = vec!["ex1".to_string()];
@@ -4155,7 +3472,7 @@ mod tests {
     #[test]
     fn a_library_filter_cannot_hide_the_up_next_suggestion() {
         let app = Intrada;
-        let mut model = Model::test_default();
+        let mut model = Model::default();
         let now = chrono::Utc::now();
         let mut piece = make_item("p1", "Sonata", ItemKind::Piece, now);
         piece.linked_exercise_ids = vec!["ex1".to_string()];
@@ -4182,7 +3499,7 @@ mod tests {
     #[test]
     fn a_library_filter_cannot_hide_a_link_picker_candidate() {
         let app = Intrada;
-        let mut model = Model::test_default();
+        let mut model = Model::default();
         let now = chrono::Utc::now();
         model.items = vec![
             make_item("p1", "Sonata", ItemKind::Piece, now),
@@ -4207,7 +3524,7 @@ mod tests {
     #[test]
     fn view_has_no_up_next_when_no_piece_has_a_related_exercise() {
         let app = Intrada;
-        let mut model = Model::test_default();
+        let mut model = Model::default();
         let now = chrono::Utc::now();
         model.items = vec![
             make_item("p1", "Sonata", ItemKind::Piece, now),
@@ -4223,7 +3540,7 @@ mod tests {
     #[test]
     fn view_flags_priorities_only_when_something_is_starred() {
         let app = Intrada;
-        let mut model = Model::test_default();
+        let mut model = Model::default();
         let now = chrono::Utc::now();
         model.items = vec![make_item("p1", "Sonata", ItemKind::Piece, now)];
 
@@ -4241,7 +3558,7 @@ mod tests {
         // Two independent spellings of "starred": drift means a button on
         // screen whose tap silently seeds nothing (#981).
         let app = Intrada;
-        let mut model = Model::test_default();
+        let mut model = Model::default();
         let now = chrono::Utc::now();
         model.items = vec![
             make_item("p1", "Sonata", ItemKind::Piece, now),
@@ -4261,7 +3578,7 @@ mod tests {
     #[test]
     fn a_library_filter_cannot_hide_the_priorities_button() {
         let app = Intrada;
-        let mut model = Model::test_default();
+        let mut model = Model::default();
         let now = chrono::Utc::now();
         let mut piece = make_item("p1", "Sonata", ItemKind::Piece, now);
         piece.priority = true;
@@ -4287,9 +3604,10 @@ mod tests {
         // Wiring only: the relative-day wording is pinned in analytics::tests,
         // which can hold the clock still.
         let app = Intrada;
-        let mut model = Model::test_default();
-        model.sessions = vec![make_session("s1", "item-1", None, None)];
-
+        let model = Model {
+            sessions: vec![make_session("s1", "item-1", None, None)],
+            ..Default::default()
+        };
         let last = app
             .view(&model)
             .last_practised
@@ -4300,7 +3618,7 @@ mod tests {
     #[test]
     fn view_items_sorted_newest_first() {
         let app = Intrada;
-        let mut model = Model::test_default();
+        let mut model = Model::default();
         let t1 = chrono::Utc::now() - chrono::Duration::hours(2);
         let t2 = chrono::Utc::now() - chrono::Duration::hours(1);
         let t3 = chrono::Utc::now();
@@ -4330,7 +3648,7 @@ mod tests {
     #[test]
     fn view_sorts_by_title_ascending() {
         let app = Intrada;
-        let mut model = Model::test_default();
+        let mut model = Model::default();
         let now = chrono::Utc::now();
         model.items = vec![
             make_item("a", "Sonata", ItemKind::Piece, now),
@@ -4349,7 +3667,7 @@ mod tests {
     #[test]
     fn view_sorts_accented_titles_by_their_base_letter() {
         let app = Intrada;
-        let mut model = Model::test_default();
+        let mut model = Model::default();
         let now = chrono::Utc::now();
         model.items = vec![
             make_item("a", "Waltz", ItemKind::Piece, now),
@@ -4370,7 +3688,7 @@ mod tests {
     #[test]
     fn view_sorts_an_accented_title_beside_its_unaccented_neighbour() {
         let app = Intrada;
-        let mut model = Model::test_default();
+        let mut model = Model::default();
         let now = chrono::Utc::now();
         model.items = vec![
             make_item("a", "Etudes", ItemKind::Piece, now),
@@ -4388,7 +3706,7 @@ mod tests {
     #[test]
     fn view_sorts_by_last_practiced_descending_most_recent_first() {
         let app = Intrada;
-        let mut model = Model::test_default();
+        let mut model = Model::default();
         let now = chrono::Utc::now();
         model.items = vec![
             make_item("a", "Stale", ItemKind::Piece, now),
@@ -4408,7 +3726,7 @@ mod tests {
     #[test]
     fn view_never_practiced_sorts_as_oldest() {
         let app = Intrada;
-        let mut model = Model::test_default();
+        let mut model = Model::default();
         let now = chrono::Utc::now();
         model.items = vec![
             make_item("a", "Practiced", ItemKind::Piece, now),
@@ -4438,7 +3756,7 @@ mod tests {
     #[test]
     fn recently_practised_lists_practised_items_most_recent_first() {
         let app = Intrada;
-        let mut model = Model::test_default();
+        let mut model = Model::default();
         let now = chrono::Utc::now();
         model.items = vec![
             make_item("a", "Stale", ItemKind::Piece, now),
@@ -4463,7 +3781,7 @@ mod tests {
     #[test]
     fn recently_practised_caps_at_five() {
         let app = Intrada;
-        let mut model = Model::test_default();
+        let mut model = Model::default();
         let now = chrono::Utc::now();
         for i in 0..8 {
             let id = format!("p{i}");
@@ -4480,7 +3798,7 @@ mod tests {
     #[test]
     fn a_library_filter_cannot_hide_a_recently_practised_item() {
         let app = Intrada;
-        let mut model = Model::test_default();
+        let mut model = Model::default();
         let now = chrono::Utc::now();
         model.items = vec![
             make_item("p1", "Sonata", ItemKind::Piece, now),
@@ -4501,7 +3819,7 @@ mod tests {
     #[test]
     fn view_default_sort_is_date_added_newest_first() {
         let app = Intrada;
-        let mut model = Model::test_default();
+        let mut model = Model::default();
         let t1 = chrono::Utc::now() - chrono::Duration::hours(2);
         let t2 = chrono::Utc::now();
         model.items = vec![
@@ -4516,7 +3834,7 @@ mod tests {
     #[test]
     fn view_query_filters_by_item_type() {
         let app = Intrada;
-        let mut model = Model::test_default();
+        let mut model = Model::default();
         let now = chrono::Utc::now();
         model.items = vec![
             make_item("p1", "Piece One", ItemKind::Piece, now),
@@ -4536,7 +3854,7 @@ mod tests {
     #[test]
     fn view_query_filters_by_text_search() {
         let app = Intrada;
-        let mut model = Model::test_default();
+        let mut model = Model::default();
         let now = chrono::Utc::now();
         model.items = vec![
             make_item("p1", "Clair de Lune", ItemKind::Piece, now),
@@ -4556,7 +3874,7 @@ mod tests {
     #[test]
     fn view_query_filters_by_tags() {
         let app = Intrada;
-        let mut model = Model::test_default();
+        let mut model = Model::default();
         let now = chrono::Utc::now();
         let mut tagged = make_item("p1", "Tagged", ItemKind::Piece, now);
         tagged.tags = vec!["Warm-up".to_string(), "Scales".to_string()];
@@ -4576,7 +3894,7 @@ mod tests {
     #[test]
     fn view_exposes_active_query() {
         let app = Intrada;
-        let mut model = Model::test_default();
+        let mut model = Model::default();
         let query = ListQuery {
             item_type: Some(ItemKind::Piece),
             key: None,
@@ -4591,7 +3909,7 @@ mod tests {
     #[test]
     fn view_active_query_none_when_unset() {
         let app = Intrada;
-        let model = Model::test_default();
+        let model = Model::default();
         let vm = app.view(&model);
         assert_eq!(vm.active_query, None);
     }
@@ -4599,7 +3917,7 @@ mod tests {
     #[test]
     fn view_counts_describe_the_visible_set() {
         let app = Intrada;
-        let mut model = Model::test_default();
+        let mut model = Model::default();
         let now = chrono::Utc::now();
         model.items = vec![
             make_item("p1", "Piece One", ItemKind::Piece, now),
@@ -4636,7 +3954,7 @@ mod tests {
     #[test]
     fn view_sessions_sorted_newest_first() {
         let app = Intrada;
-        let mut model = Model::test_default();
+        let mut model = Model::default();
         let t1 = chrono::Utc::now() - chrono::Duration::hours(3);
         let t2 = chrono::Utc::now() - chrono::Duration::hours(1);
         model.sessions = vec![
@@ -4677,8 +3995,10 @@ mod tests {
     #[test]
     fn view_error_maps_from_last_error() {
         let app = Intrada;
-        let mut model = Model::test_default();
-        model.last_error = Some("bad request".to_string());
+        let model = Model {
+            last_error: Some("bad request".to_string()),
+            ..Default::default()
+        };
         let vm = app.view(&model);
         assert_eq!(vm.error.as_deref(), Some("bad request"));
     }
@@ -4686,7 +4006,7 @@ mod tests {
     #[test]
     fn view_error_target_maps_from_the_model() {
         let app = Intrada;
-        let mut model = Model::test_default();
+        let mut model = Model::default();
         assert!(app.view(&model).error_target.is_none());
 
         model.last_error_target = Some(crate::model::FormErrorTarget::ChartBar {
@@ -4706,7 +4026,7 @@ mod tests {
     #[test]
     fn view_empty_sessions_produces_no_analytics() {
         let app = Intrada;
-        let model = Model::test_default();
+        let model = Model::default();
         let vm = app.view(&model);
         assert!(vm.analytics.is_none());
     }
@@ -4714,9 +4034,12 @@ mod tests {
     #[test]
     fn view_set_source_status_no_source() {
         let app = Intrada;
-        let mut model = Model::test_default();
-        model.session_status =
-            SessionStatus::Building(crate::domain::session::BuildingSession::default());
+        let model = Model {
+            session_status: SessionStatus::Building(
+                crate::domain::session::BuildingSession::default(),
+            ),
+            ..Default::default()
+        };
         let vm = app.view(&model);
         let building = vm.building_setlist.unwrap();
         assert_eq!(building.source_status, SetSourceStatus::NoSource);
@@ -4725,14 +4048,16 @@ mod tests {
     #[test]
     fn view_set_source_status_unmodified() {
         let app = Intrada;
-        let mut model = Model::test_default();
-        model.sets = vec![crate::domain::set::Set {
-            id: "set-1".to_string(),
-            name: "Morning".to_string(),
-            entries: vec![],
-            created_at: chrono::Utc::now(),
-            updated_at: chrono::Utc::now(),
-        }];
+        let mut model = Model {
+            sets: vec![crate::domain::set::Set {
+                id: "set-1".to_string(),
+                name: "Morning".to_string(),
+                entries: vec![],
+                created_at: chrono::Utc::now(),
+                updated_at: chrono::Utc::now(),
+            }],
+            ..Default::default()
+        };
         let entry = SetlistEntry {
             id: "e1".to_string(),
             item_id: "item-a".to_string(),
@@ -4771,14 +4096,16 @@ mod tests {
     #[test]
     fn view_set_source_status_modified() {
         let app = Intrada;
-        let mut model = Model::test_default();
-        model.sets = vec![crate::domain::set::Set {
-            id: "set-1".to_string(),
-            name: "Morning".to_string(),
-            entries: vec![],
-            created_at: chrono::Utc::now(),
-            updated_at: chrono::Utc::now(),
-        }];
+        let mut model = Model {
+            sets: vec![crate::domain::set::Set {
+                id: "set-1".to_string(),
+                name: "Morning".to_string(),
+                entries: vec![],
+                created_at: chrono::Utc::now(),
+                updated_at: chrono::Utc::now(),
+            }],
+            ..Default::default()
+        };
         let entry = SetlistEntry {
             id: "e1".to_string(),
             item_id: "item-b".to_string(),
@@ -4827,7 +4154,7 @@ mod tests {
     #[test]
     fn error_seq_bumps_on_each_failed_update_even_with_identical_message() {
         let app = Intrada;
-        let mut model = Model::test_default();
+        let mut model = Model::default();
         let fail = || {
             Event::Session(SessionEvent::AddToSetlist {
                 item_id: "x".to_string(),
@@ -4847,7 +4174,7 @@ mod tests {
     #[test]
     fn error_seq_stable_across_successful_updates() {
         let app = Intrada;
-        let mut model = Model::test_default();
+        let mut model = Model::default();
         let before = app.view(&model).error_seq;
         let _ = app.update(Event::Session(SessionEvent::StartBuilding), &mut model);
         assert_eq!(app.view(&model).error_seq, before);
@@ -4856,15 +4183,17 @@ mod tests {
     #[test]
     fn view_building_setlist_total_duration_sums_planned() {
         let app = Intrada;
-        let mut model = Model::test_default();
-        model.session_status = SessionStatus::Building(crate::domain::session::BuildingSession {
-            entries: vec![
-                building_entry("e1", Some(900)),
-                building_entry("e2", Some(630)),
-                building_entry("e3", None),
-            ],
+        let model = Model {
+            session_status: SessionStatus::Building(crate::domain::session::BuildingSession {
+                entries: vec![
+                    building_entry("e1", Some(900)),
+                    building_entry("e2", Some(630)),
+                    building_entry("e3", None),
+                ],
+                ..Default::default()
+            }),
             ..Default::default()
-        });
+        };
         let vm = app.view(&model);
         let building = vm.building_setlist.unwrap();
         assert_eq!(building.total_duration_display.as_deref(), Some("25m 30s"));
@@ -4874,14 +4203,16 @@ mod tests {
     #[test]
     fn view_building_setlist_total_duration_whole_minutes_matches_block_dialect() {
         let app = Intrada;
-        let mut model = Model::test_default();
-        model.session_status = SessionStatus::Building(crate::domain::session::BuildingSession {
-            entries: vec![
-                building_entry("e1", Some(900)),
-                building_entry("e2", Some(300)),
-            ],
+        let model = Model {
+            session_status: SessionStatus::Building(crate::domain::session::BuildingSession {
+                entries: vec![
+                    building_entry("e1", Some(900)),
+                    building_entry("e2", Some(300)),
+                ],
+                ..Default::default()
+            }),
             ..Default::default()
-        });
+        };
         let vm = app.view(&model);
         let building = vm.building_setlist.unwrap();
         assert_eq!(building.total_duration_summary.as_deref(), Some("20 min"));
@@ -4890,11 +4221,13 @@ mod tests {
     #[test]
     fn view_building_setlist_total_duration_none_when_unplanned() {
         let app = Intrada;
-        let mut model = Model::test_default();
-        model.session_status = SessionStatus::Building(crate::domain::session::BuildingSession {
-            entries: vec![building_entry("e1", None), building_entry("e2", None)],
+        let model = Model {
+            session_status: SessionStatus::Building(crate::domain::session::BuildingSession {
+                entries: vec![building_entry("e1", None), building_entry("e2", None)],
+                ..Default::default()
+            }),
             ..Default::default()
-        });
+        };
         let vm = app.view(&model);
         let building = vm.building_setlist.unwrap();
         assert_eq!(building.total_duration_display, None);
@@ -4902,115 +4235,9 @@ mod tests {
     }
 
     #[test]
-    fn view_last_set_save_request_id_mirrors_model() {
-        let app = Intrada;
-        let mut model = Model::test_default();
-        model.last_set_save_request_id = Some("req-42".to_string());
-        let vm = app.view(&model);
-        assert_eq!(vm.last_set_save_request_id.as_deref(), Some("req-42"));
-    }
-
-    #[test]
-    fn item_created_replaces_optimistic_by_temp_id() {
-        let app = Intrada;
-        let mut model = Model::test_default();
-
-        let now = chrono::Utc::now();
-        let temp_id = "temp_ulid".to_string();
-        model.items.push(Item {
-            id: temp_id.clone(),
-            title: "Optimistic".to_string(),
-            kind: ItemKind::Piece,
-            composer: None,
-            key: None,
-            modality: None,
-            tempo: None,
-            notes: None,
-            tags: vec![],
-            created_at: now,
-            updated_at: now,
-            linked_exercise_ids: vec![],
-            priority: false,
-            chord_chart: None,
-            variants: vec![],
-            photo_id: None,
-            metre: None,
-        });
-
-        let server_item = Item {
-            id: "server_ulid".to_string(),
-            title: "Optimistic".to_string(),
-            kind: ItemKind::Piece,
-            composer: None,
-            key: None,
-            modality: None,
-            tempo: None,
-            notes: None,
-            tags: vec![],
-            created_at: now,
-            updated_at: now,
-            linked_exercise_ids: vec![],
-            priority: false,
-            chord_chart: None,
-            variants: vec![],
-            photo_id: None,
-            metre: None,
-        };
-        let _cmd = app.update(
-            Event::ItemCreated {
-                temp_id: temp_id.clone(),
-                item: server_item.clone(),
-            },
-            &mut model,
-        );
-
-        assert_eq!(model.items.len(), 1);
-        assert_eq!(model.items[0].id, "server_ulid");
-    }
-
-    #[test]
-    fn item_created_pushes_when_temp_id_absent() {
-        let app = Intrada;
-        let mut model = Model::test_default();
-
-        let now = chrono::Utc::now();
-        let server_item = Item {
-            id: "server_ulid".to_string(),
-            title: "Late confirmation".to_string(),
-            kind: ItemKind::Piece,
-            composer: None,
-            key: None,
-            modality: None,
-            tempo: None,
-            notes: None,
-            tags: vec![],
-            created_at: now,
-            updated_at: now,
-            linked_exercise_ids: vec![],
-            priority: false,
-            chord_chart: None,
-            variants: vec![],
-            photo_id: None,
-            metre: None,
-        };
-
-        // No optimistic entry — caller may have navigated away and back.
-        let _cmd = app.update(
-            Event::ItemCreated {
-                temp_id: "missing_temp".into(),
-                item: server_item,
-            },
-            &mut model,
-        );
-
-        assert_eq!(model.items.len(), 1);
-        assert_eq!(model.items[0].id, "server_ulid");
-    }
-
-    #[test]
     fn test_new_item_defaults_to_not_priority() {
         let app = Intrada;
-        let mut model = Model::test_default();
+        let mut model = Model::default();
 
         let _cmd = app.update(
             Event::Item(ItemEvent::Add(crate::domain::types::CreateItem {
@@ -5058,7 +4285,7 @@ mod tests {
                 photo_id: None,
                 metre: None,
             }],
-            ..Model::test_default()
+            ..Model::default()
         };
 
         let _cmd = app.update(
@@ -5080,7 +4307,7 @@ mod tests {
     fn test_add_item_carries_modality() {
         use crate::domain::item::Modality;
         let app = Intrada;
-        let mut model = Model::test_default();
+        let mut model = Model::default();
 
         let _cmd = app.update(
             Event::Item(ItemEvent::Add(crate::domain::types::CreateItem {
@@ -5128,7 +4355,7 @@ mod tests {
                 photo_id: None,
                 metre: None,
             }],
-            ..Model::test_default()
+            ..Model::default()
         };
 
         let update = |m: &mut Model, input: crate::domain::types::UpdateItem| {
@@ -5196,7 +4423,7 @@ mod tests {
                 photo_id: None,
                 metre: None,
             }],
-            ..Model::test_default()
+            ..Model::default()
         };
 
         let _ = app.update(
@@ -5270,7 +4497,7 @@ mod tests {
         };
         let model = Model {
             items: vec![piece, ex],
-            ..Model::test_default()
+            ..Model::default()
         };
         let vm = app.view(&model);
         let exercise = vm.items.iter().find(|i| i.id == "ex-1").unwrap();
@@ -6048,11 +5275,10 @@ mod tests {
         );
     }
 
-    /// Invariant 6: the derivation is identical whether sessions arrive via the
-    /// online `SessionsLoaded` path or the local-first `SessionsStoreLoaded`
-    /// persistence path — it's a pure projection over `model.sessions`.
+    /// A pure projection over `model.sessions`, so it holds for sessions that
+    /// arrive from the on-device store rather than being derived at write time.
     #[test]
-    fn test_used_in_identical_in_both_modes() {
+    fn test_used_in_derives_from_stored_sessions() {
         let app = Intrada;
         let now = chrono::Utc::now();
         let items = vec![
@@ -6068,27 +5294,10 @@ mod tests {
             ],
         )];
 
-        // Online: local_first stays false, sessions arrive via SessionsLoaded.
-        let mut online = Model::test_default();
-        online.items = items.clone();
-        let _ = app.update(
-            Event::SessionsLoaded {
-                sessions: sessions.clone(),
-            },
-            &mut online,
-        );
-        let online_ctx = app
-            .view(&online)
-            .items
-            .into_iter()
-            .find(|i| i.id == "ex-1")
-            .unwrap()
-            .used_in;
-
-        // Local-first: sessions arrive via the persistence store.
-        let mut local = Model::test_default();
-        local.local_first = true;
-        local.items = items;
+        let mut local = Model {
+            items,
+            ..Default::default()
+        };
         let _ = app.update(
             Event::SessionsStoreLoaded(PersistenceOutput::Sessions(sessions)),
             &mut local,
@@ -6101,13 +5310,9 @@ mod tests {
             .unwrap()
             .used_in;
 
-        assert_eq!(online_ctx.len(), 1);
-        assert_eq!(online_ctx[0].piece.as_ref().unwrap().id, "P");
-        assert_eq!(online_ctx[0].latest_score, Some(7));
-        assert_eq!(
-            online_ctx, local_ctx,
-            "context derivation must not depend on load path (invariant 6)"
-        );
+        assert_eq!(local_ctx.len(), 1);
+        assert_eq!(local_ctx[0].piece.as_ref().unwrap().id, "P");
+        assert_eq!(local_ctx[0].latest_score, Some(7));
     }
 
     #[test]

@@ -629,30 +629,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "crux_http"
-version = "0.20.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a6a077c2252d0f866476d3dc27bae40e3bed2f776f3c42075c181b4cdb9c7e2f"
-dependencies = [
- "async-trait",
- "crux_core",
- "derive_builder",
- "encoding_rs",
- "facet",
- "facet-generate-attrs",
- "futures-util",
- "http 1.5.0",
- "mime",
- "serde",
- "serde_bytes",
- "serde_json",
- "serde_qs",
- "thiserror 2.0.20",
- "url",
- "web-sys",
-]
-
-[[package]]
 name = "crux_macros"
 version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1876,7 +1852,6 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "crux_core",
- "crux_http",
  "facet",
  "serde",
  "serde_json",
@@ -3423,16 +3398,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "serde_bytes"
-version = "0.11.19"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a5d440709e79d88e51ac01c4b72fc6cb7314017bb7da9eeff678aa94c10e3ea8"
-dependencies = [
- "serde",
- "serde_core",
-]
-
-[[package]]
 name = "serde_core"
 version = "1.0.229"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3474,18 +3439,6 @@ dependencies = [
  "itoa",
  "serde",
  "serde_core",
-]
-
-[[package]]
-name = "serde_qs"
-version = "1.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c2316d01592c3382277c5062105510e35e0a6bfb2851e30028485f7af8cf1240"
-dependencies = [
- "itoa",
- "percent-encoding",
- "ryu",
- "serde",
 ]
 
 [[package]]

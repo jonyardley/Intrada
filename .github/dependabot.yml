@@ -5,7 +5,7 @@ updates:
     schedule:
       interval: "weekly"
     # The crux crates are a matched set (shared `Operation` trait + facet
-    # reflection): crux_core, crux_http, crux_macros must move in lockstep, or
+    # reflection): crux_core and crux_macros must move in lockstep, or
     # the tree ends up with two crux_core versions and trait bounds break (#970).
     # Group them so dependabot proposes one coordinated, jointly-resolved PR
     # instead of skewed single-crate bumps.
