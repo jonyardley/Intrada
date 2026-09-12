@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # Claim an issue before building it, refusing if someone already has: the
-# in-flight label is already set, the newest "Claimed" comment names another
-# branch, or an open PR already references it (#1702). Before this, adding
-# the label to an already-labelled issue succeeded silently and a claim
-# comment could land on top of another session's — two sessions built the
-# same greeting on 2026-09-11 (#1694) because nothing caught either.
+# newest "Claimed" comment names another branch, the in-flight label is set
+# with no comment to identify an owner, or an open PR on a different branch
+# already references it (#1702). Before this, adding the label to an
+# already-labelled issue succeeded silently and a claim comment could land
+# on top of another session's — two sessions built the same greeting on
+# 2026-09-11 (#1694) because nothing caught either.
 #
 # Called via `just claim <number>`.
 
@@ -17,6 +18,13 @@ usage() {
 
 [ $# -eq 1 ] || usage
 number="$1"
+case "$number" in
+  '' | *[!0-9]*) usage ;;
+esac
+
+lib_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/claim-branch.sh
+source "$lib_dir/lib/claim-branch.sh"
 
 project_number="2"
 project_owner="jonyardley"
@@ -32,7 +40,11 @@ if [ "$branch" = "main" ]; then
   exit 1
 fi
 
-open="$(gh pr list --repo "$repo" --state open --search "$number" --json number,title,headRefName)"
+# A PR already open on THIS branch is the resumed-session case (a handover
+# picking the work back up), not a duplicate: only another branch's open PR
+# is a conflict.
+open="$(gh pr list --repo "$repo" --state open --search "$number" --json number,title,headRefName |
+  jq --arg b "$branch" '[.[] | select(.headRefName != $b)]')"
 if [ "$(printf '%s' "$open" | jq 'length')" -ne 0 ]; then
   echo "✗ an open PR already mentions #$number:" >&2
   printf '%s' "$open" | jq -r '.[] | "    #\(.number) \(.title) (\(.headRefName))"' >&2
@@ -48,29 +60,40 @@ fi
 
 # The newest comment whose body opens with "Claimed" names the current owner;
 # a withdrawal or release comment does not start that way, so it is never
-# mistaken for a live claim. The branch is the first backticked token in it.
+# mistaken for a live claim.
 issue="$(gh issue view "$number" --repo "$repo" --json labels,comments)"
 has_label="$(printf '%s' "$issue" | jq -r '([.labels[].name] | index("in-flight")) != null')"
 claim_body="$(printf '%s' "$issue" | jq -r '[.comments[] | select(.body | test("^Claimed"; "i"))] | last | .body // empty')"
-claim_branch="$(printf '%s' "$claim_body" | grep -oE '`[^`]+`' | head -1 | tr -d '`' || true)"
+claim_branch="$(claim_branch_from_body "$claim_body")"
 
-if [ -n "$claim_branch" ] && [ "$claim_branch" != "$branch" ]; then
-  echo "✗ #$number is already claimed on branch \`$claim_branch\`." >&2
-  exit 1
-fi
-
-if [ "$has_label" = "true" ] && [ -z "$claim_branch" ]; then
-  echo "✗ #$number already carries in-flight but no claim comment names a branch: check by hand." >&2
-  exit 1
-fi
-
-if [ "$has_label" = "true" ] && [ "$claim_branch" = "$branch" ]; then
+if [ -n "$claim_branch" ] && [ "$claim_branch" = "$branch" ]; then
+  # Already ours: make sure the label is set (a retry after a failed label
+  # add lands here) but never re-post the claim comment.
+  if [ "$has_label" != "true" ]; then
+    gh issue edit "$number" --repo "$repo" --add-label in-flight
+  fi
   echo "✓ #$number is already claimed on $branch"
   exit 0
 fi
 
-gh issue edit "$number" --repo "$repo" --add-label in-flight
+if [ -n "$claim_branch" ]; then
+  echo "✗ #$number is already claimed on branch \`$claim_branch\`." >&2
+  echo "  If that work has genuinely stopped, post a fresh \"Claimed: branch \`$branch\`\" comment" >&2
+  echo "  (or delete the old one) and drop the in-flight label by hand, then retry." >&2
+  exit 1
+fi
+
+if [ "$has_label" = "true" ]; then
+  echo "✗ #$number already carries in-flight but no claim comment names a branch: check by hand." >&2
+  exit 1
+fi
+
+# Comment before label: if the comment lands and the label add then fails
+# (network blip, permissions), a retry sees claim_branch == branch above and
+# recovers by adding the label alone, rather than wedging with a label and no
+# comment to identify the owner.
 gh issue comment "$number" --repo "$repo" --body "Claimed: branch \`$branch\`."
+gh issue edit "$number" --repo "$repo" --add-label in-flight
 
 item="$(gh project item-add "$project_number" --owner "$project_owner" \
   --url "https://github.com/$repo/issues/$number" --format json -q .id 2>/dev/null || true)"

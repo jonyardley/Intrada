@@ -96,12 +96,15 @@ pr-visuals:
 # in-flight label is set, the newest "Claimed" comment names another branch,
 # or an open PR already references it (#1702).
 claim number:
-    bash scripts/claim-issue.sh {{number}}
+    bash scripts/claim-issue.sh "{{number}}"
 
 # Wrap `gh pr create`, refusing when an issue number in the title has no
-# claim naming this branch (#1702): `just pr-open -- --title "..." --body "..."`.
-pr-open *args:
-    bash scripts/pr-open.sh {{args}}
+# claim naming this branch (#1702): `just pr-open "Title (#42)" "Body text"`.
+# just re-splits a variadic parameter on whitespace, which breaks on a title
+# containing "(#42)", so title and body are named and quoted; any extra flags
+# (e.g. --draft) must be simple, space-free tokens.
+pr-open title body *flags:
+    bash scripts/pr-open.sh --title {{quote(title)}} --body {{quote(body)}} {{flags}}
 
 # Check everything (fmt → clippy → test → hygiene, cheapest first). Mirrors
 # the iOS test-tier green-stamp (#1200): skips on a clean, already-green HEAD

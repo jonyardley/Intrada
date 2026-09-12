@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # Self-test for scripts/pr-open.sh (#1702 step 3): every issue number in the
 # PR title must have a claim naming the current branch, or the PR does not
-# open. A fake `gh` on PATH answers the claim lookup and records whether
-# `gh pr create` itself was ever reached.
+# open. The fake `gh issue view` holds real comment JSON and applies
+# whatever `-q` expression the script passes with real jq, so a broken jq
+# program fails this suite instead of being ignored by a fake that just
+# echoes text.
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -24,7 +26,19 @@ case "$cmd $sub" in
     echo "jonyardley/intrada"
     ;;
   "issue view")
-    cat "$FIXTURES/issue_comment.txt" 2>/dev/null || echo ""
+    number="$2"
+    shift 2
+    q=""
+    args=("$@")
+    for i in "${!args[@]}"; do
+      if [ "${args[$i]}" = "-q" ]; then q="${args[$((i + 1))]}"; fi
+    done
+    body="$(cat "$FIXTURES/comments_$number.json" 2>/dev/null || echo '{"comments":[]}')"
+    if [ -n "$q" ]; then
+      printf '%s' "$body" | jq -r "$q"
+    else
+      printf '%s' "$body"
+    fi
     ;;
   "pr create")
     echo "$*" >>"$CALLS/pr_create.log"
@@ -57,37 +71,55 @@ run() {
 
 # ── No claim at all ──────────────────────────────────────────────────────────
 
-echo "" >"$FIXTURES/issue_comment.txt"
+echo '{"comments":[]}' >"$work/fixtures/comments_42.json"
 rm -rf "$CALLS" && mkdir -p "$CALLS"
 set +e
 out="$(run "Fix the thing (#42)" 2>&1)"
-status=$?
+run_status=$?
 set -e
-if [ "$status" -ne 0 ] && printf '%s' "$out" | grep -qF "no claim comment" && [ ! -f "$CALLS/pr_create.log" ]; then
+if [ "$run_status" -ne 0 ] && printf '%s' "$out" | grep -qF "no claim comment" && [ ! -f "$CALLS/pr_create.log" ]; then
   pass=$((pass + 1))
 else
   fail=$((fail + 1))
-  printf '✗ no claim: expected refusal before gh pr create\n    status=%s output=%s\n' "$status" "$out" >&2
+  printf '✗ no claim: expected refusal before gh pr create\n    status=%s output=%s\n' "$run_status" "$out" >&2
 fi
 
 # ── Claimed on a different branch ───────────────────────────────────────────
 
-echo "Claimed: branch \`other-branch\`, doing it." >"$FIXTURES/issue_comment.txt"
+cat >"$work/fixtures/comments_42.json" <<'JSON'
+{"comments":[{"body":"Claimed: branch `other-branch`, doing it."}]}
+JSON
 rm -rf "$CALLS" && mkdir -p "$CALLS"
 set +e
 out="$(run "Fix the thing (#42)" 2>&1)"
-status=$?
+run_status=$?
 set -e
-if [ "$status" -ne 0 ] && printf '%s' "$out" | grep -qF "claimed on \`other-branch\`" && [ ! -f "$CALLS/pr_create.log" ]; then
+if [ "$run_status" -ne 0 ] && printf '%s' "$out" | grep -qF "claimed on \`other-branch\`" && [ ! -f "$CALLS/pr_create.log" ]; then
   pass=$((pass + 1))
 else
   fail=$((fail + 1))
-  printf '✗ wrong branch: expected refusal naming other-branch\n    status=%s output=%s\n' "$status" "$out" >&2
+  printf '✗ wrong branch: expected refusal naming other-branch\n    status=%s output=%s\n' "$run_status" "$out" >&2
 fi
 
-# ── Claimed on this branch: opens the PR ────────────────────────────────────
+# ── Claimed on this branch, legacy no-backtick comment format: opens the PR ─
 
-echo "Claimed: branch \`my-branch\`, doing it." >"$FIXTURES/issue_comment.txt"
+cat >"$work/fixtures/comments_42.json" <<'JSON'
+{"comments":[{"body":"Claimed. Branch: my-branch (doing it)."}]}
+JSON
+rm -rf "$CALLS" && mkdir -p "$CALLS"
+run "Fix the thing (#42)" >/dev/null
+if grep -qF -- "--title Fix the thing (#42)" "$CALLS/pr_create.log" 2>/dev/null; then
+  pass=$((pass + 1))
+else
+  fail=$((fail + 1))
+  printf '✗ legacy format: expected gh pr create to run with the same args\n' >&2
+fi
+
+# ── Claimed on this branch, current backtick format: opens the PR ──────────
+
+cat >"$work/fixtures/comments_42.json" <<'JSON'
+{"comments":[{"body":"Claimed: branch `my-branch`, doing it."}]}
+JSON
 rm -rf "$CALLS" && mkdir -p "$CALLS"
 run "Fix the thing (#42)" >/dev/null
 if grep -qF -- "--title Fix the thing (#42)" "$CALLS/pr_create.log" 2>/dev/null; then

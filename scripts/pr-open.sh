@@ -5,9 +5,13 @@
 # 2026-09-11 duplicate (#1694) happened, and the claim step alone cannot
 # catch that.
 #
-# Called via `just pr-open -- <gh pr create args>`.
+# Called via `just pr-open <title> <body> [extra gh pr create flags]`.
 
 set -euo pipefail
+
+lib_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/claim-branch.sh
+source "$lib_dir/lib/claim-branch.sh"
 
 repo="$(gh repo view --json nameWithOwner -q .nameWithOwner)"
 branch="$(git rev-parse --abbrev-ref HEAD)"
@@ -15,9 +19,14 @@ branch="$(git rev-parse --abbrev-ref HEAD)"
 title=""
 args=("$@")
 for i in "${!args[@]}"; do
-  if [ "${args[$i]}" = "--title" ] || [ "${args[$i]}" = "-t" ]; then
-    title="${args[$((i + 1))]}"
-  fi
+  case "${args[$i]}" in
+    --title | -t)
+      title="${args[$((i + 1))]:-}"
+      ;;
+    --title=*)
+      title="${args[$i]#--title=}"
+      ;;
+  esac
 done
 
 if [ -z "$title" ]; then
@@ -27,9 +36,9 @@ fi
 
 numbers="$(grep -oE '#[0-9]+' <<<"$title" | tr -d '#' | sort -u || true)"
 for n in $numbers; do
-  claim_branch="$(gh issue view "$n" --repo "$repo" --json comments -q \
-    '[.comments[] | select(.body | test("^Claimed"; "i"))] | last | .body // empty' |
-    grep -oE '`[^`]+`' | head -1 | tr -d '`' || true)"
+  claim_body="$(gh issue view "$n" --repo "$repo" --json comments -q \
+    '[.comments[] | select(.body | test("^Claimed"; "i"))] | last | .body // empty')"
+  claim_branch="$(claim_branch_from_body "$claim_body")"
   if [ -z "$claim_branch" ]; then
     echo "✗ #$n has no claim comment naming a branch: run \`just claim $n\` first." >&2
     exit 1

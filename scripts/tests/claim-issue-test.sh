@@ -2,7 +2,9 @@
 # Self-test for scripts/claim-issue.sh (#1702). A fake `gh` on PATH answers
 # every call the script makes so the refusal paths are exercised without
 # touching GitHub: taken by label, taken by another branch's comment, taken
-# by an open PR, and free.
+# by an open PR, and free. Comment fixtures include a non-Claimed comment
+# and a superseded Claimed comment so the "^Claimed" filter and "last wins"
+# behaviour are both actually exercised, not just assumed.
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -79,14 +81,13 @@ run() {
 
 expect_fail() {
   local desc="$1" needle="$2"
-  mkdir -p "$CALLS"
   rm -rf "$CALLS" && mkdir -p "$CALLS"
-  local out status
+  local out run_status
   set +e
   out="$(run 2>&1)"
-  status=$?
+  run_status=$?
   set -e
-  if [ "$status" -eq 0 ]; then
+  if [ "$run_status" -eq 0 ]; then
     fail=$((fail + 1))
     printf '✗ %s: expected refusal, script exited 0\n    output: %s\n' "$desc" "$out" >&2
     return
@@ -99,7 +100,7 @@ expect_fail() {
   fi
 }
 
-# ── Taken by an open PR ─────────────────────────────────────────────────────
+# ── Taken by an open PR on another branch ───────────────────────────────────
 
 echo '[{"number":99,"title":"Fix the thing (#42)","headRefName":"someone-elses-branch"}]' \
   >"$FIXTURES/pr_list.json"
@@ -107,14 +108,49 @@ echo 0 >"$FIXTURES/closers_count.txt"
 echo '{"labels":[],"comments":[]}' >"$FIXTURES/issue.json"
 expect_fail "taken by an open PR" "already mentions #42"
 
+# ── An open PR on THIS branch is a resumed session, not a conflict ─────────
+
+echo '[{"number":99,"title":"Fix the thing (#42)","headRefName":"my-branch"}]' \
+  >"$FIXTURES/pr_list.json"
+echo 0 >"$FIXTURES/closers_count.txt"
+echo '{"labels":[],"comments":[]}' >"$FIXTURES/issue.json"
+rm -rf "$CALLS" && mkdir -p "$CALLS"
+out="$(run)"
+if printf '%s' "$out" | grep -qF "claimed #42 on my-branch"; then
+  pass=$((pass + 1))
+else
+  fail=$((fail + 1))
+  printf '✗ own-branch PR: expected the claim to proceed\n    output: %s\n' "$out" >&2
+fi
+
 # ── Taken by the in-flight label plus another branch's comment ─────────────
+# The fixture also carries a non-Claimed comment with a backtick token, so a
+# fake that ignored the "^Claimed" filter (select(true)) would report the
+# wrong branch here instead of failing outright.
 
 echo '[]' >"$FIXTURES/pr_list.json"
 echo 0 >"$FIXTURES/closers_count.txt"
 cat >"$FIXTURES/issue.json" <<'JSON'
-{"labels":[{"name":"in-flight"}],"comments":[{"body":"Claimed: branch `other-branch`, doing the thing."}]}
+{"labels":[{"name":"in-flight"}],"comments":[
+  {"body":"Saw `not-a-branch` mentioned on Slack, unrelated."},
+  {"body":"Claimed: branch `other-branch`, doing the thing."}
+]}
 JSON
 expect_fail "taken by another branch's comment" "already claimed on branch \`other-branch\`"
+
+# ── The refusal for a stale claim says how to unblock it ────────────────────
+
+expect_fail "stale-claim message names the way out" "post a fresh"
+
+# ── A superseded Claimed comment: the newest one wins ───────────────────────
+
+cat >"$FIXTURES/issue.json" <<'JSON'
+{"labels":[{"name":"in-flight"}],"comments":[
+  {"body":"Claimed: branch `stale-branch`, doing the thing."},
+  {"body":"Claimed: branch `other-branch`, doing the thing."}
+]}
+JSON
+expect_fail "newest Claimed comment wins over an older one" "already claimed on branch \`other-branch\`"
 
 # ── Label set but no comment names a branch (ambiguous, refuse) ────────────
 
@@ -152,6 +188,27 @@ else
   printf '✗ already claimed by this branch: expected a plain confirmation\n    output: %s\n' "$out" >&2
 fi
 
+# ── Own branch, comment present but label missing: recovers by labelling ───
+# (the retry path after a claim comment posted but the label add then failed)
+
+cat >"$FIXTURES/issue.json" <<'JSON'
+{"labels":[],"comments":[{"body":"Claimed: branch `my-branch`, doing the thing."}]}
+JSON
+rm -rf "$CALLS" && mkdir -p "$CALLS"
+out="$(run)"
+if grep -qF "in-flight" "$CALLS/issue_edit.log" 2>/dev/null && [ ! -f "$CALLS/issue_comment.log" ]; then
+  pass=$((pass + 1))
+else
+  fail=$((fail + 1))
+  printf '✗ recovery retry: expected the label added without a second comment\n' >&2
+fi
+
+# ── Legacy no-backtick claim format still identifies the owning branch ─────
+
+echo '{"labels":[{"name":"in-flight"}],"comments":[{"body":"Claimed. Branch: other-branch (doing the thing)."}]}' \
+  >"$FIXTURES/issue.json"
+expect_fail "legacy comment format still names the other branch" "already claimed on branch \`other-branch\`"
+
 # ── Free: claims it ──────────────────────────────────────────────────────────
 
 echo '[]' >"$FIXTURES/pr_list.json"
@@ -176,6 +233,18 @@ if printf '%s' "$out" | grep -qF "claimed #42 on my-branch"; then
 else
   fail=$((fail + 1))
   printf '✗ free issue: expected a success line\n    output: %s\n' "$out" >&2
+fi
+# Comment posted before label, so a failure between the two never leaves the
+# issue labelled with nothing to identify its owner.
+if [ -f "$CALLS/issue_comment.log" ] && [ -f "$CALLS/issue_edit.log" ]; then
+  comment_time="$(stat -f %m "$CALLS/issue_comment.log" 2>/dev/null || stat -c %Y "$CALLS/issue_comment.log")"
+  edit_time="$(stat -f %m "$CALLS/issue_edit.log" 2>/dev/null || stat -c %Y "$CALLS/issue_edit.log")"
+  if [ "$comment_time" -le "$edit_time" ]; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    printf '✗ free issue: expected the comment to be posted no later than the label\n' >&2
+  fi
 fi
 
 printf '\n%s passed, %s failed\n' "$pass" "$fail"
