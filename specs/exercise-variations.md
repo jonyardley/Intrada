@@ -216,9 +216,14 @@ PracticeSession
   decision 5 takes `SetEntryVariant` out of Active), the Progress screen's
   per-variation surface, and the #1733 and #1735 renames folded in. Same
   working session as Phase A (#1348, #1374).
-- **Phase C, the unblocked.** #1478 (a variation typed "E flat major" reads as
-  a key) and #1464 (the exercise detail screen says Steps). #1501 and #1107
-  follow outside this milestone.
+- **Phase C, the unblocked, and what Phase B left.** #1478 (a variation typed
+  "E flat major" reads as a key) and #1464 (the exercise detail screen says
+  Steps), plus the two Phase B found on the same surface: #1761 (a tempo
+  reached is credited to the last variation rather than the one that earned
+  it, which wants the core stamping a tempo as it closes a play, so this part
+  goes core first) and #1758 (an exercise with variations opens on none of
+  them, so the seconds before the first pick become a row nobody played).
+  #1501 and #1107 follow outside this milestone.
 
 ## Open questions
 
