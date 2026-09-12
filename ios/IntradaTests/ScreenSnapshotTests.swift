@@ -39,8 +39,10 @@ final class ScreenSnapshotTests: XCTestCase {
     // (fadeUp, count-up, ring-draw, barGrow, confetti) collapse to their final
     // state, so the captured frame is the settled layout, never a mid-reveal.
     // (`accessibilityReduceMotion` is read-only, so we use our settable flag.)
+    // The marker follows the store's profile here as it does under RootView.
     let vc = UIHostingController(
       rootView: view.environment(store)
+        .environment(\.marker, IntradaColor.marker(store.viewModel?.profile.colour ?? .butter))
         .environment(\.locale, Locale(identifier: "en_US"))
         .environment(\.calendar, PreviewCalendar.utc)
         .environment(\.intradaMotionDisabled, true))
@@ -1277,6 +1279,44 @@ final class ScreenSnapshotTests: XCTestCase {
     .foregroundStyle(IntradaColor.ink)
     .padding(IntradaSpacing.card)
     assertSnapshot(of: host(sheet), as: tallFormConfig)
+  }
+
+  // ── Profile ─────────────────────────────────────────────────────────
+
+  func testProfileScreen() {
+    assertSnapshot(
+      of: host(NavigationStack { ProfileScreen() }, store: .previewProfile), as: config)
+  }
+
+  /// No name yet: a prompt to add one, not blank rows (#1692).
+  func testProfileScreenEmpty() {
+    assertSnapshot(of: host(NavigationStack { ProfileScreen() }), as: config)
+  }
+
+  func testProfileEditSheet() {
+    assertSnapshot(of: host(ProfileEditSheet(), store: .previewProfile), as: config)
+  }
+
+  func testProfileEditSheetWithError() {
+    assertSnapshot(
+      of: host(
+        ProfileEditSheet(
+          previewError: "Name must be 100 characters or fewer", field: .name),
+        store: .previewProfile),
+      as: config)
+  }
+
+  func testInstrumentIconPicker() {
+    assertSnapshot(
+      of: host(InstrumentIconPicker(suggested: .cello, choice: .constant(.harp))), as: config)
+  }
+
+  /// The greeting leads the subtitle and the badge is the way in (#1694, T25).
+  func testPracticeScreenGreeting() {
+    assertSnapshot(
+      of: host(
+        PracticeScreen(referenceDate: PracticeSessionView.previewReferenceDate),
+        store: .previewPracticeProfile), as: config)
   }
 
   /// The eight highlighters through the environment (#1677): a marker surface

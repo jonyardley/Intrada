@@ -30,7 +30,7 @@ is_large() {
   case "$1" in
     testPracticeScreen | testPracticeScreenPopulated | testPracticeScreenPriorities | \
       testPracticeScreenQuietDay | testPracticeScreenSuggestionDismissed | \
-      testPracticeScreenSuggestionDismissedPriorities | \
+      testPracticeScreenSuggestionDismissedPriorities | testPracticeScreenGreeting | \
       testUpNextHeroNeverMarked | \
       testFocusPlayerWithReps | testFocusPlayerWithTarget | testFocusPlayerLongSession | \
       testPracticeSessionDetailAccessibilitySize | \
