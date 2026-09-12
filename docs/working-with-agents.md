@@ -200,10 +200,39 @@ in the main checkout while any worktree exists. Two sessions wrote one worktree
 on 2026-09-12 and silently overwrote each other's edits; the issue claim in
 `scripts/claim-issue.sh` claims a GitHub issue, never a directory.
 
-Run from a cmux terminal, `just worktree-new` also opens a cmux workspace in the
-new worktree with `claude` running, because the sidebar shows the branch and PR
-of the directory a session started in. Run by an agent, it prints that command
-instead of starting a second session. `INTRADA_WORKTREE_CMUX=0` turns it off.
+Run from a cmux terminal, `just worktree-new` prints the `cmux new-workspace`
+command for the new worktree, because the sidebar shows the branch and PR of the
+directory a session started in. It never starts a session itself (#1720): which
+client you work in is your choice, not the recipe's.
+`INTRADA_WORKTREE_CMUX=0` silences the suggestion.
+
+**A session in the main checkout can drive a worktree without restarting**, from
+2026-09-12. Starting in the worktree stays the default, because the path-scoped
+rules in `.claude/rules/` load only under the directory a session started in. A
+session already running does not get them by cd-ing: it reads the rules for the
+files it is about to touch by hand, or it is working blind.
+
+The mechanism is the `cd` prefix. The `EnterWorktree` tool is still banned here,
+since it marks the session isolated and the bash guard then refuses every
+version control command; instead, create the worktree and prefix each shell
+command with `cd <worktree> && `. `~/.claude/hooks/guard-worktree.sh` resolves
+that prefix and judges the command where it lands, so the commit, the gates and
+the PR all work, and the first write takes the worktree's lease, which still
+refuses the next session. That hook is machine-local and in no repository: on a
+machine whose copy predates this, the prefix is denied and the session is back
+to handing commands over.
+
+The prefix is honoured only in the shape the guard can read, and falls back to
+denying rather than guessing:
+
+- a literal absolute path, followed by `&&` or `;`. `~`, `$HOME` and `$VAR` are
+  not expanded, and `||` breaks the match.
+- one `cd` only. The command runs at the last one, so a second is never resolved.
+- nothing in the command naming the session's own checkout, and no `..`, since
+  both mean the cd said nothing about where the write lands.
+- `git -C <dir>` is deliberately not resolved and stays denied from main.
+
+File tools take absolute paths inside the worktree as they always did.
 
 ## Build and test control
 
