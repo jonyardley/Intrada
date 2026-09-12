@@ -79,10 +79,6 @@ final class ScreenSnapshotTests: XCTestCase {
       })
   }
 
-  /// Renders the real `PracticeScreen`/`TabView` path (not a bare component)
-  /// at large text, so the whole screen down to the session card is in
-  /// frame; scale 1, not 2, is what keeps the reference under the snapshot
-  /// size ceiling (#1730).
   private var practiceHeaderAxConfig: Snapshotting<UIViewController, UIImage> {
     .image(
       on: ViewImageConfig(
@@ -273,10 +269,7 @@ final class ScreenSnapshotTests: XCTestCase {
         traits: .init(displayScale: 2)))
   }
 
-  /// Proves the real `PracticeScreen` week strip, via the paging `TabView`
-  /// rather than the animations-disabled static branch, sizes itself to its
-  /// content and every day stays reachable at the largest accessibility text
-  /// size (#1730).
+  /// The real `PracticeScreen`/`TabView` path, not a bare component (#1730).
   func testPracticeScreenWeekStripAccessibilitySize() {
     assertSnapshot(
       of: host(
@@ -1248,14 +1241,10 @@ final class ScreenSnapshotTests: XCTestCase {
         LibraryItemCard(item: starred, showsMastery: true)
         LibraryItemCard(item: .previewExerciseWithFullLadder)
         LibraryItemCard(item: .previewExerciseWithStepLadder)
-        // No composer, key or tempo: the prompt fills the metadata slot
-        // rather than the card collapsing to one ragged line (#1734).
-        LibraryItemCard(item: .previewMinimal, showsMastery: true)
+        LibraryItemCard(item: .previewMinimal, showsMastery: true)  // #1734
       }
       .padding(16)
     }
-    // tallFormConfig, not config: seven cards run past an iPhone 13's fold,
-    // and the device-sized frame was cropping the last one out of frame.
     assertSnapshot(of: host(cards), as: tallFormConfig)
   }
 
@@ -1359,7 +1348,7 @@ final class ScreenSnapshotTests: XCTestCase {
       of: host(InstrumentIconPicker(suggested: .cello, choice: .constant(.harp))), as: config)
   }
 
-  /// The greeting is the subtitle, and the badge is the way in (#1694, T25).
+  /// The greeting leads the subtitle and the badge is the way in (#1694, T25).
   func testPracticeScreenGreeting() {
     assertSnapshot(
       of: host(

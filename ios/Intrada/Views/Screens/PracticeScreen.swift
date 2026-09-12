@@ -17,8 +17,7 @@ struct PracticeScreen: View {
   @State private var suggestionDismissed = false
   @State private var openSessionId: String?
   @State private var showingProfile = false
-  // Measured from a cell, not hard-coded: the fixed 64 clipped the day
-  // numbers once Dynamic Type grew past it (#1730).
+  // Measured from a cell, not hard-coded (#1730).
   @State private var weekStripHeight: CGFloat = 64
 
   init(referenceDate: Date = Date()) {
@@ -275,7 +274,6 @@ struct PracticeScreen: View {
     return "Last practised · \(lastPractised.relativeDay)"
   }
 
-  // The core's own sentence, not one rebuilt from the eyebrow's "·".
   private var heroLabel: String {
     guard let lastPractised else { return heroEyebrow }
     return "\(lastPractised.label), \(lastPractised.itemTitle)"
@@ -412,10 +410,7 @@ struct PracticeScreen: View {
       })
   }
 
-  // Drops the last-practised fact once there is one to drop: the hero
-  // eyebrow already says it, with or without a greeting (#1725). "No
-  // sessions yet" isn't said anywhere else, so it still rides with the
-  // greeting.
+  // nil once there's a last-practised fact: the hero eyebrow says it instead (#1725).
   private var subtitle: String? {
     let greeting = store.viewModel?.profile.greeting.flatMap { $0.isEmpty ? nil : $0 }
     guard lastPractised != nil else {

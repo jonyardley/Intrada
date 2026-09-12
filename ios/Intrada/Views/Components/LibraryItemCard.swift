@@ -28,8 +28,7 @@ struct LibraryItemCard: View {
             .font(IntradaFont.meta)
             .foregroundStyle(IntradaColor.inkSecondary)
         } else if item.subtitle.isEmpty {
-          // Nothing recorded yet: a prompt, not a card collapsed to one
-          // ragged line (#1734); tapping the row already opens the item.
+          // A prompt, not a collapsed ragged line (#1734).
           Text(missingDetailsPrompt)
             .font(IntradaFont.meta)
             .foregroundStyle(IntradaColor.inkSecondary)

@@ -95,9 +95,8 @@ struct UsedInRow: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: IntradaSpacing.controlGap) {
-      // controlGap, not row: a row with both a Link button and a chevron has
-      // little width for the meta line. Top-aligned since `content` stacks
-      // taller than the chevron at accessibility sizes (#1731).
+      // controlGap, not row, around the trailing controls: a row carrying both a
+      // Link button and a chevron has little width left for the meta line.
       HStack(alignment: .top, spacing: IntradaSpacing.controlGap) {
         if navigable, let piece = usage.piece {
           NavigationLink(value: piece.id) { content }
@@ -130,9 +129,8 @@ struct UsedInRow: View {
     .background(IntradaColor.cardFill)
   }
 
-  // Stacked at accessibility sizes (#1731): a long title word is wider than
-  // the column beside a 44pt ring, so it breaks mid-word unless the ring
-  // moves above it instead of beside it.
+  // Stacked at accessibility sizes: a long title word is wider than the
+  // column beside a 44pt ring, so it breaks mid-word otherwise (#1731).
   private var content: some View {
     let layout: AnyLayout =
       dynamicTypeSize.isAccessibilitySize

@@ -33,8 +33,7 @@ struct WeekStrip: View {
   }
 }
 
-/// Reports a cell's natural height so the strip can size itself instead of
-/// clipping the day numbers once Dynamic Type grows past a fixed height (#1730).
+/// Reports a cell's natural height so the strip can size itself (#1730).
 struct WeekStripHeightKey: PreferenceKey {
   static let defaultValue: CGFloat = 0
   static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
@@ -51,9 +50,7 @@ private struct WeekDayCell: View {
   let calendar: Calendar
   let onTap: () -> Void
   @Environment(\.locale) private var locale
-  // Scales with Dynamic Type so the numeral isn't clipped to an ellipsis, but
-  // capped: uncapped growth needs more width than seven days have even on a
-  // phone, let alone iPad Slide Over (#1730).
+  // Scales with Dynamic Type, capped so seven days still fit the screen (#1730).
   @ScaledMetric(relativeTo: .caption) private var dayCircleDiameter: CGFloat = 32
   private var cappedDayCircleDiameter: CGFloat { min(dayCircleDiameter, 36) }
 
