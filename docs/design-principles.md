@@ -913,3 +913,51 @@ Library's add button, a new marker-filled trailing style rather than the ink
 one, read as "Profile" by VoiceOver. With no profile yet it shows the plain
 note on butter. It is the only way in. The mocks are
 `design/Profile and Greeting.dc.html`.
+
+### T26: The reading scale sits at the platform's sizes, not below them
+
+**Status:** DECIDED 2026-09-12 (jonyardley/intrada#1723). Every reading size in
+`IntradaFont` moves up by one to three points, to sit at iOS defaults rather than
+under them: body 14 to 16, bodyMedium 15 to 17, field 16 to 17, cardTitle 16 to
+18, pageTitle 29 to 32, button 13.5 to 15, segment 14 to 15, subtitle and meta
+12.5 to 14, metaMedium 12 to 13.5, badge 12 to 13, eyebrow 11 to 12, micro 10
+to 12.
+
+No step is smaller than a point, and that is a rule rather than an accident: a
+half-point change to a custom font can render byte-identically, so it reads as a
+decision in the file that nobody can see on screen. `badge` was drafted at 12.5
+and produced no pixels of difference at all; 13 is the smallest honest version of
+the same intent.
+
+`body` and `bodyMedium` also re-anchor from `.subheadline` to `.body`. That does
+not change their size, which the literal argument has always set; it changes the
+curve they grow along when a musician turns text size up. The point is that a
+16pt body growing on the body curve is coherent, where a 16pt body growing on the
+subheadline curve was a size claiming to be a smaller style. It is worth being
+clear about what it does not buy: `.body` grows more slowly than `.subheadline`,
+so at the largest accessibility sizes body and meta converge rather than holding
+their one point of separation. Fixing that needs the metadata anchors revisited,
+which this decision does not do.
+
+The old scale was not chosen, it accumulated: a display-led visual direction
+priced every supporting line as small print, and the metadata line under a piece
+in the Library is where that bill came due. Key, tempo and composer are what you
+read at a glance from a music stand, and 12.5pt at inkSecondary is a squint at
+arm's length. Nothing about the identity needed them that small.
+
+What this does not change: the display sizes (`timer`, `scoreNumeral`,
+`pageTitle`'s callers that pass their own size) and `tab`, which stays at 13
+because the tab bar is a platform surface with its own convention.
+
+The rejected alternative raised only the metadata sizes and left body at 14. It
+is a smaller diff, but it inverts the ramp: metadata a point under body reads as
+a deliberate hierarchy, metadata level with body reads as a mistake.
+
+`micro` survives at 12 rather than being retired into `meta`. Retiring it means
+editing twenty call sites across eleven files, which is churn this decision does
+not need to buy its readability.
+
+Two tokens now render identically at the default size: `subtitle` and `meta` are
+both DM Mono at 14, separated only by their Dynamic Type curve. That is a fold
+waiting to happen, and until it does, reach for `meta` unless the text is a
+screen subtitle.

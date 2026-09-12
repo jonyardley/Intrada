@@ -135,10 +135,10 @@ extension RadialGradient {
 /// `IntradaFonts`). `relativeTo:` tracks Dynamic Type; weights use named-instance
 /// PostScript names, not `.weight()`, which is synthetic over a variable axis.
 enum IntradaFont {
-  static func pageTitle(_ size: CGFloat = 29) -> Font {
+  static func pageTitle(_ size: CGFloat = 32) -> Font {
     .custom(Hanken.semibold, size: size, relativeTo: .largeTitle)
   }
-  static func cardTitle(_ size: CGFloat = 16) -> Font {
+  static func cardTitle(_ size: CGFloat = 18) -> Font {
     .custom(Hanken.semibold, size: size, relativeTo: .title3)
   }
   /// The live session timer at display size. Pair with `.monospacedDigit()`.
@@ -149,20 +149,22 @@ enum IntradaFont {
     .custom(Hanken.semibold, size: size, relativeTo: .title3)
   }
 
-  static let body = Font.custom(Hanken.regular, size: 14, relativeTo: .subheadline)
-  static let bodyMedium = Font.custom(Hanken.medium, size: 15, relativeTo: .subheadline)
-  static let button = Font.custom(Hanken.bold, size: 13.5, relativeTo: .subheadline)
-  static let subtitle = Font.custom(Mono.regular, size: 12.5, relativeTo: .footnote)
-  static let meta = Font.custom(Mono.regular, size: 12.5, relativeTo: .caption)
-  static let micro = Font.custom(Hanken.regular, size: 10, relativeTo: .caption2)
-  static let metaMedium = Font.custom(Hanken.medium, size: 12, relativeTo: .caption)
-  static let badge = Font.custom(Hanken.semibold, size: 12, relativeTo: .caption)
+  static let body = Font.custom(Hanken.regular, size: 16, relativeTo: .body)
+  static let bodyMedium = Font.custom(Hanken.medium, size: 17, relativeTo: .body)
+  static let button = Font.custom(Hanken.bold, size: 15, relativeTo: .subheadline)
+  static let subtitle = Font.custom(Mono.regular, size: 14, relativeTo: .footnote)
+  static let meta = Font.custom(Mono.regular, size: 14, relativeTo: .caption)
+  /// 12 rather than 10 so the smallest type in the app clears a readable floor
+  /// (#1723).
+  static let micro = Font.custom(Hanken.regular, size: 12, relativeTo: .caption2)
+  static let metaMedium = Font.custom(Hanken.medium, size: 13.5, relativeTo: .caption)
+  static let badge = Font.custom(Hanken.semibold, size: 13, relativeTo: .caption)
   /// Uppercase section label (letter-spaced, `inkFaint`) — the eyebrow above
   /// every section on the refreshed screens.
-  static let eyebrow = Font.custom(Hanken.semibold, size: 11, relativeTo: .caption2)
+  static let eyebrow = Font.custom(Hanken.semibold, size: 12, relativeTo: .caption2)
   static let tab = Font.custom(Hanken.medium, size: 13, relativeTo: .footnote)
-  static let segment = Font.custom(Hanken.medium, size: 14, relativeTo: .subheadline)
-  static let field = Font.custom(Hanken.regular, size: 16, relativeTo: .callout)
+  static let segment = Font.custom(Hanken.medium, size: 15, relativeTo: .subheadline)
+  static let field = Font.custom(Hanken.regular, size: 17, relativeTo: .callout)
   static let chart = Font.system(.footnote, design: .monospaced)
   static let chartEditor = Font.system(.body, design: .monospaced)
 
