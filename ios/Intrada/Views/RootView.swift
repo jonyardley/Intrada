@@ -13,8 +13,6 @@ struct RootView: View {
   /// One per app: `isIdleTimerDisabled` is process-global, so two would race.
   @State private var wakeLock = ScreenWakeLock.system()
 
-  private let apiBaseURL = "https://intrada-api.fly.dev"
-
   init() {
     Self.applyTabBarAppearance()
     Self.applyNavBarAppearance()
@@ -66,14 +64,14 @@ struct RootView: View {
     }
     .task {
       store.reportUtcOffset()
-      // Default (incl. plain DEBUG runs): local-first — the Library hydrates
-      // from the on-device store so saved items survive restarts. Seeding is
-      // opt-in via --seed-sample-data (ios-run-sim.sh / CI screenshots / E2E);
-      // it loads demo data and skips StartApp so a late fetch can't clobber it.
+      // Default (incl. plain DEBUG runs): the Library hydrates from the
+      // on-device store so saved items survive restarts. Seeding is opt-in via
+      // --seed-sample-data (ios-run-sim.sh / CI screenshots / E2E); it loads
+      // demo data and skips StartApp so hydration can't clobber it.
       if seedSampleData {
         store.send(.loadSampleData)
       } else {
-        store.send(.startApp(apiBaseUrl: apiBaseURL, localFirst: true))
+        store.send(.startApp)
         store.restorePersistedSort()
         if UITestFlags.resetProfile { store.forgetPersistedProfile() }
         store.restorePersistedProfile()
