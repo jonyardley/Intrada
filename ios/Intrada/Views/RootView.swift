@@ -75,6 +75,7 @@ struct RootView: View {
       } else {
         store.send(.startApp(apiBaseUrl: apiBaseURL, localFirst: true))
         store.restorePersistedSort()
+        if UITestFlags.resetProfile { store.forgetPersistedProfile() }
         store.restorePersistedProfile()
         store.loadRecoverableSession()
       }

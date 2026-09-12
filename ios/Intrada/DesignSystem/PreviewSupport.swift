@@ -89,13 +89,15 @@
     private let lastPractised: LastPractisedView?
     private let upNext: SuggestedSession?
     private let recentlyPractised: [LibraryItemView]
+    private let profile: ProfileView?
 
     init(
       items: [LibraryItemView] = [], activeQuery: ListQuery? = nil,
       sessions: [PracticeSessionView] = [], buildingSetlist: BuildingSetlistView? = nil,
       activeSession: ActiveSessionView? = nil, summary: SummaryView? = nil,
       analytics: AnalyticsView? = nil, lastPractised: LastPractisedView? = nil,
-      upNext: SuggestedSession? = nil, recentlyPractised: [LibraryItemView] = []
+      upNext: SuggestedSession? = nil, recentlyPractised: [LibraryItemView] = [],
+      profile: ProfileView? = nil
     ) {
       self.items = items
       self.activeQuery = activeQuery
@@ -107,6 +109,7 @@
       self.lastPractised = lastPractised
       self.upNext = upNext
       self.recentlyPractised = recentlyPractised
+      self.profile = profile
     }
 
     func update(_ event: Event) throws -> [Request] { [] }
@@ -138,6 +141,7 @@
       viewModel.lastPractised = lastPractised
       viewModel.upNext = upNext
       viewModel.recentlyPractised = recentlyPractised
+      if let profile { viewModel.profile = profile }
       return viewModel
     }
   }
@@ -145,6 +149,11 @@
   extension Store {
     /// A deterministic, offline store for `#Preview` blocks.
     static var preview: Store { Store(bridge: PreviewBridge()) }
+
+    /// A cellist called Jon on coral, greeted in the morning (#1692).
+    static var previewProfile: Store {
+      Store(bridge: PreviewBridge(profile: .previewCellist))
+    }
 
     /// An offline store with curated sample items (specific edge cases).
     /// Used by snapshot tests where the exact data must be deterministic.
@@ -202,6 +211,14 @@
         bridge: PreviewBridge(
           sessions: [.previewCompleted, .previewEndedEarly],
           lastPractised: .previewYesterday))
+    }
+
+    /// The Practice home as a named cellist sees it: greeted, with the badge (#1694).
+    static var previewPracticeProfile: Store {
+      Store(
+        bridge: PreviewBridge(
+          sessions: [.previewCompleted, .previewEndedEarly],
+          lastPractised: .previewYesterday, profile: .previewCellist))
     }
 
     /// Practice home with something to suggest (#1082).
@@ -1109,6 +1126,13 @@
 
     static var readNothing: PhotoDraft {
       PhotoDraft(title: nil, composer: nil, tempo: nil, chartText: nil)
+    }
+  }
+  extension ProfileView {
+    static var previewCellist: ProfileView {
+      ProfileView(
+        name: "Jon", instrument: "Cello", suggestedIcon: .cello, icon: .cello, colour: .coral,
+        greeting: "Morning, Jon")
     }
   }
 #endif

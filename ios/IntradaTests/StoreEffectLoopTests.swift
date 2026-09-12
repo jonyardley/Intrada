@@ -248,6 +248,17 @@ final class StoreEffectLoopTests: XCTestCase {
       "restore replays Loaded, never Save, so nothing is re-validated or re-written")
   }
 
+  func testForgetPersistedProfileRemovesTheBlob() throws {
+    let defaults = try XCTUnwrap(UserDefaults(suiteName: "profile-\(UUID().uuidString)"))
+    let profile = Profile(name: "Jon", instrument: "Cello", iconChoice: nil, colour: .butter)
+    defaults.set(Data(try profile.bincodeSerialize()), forKey: Store.profileDefaultsKey)
+    let store = Store(bridge: FakeBridge(), session: mockSession(), sortDefaults: defaults)
+
+    store.forgetPersistedProfile()
+
+    XCTAssertNil(defaults.data(forKey: Store.profileDefaultsKey), "the reset flag's job")
+  }
+
   func testRestorePersistedProfileNoopWhenAbsent() throws {
     let defaults = try XCTUnwrap(UserDefaults(suiteName: "profile-\(UUID().uuidString)"))
     let bridge = FakeBridge()

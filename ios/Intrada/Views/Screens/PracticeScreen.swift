@@ -16,6 +16,7 @@ struct PracticeScreen: View {
   // run, has no domain consequence and is deliberately not persisted.
   @State private var suggestionDismissed = false
   @State private var openSessionId: String?
+  @State private var showingProfile = false
 
   init(referenceDate: Date = Date()) {
     self.referenceDate = referenceDate
@@ -59,6 +60,16 @@ struct PracticeScreen: View {
 
   var body: some View {
     ScreenScaffold(title: "Practice", subtitle: subtitle) {
+      Button {
+        showingProfile = true
+      } label: {
+        ProfileBadge(icon: store.viewModel?.profile.icon ?? .other, size: IntradaGlyph.bar)
+          .frame(width: 44, height: 44)
+          .contentShape(Circle())
+      }
+      .buttonStyle(.plain)
+      .accessibilityLabel("Profile")
+    } content: {
       ScrollView {
         VStack(spacing: IntradaSpacing.section) {
           if let recoverable = store.recoverableSession {
@@ -101,6 +112,9 @@ struct PracticeScreen: View {
       if let found = sessions.first(where: { $0.id == id }) {
         PracticeSessionDetailScreen(session: found)
       }
+    }
+    .navigationDestination(isPresented: $showingProfile) {
+      ProfileScreen()
     }
   }
 
@@ -397,8 +411,12 @@ struct PracticeScreen: View {
       })
   }
 
+  // The greeting leads and the fact keeps its place (T25); both strings are
+  // the core's, the shell only joins them.
   private var subtitle: String {
-    lastPractised?.label ?? "No sessions yet"
+    let fact = lastPractised?.label ?? "No sessions yet"
+    guard let greeting = store.viewModel?.profile.greeting, !greeting.isEmpty else { return fact }
+    return "\(greeting) · \(fact)"
   }
 }
 
