@@ -127,11 +127,6 @@ it costs a small fraction of a full build.
 
 ## Environment variables
 
-### Native iOS build (compile-time)
-
-`CLERK_PUBLISHABLE_KEY`, `INTRADA_API_URL` (default
-`https://intrada-api.fly.dev`).
-
 ### Native iOS (optional): Sentry
 
 `SENTRY_DSN_NATIVE` in `.env` captures crash and error events from local dev
@@ -181,14 +176,6 @@ and everything they contain):
   *real*-bridge round-trip (`LiveBridge` in `StoreEffectLoopTests`) that drives
   the actual Swift↔Rust bincode serialization. See
   `testRealBridgeEditAppliesToViewModel`.
-
-### `option_env!` needs `cargo:rerun-if-env-changed`
-
-If a build script — or an `option_env!` site indirectly, via macro expansion —
-reads an env var, pair it with `println!("cargo:rerun-if-env-changed=NAME")` in
-`build.rs`. Without it, cargo caches the macro expansion across builds and your
-"I changed the env var" rebuild silently uses stale values. We have hit this on
-`CLERK_PUBLISHABLE_KEY` and `INTRADA_API_URL`.
 
 ## Why agent teams were retired (#1223)
 

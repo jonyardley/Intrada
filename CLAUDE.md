@@ -136,8 +136,6 @@ XCTest.
   stub-bridge test cannot catch it: use `LiveBridge`.
 - **A field inside the crash-recovery snapshot invalidates every blob** (#1345):
   bump `Store.sessionInProgressKey` first, then re-pin.
-- **`option_env!` needs `cargo:rerun-if-env-changed`**, or the rebuild uses the
-  stale value (`CLERK_PUBLISHABLE_KEY`, `INTRADA_API_URL`).
 
 ## Workflow
 
