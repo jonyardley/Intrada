@@ -379,15 +379,12 @@ jobs:
         run: just _ios-test-without-building -only-testing:IntradaTests 0
       # A skip, not an only, so a test target added later joins this step
       # instead of running nowhere (#1456). The third argument is the
-      # justfile's `parallel` flag, and it is off: five cloned simulators
-      # saturate this machine enough that StepManagementUITests misses the
-      # 2 second window it waits for a Select All menu in, then appends
-      # instead of replacing and reds main on a docs-only commit (#1642).
-      # Sequential is the configuration the rented runners proved for months.
-      # Turn it back on with #1642, not before, and remember that a booted
-      # base device plus five clones is more than 24GB holds.
+      # justfile's `parallel` flag, back on now that the rename test clears
+      # the field with delete keys instead of waiting on a Select All menu
+      # (#1642). The rented `native-ios-test-ui` job stays sequential; its
+      # 7GB runners are named at ci.yml:284.
       - name: Test (UI)
-        run: just _ios-test-without-building -skip-testing:IntradaTests 1 0
+        run: just _ios-test-without-building -skip-testing:IntradaTests 1 1
       - name: Upload snapshot failures
         if: failure()
         uses: actions/upload-artifact@v7

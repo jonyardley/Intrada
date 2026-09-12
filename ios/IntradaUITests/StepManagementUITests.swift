@@ -47,12 +47,10 @@ final class StepManagementUITests: XCTestCase {
     let eField = stepField(app, value: "E")
     XCTAssertTrue(eField.waitForExistence(timeout: 5), "E step field")
     eField.tap()
-    // Select-all then replace, since XCUITest's typeText appends at the caret.
-    eField.press(forDuration: 1.0)
-    if app.menuItems["Select All"].waitForExistence(timeout: 2) {
-      app.menuItems["Select All"].tap()
-    }
-    eField.typeText("Fa\n")
+    // One typeText call: eField is a live query on `value == "E"`, so a
+    // second call after a separate delete step lands can no longer
+    // re-resolve it, since the value has already changed (#1642).
+    eField.typeText(XCUIKeyboardKey.delete.rawValue + "Fa\n")
 
     app.buttons["Done editing steps"].tap()
 
