@@ -67,8 +67,8 @@ User → Events → crux_core (Rust) → Effects (Persistence, App, Render) → 
 ```
 
 1. **Core owns all logic.** The shell never understands domain types.
-2. **The shell is a dumb pipe.** It fulfils `HttpRequest` via `URLSession` and
-   persistence via GRDB, and renders the `ViewModel`. No business rules,
+2. **The shell is a dumb pipe.** It fulfils persistence via GRDB and renders
+   the `ViewModel`. No business rules,
    validation, domain decisions or domain state in Swift (UI interaction state
    only): if you are tempted, it belongs in `intrada-core` as an `Event` or
    `Command`. Crash recovery: UserDefaults (`AppEffect::SaveSessionInProgress`);
@@ -114,11 +114,10 @@ they cover, and bind whether or not you have seen them.
 
 ## Testing
 
-**Ship tests with new code.** DB functions and non-trivial pure logic include
-tests. DB writes: rows affected, idempotency, cross-user isolation. Pure
-functions: edge cases, None and empty inputs. New iOS
-test files use Swift Testing; migrate an XCTest file only when already touching
-it, never wholesale; XCUITest stays on XCTest.
+**Ship tests with new code.** Non-trivial pure logic includes tests: edge
+cases, None and empty inputs. New iOS test files use Swift Testing; migrate an
+XCTest file only when already touching it, never wholesale; XCUITest stays on
+XCTest.
 
 - **Before asserting, ask what the value was one line earlier** (#1223); if
   nothing distinguishes the behaviour present from absent, delete the test.
@@ -129,7 +128,7 @@ it, never wholesale; XCUITest stays on XCTest.
   `fixture()` with struct update, Swift a fixture enum with default arguments).
 - **Say so in the PR when you skip tests.** Tier 2+ carries a **Coverage** line
   naming expected gaps before CI finishes, then checks the Codecov comment
-  against it (70% patch target, informational; `ios/`, `migrations.rs` ignored).
+  against it (70% patch target, informational; `ios/` ignored).
 
 ## Gotchas (each has caught us at least once; write-ups in `docs/reference.md`)
 

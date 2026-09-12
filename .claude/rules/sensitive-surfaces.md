@@ -11,8 +11,8 @@ paths:
 A wrong change here does not crash. It decodes into a plausible wrong value,
 drops a write, or destroys the only copy of a user's data. Before editing:
 
-1. **Be on the strongest rung.** Fable at `xhigh` for the bridge and auth,
-   `max` for a migration or anything inside the `ActiveSession` blob graph.
+1. **Be on the strongest rung.** Fable at `xhigh` for the bridge, `max` for a
+   migration or anything inside the `ActiveSession` blob graph.
    Check with `/model` and `/effort`, and switch before the first edit.
 2. **Pair the `reviewer` agent on the core diff before the screens half
    starts**, not only at the end. It is pinned never weaker than the writer.

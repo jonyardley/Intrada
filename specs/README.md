@@ -77,5 +77,7 @@ cannot be found and should not be recreated from them.
 | [`background-audio-plugin.md`](background-audio-plugin.md) | Written as a Tauri plugin under `crates/intrada-mobile`, which no longer exists. The surviving `ios/Reference/BackgroundAudioPlugin.swift` imports `Tauri` and is in no Xcode target. Useful as reference for a native port, not implementable as written |
 | [`live-activity-plugin.md`](live-activity-plugin.md) | Same: an ActivityKit design as a Tauri plugin in a deleted crate, with Swift surviving only under `ios/Reference/`. A native lock-screen spec does not exist yet |
 
-[`_archive/`](_archive/) holds the numbered SpecKit-era folders and is excluded
+[`_archive/`](_archive/) holds retired specs (`mcp-server.md`,
+`account-settings-and-deletion.md`: both targeted the removed API, #1746) and
+the numbered SpecKit-era folders, and is excluded
 from the knowledge graph. Do not run `/speckit-*` commands.

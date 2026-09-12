@@ -14,12 +14,12 @@ The only platform is the **native SwiftUI iOS app**, offline-first: on-device SQ
 │  Store: Event in,    │ ←─────────────────── │  (Crux, no I/O)  │
 │  ViewModel out        │    Effects           └──────────────────┘
 └──────────────────────┘                               │
-                                                         │ GRDB (on-device)
-                                                         ▼
-                                                  ┌──────────────┐
-                                                  │  SQLite      │
-                                                  │  (local-first)│
-                                                  └──────────────┘
+                                                       │ GRDB (on-device)
+                                                       ▼
+                                                ┌──────────────┐
+                                                │  SQLite      │
+                                                │  (local-first)│
+                                                └──────────────┘
 ```
 
 Intrada follows the **Crux pure-core pattern**: `intrada-core` contains all business logic with zero side effects. Events go in, effects come out. The native SwiftUI shell is a dumb pipe: it sends `Event`s, fulfils persistence effects via GRDB, and renders the `ViewModel`. No domain logic lives in Swift.
@@ -49,7 +49,9 @@ bypass a specific push with `SKIP_PR_CHECK=1 git push`, opt out entirely with
 
 Forking this repo: update the development team in `ios/project.yml` to your
 own Apple Team ID (developer.apple.com → Membership, or Xcode → Settings →
-Accounts).
+Accounts). `just ios`/`just ios-run` read `INTRADA_API_URL` and
+`CLERK_PUBLISHABLE_KEY` from your shell or `.env` (`set dotenv-load` in the
+justfile); see `docs/reference.md` → Environment variables.
 
 ## Quick start
 

@@ -17,15 +17,7 @@ db-urls = ["https://github.com/rustsec/advisory-db"]
 # Unmaintained crates are informational, not vulnerabilities — warn, don't fail.
 unmaintained = "workspace"
 
-ignore = [
-    # rsa 0.9.x Marvin Attack (timing side-channel on RSA key recovery).
-    # No upstream fix. jsonwebtoken's `rust_crypto` feature pulls in the rsa
-    # crate for RSA math, but we only perform RS256 *signature verification*
-    # (public-key operation) — the Marvin attack targets RSA *decryption*
-    # (PKCS#1v1.5 padding oracle), which is never exercised in the JWT path.
-    # Re-evaluate when rsa 0.10 drops or if advisory scope broadens.
-    { id = "RUSTSEC-2023-0071", reason = "only public-key verification, Marvin attack targets decryption" },
-]
+ignore = []
 
 # ── Licenses ─────────────────────────────────────────────────────────────
 # Allowlist of acceptable SPDX license expressions. Anything not listed
@@ -45,16 +37,6 @@ allow = [
     "BSL-1.0",
 ]
 confidence-threshold = 0.8
-
-# Our own workspace crates are private / unlicensed.
-exceptions = [
-    { allow = ["CDLA-Permissive-2.0"], crate = "webpki-roots" },
-]
-
-[[licenses.clarify]]
-name = "ring"
-expression = "MIT AND ISC AND OpenSSL"
-license-files = [{ path = "LICENSE", hash = 0xbd0eed23 }]
 
 # Private workspace crates — no license field needed.
 [licenses.private]
