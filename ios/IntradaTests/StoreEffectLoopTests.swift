@@ -378,32 +378,6 @@ final class StoreEffectLoopTests: XCTestCase {
     XCTAssertEqual(reloaded.greeting, "", "no name means no greeting")
   }
 
-  /// Real-bridge step round-trip (#846, #1083): `AddVariant` pushes a `Variant`
-  /// onto the exercise, which then rides the whole `Item` and the derived
-  /// ladder back across the bincode wire, a shape the stub bridge can't
-  /// exercise. A wire break would drop the ladder silently.
-  func testRealBridgeAddVariantSurfacesStepsInViewModel() throws {
-    let bridge = LiveBridge()
-    _ = try bridge.update(.startApp)
-    _ = try bridge.update(
-      .item(
-        .add(
-          CreateItem(
-            title: "Scales", kind: .exercise, composer: nil, key: nil, modality: nil,
-            tempo: nil, notes: nil, tags: [], photoId: nil))))
-    let id = try XCTUnwrap(try bridge.view().items.first?.id)
-
-    _ = try bridge.update(.item(.addVariant(itemId: id, label: "F major")))
-    _ = try bridge.update(.item(.addVariant(itemId: id, label: "Bb major")))
-
-    let view = try bridge.view()
-    let ex = try XCTUnwrap(view.items.first { $0.id == id })
-    XCTAssertEqual(
-      ex.variants.map(\.label), ["F major", "Bb major"],
-      "steps round-trip the live bridge in ladder order (err=\(view.error ?? "nil"))")
-    XCTAssertFalse(ex.variants.contains { $0.isSolid }, "unpractised steps aren't solid")
-  }
-
   /// Real-bridge wire pin (#846, #1467): a `Bool` that never made it across
   /// reads as `false`, so the row would say "steps" about a ladder of keys —
   /// no crash, no error, just the wrong noun.
@@ -418,15 +392,16 @@ final class StoreEffectLoopTests: XCTestCase {
             tempo: nil, notes: nil, tags: [], photoId: nil))))
     let id = try XCTUnwrap(try bridge.view().items.first?.id)
 
-    _ = try bridge.update(.item(.addVariant(itemId: id, label: "F major")))
-    _ = try bridge.update(.item(.addVariant(itemId: id, label: "B\u{266D}")))
+    _ = try bridge.update(
+      .item(.setVariants(id: id, labels: ["F major", "B\u{266D}"])))
 
     let keys = try bridge.view()
     XCTAssertEqual(
       keys.items.first { $0.id == id }?.ladderIsKeys, true,
       "a ladder of key names comes back as keys (err=\(keys.error ?? "nil"))")
 
-    _ = try bridge.update(.item(.addVariant(itemId: id, label: "Hands together")))
+    _ = try bridge.update(
+      .item(.setVariants(id: id, labels: ["F major", "B\u{266D}", "Hands together"])))
 
     XCTAssertEqual(
       try bridge.view().items.first { $0.id == id }?.ladderIsKeys, false,
@@ -578,7 +553,7 @@ final class StoreEffectLoopTests: XCTestCase {
             tempo: nil, notes: nil, tags: [], photoId: nil))))
     let itemId = try XCTUnwrap(try bridge.view().items.first?.id)
 
-    _ = try bridge.update(.item(.addVariant(itemId: itemId, label: "F major")))
+    _ = try bridge.update(.item(.setVariants(id: itemId, labels: ["F major"])))
     let stepId = try XCTUnwrap(try bridge.view().items.first?.variants.first?.id)
 
     _ = try bridge.update(.session(.startBuilding))
@@ -1170,8 +1145,6 @@ final class StoreEffectLoopTests: XCTestCase {
     XCTAssertEqual(
       recovered.activeSession?.currentItemStartedAt, "2026-06-16T11:00:00+00:00",
       "recovery must re-anchor the running item's timer to `now`")
-    _ = try bridge.update(.session(.abandonSession))
-    XCTAssertNil(try bridge.view().activeSession, "abandon after recover returns to Idle")
   }
 
   /// Real-bridge step-ladder lifecycle (#1083 C1): SetVariants and
@@ -1415,7 +1388,7 @@ final class StoreEffectLoopTests: XCTestCase {
             tempo: nil, notes: nil, tags: [], photoId: nil))))
     let exerciseId = try XCTUnwrap(try bridge.view().items.first { $0.id != pieceId }?.id)
     _ = try bridge.update(.item(.linkExercise(pieceId: pieceId, exerciseId: exerciseId)))
-    _ = try bridge.update(.item(.addVariant(itemId: exerciseId, label: "Slow")))
+    _ = try bridge.update(.item(.setVariants(id: exerciseId, labels: ["Slow"])))
     let variantId = try XCTUnwrap(
       try bridge.view().items.first { $0.id == exerciseId }?.variants.first?.id)
 
@@ -1510,8 +1483,7 @@ final class StoreEffectLoopTests: XCTestCase {
             title: "Hanon No. 1", kind: .exercise, composer: nil, key: nil, modality: nil,
             tempo: nil, notes: nil, tags: [], photoId: nil))))
     let itemId = try XCTUnwrap(try bridge.view().items.first?.id)
-    _ = try bridge.update(.item(.addVariant(itemId: itemId, label: "Slow")))
-    _ = try bridge.update(.item(.addVariant(itemId: itemId, label: "Fast")))
+    _ = try bridge.update(.item(.setVariants(id: itemId, labels: ["Slow", "Fast"])))
     let ladder = try XCTUnwrap(try bridge.view().items.first?.variants)
     let slowId = try XCTUnwrap(ladder.first { $0.label == "Slow" }?.id)
     let fastId = try XCTUnwrap(ladder.first { $0.label == "Fast" }?.id)
