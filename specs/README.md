@@ -75,8 +75,9 @@ cannot be found and should not be recreated from them.
 | [`design-system.md`](design-system.md) | **The Leptos web shell's dark glassmorphism system**, per its own first line. `crates/intrada-web` was deleted in #1133. The live system is `design/intrada-design-system.dc.html` with `Theme.swift` canonical, both outside `specs/` |
 | [`design-refresh-2026.md`](design-refresh-2026.md) | A refresh of that same web theme, written before native iOS existed. None of `AccentRow`, `StatCard` or `DifficultyDots` exist anywhere in the tree |
 | [`onboarding-welcome.md`](onboarding-welcome.md) | A first-run carousel for the deleted web shell; the surface did not return |
-| [`background-audio-plugin.md`](background-audio-plugin.md) | Written as a Tauri plugin under `crates/intrada-mobile`, which no longer exists. The reference `BackgroundAudioPlugin.swift` was deleted in commit `7a2952e` (#1745) and is recoverable with `git show 7a2952e^:ios/Reference/BackgroundAudioPlugin.swift`. Useful as reference for a native port, not implementable as written |
-| [`live-activity-plugin.md`](live-activity-plugin.md) | Same: an ActivityKit design as a Tauri plugin in a deleted crate. Its reference Swift was deleted in commit `7a2952e` (#1745), recoverable with `git show 7a2952e^:ios/Reference/LiveActivityPlugin.swift`. A native lock-screen spec does not exist yet |
+| [`background-audio-plugin.md`](background-audio-plugin.md) | Written as a Tauri plugin under `crates/intrada-mobile`, which no longer exists. The reference `BackgroundAudioPlugin.swift` was deleted in PR #1752 (#1745); recover it from that PR's diff on GitHub, since the branch commit does not survive the squash merge. Useful as reference for a native port, not implementable as written |
+| [`live-activity-plugin.md`](live-activity-plugin.md) | Same: an ActivityKit design as a Tauri plugin in a deleted crate. Its reference Swift was deleted in the same PR; same recovery route. A native lock-screen spec does not exist yet |
 
-[`_archive/`](_archive/) holds the numbered SpecKit-era folders and is excluded
-from the knowledge graph. Do not run `/speckit-*` commands.
+[`_archive/`](_archive/) holds the numbered SpecKit-era folders and retired
+single-file specs (`seo-prerender.md`), and is excluded from the knowledge
+graph. Do not run `/speckit-*` commands.

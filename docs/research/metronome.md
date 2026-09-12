@@ -206,7 +206,8 @@ Repo: [`docs/roadmap.md`](../roadmap.md) (Open Questions 1, 3) ·
 [`docs/journeys.md`](../journeys.md) · [`VISION.md`](../../VISION.md) ·
 [`docs/rebuild-review.md`](../rebuild-review.md) ·
 `git show 8af4891^:ios/Intrada/Coach/ClickEngine.swift` ·
-`git show 7a2952e^:ios/Reference/README.md`.
+PR #1752 (the reference Swift's diff on GitHub; its branch commit does not
+survive the squash merge).
 
 Web:
 

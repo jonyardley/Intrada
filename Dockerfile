@@ -16,9 +16,8 @@ COPY --from=planner /app/recipe.json recipe.json
 # and discarded.
 COPY rust-toolchain.toml .
 # Build dependencies — this is the caching Docker layer.
-# --bin intrada-api scopes to only intrada-api's dependency graph, excluding
-# intrada-ffi's UniFFI toolchain, which this minimal Rust container doesn't
-# need.
+# --bin intrada-api scopes cargo chef's cook to intrada-api's own dependency
+# graph rather than the whole workspace, keeping this cached layer smaller.
 RUN cargo chef cook --release --recipe-path recipe.json --bin intrada-api
 # Build application
 COPY . .
