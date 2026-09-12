@@ -9,6 +9,10 @@ struct LibrarySplitView: View {
   @Environment(\.horizontalSizeClass) private var sizeClass
   @State private var selectedId: String?
 
+  init(previewSelection: String? = nil) {
+    _selectedId = State(initialValue: previewSelection)
+  }
+
   private var items: [LibraryItemView] { store.viewModel?.items ?? [] }
   private var selectedItem: LibraryItemView? {
     selectedId.flatMap { id in items.first { $0.id == id } }
@@ -19,7 +23,11 @@ struct LibrarySplitView: View {
       HStack(spacing: 0) {
         NavigationStack { LibraryScreen(selection: $selectedId) }
           .frame(maxWidth: 380)
-        Divider()
+        // Inset to the safe area so the line starts below the top strip rather
+        // than running up behind the tabs, where nothing else has a border
+        // (#1682). `PaperBackground` ignores the safe area, which is what lets
+        // the columns, and so a plain `Divider`, reach the top of the screen.
+        Divider().safeAreaPadding(.top)
         NavigationStack {
           detailColumn
             // Related exercises / pieces push within the detail pane, not the list.
@@ -43,7 +51,8 @@ struct LibrarySplitView: View {
       ZStack {
         PaperBackground()
         PlaceholderContent(
-          systemImage: "books.vertical", message: "Select an item to see its details.")
+          systemImage: "sidebar.left", message: "Select an item to see its details.",
+          glyphTint: IntradaColor.inkFainter)
       }
     }
   }

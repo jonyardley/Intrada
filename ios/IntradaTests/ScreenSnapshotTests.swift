@@ -65,6 +65,10 @@ final class ScreenSnapshotTests: XCTestCase {
       perceptualPrecision: 0.98, traits: .init(displayScale: 1))
   }
 
+  private var splitConfig: Snapshotting<UIViewController, UIImage> {
+    .image(on: .iPadPro11(.landscape), perceptualPrecision: 0.98, traits: .init(displayScale: 1))
+  }
+
   /// Largest accessibility text size — proves layouts reflow rather than clip/wrap.
   private var axConfig: Snapshotting<UIViewController, UIImage> {
     .image(
@@ -120,6 +124,22 @@ final class ScreenSnapshotTests: XCTestCase {
 
   func testLibraryScreen() {
     assertSnapshot(of: host(NavigationStack { LibraryScreen() }), as: config)
+  }
+
+  /// The split only lays out at regular width, so it needs an iPad frame rather
+  /// than the pinned iPhone. Scale 1 keeps the reference small at that size:
+  /// the paper gradient fills the whole frame, so 2x doubles the whole bill.
+  func testLibrarySplitViewEmptyDetail() {
+    assertSnapshot(
+      of: host(LibrarySplitView(), store: .previewLibrary), as: splitConfig)
+  }
+
+  /// Both columns' header rules must land on the same line (#1682), and the
+  /// column line must stop below the top strip rather than running past the tabs.
+  func testLibrarySplitViewWithSelection() {
+    assertSnapshot(
+      of: host(LibrarySplitView(previewSelection: "piece-1"), store: .previewLibrary),
+      as: splitConfig)
   }
 
   func testLibraryScreenPopulated() {

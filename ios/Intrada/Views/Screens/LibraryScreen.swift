@@ -42,8 +42,10 @@ struct LibraryScreen: View {
       }
     }
     // The list draws its own header, so suppress the nav bar here; the
-    // detail keeps it for the back chevron.
-    .toolbar(.hidden, for: .navigationBar)
+    // detail keeps it for the back chevron. In the split the detail's bar is
+    // still there for the star and Edit, so keeping an empty one here gives
+    // both columns the same top inset and their header rules line up (#1682).
+    .toolbar(selection == nil ? .hidden : .visible, for: .navigationBar)
     // The read belongs to the sheet. `onDismiss`, not the add screen's own
     // `onDisappear`, which the scanner's full-screen cover also triggers.
     .sheet(isPresented: $adding, onDismiss: { store.send(.discardPhotoDraft) }) {
