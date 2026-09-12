@@ -193,12 +193,11 @@ edit only inside it.
 
 `just worktrees` lists every worktree with its branch, uncommitted file count
 and the session that holds its lease. Read it before touching a worktree you did
-not create: a clean tree at main is not evidence that it is free. The lease is
-taken at session start and enforced by `~/.claude/hooks/guard-worktree.sh`,
-which denies writes in a worktree another live session holds, and denies writes
-in the main checkout while any worktree exists. Two sessions wrote one worktree
-on 2026-09-12 and silently overwrote each other's edits; the issue claim in
-`scripts/claim-issue.sh` claims a GitHub issue, never a directory.
+not create: a clean tree at main is not evidence that it is free. What the lease
+claims, when it is taken and released, and what the guard allows in each of the
+three places a session can be, are all in [`docs/worktrees.md`](worktrees.md).
+In short: main lets anyone read and build but nobody edit, your own worktree is
+yours entirely, and someone else's is readable and nothing more.
 
 Run from a cmux terminal, `just worktree-new` prints the `cmux new-workspace`
 command for the new worktree, because the sidebar shows the branch and PR of the
@@ -215,24 +214,14 @@ files it is about to touch by hand, or it is working blind.
 The mechanism is the `cd` prefix. The `EnterWorktree` tool is still banned here,
 since it marks the session isolated and the bash guard then refuses every
 version control command; instead, create the worktree and prefix each shell
-command with `cd <worktree> && `. `~/.claude/hooks/guard-worktree.sh` resolves
-that prefix and judges the command where it lands, so the commit, the gates and
-the PR all work, and the first write takes the worktree's lease, which still
-refuses the next session. That hook is machine-local and in no repository: on a
-machine whose copy predates this, the prefix is denied and the session is back
-to handing commands over.
+command with `cd <worktree> && `. The guard resolves that prefix and judges the
+command where it lands, so the commit, the gates and the PR all work, and the
+first write takes the worktree's lease. File tools take absolute paths inside
+the worktree as they always did.
 
-The prefix is honoured only in the shape the guard can read, and falls back to
-denying rather than guessing:
-
-- a literal absolute path, followed by `&&` or `;`. `~`, `$HOME` and `$VAR` are
-  not expanded, and `||` breaks the match.
-- one `cd` only. The command runs at the last one, so a second is never resolved.
-- nothing in the command naming the session's own checkout, and no `..`, since
-  both mean the cd said nothing about where the write lands.
-- `git -C <dir>` is deliberately not resolved and stays denied from main.
-
-File tools take absolute paths inside the worktree as they always did.
+The prefix is honoured only in a shape the guard can read, and denies rather
+than guesses. The four conditions, and what happens on a machine whose hooks
+predate all this, are in [`docs/worktrees.md`](worktrees.md).
 
 ## Build and test control
 

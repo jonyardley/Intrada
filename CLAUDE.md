@@ -197,7 +197,8 @@ means driving the app on the simulator**; if you cannot, say what needs a hand c
    session already running in the main checkout does not hand the command back:
    it makes the worktree, prefixes every shell command with `cd <worktree> && `,
    and reads the rules for the files it touches by hand, since cd-ing does not
-   load them (#1720, `docs/working-with-agents.md`).
+   load them (#1720). Who may read, build and edit where, and what the worktree
+   lease claims: [`docs/worktrees.md`](docs/worktrees.md).
    Agents touch the main checkout only for `git pull --ff-only` (#1686). Branch protection
    refuses a push to main and `gh pr merge` is denied in settings. CI green is
    the session's job: after every push watch the run to a conclusion, react, push
