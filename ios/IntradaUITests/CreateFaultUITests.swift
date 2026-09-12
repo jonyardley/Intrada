@@ -11,6 +11,16 @@ final class CreateFaultUITests: XCTestCase {
     continueAfterFailure = false
   }
 
+  /// The add form runs past one screen since the type scale rose (#1723), so a
+  /// row that used to be in view has to be scrolled to before it takes a tap.
+  private func hittable(_ query: XCUIElementQuery, scrolling app: XCUIApplication) -> XCUIElement? {
+    for _ in 0..<6 {
+      if let match = query.allElementsBoundByIndex.first(where: \.isHittable) { return match }
+      app.swipeUp()
+    }
+    return query.allElementsBoundByIndex.first(where: \.isHittable)
+  }
+
   func testARefusedOnePassCreateKeepsTheFormOpenAndNamesTheFault() {
     let app = XCUIApplication()
     app.launchArguments = ["--seed-sample-data", "--disable-animations"]
@@ -25,7 +35,7 @@ final class CreateFaultUITests: XCTestCase {
     // section rows sit under it and a tap never reaches them.
     let chartRow = app.buttons.matching(NSPredicate(format: "label == %@", "Chord chart"))
     XCTAssertTrue(chartRow.firstMatch.waitForExistence(timeout: 10), "the chord chart row")
-    let tappable = chartRow.allElementsBoundByIndex.first { $0.isHittable }
+    let tappable = hittable(chartRow, scrolling: app)
     XCTAssertNotNil(tappable, "one of the chord chart rows takes a tap")
     tappable?.tap()
 
