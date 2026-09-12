@@ -79,6 +79,20 @@ final class ScreenSnapshotTests: XCTestCase {
       })
   }
 
+  /// Cropped to the hero + week strip, not the whole device: proves the real
+  /// `PracticeScreen`/`TabView` path (not a bare component) reflows at large
+  /// text without needing a full-screen (and much larger) reference (#1730).
+  private var practiceHeaderAxConfig: Snapshotting<UIViewController, UIImage> {
+    .image(
+      on: ViewImageConfig(
+        safeArea: .zero, size: CGSize(width: 390, height: 1400), traits: .init(displayScale: 1)),
+      perceptualPrecision: 0.98,
+      traits: UITraitCollection { traits in
+        traits.displayScale = 1
+        traits.preferredContentSizeCategory = .accessibilityExtraExtraExtraLarge
+      })
+  }
+
   /// Flat fills only: the reference stays byte-stable and cheap as lossless PNG.
   private static let page: UIImage = {
     let size = CGSize(width: 600, height: 850)
@@ -258,30 +272,16 @@ final class ScreenSnapshotTests: XCTestCase {
         traits: .init(displayScale: 2)))
   }
 
-  /// Proves the week strip sizes to its content rather than clipping the day
-  /// numbers, since nothing pinned that height at large text before (#1730).
-  /// Component-level, not full-screen: the strip is what changes, and a
-  /// cropped reference stays well under the snapshot size ceiling.
-  func testWeekStripAccessibilitySize() {
-    let calendar = PreviewCalendar.utc
-    let referenceDate = PracticeSessionView.previewReferenceDate
-    let week = PracticeWeek.days(containing: referenceDate, calendar: calendar)
-    let strip = ZStack {
-      PaperBackground()
-      WeekStrip(
-        days: week, today: referenceDate,
-        practiceDays: Swift.Set([week[1], week[3]]),
-        selected: .constant(week[2]), calendar: calendar
-      )
-      .padding(IntradaSpacing.card)
-    }
+  /// Proves the real `PracticeScreen` week strip — the paging `TabView`, not
+  /// the animations-disabled static branch — sizes itself to its content
+  /// rather than clipping the day numbers, since nothing pinned that height
+  /// at large text before (#1730). Cropped to the header, not the full
+  /// device, to stay well under the snapshot size ceiling.
+  func testPracticeScreenWeekStripAccessibilitySize() {
     assertSnapshot(
-      of: host(strip),
-      as: .image(
-        precision: 0.99, size: CGSize(width: 390, height: 160),
-        traits: UITraitCollection { traits in
-          traits.preferredContentSizeCategory = .accessibilityExtraExtraExtraLarge
-        }))
+      of: host(
+        PracticeScreen(referenceDate: PracticeSessionView.previewReferenceDate),
+        store: .previewPractice), as: practiceHeaderAxConfig)
   }
 
   func testPracticeScreenQuietDay() {
@@ -1254,7 +1254,9 @@ final class ScreenSnapshotTests: XCTestCase {
       }
       .padding(16)
     }
-    assertSnapshot(of: host(cards), as: config)
+    // tallFormConfig, not config: seven cards run past an iPhone 13's fold,
+    // and the device-sized frame was cropping the last one out of frame.
+    assertSnapshot(of: host(cards), as: tallFormConfig)
   }
 
   /// Both tempo-trend states in one frame: the plot with two breaks in the line

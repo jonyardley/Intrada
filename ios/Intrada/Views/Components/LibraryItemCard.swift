@@ -28,10 +28,8 @@ struct LibraryItemCard: View {
             .font(IntradaFont.meta)
             .foregroundStyle(IntradaColor.inkSecondary)
         } else if item.subtitle.isEmpty {
-          // Nothing recorded yet: a one-pass capture is meant to be filled in
-          // later, so the empty case gets a prompt rather than a card that
-          // collapses to a single ragged line (#1734). Tapping the row
-          // already opens the item where these can be added.
+          // Nothing recorded yet: a prompt, not a card collapsed to one
+          // ragged line (#1734); tapping the row already opens the item.
           Text(missingDetailsPrompt)
             .font(IntradaFont.meta)
             .foregroundStyle(IntradaColor.inkFaint)
@@ -138,6 +136,7 @@ struct LibraryItemCard: View {
     if !item.subtitle.isEmpty { parts.append(item.subtitle) }
     if let key = item.keyDisplay { parts.append(key) }
     if let tempo = item.tempoSpoken { parts.append(tempo) }
+    if metaLine == nil, item.subtitle.isEmpty { parts.append(missingDetailsPrompt) }
     return parts.joined(separator: ", ")
   }
 }

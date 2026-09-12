@@ -5,16 +5,6 @@ import SwiftUI
 /// day's sessions below. A day is always selected (the screen auto-selects on
 /// open). Today is marked with a ring, the selected day with a fill, practised
 /// days carry a dot, and not-yet days dim.
-/// Reports a cell's natural height so the strip can size itself instead of
-/// clipping the day numbers once Dynamic Type grows past the old fixed
-/// height (#1730).
-struct WeekStripHeightKey: PreferenceKey {
-  static let defaultValue: CGFloat = 0
-  static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-    value = max(value, nextValue())
-  }
-}
-
 struct WeekStrip: View {
   let days: [Date]
   let today: Date
@@ -43,6 +33,15 @@ struct WeekStrip: View {
   }
 }
 
+/// Reports a cell's natural height so the strip can size itself instead of
+/// clipping the day numbers once Dynamic Type grows past a fixed height (#1730).
+struct WeekStripHeightKey: PreferenceKey {
+  static let defaultValue: CGFloat = 0
+  static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+    value = max(value, nextValue())
+  }
+}
+
 private struct WeekDayCell: View {
   let day: Date
   let isToday: Bool
@@ -52,6 +51,9 @@ private struct WeekDayCell: View {
   let calendar: Calendar
   let onTap: () -> Void
   @Environment(\.locale) private var locale
+  // Scales with Dynamic Type: a fixed 32 clipped the two-digit day number to
+  // an ellipsis once the numeral itself grew past it (#1730).
+  @ScaledMetric(relativeTo: .caption) private var dayCircleDiameter: CGFloat = 32
 
   var body: some View {
     Button(action: onTap) {
@@ -63,7 +65,7 @@ private struct WeekDayCell: View {
         Text(dayNumber)
           .font(IntradaFont.metaMedium)
           .foregroundStyle(dayNumberColor)
-          .frame(width: 32, height: 32)
+          .frame(width: dayCircleDiameter, height: dayCircleDiameter)
           .background(isSelected ? IntradaColor.accent : .clear, in: Circle())
           .overlay(
             Circle().strokeBorder(

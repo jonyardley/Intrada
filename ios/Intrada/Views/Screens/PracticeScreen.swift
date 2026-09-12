@@ -269,13 +269,16 @@ struct PracticeScreen: View {
     .heroShadow()
   }
 
+  // The day now lives here, not in a separate line under the play button
+  // (#1725): said once, not zero times.
   private var heroEyebrow: String {
-    lastPractised == nil ? "First session" : "Last practised"
+    guard let lastPractised else { return "First session" }
+    return "Last practised · \(lastPractised.relativeDay)"
   }
 
   private var heroLabel: String {
     guard let lastPractised else { return heroEyebrow }
-    return "\(heroEyebrow), \(lastPractised.itemTitle), \(lastPractised.relativeDay)"
+    return "\(heroEyebrow), \(lastPractised.itemTitle)"
   }
 
   // MARK: - (1) This week
@@ -409,10 +412,8 @@ struct PracticeScreen: View {
       })
   }
 
-  // The greeting is the only thing said up here now (T25): the hero card
-  // below already carries the last-practised fact, in its eyebrow and its
-  // piece title, so repeating it in the subtitle said the same thing three
-  // times before a scroll (#1725).
+  // Greeting only (T25): the hero eyebrow now carries the last-practised
+  // fact, so repeating it here said the same thing three times (#1725).
   private var subtitle: String {
     guard let greeting = store.viewModel?.profile.greeting, !greeting.isEmpty else {
       return lastPractised?.label ?? "No sessions yet"

@@ -97,7 +97,10 @@ struct UsedInRow: View {
     VStack(alignment: .leading, spacing: IntradaSpacing.controlGap) {
       // controlGap, not row, around the trailing controls: a row carrying both a
       // Link button and a chevron has little width left for the meta line.
-      HStack(spacing: IntradaSpacing.controlGap) {
+      // Top-aligned: at accessibility sizes `content` stacks the ring above
+      // the title, taller than the chevron, which would otherwise centre
+      // partway down the stack (#1731).
+      HStack(alignment: .top, spacing: IntradaSpacing.controlGap) {
         if navigable, let piece = usage.piece {
           NavigationLink(value: piece.id) { content }
             .buttonStyle(.plain)
@@ -151,10 +154,9 @@ struct UsedInRow: View {
     .frame(maxWidth: .infinity, alignment: .leading)
   }
 
-  // At accessibility sizes a single long title word is wider than the text
-  // column beside a 44pt ring, so it breaks mid-word rather than wrapping.
-  // The fix is a shape change, not a text modifier: stack the ring above the
-  // title so it gets the card's full width, the way other rows do (#1731).
+  // At accessibility sizes a long title word is wider than the column beside
+  // a 44pt ring, so it breaks mid-word; stacking gives it the full card width
+  // instead (#1731).
   @ViewBuilder private var content: some View {
     if dynamicTypeSize.isAccessibilitySize {
       VStack(alignment: .leading, spacing: IntradaSpacing.controlGap) {
