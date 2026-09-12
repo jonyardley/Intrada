@@ -42,9 +42,9 @@ just ios-test-full    # adds XCUITests (the merge gate; mirrors CI)
   freshness fingerprint and the concurrency guard (#1536, #1537). A passing run
   prints its own counts; silence is never the evidence.
 - **Run `just check` before pushing**, plus `just ios-fmt-check` for `ios/`
-  (fix with `just ios-fmt`). Local green means CI green; keep the justfile and `ci.yml` in lockstep. Read
-  every compile error before fixing the first: `cargo check --all-targets`, and
-  the whole `just ios-test` error list.
+  (fix with `just ios-fmt`); local green means CI green, so keep the justfile
+  and `ci.yml` in step. Read every compile error before fixing the first:
+  `cargo check --all-targets`, and the full `just ios-test` error list.
 - **The simulator is machine-global.** `just ios-test`/`ios-test-full` wait on
   a machine-wide lock (`scripts/ios-sim-lock.sh`) rather than refusing when
   another session's run is live, and shut down the sim they booted when they
