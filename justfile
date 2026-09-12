@@ -268,6 +268,22 @@ worktree-rm name:
     git worktree remove "$target"
     echo "✓ removed worktree $target"
 
+# Every worktree of this repo with its branch, uncommitted file count and the
+# Claude Code session holding its lease. A worktree sitting at main with no
+# commits is not evidence that it is free: uncommitted work looks identical
+# from the outside, and only the lease says whether a session is inside.
+[group('Worktrees')]
+worktrees:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    lease="$HOME/.claude/hooks/worktree-lease.sh"
+    if [ -x "$lease" ]; then
+        "$lease" list "$PWD"
+    else
+        git worktree list
+        echo "  (no worktree-lease.sh on this machine, so no session holders shown)"
+    fi
+
 # ─────────────────────────────────────────────
 # Diagnostics & cleanup
 # ─────────────────────────────────────────────

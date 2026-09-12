@@ -191,6 +191,15 @@ only in the main checkout: query it there by path from a worktree
 (`docs/reference.md`), never move the work there. Once you have a worktree,
 edit only inside it.
 
+`just worktrees` lists every worktree with its branch, uncommitted file count
+and the session that holds its lease. Read it before touching a worktree you did
+not create: a clean tree at main is not evidence that it is free. The lease is
+taken at session start and enforced by `~/.claude/hooks/guard-worktree.sh`,
+which denies writes in a worktree another live session holds, and denies writes
+in the main checkout while any worktree exists. Two sessions wrote one worktree
+on 2026-09-12 and silently overwrote each other's edits; the issue claim in
+`scripts/claim-issue.sh` claims a GitHub issue, never a directory.
+
 Run from a cmux terminal, `just worktree-new` also opens a cmux workspace in the
 new worktree with `claude` running, because the sidebar shows the branch and PR
 of the directory a session started in. Run by an agent, it prints that command
