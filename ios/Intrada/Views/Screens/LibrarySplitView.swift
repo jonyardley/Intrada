@@ -9,9 +9,14 @@ struct LibrarySplitView: View {
   @Environment(\.horizontalSizeClass) private var sizeClass
   @State private var selectedId: String?
 
-  init(previewSelection: String? = nil) {
-    _selectedId = State(initialValue: previewSelection)
-  }
+  init() {}
+
+  #if DEBUG
+    /// Preview/snapshot seed: render with a detail already selected.
+    init(previewSelection: String?) {
+      _selectedId = State(initialValue: previewSelection)
+    }
+  #endif
 
   private var items: [LibraryItemView] { store.viewModel?.items ?? [] }
   private var selectedItem: LibraryItemView? {
@@ -54,6 +59,11 @@ struct LibrarySplitView: View {
           systemImage: "sidebar.left", message: "Select an item to see its details.",
           glyphTint: IntradaColor.inkFainter)
       }
+      // With nothing selected there is no title or toolbar to give this
+      // column its own nav bar, so it reserves none and the two columns'
+      // header rules land at different heights. Force an empty one so both
+      // columns still reserve the same top chrome (#1682).
+      .toolbar(.visible, for: .navigationBar)
     }
   }
 }

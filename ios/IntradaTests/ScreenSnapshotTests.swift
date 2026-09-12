@@ -134,8 +134,9 @@ final class ScreenSnapshotTests: XCTestCase {
       of: host(LibrarySplitView(), store: .previewLibrary), as: splitConfig)
   }
 
-  /// Both columns' header rules must land on the same line (#1682), and the
-  /// column line must stop below the top strip rather than running past the tabs.
+  /// The column line must stop below the top strip rather than running past
+  /// the tabs (#1682). The nav bar itself is out of frame here (this window
+  /// lays out none); see `LibrarySplitAlignmentTests` for header alignment.
   func testLibrarySplitViewWithSelection() {
     assertSnapshot(
       of: host(LibrarySplitView(previewSelection: "piece-1"), store: .previewLibrary),
