@@ -76,7 +76,7 @@ threaded through the core end to end:
   count-in and per-beat callbacks carrying `hostTime`, interruption
   observation, and a pure `buildSchedule` testable without a live engine
   (`e85cb2c`, #1282). This is a production-quality engine, not a spike.
-- **Background audio groundwork** — the reference `BackgroundAudioPlugin.swift`
+- **Background audio groundwork**: the reference `BackgroundAudioPlugin.swift`
   (preserved from the Tauri shell, removed in #1745 and recoverable from git
   history): `AVAudioSession` `.playback` + `.mixWithOthers`, a silent-loop
   keep-alive so iOS does not suspend timers in the background, interruption
