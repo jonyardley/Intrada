@@ -9,7 +9,9 @@ paths:
 # You are on a silent-failure surface
 
 A wrong change here does not crash. It decodes into a plausible wrong value,
-drops a write, or destroys the only copy of a user's data. Before editing:
+drops a write, or destroys the only copy of a user's data. Never spell out an
+exploitable gap in a public PR body: say a gap exists and route the detail to
+Jon. Before editing:
 
 1. **Be on the strongest rung.** Fable at `xhigh` for the bridge, `max` for a
    migration or anything inside the `ActiveSession` blob graph.

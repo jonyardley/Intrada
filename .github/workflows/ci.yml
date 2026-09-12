@@ -15,8 +15,8 @@ on:
     types: [opened, synchronize, reopened, labeled, unlabeled]
 
 # Cancel in-flight runs when a new commit lands on the same PR. Don't cancel
-# main-branch runs — those gate deploys, so we want every commit's build to
-# complete and produce its own deploy.
+# main-branch runs — those need to run to completion so a red main is visible
+# and `alert-on-red-main` fires.
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -40,8 +40,8 @@ env:
 
 jobs:
   # Detects which paths changed in the PR — used to skip jobs whose inputs
-  # haven't changed. Always-true on main pushes (so deploys see every job).
-  # Runs cheaply (~5s) on every event.
+  # haven't changed. Always-true on main pushes, so every job runs and
+  # `alert-on-red-main`'s `needs` are satisfied. Runs cheaply (~5s) on every event.
   changes:
     name: Path Changes
     runs-on: ubuntu-latest

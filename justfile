@@ -308,7 +308,6 @@ lsp-setup: _ios-sync
         | (cd .. && xcode-build-server parse)
     echo "✓ rust-analyzer installed; Swift diagnostics, hover and cross-file definition wired"
 
-
 # ─────────────────────────────────────────────
 # iOS — native SwiftUI app (on the Crux core)
 # ─────────────────────────────────────────────

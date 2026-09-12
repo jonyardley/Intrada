@@ -1,4 +1,4 @@
-# Intrada — Setup & Configuration
+# Intrada: Setup & Configuration
 
 This document covers the external accounts, secrets, and configuration needed
 to develop and ship Intrada. The app is a native SwiftUI iOS app, offline-first

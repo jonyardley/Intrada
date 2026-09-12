@@ -17,8 +17,6 @@ db-urls = ["https://github.com/rustsec/advisory-db"]
 # Unmaintained crates are informational, not vulnerabilities — warn, don't fail.
 unmaintained = "workspace"
 
-ignore = []
-
 # ── Licenses ─────────────────────────────────────────────────────────────
 # Allowlist of acceptable SPDX license expressions. Anything not listed
 # here fails CI — catches unexpected copyleft or proprietary deps early.

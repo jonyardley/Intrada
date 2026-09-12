@@ -25,7 +25,7 @@ The only platform is the **native SwiftUI iOS app**, offline-first: on-device SQ
 Intrada follows the **Crux pure-core pattern**: `intrada-core` contains all business logic with zero side effects. Events go in, effects come out. The native SwiftUI shell is a dumb pipe: it sends `Event`s, fulfils persistence effects via GRDB, and renders the `ViewModel`. No domain logic lives in Swift.
 
 - **Shell**: SwiftUI (iOS 17.0+), bindings generated via UniFFI + facet typegen
-- **Core**: Crux 0.19 (Rust), zero I/O
+- **Core**: Crux 0.20 (Rust), zero I/O
 - **Database**: on-device GRDB/SQLite, local-first
 
 ## Prerequisites
