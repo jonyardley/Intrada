@@ -1,31 +1,29 @@
 # intrada Development Guidelines
 
 <!-- Rules and invariants only; loads into every session and subagent, so it
-stays under 200 lines. Mechanics and incidents: docs/reference.md. Surface-bound
-rules live in .claude/rules/. A rule leaves when a gate enforces it, when its
-incident is over 90 days old and has not recurred, or when its surface is
-deleted; silent-breach invariants never leave. Last reviewed: 2026-09-08. -->
+stays under 200 lines. Mechanics and incidents: docs/reference.md. Surface-bound rules live
+in .claude/rules/. A rule leaves when a gate enforces it, when its incident is over 90 days
+old and has not recurred, or when its surface is deleted; silent-breach invariants never
+leave. Last reviewed: 2026-09-08. -->
 
 ## Focus: native iOS only
 
 The native SwiftUI app on the Crux core is the **only** shell
-([`specs/native-ios.md`](specs/native-ios.md)). The Leptos web shell and the
-Tauri iOS host were deleted in 2026-07 (`docs/rebuild-review.md`): never resurrect
-them or assume they exist. **A request implying web work: confirm the platform first.**
+([`specs/native-ios.md`](specs/native-ios.md)). The Leptos web shell and the Tauri iOS host
+were deleted in 2026-07 (`docs/rebuild-review.md`): never resurrect them or assume they
+exist. **A request implying web work: confirm the platform first.**
 
 ## Project
 
-intrada is a **practice notebook** for musicians: build a session from the music
-library, group and reorder what you'll practise, play it through with a timer
-and rep counting, and score how it went. Pillars: **Plan** (library),
-**Practice** (the built session), **Track** (analytics). Direction:
-[`docs/roadmap.md`](docs/roadmap.md); release and phase:
-[`docs/where-we-are.md`](docs/where-we-are.md); what is in flight:
-`just status`, which reads GitHub. There is no status file, deliberately.
+intrada is a **practice notebook** for musicians: build a session from the music library,
+group and reorder what you'll practise, play it through with a timer and rep counting, and
+score how it went. Pillars: **Plan** (library), **Practice** (the built session), **Track**
+(analytics). Direction: [`docs/roadmap.md`](docs/roadmap.md); release and phase:
+[`docs/where-we-are.md`](docs/where-we-are.md); what is in flight: `just status`, which
+reads GitHub. There is no status file, deliberately.
 
-Crates: `intrada-core` (pure Crux core, no I/O), `intrada-ffi` (UniFFI bridge
-generating the Swift bindings). `ios/` is the SwiftUI app (iOS 17+, GRDB
-on-device). Rust 2021, MSRV 1.90.
+Crates: `intrada-core` (pure Crux core, no I/O), `intrada-ffi` (UniFFI bridge generating the
+Swift bindings). `ios/` is the SwiftUI app (iOS 17+, GRDB on-device). Rust 2021, MSRV 1.90.
 
 ## Commands
 
@@ -37,27 +35,27 @@ just ios-test         # unit + snapshot (fast tier)
 just ios-test-full    # adds XCUITests (the merge gate; mirrors CI)
 ```
 
-- **Drive iOS through the `just` recipes, never a bare `xcodebuild` or an MCP
-  build call.** They carry the destination pin, `CODE_SIGNING_ALLOWED=NO`, the
-  freshness fingerprint and the concurrency guard (#1536, #1537). A passing run
-  prints its own counts; silence is never the evidence.
-- **Run `just check` before pushing**, plus `just ios-fmt-check` for `ios/`
-  (fix with `just ios-fmt`); local green means CI green, so keep the justfile
-  and `ci.yml` in step. Read every compile error before fixing the first:
-  `cargo check --all-targets`, and the full `just ios-test` error list.
-- **The simulator is machine-global.** `just ios-test`/`ios-test-full` wait on
-  a machine-wide lock (`scripts/ios-sim-lock.sh`) rather than refusing when
-  another session's run is live, and shut down the sim they booted when they
-  finish — a booted device on its own is no longer a signal of anything.
-  Global resets are still denied; a device outside that flow (someone poking
-  at Simulator.app by hand) still needs asking about before you touch it.
+- **Drive iOS through the `just` recipes, never a bare `xcodebuild` or an MCP build call.**
+  They carry the destination pin, `CODE_SIGNING_ALLOWED=NO`, the freshness fingerprint and
+  the concurrency guard (#1536, #1537). A passing run prints its own counts; silence is
+  never the evidence.
+- **Run `just check` before pushing**, plus `just ios-fmt-check` for `ios/` (fix with
+  `just ios-fmt`); local green means CI green, so keep the justfile and `ci.yml` in step.
+  Read every compile error before fixing the first: `cargo check --all-targets`, and the
+  full `just ios-test` error list.
+- **The simulator is machine-global.** `just ios-test`/`ios-test-full` wait on a
+  machine-wide lock (`scripts/ios-sim-lock.sh`) rather than refusing when another session's
+  run is live, and shut down the sim they booted when they finish — a booted device on its
+  own is no longer a signal of anything. Global resets are still denied; a device outside
+  that flow (someone poking at Simulator.app by hand) still needs asking about before you
+  touch it.
 - **Seed mode skips persistence**: `SEED=0 just ios-run` to test persistence.
 - **Read source with the Read tool, not `cat`.** Path-scoped rules fire on Read.
 
 Recipes, binding regeneration, simulator workflow and environment variables:
-[`docs/reference.md`](docs/reference.md), [`docs/ios-testing.md`](docs/ios-testing.md).
-The graphify graph (`graphify-out/`, main checkout only) answers architecture
-questions; grep for symbols; never rebuild it without `.graphifyignore`.
+[`docs/reference.md`](docs/reference.md), [`docs/ios-testing.md`](docs/ios-testing.md). The
+graphify graph (`graphify-out/`, main checkout only) answers architecture questions; grep
+for symbols; never rebuild it without `.graphifyignore`.
 
 ## Architecture (non-negotiables)
 
@@ -72,69 +70,66 @@ User → Events → crux_core (Rust) → Effects (Persistence, App, Render) → 
    in `intrada-core` as an `Event` or `Command`. Crash recovery: UserDefaults
    (`AppEffect::SaveSessionInProgress`); local data: GRDB
    (`PersistenceOperation`).
-3. **Typed bindings, no hand-written FFI.** `Event` / `Effect` / `ViewModel`
-   cross the bridge as generated bincode. Never hand-edit `ios/generated/`; fix
-   the Rust type and regenerate.
+3. **Typed bindings, no hand-written FFI.** `Event` / `Effect` / `ViewModel` cross the
+   bridge as generated bincode. Never hand-edit `ios/generated/`; fix the Rust type and
+   regenerate.
 
 - **Validation** lives in `intrada-core/src/validation.rs`.
-- **Mutate response**: writes commit locally, no refetch. Temp-id for new
-  entities, `*Updated { entity }`, `DeleteConfirmed`.
-- **Swift**: an `@Observable @MainActor` store, not `ObservableObject`; effect
-  handlers run off the main actor and hop back. `try!`, force-unwraps and `as!`
-  are banned like `unwrap()`. Persistence is a core `Effect` driven by
-  `Command`: GRDB executes typed effects, the core decides reads, writes and
-  LWW reconciliation; `crux_kv` is for singletons. Every colour, font, spacing
-  and radius is a named token from `Theme.swift`.
+- **Mutate response**: writes commit locally, no refetch. Temp-id for new entities,
+  `*Updated { entity }`, `DeleteConfirmed`.
+- **Swift**: an `@Observable @MainActor` store, not `ObservableObject`; effect handlers run
+  off the main actor and hop back. `try!`, force-unwraps and `as!` are banned like
+  `unwrap()`. Persistence is a core `Effect` driven by `Command`: GRDB executes typed
+  effects, the core decides reads, writes and LWW reconciliation; `crux_kv` is for
+  singletons. Every colour, font, spacing and radius is a named token from `Theme.swift`.
 
-The offline-first invariants, the UI and tone rules, the per-screen quality bar
-and the silent-failure hazards load from `.claude/rules/` when you read a file
-they cover, and bind whether or not you have seen them.
+The offline-first invariants, the UI and tone rules, the per-screen quality bar and the
+silent-failure hazards load from `.claude/rules/` when you read a file they cover, and bind
+whether or not you have seen them.
 
 ## Code style
 
-- `cargo fmt` and `cargo clippy -- -D warnings` pass. No `unwrap()` without
-  justification. Prefer established libraries over custom implementations.
-- **Code with no reader gets deleted, not parked** (#1176): not
-  `#[allow(dead_code)]`, not "inert until the feature returns", not a `pub`
-  nobody calls. `git` is the parking space; keep the findings and name the
-  recovery PR. A stub a test reads, or an API a shell calls, has a reader.
-- **Comments: default to none.** The density gate fails a push that adds too
-  many; what it cannot see is the kind. Three are justified: a one-line section
-  header (`// ── Validation ──`), a non-obvious WHY citing a concrete reason
-  (issue, incident, `BUG:` tag), or `HACK(#N)` / `FIXME(#N)` tied to a tracked
-  issue. Never one that restates the code, narrates the task or PR, hedges
-  without an issue, or notes that X "mirrors" Y. `///` on a self-evident item
-  is the same noise. Over two lines, ask whether it should be a name or a type.
-- **British English**; UI copy is written against `docs/tone-of-voice.md`.
-  **No em dashes, en dashes or double dashes**: `scripts/check-dashes.sh`
-  enforces the first two on changed lines, the rest stays on the author.
-  **Plain language in docs, issues and PR bodies**: name features by the
-  musician-visible outcome; issue numbers are the only stable handles.
+- `cargo fmt` and `cargo clippy -- -D warnings` pass. No `unwrap()` without justification.
+  Prefer established libraries over custom implementations.
+- **Code with no reader gets deleted, not parked** (#1176): not `#[allow(dead_code)]`, not
+  "inert until the feature returns", not a `pub` nobody calls. `git` is the parking space;
+  keep the findings and name the recovery PR. A stub a test reads, or an API a shell calls,
+  has a reader.
+- **Comments: default to none.** The density gate fails a push that adds too many; what it
+  cannot see is the kind. Three are justified: a one-line section header
+  (`// ── Validation ──`), a non-obvious WHY citing a concrete reason (issue, incident,
+  `BUG:` tag), or `HACK(#N)` / `FIXME(#N)` tied to a tracked issue. Never one that restates
+  the code, narrates the task or PR, hedges without an issue, or notes that X "mirrors" Y.
+  `///` on a self-evident item is the same noise. Over two lines, ask whether it should be a
+  name or a type.
+- **British English**; UI copy is written against `docs/tone-of-voice.md`. **No em dashes,
+  en dashes or double dashes**: `scripts/check-dashes.sh` enforces the first two on changed
+  lines, the rest stays on the author. **Plain language in docs, issues and PR bodies**:
+  name features by the musician-visible outcome; issue numbers are the only stable handles.
 
 ## Testing
 
-**Ship tests with new code.** Non-trivial pure logic includes tests: edge
-cases, None and empty inputs. New iOS test files use Swift Testing; migrate an
-XCTest file only when already touching it, never wholesale; XCUITest stays on
-XCTest.
+**Ship tests with new code.** Non-trivial pure logic includes tests: edge cases, None and
+empty inputs. New iOS test files use Swift Testing; migrate an XCTest file only when already
+touching it, never wholesale; XCUITest stays on XCTest.
 
-- **Before asserting, ask what the value was one line earlier** (#1223); if
-  nothing distinguishes the behaviour present from absent, delete the test.
-  **Mutation-test by deleting the line, not inverting it** (#1423).
-- **A parser or validator gets a table test against its consumer** from inputs
-  a user would produce (#1256); cases you invented agree with your code by
-  construction. Fixtures for a many-field type live in one place (Rust
-  `fixture()` with struct update, Swift a fixture enum with default arguments).
-- **Say so in the PR when you skip tests.** Tier 2+ carries a **Coverage** line
-  naming expected gaps before CI finishes, then checks the Codecov comment
-  against it (70% patch target, informational; `ios/` ignored).
+- **Before asserting, ask what the value was one line earlier** (#1223); if nothing
+  distinguishes the behaviour present from absent, delete the test. **Mutation-test by
+  deleting the line, not inverting it** (#1423).
+- **A parser or validator gets a table test against its consumer** from inputs a user would
+  produce (#1256); cases you invented agree with your code by construction. Fixtures for a
+  many-field type live in one place (Rust `fixture()` with struct update, Swift a fixture
+  enum with default arguments).
+- **Say so in the PR when you skip tests.** Tier 2+ carries a **Coverage** line naming
+  expected gaps before CI finishes, then checks the Codecov comment against it (70% patch
+  target, informational; `ios/` ignored).
 
 ## Gotchas (each has caught us at least once; write-ups in `docs/reference.md`)
 
-- **JSON-only serde attrs break the bincode bridge silently** (#846), and a
-  stub-bridge test cannot catch it: use `LiveBridge`.
-- **A field inside the crash-recovery snapshot invalidates every blob** (#1345):
-  bump `Store.sessionInProgressKey` first, then re-pin.
+- **JSON-only serde attrs break the bincode bridge silently** (#846), and a stub-bridge test
+  cannot catch it: use `LiveBridge`.
+- **A field inside the crash-recovery snapshot invalidates every blob** (#1345): bump
+  `Store.sessionInProgressKey` first, then re-pin.
 
 ## Workflow
 
