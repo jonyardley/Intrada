@@ -73,11 +73,11 @@ cannot be found and should not be recreated from them.
 | [`design-system.md`](design-system.md) | **The Leptos web shell's dark glassmorphism system**, per its own first line. `crates/intrada-web` was deleted in #1133. The live system is `design/intrada-design-system.dc.html` with `Theme.swift` canonical, both outside `specs/` |
 | [`design-refresh-2026.md`](design-refresh-2026.md) | A refresh of that same web theme, written before native iOS existed. None of `AccentRow`, `StatCard` or `DifficultyDots` exist anywhere in the tree |
 | [`onboarding-welcome.md`](onboarding-welcome.md) | A first-run carousel for the deleted web shell; the surface did not return |
-| [`seo-prerender.md`](seo-prerender.md) | **Obsolete**, self-declared: the Leptos web shell it targets was deleted (#1133) |
-| [`background-audio-plugin.md`](background-audio-plugin.md) | Written as a Tauri plugin under `crates/intrada-mobile`, which no longer exists. The surviving `ios/Reference/BackgroundAudioPlugin.swift` imports `Tauri` and is in no Xcode target. Useful as reference for a native port, not implementable as written |
-| [`live-activity-plugin.md`](live-activity-plugin.md) | Same: an ActivityKit design as a Tauri plugin in a deleted crate, with Swift surviving only under `ios/Reference/`. A native lock-screen spec does not exist yet |
+| [`background-audio-plugin.md`](background-audio-plugin.md) | Written as a Tauri plugin under `crates/intrada-mobile`, which no longer exists. The reference `BackgroundAudioPlugin.swift` was removed in #1745; recover it from the commit before that change in `main`'s history (`git log --diff-filter=D -- ios/Reference/`). Useful as reference for a native port, not implementable as written |
+| [`live-activity-plugin.md`](live-activity-plugin.md) | Same: an ActivityKit design as a Tauri plugin in a deleted crate. Its reference Swift was removed in #1745 too; same recovery route. A native lock-screen spec does not exist yet |
 
-[`_archive/`](_archive/) holds retired specs (`mcp-server.md`,
-`account-settings-and-deletion.md`: both targeted the removed API, #1746) and
-the numbered SpecKit-era folders, and is excluded
-from the knowledge graph. Do not run `/speckit-*` commands.
+[`_archive/`](_archive/) holds the numbered SpecKit-era folders and retired
+single-file specs (`seo-prerender.md`, `mcp-server.md`,
+`account-settings-and-deletion.md`: the last two targeted the removed API,
+#1746), and is excluded from the knowledge graph. Do not run `/speckit-*`
+commands.

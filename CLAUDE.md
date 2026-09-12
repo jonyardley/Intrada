@@ -25,8 +25,7 @@ and rep counting, and score how it went. Pillars: **Plan** (library),
 
 Crates: `intrada-core` (pure Crux core, no I/O), `intrada-ffi` (UniFFI bridge
 generating the Swift bindings). `ios/` is the SwiftUI app (iOS 17+, GRDB
-on-device); `ios/Reference/` holds two unbuilt Swift pieces from the removed
-Tauri shell. Rust 2021, MSRV 1.90.
+on-device). Rust 2021, MSRV 1.90.
 
 ## Commands
 

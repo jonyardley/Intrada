@@ -3,8 +3,8 @@
 > **⚠️ Superseded by the 2026-07 practice-coach pivot.** This document describes
 > the practice-*notebook* product — hand-built sessions, self-rated scores,
 > written reflection. The live design is
-> [`specs/intrada-practice-coach-design.md`](intrada-practice-coach-design.md) with the scenarios in
-> [`docs/coach-user-journeys.md`](../docs/coach-user-journeys.md). Kept for archaeology; **do not
+> [`specs/intrada-practice-coach-design.md`](../intrada-practice-coach-design.md) with the scenarios in
+> [`docs/coach-user-journeys.md`](../../docs/coach-user-journeys.md). Kept for archaeology; **do not
 > implement from this document.** **Obsolete, not merely superseded:** the Leptos web shell it targets was deleted in #1133.
 
 ## Problem
