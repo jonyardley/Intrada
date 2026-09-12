@@ -31,8 +31,10 @@ final class VariationManagementUITests: XCTestCase {
     XCTAssertTrue(scalesRow.waitForExistence(timeout: 10), "Major Scales library row")
     scalesRow.tap()
 
-    let editButton = app.buttons["Edit variations"]
-    XCTAssertTrue(editButton.waitForExistence(timeout: 10), "Variations section with Edit button")
+    // "Major Scales" seeds an all-key ladder (C, G, D, A, E), so #1464 reads
+    // this section as "Keys" rather than "Variations".
+    let editButton = app.buttons["Edit keys"]
+    XCTAssertTrue(editButton.waitForExistence(timeout: 10), "Keys section with Edit button")
     editButton.tap()
     return app
   }
@@ -52,6 +54,8 @@ final class VariationManagementUITests: XCTestCase {
     // re-resolve it, since the value has already changed (#1642).
     eField.typeText(XCUIKeyboardKey.delete.rawValue + "Fa\n")
 
+    // "Fa" isn't a key, so the rename drops the ladder out of all-keys and
+    // the section reads "Variations" again by the time Done is tapped.
     app.buttons["Done editing variations"].tap()
 
     // Back in read mode: the renamed variation shows, "E" is gone, others intact.
@@ -65,15 +69,16 @@ final class VariationManagementUITests: XCTestCase {
   func testRemoveVariationArchivesIt() {
     let app = openScalesVariations()
 
-    let removeA = app.buttons["Remove A from variations"]
+    let removeA = app.buttons["Remove A from keys"]
     XCTAssertTrue(removeA.waitForExistence(timeout: 5), "remove control for A")
     removeA.tap()
 
     XCTAssertFalse(
-      app.buttons["Remove A from variations"].waitForExistence(timeout: 3),
+      app.buttons["Remove A from keys"].waitForExistence(timeout: 3),
       "A row gone from edit list")
 
-    app.buttons["Done editing variations"].tap()
+    // The remaining C, G, D, E are still all keys.
+    app.buttons["Done editing keys"].tap()
     XCTAssertFalse(app.staticTexts["A"].exists, "removed variation no longer shown")
     XCTAssertTrue(app.staticTexts["C"].exists, "other variations still present")
   }

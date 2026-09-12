@@ -2,8 +2,8 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 /// One rung of an exercise's step ladder: "C", "Root position", "Land on
-/// the 3rd". The core's name; on screen a ladder is "Steps", or "Keys" when
-/// every live rung names one. Which of the two is the core's call, via
+/// the 3rd". The core's name; on screen a ladder is "Variations", or "Keys"
+/// when every live rung names one. Which of the two is the core's call, via
 /// `ladder_is_all_keys` (#1083, moved off the shell in #1467) — the shell
 /// only prints the word. Score history is derived from session entries
 /// tagged with this `id`, never stored here.
@@ -134,9 +134,7 @@ fn strip_mode_word(value: &str) -> &str {
     }
 }
 
-/// The sign after the tonic letter is a symbol ("F#", "Bb") or the word a
-/// musician types instead ("E flat", "F sharp") — the latter is what #1478
-/// was filed over.
+/// A spelled-out accidental is a key too (#1478).
 fn is_tonic(raw: &str) -> bool {
     let trimmed = raw.trim();
     let mut chars = trimmed.chars();
@@ -146,12 +144,15 @@ fn is_tonic(raw: &str) -> bool {
     if !('A'..='G').contains(&first.to_ascii_uppercase()) {
         return false;
     }
-    let sign = chars.as_str().trim_start();
-    match sign.chars().count() {
-        0 => true,
-        1 => matches!(sign.chars().next().unwrap(), '#' | 'b' | 'B'),
-        _ => matches!(sign.to_lowercase().as_str(), "flat" | "sharp"),
-    }
+    let sign = chars
+        .as_str()
+        .trim_start()
+        .trim_start_matches('-')
+        .trim_start();
+    matches!(
+        sign.to_lowercase().as_str(),
+        "" | "#" | "b" | "flat" | "sharp"
+    )
 }
 
 #[cfg(test)]
@@ -183,6 +184,8 @@ mod tests {
             "F sharp minor",
             "A flat",
             "c sharp",
+            "E-flat major",
+            "F-sharp minor",
         ] {
             assert!(is_key_label(label), "{label:?} names a key");
         }

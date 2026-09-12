@@ -486,6 +486,7 @@ struct LibraryDetailScreen: View {
             }
             VariationEditRow(
               variation: variation,
+              nounSingular: ladderNounSingular,
               onRename: { renameVariation(id: variation.id, to: $0) },
               onMoveUp: { moveVariation(id: variation.id, by: -1) },
               onMoveDown: { moveVariation(id: variation.id, by: 1) },
@@ -511,6 +512,12 @@ struct LibraryDetailScreen: View {
     }
   }
 
+  /// The noun this ladder reads as ("keys" once every rung names one,
+  /// "variations" otherwise), so the heading and every reference to it under
+  /// this screen agree (#1464).
+  private var ladderNounPlural: String { item.ladderIsKeys ? "keys" : "variations" }
+  private var ladderNounSingular: String { item.ladderIsKeys ? "key" : "variation" }
+
   private var variationsHeader: some View {
     HStack(alignment: .firstTextBaseline) {
       Eyebrow(item.ladderIsKeys ? "Keys" : "Variations")
@@ -526,7 +533,8 @@ struct LibraryDetailScreen: View {
         }
         .font(IntradaFont.bodyMedium)
         .foregroundStyle(IntradaColor.accent)
-        .accessibilityLabel(editingVariations ? "Done editing variations" : "Edit variations")
+        .accessibilityLabel(
+          editingVariations ? "Done editing \(ladderNounPlural)" : "Edit \(ladderNounPlural)")
       }
     }
   }
@@ -911,6 +919,7 @@ private struct VariationRingItem: View {
 /// gesture alone isn't screen-reader-operable.
 private struct VariationEditRow: View {
   let variation: VariantView
+  let nounSingular: String
   let onRename: (String) -> Void
   let onMoveUp: () -> Void
   let onMoveDown: () -> Void
@@ -920,11 +929,13 @@ private struct VariationEditRow: View {
   @State private var label: String
 
   init(
-    variation: VariantView, onRename: @escaping (String) -> Void, onMoveUp: @escaping () -> Void,
+    variation: VariantView, nounSingular: String, onRename: @escaping (String) -> Void,
+    onMoveUp: @escaping () -> Void,
     onMoveDown: @escaping () -> Void, onRemove: @escaping () -> Void,
     onDrop: @escaping (String) -> Void
   ) {
     self.variation = variation
+    self.nounSingular = nounSingular
     self.onRename = onRename
     self.onMoveUp = onMoveUp
     self.onMoveDown = onMoveDown
@@ -939,11 +950,11 @@ private struct VariationEditRow: View {
         .imageScale(.small)
         .foregroundStyle(IntradaColor.inkFaint)
         .accessibilityLabel("Reorder \(variation.label)")
-        .accessibilityHint("Drag to change this variation's position")
+        .accessibilityHint("Drag to change this \(nounSingular)'s position")
         .accessibilityAction(named: "Move up", onMoveUp)
         .accessibilityAction(named: "Move down", onMoveDown)
         .draggable(variation.id)
-      TextField("Variation label", text: $label)
+      TextField("\(nounSingular.capitalized) label", text: $label)
         .font(IntradaFont.cardTitle())
         .foregroundStyle(IntradaColor.ink)
         .onChange(of: label) { _, value in
@@ -957,7 +968,7 @@ private struct VariationEditRow: View {
           .foregroundStyle(IntradaColor.danger)
       }
       .buttonStyle(.plain)
-      .accessibilityLabel("Remove \(variation.label) from variations")
+      .accessibilityLabel("Remove \(variation.label) from \(nounSingular)s")
     }
     .padding(.vertical, IntradaSpacing.cardCompact)
     .padding(.horizontal, IntradaSpacing.card)
