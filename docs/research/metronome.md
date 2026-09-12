@@ -141,7 +141,7 @@ a *practice variable* and as a *measure*.
 
 ## 5. Shape sketch
 
-- **Slice 1 — the click (Tier 2, iOS-only, zero schema).** Port
+- **Slice 1: the click (Tier 2, iOS-only, zero schema).** Port
   `ClickEngine` (`ios/Intrada/Core/ClickEngine.swift`) into the Focus
   Player; port the audio-session handling from the reference
   `BackgroundAudioPlugin.swift`
