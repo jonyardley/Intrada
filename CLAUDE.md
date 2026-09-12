@@ -178,15 +178,16 @@ means driving the app on the simulator**; if you cannot, say what needs a hand c
 
 ### Always
 
-1. **Claim the issue before building it, and check nobody else has** (#1214):
-   `gh pr list --state open --search "N"` and
-   `gh issue view N --json closedByPullRequestsReferences`. A PR already open
-   means stop and say so; otherwise add `in-flight` and comment the branch, and
-   drop the label when the PR closes. Handover openers start with the claim
-   and a fresh worktree.
-   `just project-status N "In progress"` in the same step, or the board (view
-   [7](https://github.com/users/jonyardley/projects/2/views/7)) stays stuck
-   between Backlog and Done (#1660).
+1. **Claim the issue before building it: `just claim N`** (#1214, #1702). It
+   refuses and names the other branch when the issue is already claimed (the
+   `in-flight` label, or its newest "Claimed" comment) or an open PR
+   references it; otherwise it adds the label, comments the branch and moves
+   the board to In progress in one step, so the board never gets stuck between
+   Backlog and Done (#1660). `just pr-open` wraps `gh pr create` and refuses if
+   an issue number in the title has no claim naming the current branch.
+   Handover openers start with `just claim` and a fresh worktree. Drop the
+   label when the PR closes (automatic on merge; drop it by hand if the PR
+   closes without merging).
 2. Find the roadmap item, or discuss first; check the
    [project board](https://github.com/users/jonyardley/projects/2). Read the
    issue and what it points at before any code, then plan and state resourcing.

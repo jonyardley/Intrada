@@ -75,6 +75,9 @@ hygiene:
     bash scripts/tests/hygiene-checks-test.sh
     bash scripts/tests/pr-visuals-test.sh
     bash scripts/tests/status-release-test.sh
+    bash scripts/tests/claim-issue-test.sh
+    bash scripts/tests/pr-open-test.sh
+    bash scripts/tests/session-claims-test.sh
 
 # Print what's in flight, read from GitHub: open PRs, claimed issues, recent merges.
 status:
@@ -89,48 +92,16 @@ project-status issue status:
 pr-visuals:
     ./scripts/pr-visuals.sh
 
-project_number := "2"
-project_owner := "jonyardley"
-project_id := "PVT_kwHOAAr6vs4A1_pq"
-project_status_field := "PVTSSF_lAHOAAr6vs4A1_pqzgrX99A"
-project_status_in_progress := "47fc9ee4"
-
-# Claim an issue before building it, and refuse if someone already has. The
-# check in CLAUDE.md Always(1) costs four `gh` commands by hand, which is how it
-# gets skipped; this makes it one, and exits non-zero rather than warning.
+# Claim an issue before building it, and refuse if someone already has: the
+# in-flight label is set, the newest "Claimed" comment names another branch,
+# or an open PR already references it (#1702).
 claim number:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    repo="$(gh repo view --json nameWithOwner -q .nameWithOwner)"
-    branch="$(git rev-parse --abbrev-ref HEAD)"
-    if [ "$branch" = "main" ]; then
-        echo "✗ on main: create the feature branch first, so the claim comment names it." >&2
-        exit 1
-    fi
-    open="$(gh pr list --repo "$repo" --state open --search "{{number}}" --json number,title,headRefName)"
-    if [ "$(printf '%s' "$open" | python3 -c 'import json,sys; print(len(json.load(sys.stdin)))')" -ne 0 ]; then
-        echo "✗ an open PR already mentions #{{number}}:" >&2
-        printf '%s' "$open" | python3 -c 'import json,sys; [print("    #%s %s (%s)" % (p["number"], p["title"], p["headRefName"])) for p in json.load(sys.stdin)]' >&2
-        echo "  Stop and read it before implementing the same thing twice." >&2
-        exit 1
-    fi
-    closers="$(gh issue view {{number}} --repo "$repo" --json closedByPullRequestsReferences -q '.closedByPullRequestsReferences | length')"
-    if [ "$closers" != "0" ]; then
-        echo "✗ #{{number}} already has $closers closing PR reference(s): check whether it is done." >&2
-        exit 1
-    fi
-    gh issue edit {{number}} --repo "$repo" --add-label in-flight
-    gh issue comment {{number}} --repo "$repo" --body "Claimed. Working on branch \`$branch\`."
-    item="$(gh project item-add {{project_number}} --owner {{project_owner}} \
-        --url "https://github.com/$repo/issues/{{number}}" --format json -q .id 2>/dev/null || true)"
-    if [ -n "$item" ] && gh project item-edit --id "$item" --project-id {{project_id}} \
-        --field-id {{project_status_field}} \
-        --single-select-option-id {{project_status_in_progress}} >/dev/null 2>&1; then
-        echo "✓ board: #{{number}} is In progress"
-    else
-        echo "! board not updated; the token needs project scope: gh auth refresh -s project" >&2
-    fi
-    echo "✓ claimed #{{number}} on $branch"
+    bash scripts/claim-issue.sh {{number}}
+
+# Wrap `gh pr create`, refusing when an issue number in the title has no
+# claim naming this branch (#1702): `just pr-open -- --title "..." --body "..."`.
+pr-open *args:
+    bash scripts/pr-open.sh {{args}}
 
 # Check everything (fmt → clippy → test → hygiene, cheapest first). Mirrors
 # the iOS test-tier green-stamp (#1200): skips on a clean, already-green HEAD
