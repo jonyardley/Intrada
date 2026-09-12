@@ -511,13 +511,23 @@ impl Intrada {
             .filter(|i| i.item_type == ItemKind::Exercise)
             .count();
 
-        let mut sessions: Vec<_> = model.sessions.iter().map(session_to_view).collect();
+        let labels = crate::model::variation_labels(&model.items);
+
+        let mut sessions: Vec<_> = model
+            .sessions
+            .iter()
+            .map(|s| session_to_view(s, &labels))
+            .collect();
         sessions.sort_by(|a, b| b.finished_at.cmp(&a.finished_at));
 
         let (active_session, building_setlist, summary) = match &model.session_status {
             SessionStatus::Idle => (None, None, None),
             SessionStatus::Building(building) => {
-                let entries: Vec<_> = building.entries.iter().map(entry_to_view).collect();
+                let entries: Vec<_> = building
+                    .entries
+                    .iter()
+                    .map(|e| entry_to_view(e, &labels))
+                    .collect();
                 let item_count = entries.len();
                 let blocks = build_blocks(&entries);
                 let block_count = blocks.len();
@@ -592,13 +602,15 @@ impl Intrada {
                 )
             }
             SessionStatus::Active(active) => (
-                Some(build_active_session_view(active, &item_index)),
+                Some(build_active_session_view(active, &item_index, &labels)),
                 None,
                 None,
             ),
-            SessionStatus::Summary(summary_session) => {
-                (None, None, Some(build_summary_view(summary_session)))
-            }
+            SessionStatus::Summary(summary_session) => (
+                None,
+                None,
+                Some(build_summary_view(summary_session, &labels)),
+            ),
         };
 
         let session_status = match &model.session_status {
@@ -925,7 +937,7 @@ pub(crate) fn build_practice_summaries(
                 record.4 = Some(session_date.clone());
             }
 
-            if let Some(score) = entry.score {
+            if let Some(score) = entry.score_summary() {
                 record.2.push(ScoreHistoryEntry {
                     session_date: session_date.clone(),
                     score,
@@ -933,10 +945,13 @@ pub(crate) fn build_practice_summaries(
                 });
             }
 
+            // Still one point per entry. Across variations the tempos measure
+            // different material, so a mean or a max would say nothing: the
+            // last one measured is the honest single number (#1739).
             record.3.push(TempoTrendPoint {
                 session_date: session_date.clone(),
                 session_id: session.id.clone(),
-                tempo: entry.achieved_tempo,
+                tempo: entry.plays.iter().rev().find_map(|p| p.achieved_tempo),
             });
         }
     }
@@ -1044,7 +1059,7 @@ fn build_exercise_usage(
             {
                 record.last_practiced_at = Some(date.clone());
             }
-            if let Some(score) = entry.score {
+            if let Some(score) = entry.score_summary() {
                 if record.latest_scored.as_ref().is_none_or(|(d, _)| date > *d) {
                     record.latest_scored = Some((date.clone(), score));
                 }
@@ -1105,8 +1120,9 @@ fn build_exercise_usage(
     by_exercise
 }
 
-/// Per-step score history from session entries that were attributed to a
-/// ladder step, keyed by (item id, variant id), newest first (#1083).
+/// Per-variation score history, read straight from the plays and keyed by
+/// (item id, variation id), newest first (#1083, #1739 decision 9). Never via
+/// `score_summary`, which is the lossy projection this exists to avoid.
 fn build_variant_score_index(
     sessions: &[PracticeSession],
 ) -> std::collections::HashMap<(&str, &str), Vec<crate::model::ScoreHistoryEntry>> {
@@ -1116,17 +1132,19 @@ fn build_variant_score_index(
     let mut index: HashMap<(&str, &str), Vec<ScoreHistoryEntry>> = HashMap::new();
     for session in sessions {
         for entry in &session.entries {
-            let (Some(variant_id), Some(score)) = (&entry.variant_id, entry.score) else {
-                continue;
-            };
-            index
-                .entry((entry.item_id.as_str(), variant_id.as_str()))
-                .or_default()
-                .push(ScoreHistoryEntry {
-                    session_date: session.started_at.to_rfc3339(),
-                    score,
-                    session_id: session.id.clone(),
-                });
+            for play in &entry.plays {
+                let (Some(variant_id), Some(score)) = (&play.variation_id, play.score) else {
+                    continue;
+                };
+                index
+                    .entry((entry.item_id.as_str(), variant_id.as_str()))
+                    .or_default()
+                    .push(ScoreHistoryEntry {
+                        session_date: session.started_at.to_rfc3339(),
+                        score,
+                        session_id: session.id.clone(),
+                    });
+            }
         }
     }
     for history in index.values_mut() {
@@ -1135,8 +1153,10 @@ fn build_variant_score_index(
     index
 }
 
-/// Project an exercise's ladder for the view: live steps only, in ladder
-/// order, with per-step scores, the solid flag, and the single current rung.
+/// Project an exercise's variations for the view: live ones only, in display
+/// order, with their scores and the solid flag. No current rung: a variation
+/// is unordered, and what to practise next is a recommendation (#1739
+/// decision 1), which is #1501's job.
 fn build_variant_views(
     item: &crate::domain::item::Item,
     variant_scores: &std::collections::HashMap<(&str, &str), Vec<crate::model::ScoreHistoryEntry>>,
@@ -1151,7 +1171,7 @@ fn build_variant_views(
         .collect();
     live.sort_by_key(|v| v.position);
 
-    let mut views: Vec<VariantView> = live
+    let views: Vec<VariantView> = live
         .into_iter()
         .map(|v| {
             let score_history = variant_scores
@@ -1166,14 +1186,10 @@ fn build_variant_views(
                 latest_score,
                 score_history,
                 is_solid: latest_score.is_some_and(|s| s >= SOLID_SCORE_MIN),
-                is_current: false,
             }
         })
         .collect();
 
-    if let Some(current) = views.iter_mut().find(|v| !v.is_solid) {
-        current.is_current = true;
-    }
     views
 }
 
@@ -1490,6 +1506,27 @@ fn sample_sessions() -> Vec<PracticeSession> {
     use crate::domain::session::{CompletionStatus, EntryStatus, SetlistEntry};
     let now = chrono::Utc::now();
 
+    fn sample_play(
+        id: &str,
+        variation_id: Option<&str>,
+        seconds: u64,
+        started_at: chrono::DateTime<chrono::Utc>,
+    ) -> crate::domain::session::VariationPlay {
+        crate::domain::session::VariationPlay {
+            id: id.to_string(),
+            variation_id: variation_id.map(str::to_string),
+            started_at,
+            seconds,
+            rep_target: None,
+            rep_count: None,
+            rep_target_reached: None,
+            rep_history: None,
+            achieved_tempo: None,
+            click_pattern: None,
+            score: None,
+        }
+    }
+
     let entry = |position: usize,
                  item_id: &str,
                  item_title: &str,
@@ -1505,17 +1542,17 @@ fn sample_sessions() -> Vec<PracticeSession> {
             duration_secs,
             status: EntryStatus::Completed,
             notes: None,
-            score: None,
             intention: None,
-            rep_target: None,
-            rep_count: None,
-            rep_target_reached: None,
-            rep_history: None,
             planned_duration_secs: None,
-            achieved_tempo: None,
             group_id: None,
-            variant_id: None,
-            click_pattern: None,
+            planned_variation_id: None,
+            planned_rep_target: None,
+            plays: vec![sample_play(
+                &format!("{item_id}-play-{position}"),
+                None,
+                duration_secs,
+                now,
+            )],
         }
     };
 
@@ -1572,13 +1609,13 @@ fn sample_sessions() -> Vec<PracticeSession> {
             vec![
                 {
                     let mut e = entry(0, "sample-hanon", "Hanon No. 1", ItemKind::Exercise, 480);
-                    e.achieved_tempo = Some(104);
+                    e.plays[0].achieved_tempo = Some(104);
                     e
                 },
                 {
                     let mut e = entry(1, "sample-scales", "Major Scales", ItemKind::Exercise, 600);
-                    e.variant_id = Some("sample-scales-step-g".to_string());
-                    e.score = Some(7);
+                    e.plays[0].variation_id = Some("sample-scales-step-g".to_string());
+                    e.plays[0].score = Some(7);
                     e
                 },
             ],
@@ -1590,7 +1627,7 @@ fn sample_sessions() -> Vec<PracticeSession> {
             vec![
                 {
                     let mut e = entry(0, "sample-clair", "Clair de Lune", ItemKind::Piece, 1500);
-                    e.achieved_tempo = Some(66);
+                    e.plays[0].achieved_tempo = Some(66);
                     e
                 },
                 entry(1, "sample-hanon", "Hanon No. 1", ItemKind::Exercise, 600),
@@ -1609,14 +1646,25 @@ fn sample_sessions() -> Vec<PracticeSession> {
             CompletionStatus::Completed,
             vec![
                 {
+                    // Two variations in one sitting, which is the case #1739
+                    // exists for: the seed data has to show it.
                     let mut e = entry(0, "sample-scales", "Major Scales", ItemKind::Exercise, 720);
-                    e.variant_id = Some("sample-scales-step-c".to_string());
-                    e.score = Some(8);
+                    e.plays[0].variation_id = Some("sample-scales-step-c".to_string());
+                    e.plays[0].seconds = 420;
+                    e.plays[0].score = Some(8);
+                    let mut second = sample_play(
+                        "sample-scales-play-0b",
+                        Some("sample-scales-step-g"),
+                        300,
+                        now,
+                    );
+                    second.score = Some(6);
+                    e.plays.push(second);
                     e
                 },
                 {
                     let mut e = entry(1, "sample-hanon", "Hanon No. 1", ItemKind::Exercise, 420);
-                    e.achieved_tempo = Some(88);
+                    e.plays[0].achieved_tempo = Some(88);
                     e
                 },
             ],
@@ -1627,6 +1675,7 @@ fn sample_sessions() -> Vec<PracticeSession> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::domain::session::VariationPlay;
 
     #[test]
     fn charted_piece_surfaces_a_scaffold_preview_in_the_view() {
@@ -1979,10 +2028,6 @@ mod tests {
         );
         let first = &scales.variants[0];
         assert!(first.is_solid, "the first demo step reads as Solid");
-        assert!(
-            scales.variants[1].is_current,
-            "the second demo step is the current rung"
-        );
         assert!(first.latest_score.is_some());
     }
 
@@ -2752,18 +2797,14 @@ mod tests {
                         position: e as usize,
                         duration_secs: 300,
                         status: EntryStatus::Completed,
-                        notes: None,
-                        score: if e % 2 == 0 { Some(3) } else { None },
-                        intention: None,
-                        rep_target: None,
-                        rep_count: None,
-                        rep_target_reached: None,
-                        rep_history: None,
-                        planned_duration_secs: None,
-                        achieved_tempo: if e % 3 == 0 { Some(120) } else { None },
-                        group_id: None,
-                        variant_id: None,
-                        click_pattern: None,
+                        plays: vec![VariationPlay {
+                            id: format!("se{s:04}_{e}-play"),
+                            seconds: 300,
+                            achieved_tempo: if e % 3 == 0 { Some(120) } else { None },
+                            score: if e % 2 == 0 { Some(3) } else { None },
+                            ..VariationPlay::fixture()
+                        }],
+                        ..SetlistEntry::fixture()
                     }
                 })
                 .collect();
@@ -2918,17 +2959,17 @@ mod tests {
                     duration_secs: 1800, // 30 min
                     status: EntryStatus::Completed,
                     notes: None,
-                    score: None,
                     intention: None,
-                    rep_target: None,
-                    rep_count: None,
-                    rep_target_reached: None,
-                    rep_history: None,
                     planned_duration_secs: None,
-                    achieved_tempo: None,
                     group_id: None,
-                    variant_id: None,
-                    click_pattern: None,
+                    planned_variation_id: None,
+                    planned_rep_target: None,
+                    plays: vec![VariationPlay {
+                        seconds: 1800,
+                        achieved_tempo: None,
+                        score: None,
+                        ..VariationPlay::fixture()
+                    }],
                 },
                 SetlistEntry {
                     id: "e2".to_string(),
@@ -2939,17 +2980,17 @@ mod tests {
                     duration_secs: 900, // 15 min
                     status: EntryStatus::Completed,
                     notes: None,
-                    score: None,
                     intention: None,
-                    rep_target: None,
-                    rep_count: None,
-                    rep_target_reached: None,
-                    rep_history: None,
                     planned_duration_secs: None,
-                    achieved_tempo: None,
                     group_id: None,
-                    variant_id: None,
-                    click_pattern: None,
+                    planned_variation_id: None,
+                    planned_rep_target: None,
+                    plays: vec![VariationPlay {
+                        seconds: 900,
+                        achieved_tempo: None,
+                        score: None,
+                        ..VariationPlay::fixture()
+                    }],
                 },
             ],
             reflection_improved: None,
@@ -3027,17 +3068,17 @@ mod tests {
                 duration_secs: 1800,
                 status: EntryStatus::Completed,
                 notes: None,
-                score: Some(3),
                 intention: None,
-                rep_target: None,
-                rep_count: None,
-                rep_target_reached: None,
-                rep_history: None,
                 planned_duration_secs: None,
-                achieved_tempo: None,
                 group_id: None,
-                variant_id: None,
-                click_pattern: None,
+                planned_variation_id: None,
+                planned_rep_target: None,
+                plays: vec![VariationPlay {
+                    seconds: 1800,
+                    achieved_tempo: None,
+                    score: Some(3),
+                    ..VariationPlay::fixture()
+                }],
             }],
             reflection_improved: None,
             reflection_still_rough: None,
@@ -3063,17 +3104,17 @@ mod tests {
                 duration_secs: 900,
                 status: EntryStatus::Completed,
                 notes: None,
-                score: Some(5),
                 intention: None,
-                rep_target: None,
-                rep_count: None,
-                rep_target_reached: None,
-                rep_history: None,
                 planned_duration_secs: None,
-                achieved_tempo: None,
                 group_id: None,
-                variant_id: None,
-                click_pattern: None,
+                planned_variation_id: None,
+                planned_rep_target: None,
+                plays: vec![VariationPlay {
+                    seconds: 900,
+                    achieved_tempo: None,
+                    score: Some(5),
+                    ..VariationPlay::fixture()
+                }],
             }],
             reflection_improved: None,
             reflection_still_rough: None,
@@ -3145,17 +3186,17 @@ mod tests {
                 duration_secs: 1800,
                 status: EntryStatus::Completed,
                 notes: None,
-                score: None,
                 intention: None,
-                rep_target: None,
-                rep_count: None,
-                rep_target_reached: None,
-                rep_history: None,
                 planned_duration_secs: None,
-                achieved_tempo: None,
                 group_id: None,
-                variant_id: None,
-                click_pattern: None,
+                planned_variation_id: None,
+                planned_rep_target: None,
+                plays: vec![VariationPlay {
+                    seconds: 1800,
+                    achieved_tempo: None,
+                    score: None,
+                    ..VariationPlay::fixture()
+                }],
             }],
             reflection_improved: None,
             reflection_still_rough: None,
@@ -3221,17 +3262,17 @@ mod tests {
                     duration_secs: 1800,
                     status: EntryStatus::Completed,
                     notes: None,
-                    score: Some(2),
                     intention: None,
-                    rep_target: None,
-                    rep_count: None,
-                    rep_target_reached: None,
-                    rep_history: None,
                     planned_duration_secs: None,
-                    achieved_tempo: None,
                     group_id: None,
-                    variant_id: None,
-                    click_pattern: None,
+                    planned_variation_id: None,
+                    planned_rep_target: None,
+                    plays: vec![VariationPlay {
+                        seconds: 1800,
+                        achieved_tempo: None,
+                        score: Some(2),
+                        ..VariationPlay::fixture()
+                    }],
                 },
                 SetlistEntry {
                     id: "e2".to_string(),
@@ -3242,17 +3283,17 @@ mod tests {
                     duration_secs: 1800,
                     status: EntryStatus::Completed,
                     notes: None,
-                    score: Some(4),
                     intention: None,
-                    rep_target: None,
-                    rep_count: None,
-                    rep_target_reached: None,
-                    rep_history: None,
                     planned_duration_secs: None,
-                    achieved_tempo: None,
                     group_id: None,
-                    variant_id: None,
-                    click_pattern: None,
+                    planned_variation_id: None,
+                    planned_rep_target: None,
+                    plays: vec![VariationPlay {
+                        seconds: 1800,
+                        achieved_tempo: None,
+                        score: Some(4),
+                        ..VariationPlay::fixture()
+                    }],
                 },
             ],
             reflection_improved: None,
@@ -3323,17 +3364,13 @@ mod tests {
                 duration_secs: 600,
                 status: EntryStatus::Skipped,
                 notes: None,
-                score: None, // Skipped entries never have scores
                 intention: None,
-                rep_target: None,
-                rep_count: None,
-                rep_target_reached: None,
-                rep_history: None,
                 planned_duration_secs: None,
-                achieved_tempo: None,
                 group_id: None,
-                variant_id: None,
-                click_pattern: None,
+                planned_variation_id: None,
+                planned_rep_target: None,
+                // A skipped entry records no play, so it never carries a mark.
+                plays: Vec::new(),
             }],
             reflection_improved: None,
             reflection_still_rough: None,
@@ -3420,17 +3457,17 @@ mod tests {
                 duration_secs: 300,
                 status: EntryStatus::Completed,
                 notes: None,
-                score,
                 intention: None,
-                rep_target: None,
-                rep_count: None,
-                rep_target_reached: None,
-                rep_history: None,
                 planned_duration_secs: None,
-                achieved_tempo: tempo,
                 group_id: None,
-                variant_id: None,
-                click_pattern: None,
+                planned_variation_id: None,
+                planned_rep_target: None,
+                plays: vec![VariationPlay {
+                    seconds: 300,
+                    achieved_tempo: tempo,
+                    score,
+                    ..VariationPlay::fixture()
+                }],
             }],
             reflection_improved: None,
             reflection_still_rough: None,
@@ -3558,17 +3595,17 @@ mod tests {
                 duration_secs: 60,
                 status: EntryStatus::Completed,
                 notes: None,
-                score: None,
                 intention: None,
-                rep_target: None,
-                rep_count: None,
-                rep_target_reached: None,
-                rep_history: None,
                 planned_duration_secs: None,
-                achieved_tempo: None,
                 group_id: None,
-                variant_id: None,
-                click_pattern: None,
+                planned_variation_id: None,
+                planned_rep_target: None,
+                plays: vec![VariationPlay {
+                    seconds: 60,
+                    achieved_tempo: None,
+                    score: None,
+                    ..VariationPlay::fixture()
+                }],
             }],
             reflection_improved: None,
             reflection_still_rough: None,
@@ -4705,17 +4742,17 @@ mod tests {
             duration_secs: 0,
             status: EntryStatus::NotAttempted,
             notes: None,
-            score: None,
             intention: None,
-            rep_target: None,
-            rep_count: None,
-            rep_target_reached: None,
-            rep_history: None,
             planned_duration_secs: None,
-            achieved_tempo: None,
             group_id: None,
-            variant_id: None,
-            click_pattern: None,
+            planned_variation_id: None,
+            planned_rep_target: None,
+            plays: vec![VariationPlay {
+                seconds: 0,
+                achieved_tempo: None,
+                score: None,
+                ..VariationPlay::fixture()
+            }],
         };
         model.session_status = SessionStatus::Building(crate::domain::session::BuildingSession {
             entries: vec![entry],
@@ -4751,17 +4788,17 @@ mod tests {
             duration_secs: 0,
             status: EntryStatus::NotAttempted,
             notes: None,
-            score: None,
             intention: None,
-            rep_target: None,
-            rep_count: None,
-            rep_target_reached: None,
-            rep_history: None,
             planned_duration_secs: None,
-            achieved_tempo: None,
             group_id: None,
-            variant_id: None,
-            click_pattern: None,
+            planned_variation_id: None,
+            planned_rep_target: None,
+            plays: vec![VariationPlay {
+                seconds: 0,
+                achieved_tempo: None,
+                score: None,
+                ..VariationPlay::fixture()
+            }],
         };
         model.session_status = SessionStatus::Building(crate::domain::session::BuildingSession {
             entries: vec![entry],
@@ -4782,22 +4819,8 @@ mod tests {
             id: id.to_string(),
             item_id: format!("item-{id}"),
             item_title: "Etude".to_string(),
-            item_type: ItemKind::Piece,
-            position: 0,
-            duration_secs: 0,
-            status: EntryStatus::NotAttempted,
-            notes: None,
-            score: None,
-            intention: None,
-            rep_target: None,
-            rep_count: None,
-            rep_target_reached: None,
-            rep_history: None,
             planned_duration_secs,
-            achieved_tempo: None,
-            group_id: None,
-            variant_id: None,
-            click_pattern: None,
+            ..SetlistEntry::fixture()
         }
     }
 
@@ -5651,17 +5674,17 @@ mod tests {
             duration_secs: 300,
             status: EntryStatus::Completed,
             notes: None,
-            score,
             intention: None,
-            rep_target: None,
-            rep_count: None,
-            rep_target_reached: None,
-            rep_history: None,
             planned_duration_secs: None,
-            achieved_tempo: None,
             group_id: group.map(String::from),
-            variant_id: None,
-            click_pattern: None,
+            planned_variation_id: None,
+            planned_rep_target: None,
+            plays: vec![VariationPlay {
+                seconds: 300,
+                achieved_tempo: None,
+                score,
+                ..VariationPlay::fixture()
+            }],
         }
     }
 
@@ -5713,7 +5736,8 @@ mod tests {
 
     fn variant_entry(item_id: &str, variant_id: &str, score: Option<u8>) -> SetlistEntry {
         let mut e = ctx_entry(item_id, "Scales", ItemKind::Exercise, score, None);
-        e.variant_id = Some(variant_id.to_string());
+        e.planned_variation_id = Some(variant_id.to_string());
+        e.plays[0].variation_id = Some(variant_id.to_string());
         e
     }
 
@@ -5742,7 +5766,7 @@ mod tests {
     }
 
     #[test]
-    fn variant_views_derive_latest_score_and_current_step() {
+    fn variant_views_derive_latest_score_and_solidity() {
         let ex = exercise_with_variants("ex-1", &["F", "Bb", "Eb"]);
         let t0 = chrono::Utc::now() - chrono::Duration::days(2);
         let t1 = chrono::Utc::now();
@@ -5769,31 +5793,8 @@ mod tests {
         assert!(steps[0].is_solid, "score >= threshold is solid");
         assert_eq!(steps[1].latest_score, Some(5));
         assert!(!steps[1].is_solid);
-        assert!(steps[1].is_current, "current = first non-solid step");
         assert_eq!(steps[2].latest_score, None, "unpractised step has no score");
         assert!(!steps[2].is_solid);
-        assert!(!steps[2].is_current);
-    }
-
-    #[test]
-    fn variant_views_no_current_when_all_solid() {
-        let ex = exercise_with_variants("ex-1", &["F", "Bb"]);
-        let now = chrono::Utc::now();
-        let sessions = vec![ctx_session(
-            "s1",
-            now,
-            vec![
-                variant_entry("ex-1", "ex-1-v0", Some(8)),
-                variant_entry("ex-1", "ex-1-v1", Some(10)),
-            ],
-        )];
-
-        let steps = derived_variants(&ex, &sessions);
-        assert!(steps.iter().all(|s| s.is_solid));
-        assert!(
-            steps.iter().all(|s| !s.is_current),
-            "a fully solid ladder has no current step"
-        );
     }
 
     #[test]
@@ -5811,7 +5812,6 @@ mod tests {
             steps[0].latest_score, None,
             "scores are scoped to this item"
         );
-        assert!(steps[0].is_current);
     }
 
     /// The core B1 derivation: an exercise practised in a piece's block twice
@@ -6233,17 +6233,18 @@ mod tests {
                 duration_secs: 300,
                 status: EntryStatus::Completed,
                 notes: None,
-                score,
                 intention: None,
-                rep_target: None,
-                rep_count: None,
-                rep_target_reached: None,
-                rep_history: None,
                 planned_duration_secs: None,
-                achieved_tempo: None,
                 group_id: None,
-                variant_id: variant_id.map(str::to_string),
-                click_pattern: None,
+                planned_variation_id: variant_id.map(str::to_string),
+                planned_rep_target: None,
+                plays: vec![VariationPlay {
+                    id: format!("{id}-e1-play"),
+                    variation_id: variant_id.map(str::to_string),
+                    seconds: 300,
+                    score,
+                    ..VariationPlay::fixture()
+                }],
             }],
             reflection_improved: None,
             reflection_still_rough: None,
@@ -6311,7 +6312,7 @@ mod tests {
     }
 
     #[test]
-    fn view_marks_solid_steps_and_the_first_unsolid_as_current() {
+    fn view_marks_solid_steps() {
         let t0 = chrono::Utc::now();
         let vm = step_view_model(vec![
             step_session("s1", "ex-1", Some("v-c"), Some(8), t0),
@@ -6327,40 +6328,8 @@ mod tests {
         let ex = vm.items.iter().find(|i| i.id == "ex-1").unwrap();
         let c = ex.variants.iter().find(|v| v.id == "v-c").unwrap();
         assert!(c.is_solid, "8 of 10 is solid");
-        assert!(!c.is_current);
         let f = ex.variants.iter().find(|v| v.id == "v-f").unwrap();
         assert!(!f.is_solid, "7 of 10 is not yet solid");
-        assert!(f.is_current, "the first unsolid step is current");
-    }
-
-    #[test]
-    fn view_unrated_ladder_starts_current_at_the_first_step() {
-        let vm = step_view_model(vec![]);
-
-        let ex = vm.items.iter().find(|i| i.id == "ex-1").unwrap();
-        assert!(ex.variants[0].is_current);
-        assert!(!ex.variants[1].is_current);
-    }
-
-    #[test]
-    fn view_fully_solid_ladder_has_no_current_step() {
-        let t0 = chrono::Utc::now();
-        let vm = step_view_model(vec![
-            step_session("s1", "ex-1", Some("v-c"), Some(8), t0),
-            step_session(
-                "s2",
-                "ex-1",
-                Some("v-f"),
-                Some(10),
-                t0 + chrono::Duration::days(1),
-            ),
-        ]);
-
-        let ex = vm.items.iter().find(|i| i.id == "ex-1").unwrap();
-        assert!(
-            ex.variants.iter().all(|v| !v.is_current),
-            "a finished ladder has no current step"
-        );
     }
 
     #[test]
@@ -6436,7 +6405,7 @@ mod tests {
     }
 
     #[test]
-    fn view_session_entries_expose_variant_id() {
+    fn view_session_entries_expose_the_variation_played() {
         let vm = step_view_model(vec![step_session(
             "s1",
             "ex-1",
@@ -6446,7 +6415,7 @@ mod tests {
         )]);
 
         assert_eq!(
-            vm.sessions[0].entries[0].variant_id.as_deref(),
+            vm.sessions[0].entries[0].plays[0].variation_id.as_deref(),
             Some("v-c"),
             "history entries carry their step through the view"
         );

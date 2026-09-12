@@ -346,7 +346,7 @@ pub fn compute_score_trends(
     for session in sessions {
         let session_date = clock.day_of(session.started_at);
         for entry in &session.entries {
-            if let Some(score) = entry.score {
+            if let Some(score) = entry.score_summary() {
                 let record = scored
                     .entry(entry.item_id.clone())
                     .or_insert_with(|| (entry.item_title.clone(), Vec::new()));
@@ -441,7 +441,7 @@ pub fn compute_score_changes(sessions: &[PracticeSession], clock: LocalClock) ->
     for session in sessions {
         let session_date = clock.day_of(session.started_at);
         for entry in &session.entries {
-            if let Some(score) = entry.score {
+            if let Some(score) = entry.score_summary() {
                 if session_date.iso_week() == today_iso_week {
                     let existing = this_week.get(&entry.item_id);
                     if !matches!(existing, Some(e) if session_date < e.1) {
@@ -555,7 +555,9 @@ fn relative_day(day: NaiveDate, today: NaiveDate) -> (String, String) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::session::{CompletionStatus, EntryStatus, PracticeSession, SetlistEntry};
+    use crate::domain::session::{
+        CompletionStatus, EntryStatus, PracticeSession, SetlistEntry, VariationPlay,
+    };
     use chrono::{NaiveDate, TimeZone, Utc};
 
     fn clock(today: NaiveDate) -> LocalClock {
@@ -605,26 +607,22 @@ mod tests {
         duration_secs: u64,
         score: Option<u8>,
     ) -> SetlistEntry {
+        let id = format!("entry-{item_id}-{duration_secs}");
         SetlistEntry {
-            id: format!("entry-{item_id}-{duration_secs}"),
+            plays: vec![VariationPlay {
+                id: format!("{id}-play"),
+                seconds: duration_secs,
+                score,
+                ..VariationPlay::fixture()
+            }],
+            id,
             item_id: item_id.to_string(),
             item_title: title.to_string(),
             item_type,
             position: 0,
             duration_secs,
             status: EntryStatus::Completed,
-            notes: None,
-            score,
-            intention: None,
-            rep_target: None,
-            rep_count: None,
-            rep_target_reached: None,
-            rep_history: None,
-            planned_duration_secs: None,
-            achieved_tempo: None,
-            group_id: None,
-            variant_id: None,
-            click_pattern: None,
+            ..SetlistEntry::fixture()
         }
     }
 

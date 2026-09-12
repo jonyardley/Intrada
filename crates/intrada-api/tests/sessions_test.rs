@@ -97,11 +97,19 @@ async fn save_session_with_variant_id_on_entries_drops_it_gracefully() {
     let session: PracticeSession = common::json(&resp);
     assert_eq!(session.entries.len(), 1);
     assert_eq!(
-        session.entries[0].variant_id, None,
-        "server drops variant_id until the sync engine ships"
+        session.entries[0].planned_variation_id, None,
+        "server drops the planned variation until the sync engine ships"
     );
     assert_eq!(
-        session.entries[0].score,
+        session.entries[0]
+            .plays
+            .first()
+            .and_then(|p| p.variation_id.clone()),
+        None,
+        "server drops the played variation until the sync engine ships"
+    );
+    assert_eq!(
+        session.entries[0].score_summary(),
         Some(8),
         "known fields still persist"
     );
@@ -286,9 +294,9 @@ async fn save_session_with_scores_returns_scores() {
     assert_eq!(status, StatusCode::CREATED);
     let session: PracticeSession = common::json(&body);
     assert_eq!(session.entries.len(), 3);
-    assert_eq!(session.entries[0].score, Some(4));
-    assert_eq!(session.entries[1].score, Some(2));
-    assert_eq!(session.entries[2].score, None);
+    assert_eq!(session.entries[0].score_summary(), Some(4));
+    assert_eq!(session.entries[1].score_summary(), Some(2));
+    assert_eq!(session.entries[2].score_summary(), None);
 }
 
 #[tokio::test]
@@ -302,9 +310,9 @@ async fn get_session_returns_scores() {
     let (status, body) = common::get(app, &format!("/api/sessions/{}", created.id)).await;
     assert_eq!(status, StatusCode::OK);
     let fetched: PracticeSession = common::json(&body);
-    assert_eq!(fetched.entries[0].score, Some(4));
-    assert_eq!(fetched.entries[1].score, Some(2));
-    assert_eq!(fetched.entries[2].score, None);
+    assert_eq!(fetched.entries[0].score_summary(), Some(4));
+    assert_eq!(fetched.entries[1].score_summary(), Some(2));
+    assert_eq!(fetched.entries[2].score_summary(), None);
 }
 
 #[tokio::test]
@@ -378,8 +386,8 @@ async fn save_session_without_scores_returns_null_scores() {
     let session: PracticeSession = common::json(&body);
     assert_eq!(session.entries.len(), 2);
     // Both entries should have score: None when not provided
-    assert_eq!(session.entries[0].score, None);
-    assert_eq!(session.entries[1].score, None);
+    assert_eq!(session.entries[0].score_summary(), None);
+    assert_eq!(session.entries[1].score_summary(), None);
 }
 
 #[tokio::test]
@@ -394,8 +402,8 @@ async fn get_session_without_scores_returns_null_scores() {
     let (status, body) = common::get(app, &format!("/api/sessions/{}", created.id)).await;
     assert_eq!(status, StatusCode::OK);
     let fetched: PracticeSession = common::json(&body);
-    assert_eq!(fetched.entries[0].score, None);
-    assert_eq!(fetched.entries[1].score, None);
+    assert_eq!(fetched.entries[0].score_summary(), None);
+    assert_eq!(fetched.entries[1].score_summary(), None);
 }
 
 #[tokio::test]
@@ -411,6 +419,6 @@ async fn list_sessions_without_scores_returns_null_scores() {
     assert_eq!(sessions.len(), 1);
     // All entries should have score: None
     for entry in &sessions[0].entries {
-        assert_eq!(entry.score, None);
+        assert_eq!(entry.score_summary(), None);
     }
 }

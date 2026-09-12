@@ -495,6 +495,7 @@ mod tests {
         // its optional-heavy SetlistEntry + rep_history is exactly the #846 risk.
         use crate::domain::session::{
             CompletionStatus, EntryStatus, PracticeSession, RepAction, RepEvent, SetlistEntry,
+            VariationPlay,
         };
         use crate::persistence::PersistenceOperation;
         let now = chrono::Utc::now();
@@ -507,26 +508,33 @@ mod tests {
             duration_secs: 300,
             status: EntryStatus::Completed,
             notes: Some("phrasing".to_string()),
-            score: Some(4),
             intention: Some("evenness".to_string()),
-            rep_target: Some(5),
-            rep_count: Some(5),
-            rep_target_reached: Some(true),
-            rep_history: Some(vec![
-                RepEvent {
-                    action: RepAction::Success,
-                    at: now,
-                },
-                RepEvent {
-                    action: RepAction::Missed,
-                    at: now,
-                },
-            ]),
             planned_duration_secs: Some(300),
-            achieved_tempo: Some(120),
             group_id: None,
-            variant_id: Some("v-1".to_string()),
-            click_pattern: None,
+            planned_variation_id: Some("v-1".to_string()),
+            planned_rep_target: Some(5),
+            plays: vec![VariationPlay {
+                id: "play-1".to_string(),
+                variation_id: Some("v-1".to_string()),
+                started_at: now,
+                seconds: 300,
+                rep_target: Some(5),
+                rep_count: Some(5),
+                rep_target_reached: Some(true),
+                rep_history: Some(vec![
+                    RepEvent {
+                        action: RepAction::Success,
+                        at: now,
+                    },
+                    RepEvent {
+                        action: RepAction::Missed,
+                        at: now,
+                    },
+                ]),
+                achieved_tempo: Some(120),
+                click_pattern: None,
+                score: Some(4),
+            }],
         };
         assert_round_trips(PersistenceOperation::SaveSession(PracticeSession {
             id: "s1".to_string(),
@@ -665,17 +673,12 @@ mod tests {
             duration_secs: 0,
             status: EntryStatus::NotAttempted,
             notes: None,
-            score: None,
             intention: None,
-            rep_target: None,
-            rep_count: None,
-            rep_target_reached: None,
-            rep_history: None,
             planned_duration_secs: None,
-            achieved_tempo: None,
             group_id: Some("block-1".to_string()),
-            variant_id: Some("v-1".to_string()),
-            click_pattern: None,
+            planned_variation_id: Some("v-1".to_string()),
+            planned_rep_target: None,
+            plays: Vec::new(),
         });
     }
 

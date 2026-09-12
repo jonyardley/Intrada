@@ -11,7 +11,7 @@ use crate::domain::mcp_tokens::{CreatedMcpToken, McpToken};
 use crate::domain::profile::{Profile, ProfileField, ProfileView};
 use crate::domain::session::{
     ActiveSession, ClickState, CompletionStatus, EntryStatus, PracticeSession, RepEvent,
-    SessionStatus, SetlistEntry, SummarySession,
+    SessionStatus, SetlistEntry, SummarySession, VariationPlay,
 };
 use crate::domain::set::Set;
 use crate::domain::Metre;
@@ -500,9 +500,27 @@ pub struct VariantView {
     pub score_history: Vec<ScoreHistoryEntry>,
     /// Latest score has reached `SOLID_SCORE_MIN` (8 of 10).
     pub is_solid: bool,
-    /// The first step that isn't yet solid; the rung to work on. At most one
-    /// per ladder; a fully solid ladder has none.
-    pub is_current: bool,
+}
+
+/// One stretch of an item spent on one variation, as the sheet and the
+/// Progress screen read it (#1739). `variation_label` is resolved here,
+/// tombstones included, because a session practised on a variation that has
+/// since been deleted still has to say what it was.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "facet_typegen", derive(facet::Facet))]
+pub struct VariationPlayView {
+    pub id: String,
+    pub variation_id: Option<String>,
+    pub variation_label: Option<String>,
+    pub seconds: u64,
+    pub duration_display: String,
+    pub rep_target: Option<u8>,
+    pub rep_count: Option<u8>,
+    pub rep_target_reached: Option<bool>,
+    pub rep_history: Option<Vec<RepEvent>>,
+    pub achieved_tempo: Option<u16>,
+    pub click_pattern: Option<ClickState>,
+    pub score: Option<u8>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -582,21 +600,21 @@ pub struct SetlistEntryView {
     pub duration_display: String,
     pub status: EntryStatus,
     pub notes: Option<String>,
-    pub score: Option<u8>,
     pub intention: Option<String>,
-    pub rep_target: Option<u8>,
-    pub rep_count: Option<u8>,
-    pub rep_target_reached: Option<bool>,
-    pub rep_history: Option<Vec<RepEvent>>,
     pub planned_duration_secs: Option<u32>,
     pub planned_duration_display: Option<String>,
-    pub achieved_tempo: Option<u16>,
     /// The block this entry belongs to in the builder; `None` = standalone.
     pub group_id: Option<String>,
-    /// The ladder step this entry practised, when attributed (#1083).
-    #[serde(default)]
-    pub variant_id: Option<String>,
-    pub click_pattern: Option<ClickState>,
+    /// The variation the builder planned to practise (#1739 decision 5).
+    pub planned_variation_id: Option<String>,
+    /// The repetition target set in the builder, which every play starts from.
+    pub planned_rep_target: Option<u8>,
+    /// What was actually practised, in order.
+    pub plays: Vec<VariationPlayView>,
+    /// The mean of the plays that carry a mark, rounded to nearest, and `None`
+    /// when none do. The only place several marks collapse into one (#1739
+    /// decision 9): per-variation history reads `plays` and never this.
+    pub score_summary: Option<u8>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -622,6 +640,10 @@ pub struct ActiveSessionView {
     /// How many slots the counter draws before the first tap. A drawn target
     /// is not a recorded one: `current_rep_target` stays `None` until a tap.
     pub current_rep_slots: u8,
+    /// The variation the open play is on, so the player's picker can show what
+    /// is being practised right now (#1739). `None` = unattributed.
+    pub current_variation_id: Option<String>,
+    pub current_variation_label: Option<String>,
     pub current_planned_duration_secs: Option<u32>,
     pub next_item_title: Option<String>,
     /// The current entry's "Aim" note, set in the builder (`EntrySettingsSheet`).
@@ -760,7 +782,6 @@ impl VariantView {
             latest_score: None,
             score_history: Vec::new(),
             is_solid: false,
-            is_current: false,
         }
     }
 }
@@ -782,7 +803,40 @@ impl ItemPracticeSummary {
 
 // ── View helpers ──────────────────────────────────────────────────────
 
-pub fn entry_to_view(entry: &SetlistEntry) -> SetlistEntryView {
+/// Every variation label in the library, tombstoned ones included. A session
+/// practised on a variation that has since been deleted still has to say what
+/// it was, which is what the tombstone exists for (#1739).
+pub type VariationLabels<'a> = HashMap<&'a str, &'a str>;
+
+pub fn variation_labels(items: &[Item]) -> VariationLabels<'_> {
+    items
+        .iter()
+        .flat_map(|i| i.variants.iter())
+        .map(|v| (v.id.as_str(), v.label.as_str()))
+        .collect()
+}
+
+pub fn play_to_view(play: &VariationPlay, labels: &VariationLabels) -> VariationPlayView {
+    VariationPlayView {
+        id: play.id.clone(),
+        variation_id: play.variation_id.clone(),
+        variation_label: play
+            .variation_id
+            .as_deref()
+            .and_then(|id| labels.get(id).map(|l| (*l).to_string())),
+        seconds: play.seconds,
+        duration_display: crate::domain::session::format_duration_display(play.seconds),
+        rep_target: play.rep_target,
+        rep_count: play.rep_count,
+        rep_target_reached: play.rep_target_reached,
+        rep_history: play.rep_history.clone(),
+        achieved_tempo: play.achieved_tempo,
+        click_pattern: play.click_pattern.clone(),
+        score: play.score,
+    }
+}
+
+pub fn entry_to_view(entry: &SetlistEntry, labels: &VariationLabels) -> SetlistEntryView {
     SetlistEntryView {
         id: entry.id.clone(),
         item_id: entry.item_id.clone(),
@@ -792,20 +846,20 @@ pub fn entry_to_view(entry: &SetlistEntry) -> SetlistEntryView {
         duration_display: crate::domain::session::format_duration_display(entry.duration_secs),
         status: entry.status.clone(),
         notes: entry.notes.clone(),
-        score: entry.score,
         intention: entry.intention.clone(),
-        rep_target: entry.rep_target,
-        rep_count: entry.rep_count,
-        rep_target_reached: entry.rep_target_reached,
-        rep_history: entry.rep_history.clone(),
         planned_duration_secs: entry.planned_duration_secs,
         planned_duration_display: entry
             .planned_duration_secs
             .map(|secs| crate::domain::session::format_planned_duration(u64::from(secs))),
-        achieved_tempo: entry.achieved_tempo,
         group_id: entry.group_id.clone(),
-        variant_id: entry.variant_id.clone(),
-        click_pattern: entry.click_pattern.clone(),
+        planned_variation_id: entry.planned_variation_id.clone(),
+        planned_rep_target: entry.planned_rep_target,
+        plays: entry
+            .plays
+            .iter()
+            .map(|p| play_to_view(p, labels))
+            .collect(),
+        score_summary: entry.score_summary(),
     }
 }
 
@@ -857,11 +911,13 @@ pub fn build_blocks(entries: &[SetlistEntryView]) -> Vec<SetlistBlockView> {
 pub fn build_active_session_view(
     active: &ActiveSession,
     item_index: &HashMap<&str, &Item>,
+    labels: &VariationLabels,
 ) -> ActiveSessionView {
     let safe_index = active
         .current_index
         .min(active.entries.len().saturating_sub(1));
     let current = &active.entries[safe_index];
+    let open = current.open_play();
 
     // Breadcrumb only applies to a related exercise practiced inside a block —
     // not the anchor piece itself.
@@ -889,15 +945,25 @@ pub fn build_active_session_view(
         total_items: active.entries.len(),
         started_at: active.session_started_at.to_rfc3339(),
         current_item_started_at: active.current_item_started_at.to_rfc3339(),
-        entries: active.entries.iter().map(entry_to_view).collect(),
+        entries: active
+            .entries
+            .iter()
+            .map(|e| entry_to_view(e, labels))
+            .collect(),
         session_intention: active.session_intention.clone(),
-        current_rep_target: current.rep_target,
-        current_rep_count: current.rep_count,
-        current_rep_target_reached: current.rep_target_reached,
-        current_rep_history: current.rep_history.clone(),
-        current_rep_slots: current
-            .rep_target
+        // Repetitions belong to the open play, so they reset when a switch
+        // opens the next one (#1739 decision 6).
+        current_rep_target: open.and_then(|p| p.rep_target),
+        current_rep_count: open.and_then(|p| p.rep_count),
+        current_rep_target_reached: open.and_then(|p| p.rep_target_reached),
+        current_rep_history: open.and_then(|p| p.rep_history.clone()),
+        current_rep_slots: open
+            .and_then(|p| p.rep_target)
             .unwrap_or(crate::validation::DEFAULT_REP_TARGET),
+        current_variation_id: open.and_then(|p| p.variation_id.clone()),
+        current_variation_label: open
+            .and_then(|p| p.variation_id.as_deref())
+            .and_then(|id| labels.get(id).map(|l| (*l).to_string())),
         current_planned_duration_secs: current.planned_duration_secs,
         next_item_title: active
             .entries
@@ -913,13 +979,17 @@ pub fn build_active_session_view(
     }
 }
 
-pub fn build_summary_view(summary: &SummarySession) -> SummaryView {
+pub fn build_summary_view(summary: &SummarySession, labels: &VariationLabels) -> SummaryView {
     let total_secs: u64 = summary.entries.iter().map(|e| e.duration_secs).sum();
     SummaryView {
         total_duration_display: crate::domain::session::format_duration_display(total_secs),
         completion_status: summary.completion_status.clone(),
         notes: summary.session_notes.clone(),
-        entries: summary.entries.iter().map(entry_to_view).collect(),
+        entries: summary
+            .entries
+            .iter()
+            .map(|e| entry_to_view(e, labels))
+            .collect(),
         session_intention: summary.session_intention.clone(),
         session_score: summary.session_score,
         reflection_improved: summary.reflection_improved.clone(),
@@ -928,7 +998,7 @@ pub fn build_summary_view(summary: &SummarySession) -> SummaryView {
     }
 }
 
-pub fn session_to_view(session: &PracticeSession) -> PracticeSessionView {
+pub fn session_to_view(session: &PracticeSession, labels: &VariationLabels) -> PracticeSessionView {
     PracticeSessionView {
         id: session.id.clone(),
         started_at: session.started_at.to_rfc3339(),
@@ -941,7 +1011,11 @@ pub fn session_to_view(session: &PracticeSession) -> PracticeSessionView {
         ),
         completion_status: session.completion_status.clone(),
         notes: session.session_notes.clone(),
-        entries: session.entries.iter().map(entry_to_view).collect(),
+        entries: session
+            .entries
+            .iter()
+            .map(|e| entry_to_view(e, labels))
+            .collect(),
         session_intention: session.session_intention.clone(),
         session_score: session.session_score,
         reflection_improved: session.reflection_improved.clone(),
@@ -1006,7 +1080,6 @@ mod tests {
                 session_id: "s1".to_string(),
             }],
             is_solid: true,
-            is_current: false,
         });
     }
 
@@ -1053,20 +1126,7 @@ mod tests {
             item_title: title.to_string(),
             item_type: ItemKind::Piece,
             position,
-            duration_secs: 0,
-            status: EntryStatus::NotAttempted,
-            notes: None,
-            score: None,
-            intention: None,
-            rep_target: None,
-            rep_count: None,
-            rep_target_reached: None,
-            rep_history: None,
-            planned_duration_secs: None,
-            achieved_tempo: None,
-            group_id: None,
-            variant_id: None,
-            click_pattern: None,
+            ..SetlistEntry::fixture()
         }
     }
 
@@ -1152,7 +1212,7 @@ mod tests {
     fn entry_to_view_formats_duration() {
         let mut entry = make_entry("e1", "i1", "Scale", 0);
         entry.duration_secs = 125;
-        let view = entry_to_view(&entry);
+        let view = entry_to_view(&entry, &VariationLabels::new());
         assert_eq!(view.duration_display, "2m 5s");
     }
 
@@ -1160,7 +1220,7 @@ mod tests {
     fn entry_to_view_planned_duration_whole_minutes() {
         let mut entry = make_entry("e1", "i1", "Scale", 0);
         entry.planned_duration_secs = Some(300);
-        let view = entry_to_view(&entry);
+        let view = entry_to_view(&entry, &VariationLabels::new());
         assert_eq!(view.planned_duration_display.as_deref(), Some("5 min"));
     }
 
@@ -1168,16 +1228,16 @@ mod tests {
     fn entry_to_view_planned_duration_partial_minutes() {
         let mut entry = make_entry("e1", "i1", "Scale", 0);
         entry.planned_duration_secs = Some(90);
-        let view = entry_to_view(&entry);
+        let view = entry_to_view(&entry, &VariationLabels::new());
         assert_eq!(view.planned_duration_display.as_deref(), Some("1m 30s"));
     }
 
     #[test]
-    fn entry_to_view_carries_variant_id() {
+    fn entry_to_view_carries_planned_variation_id() {
         let mut entry = make_entry("e1", "i1", "Scale", 0);
-        entry.variant_id = Some("variant-1".to_string());
-        let view = entry_to_view(&entry);
-        assert_eq!(view.variant_id.as_deref(), Some("variant-1"));
+        entry.planned_variation_id = Some("variant-1".to_string());
+        let view = entry_to_view(&entry, &VariationLabels::new());
+        assert_eq!(view.planned_variation_id.as_deref(), Some("variant-1"));
     }
 
     // ── build_active_session_view ──────────────────────────────────────
@@ -1207,7 +1267,7 @@ mod tests {
             session_intention: None,
         };
         assert_eq!(
-            build_active_session_view(&active, &items).current_item_metre,
+            build_active_session_view(&active, &items, &VariationLabels::new()).current_item_metre,
             Some(metre)
         );
         let second = ActiveSession {
@@ -1215,7 +1275,7 @@ mod tests {
             ..active
         };
         assert_eq!(
-            build_active_session_view(&second, &items).current_item_metre,
+            build_active_session_view(&second, &items, &VariationLabels::new()).current_item_metre,
             None
         );
     }
@@ -1225,7 +1285,11 @@ mod tests {
     #[test]
     fn active_session_view_draws_the_builder_target_or_the_default() {
         let mut targeted = make_entry("e1", "i1", "Scale", 0);
-        targeted.rep_target = Some(7);
+        targeted.planned_rep_target = Some(7);
+        targeted.plays = vec![VariationPlay {
+            rep_target: Some(7),
+            ..VariationPlay::fixture()
+        }];
         let active = ActiveSession {
             id: "as1".to_string(),
             entries: vec![targeted, make_entry("e2", "i2", "Etude", 1)],
@@ -1235,7 +1299,8 @@ mod tests {
             session_intention: None,
         };
         assert_eq!(
-            build_active_session_view(&active, &HashMap::new()).current_rep_slots,
+            build_active_session_view(&active, &HashMap::new(), &VariationLabels::new())
+                .current_rep_slots,
             7
         );
 
@@ -1243,7 +1308,7 @@ mod tests {
             current_index: 1,
             ..active
         };
-        let view = build_active_session_view(&untouched, &HashMap::new());
+        let view = build_active_session_view(&untouched, &HashMap::new(), &VariationLabels::new());
         assert_eq!(view.current_rep_target, None);
         assert_eq!(
             view.current_rep_slots,
@@ -1264,7 +1329,7 @@ mod tests {
             current_item_started_at: Utc::now(),
             session_intention: None,
         };
-        let view = build_active_session_view(&active, &HashMap::new());
+        let view = build_active_session_view(&active, &HashMap::new(), &VariationLabels::new());
         assert_eq!(view.next_item_title.as_deref(), Some("Etude"));
     }
 
@@ -1281,7 +1346,7 @@ mod tests {
             current_item_started_at: Utc::now(),
             session_intention: None,
         };
-        let view = build_active_session_view(&active, &HashMap::new());
+        let view = build_active_session_view(&active, &HashMap::new(), &VariationLabels::new());
         assert!(view.next_item_title.is_none());
     }
 
@@ -1297,7 +1362,7 @@ mod tests {
             current_item_started_at: Utc::now(),
             session_intention: None,
         };
-        let view = build_active_session_view(&active, &HashMap::new());
+        let view = build_active_session_view(&active, &HashMap::new(), &VariationLabels::new());
         assert_eq!(view.current_item_intention.as_deref(), Some("evenness"));
     }
 
@@ -1317,7 +1382,7 @@ mod tests {
             current_item_started_at: Utc::now(),
             session_intention: None,
         };
-        let view = build_active_session_view(&active, &HashMap::new());
+        let view = build_active_session_view(&active, &HashMap::new(), &VariationLabels::new());
         assert_eq!(
             view.current_related_piece_title.as_deref(),
             Some("Clair de Lune")
@@ -1341,7 +1406,7 @@ mod tests {
             current_item_started_at: Utc::now(),
             session_intention: None,
         };
-        let view = build_active_session_view(&active, &HashMap::new());
+        let view = build_active_session_view(&active, &HashMap::new(), &VariationLabels::new());
         assert!(view.current_related_piece_title.is_none());
     }
 
@@ -1361,7 +1426,7 @@ mod tests {
             current_item_started_at: Utc::now(),
             session_intention: None,
         };
-        let view = build_active_session_view(&active, &HashMap::new());
+        let view = build_active_session_view(&active, &HashMap::new(), &VariationLabels::new());
         assert!(
             view.current_related_piece_title.is_none(),
             "breadcrumb is for exercises related to a piece, not the piece itself"
@@ -1401,7 +1466,7 @@ mod tests {
             metre: None,
         };
         let item_index: HashMap<&str, &Item> = HashMap::from([("i1", &item)]);
-        let view = build_active_session_view(&active, &item_index);
+        let view = build_active_session_view(&active, &item_index, &VariationLabels::new());
         assert_eq!(view.current_item_tempo_marking.as_deref(), Some("Allegro"));
         assert_eq!(view.current_item_tempo_bpm, Some(132));
     }
@@ -1416,7 +1481,7 @@ mod tests {
             current_item_started_at: Utc::now(),
             session_intention: None,
         };
-        let view = build_active_session_view(&active, &HashMap::new());
+        let view = build_active_session_view(&active, &HashMap::new(), &VariationLabels::new());
         assert!(view.current_item_tempo_marking.is_none());
         assert!(view.current_item_tempo_bpm.is_none());
     }
@@ -1442,7 +1507,7 @@ mod tests {
             reflection_still_rough: None,
             reflection_next_target: None,
         };
-        let view = build_summary_view(&summary);
+        let view = build_summary_view(&summary, &VariationLabels::new());
         assert_eq!(view.total_duration_display, "2m 30s");
         assert_eq!(view.session_intention.as_deref(), Some("focus"));
     }
@@ -1465,7 +1530,7 @@ mod tests {
             reflection_still_rough: None,
             reflection_next_target: None,
         };
-        let view = session_to_view(&session);
+        let view = session_to_view(&session, &VariationLabels::new());
         // Precise (live-timer) form keeps seconds; the summary line drops them.
         assert_eq!(view.total_duration_display, "45m 0s");
         assert_eq!(view.total_duration_summary, "45m");
@@ -1486,7 +1551,7 @@ mod tests {
             reflection_still_rough: None,
             reflection_next_target: None,
         };
-        let view = build_summary_view(&summary);
+        let view = build_summary_view(&summary, &VariationLabels::new());
         assert_eq!(view.session_score, Some(7));
     }
 
@@ -1506,7 +1571,7 @@ mod tests {
             reflection_still_rough: None,
             reflection_next_target: None,
         };
-        let view = session_to_view(&session);
+        let view = session_to_view(&session, &VariationLabels::new());
         assert_eq!(view.session_score, Some(5));
     }
 
@@ -1526,7 +1591,7 @@ mod tests {
             reflection_still_rough: Some("bridge rushes".to_string()),
             reflection_next_target: Some("bridge at 80".to_string()),
         };
-        let view = session_to_view(&session);
+        let view = session_to_view(&session, &VariationLabels::new());
         assert_eq!(view.reflection_improved, Some("bars 1-8 clean".to_string()));
         assert_eq!(
             view.reflection_still_rough,
@@ -1553,7 +1618,7 @@ mod tests {
             reflection_still_rough: Some("bridge rushes".to_string()),
             reflection_next_target: None,
         };
-        let view = build_summary_view(&summary);
+        let view = build_summary_view(&summary, &VariationLabels::new());
         assert_eq!(view.reflection_improved, None);
         assert_eq!(
             view.reflection_still_rough,
@@ -1635,5 +1700,79 @@ mod tests {
         let vm = app.view(&model);
         let summary = vm.summary.expect("model should be in Summary state");
         assert_eq!(summary.session_score, Some(7));
+    }
+
+    // ── Plays in the view (#1739) ──────────────────────────────────────
+
+    /// `VariationPlayView` crosses the bincode FFI wire inside every entry
+    /// view; guard it against the #846 silent-drop class.
+    #[test]
+    fn variation_play_view_round_trips_on_ffi_bincode_wire() {
+        crate::domain::types::assert_round_trips(VariationPlayView {
+            id: "p1".to_string(),
+            variation_id: Some("v-c".to_string()),
+            variation_label: Some("C".to_string()),
+            seconds: 180,
+            duration_display: "3m 0s".to_string(),
+            rep_target: Some(10),
+            rep_count: Some(4),
+            rep_target_reached: Some(false),
+            rep_history: Some(vec![RepEvent {
+                action: crate::domain::session::RepAction::Success,
+                at: Utc::now(),
+            }]),
+            achieved_tempo: Some(120),
+            click_pattern: None,
+            score: Some(6),
+        });
+    }
+
+    /// A variation deleted since the session was practised still has to say
+    /// what it was, which is what the tombstone is for.
+    #[test]
+    fn a_play_resolves_the_label_of_a_deleted_variation() {
+        let labels: VariationLabels = [("v-gone", "E flat")].into_iter().collect();
+        let play = VariationPlay {
+            variation_id: Some("v-gone".to_string()),
+            ..VariationPlay::fixture()
+        };
+
+        let view = play_to_view(&play, &labels);
+
+        assert_eq!(view.variation_label.as_deref(), Some("E flat"));
+    }
+
+    #[test]
+    fn an_unattributed_play_has_no_label() {
+        let labels = VariationLabels::new();
+        let view = play_to_view(&VariationPlay::fixture(), &labels);
+
+        assert_eq!(view.variation_id, None);
+        assert_eq!(view.variation_label, None);
+    }
+
+    #[test]
+    fn entry_to_view_carries_the_plays_and_their_mean() {
+        let labels = VariationLabels::new();
+        let entry = SetlistEntry {
+            plays: vec![
+                VariationPlay {
+                    id: "p1".to_string(),
+                    score: Some(8),
+                    ..VariationPlay::fixture()
+                },
+                VariationPlay {
+                    id: "p2".to_string(),
+                    score: Some(5),
+                    ..VariationPlay::fixture()
+                },
+            ],
+            ..SetlistEntry::fixture()
+        };
+
+        let view = entry_to_view(&entry, &labels);
+
+        assert_eq!(view.plays.len(), 2);
+        assert_eq!(view.score_summary, Some(7));
     }
 }

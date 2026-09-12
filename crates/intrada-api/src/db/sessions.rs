@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use intrada_core::domain::item::ItemKind;
 use intrada_core::domain::session::{
     CompletionStatus, EntryStatus, PracticeSession, RepAction, RepEvent, SetlistEntry,
+    VariationPlay,
 };
 
 use super::{col, item_kind_from_str, item_kind_to_str};
@@ -129,6 +130,32 @@ const ENTRY_COLUMNS: &str = "id, item_id, item_title, item_type, position, durat
 /// and the batch entry query so filter clauses stay in sync (#152).
 const SESSION_IDS_FOR_USER: &str = "SELECT id FROM sessions WHERE user_id = ?1";
 
+/// The server stores one column set per entry, so it round-trips as the single
+/// play a client would have recorded. An entry that was neither practised nor
+/// recorded anything gets no play, which is what a skipped entry means (#1739
+/// decision 3). A skipped entry that banked repetitions keeps one, the same rule
+/// the shell's fold applies, so the two cannot drift.
+fn single_play(entry: &SaveSessionEntry, session_started_at: DateTime<Utc>) -> Vec<VariationPlay> {
+    let recorded = entry.score.is_some() || entry.rep_count.unwrap_or(0) > 0;
+    if entry.status != EntryStatus::Completed && !recorded {
+        return Vec::new();
+    }
+
+    vec![VariationPlay {
+        id: format!("{}-play", entry.id),
+        variation_id: None,
+        started_at: session_started_at,
+        seconds: entry.duration_secs,
+        rep_target: entry.rep_target,
+        rep_count: entry.rep_count,
+        rep_target_reached: entry.rep_target_reached,
+        rep_history: entry.rep_history.clone(),
+        achieved_tempo: entry.achieved_tempo,
+        click_pattern: None,
+        score: entry.score,
+    }]
+}
+
 /// Parse an entry row into a SetlistEntry (columns 0–14 matching [`ENTRY_COLUMNS`]).
 fn row_to_entry(
     row: &libsql::Row,
@@ -158,6 +185,31 @@ fn row_to_entry(
     let achieved_tempo_raw: Option<i64> = col!(row, 15)?;
     let achieved_tempo = achieved_tempo_raw.map(|v| v as u16);
 
+    // The server's columns are one set per entry, so they fold into the single
+    // play the client would have recorded. An entry neither practised nor
+    // carrying a mark or a repetition keeps none, which is what a zero-play
+    // entry means (#1739 decision 3). Same rule as `single_play` and as the
+    // shell's fold, so none of the three can drift.
+    let status = entry_status_from_str(&status_str)?;
+    let recorded = score.is_some() || rep_count.unwrap_or(0) > 0;
+    let plays = if status == EntryStatus::Completed || recorded {
+        vec![VariationPlay {
+            id: format!("{id}-play"),
+            variation_id: None,
+            started_at: session_started_at,
+            seconds: duration_secs as u64,
+            rep_target: rep_target.map(|v| v as u8),
+            rep_count: rep_count.map(|v| v as u8),
+            rep_target_reached: rep_target_reached.map(|v| v != 0),
+            rep_history,
+            achieved_tempo,
+            click_pattern: None,
+            score: score.map(|s| s as u8),
+        }]
+    } else {
+        Vec::new()
+    };
+
     Ok(SetlistEntry {
         id,
         item_id,
@@ -165,19 +217,14 @@ fn row_to_entry(
         item_type,
         position: position as usize,
         duration_secs: duration_secs as u64,
-        status: entry_status_from_str(&status_str)?,
+        status,
         notes,
-        score: score.map(|s| s as u8),
         intention,
-        rep_target: rep_target.map(|v| v as u8),
-        rep_count: rep_count.map(|v| v as u8),
-        rep_target_reached: rep_target_reached.map(|v| v != 0),
-        rep_history,
         planned_duration_secs,
-        achieved_tempo,
         group_id: None,
-        variant_id: None,
-        click_pattern: None,
+        planned_variation_id: None,
+        planned_rep_target: None,
+        plays,
     })
 }
 
@@ -379,6 +426,9 @@ pub async fn insert_session(
         let mut entries = Vec::with_capacity(input.entries.len());
         for entry in &input.entries {
             let status_str = entry_status_to_str(&entry.status);
+            // The wire shape stays one column set per entry: plays are
+            // local-first until the sync engine, as `variant_id` and `group_id`
+            // are (#1739, invariant 6 consciously scoped).
             let score_val: Option<i64> = entry.score.map(|s| s as i64);
             let rep_target_val: Option<i64> = entry.rep_target.map(|v| v as i64);
             let rep_count_val: Option<i64> = entry.rep_count.map(|v| v as i64);
@@ -427,17 +477,12 @@ pub async fn insert_session(
                 duration_secs: entry.duration_secs,
                 status: entry.status.clone(),
                 notes: entry.notes.clone(),
-                score: entry.score,
                 intention: entry.intention.clone(),
-                rep_target: entry.rep_target,
-                rep_count: entry.rep_count,
-                rep_target_reached: entry.rep_target_reached,
-                rep_history: entry.rep_history.clone(),
                 planned_duration_secs: entry.planned_duration_secs,
-                achieved_tempo: entry.achieved_tempo,
                 group_id: None,
-                variant_id: None,
-                click_pattern: None,
+                planned_variation_id: None,
+                planned_rep_target: None,
+                plays: single_play(entry, input.started_at),
             });
         }
 

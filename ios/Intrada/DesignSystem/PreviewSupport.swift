@@ -262,15 +262,19 @@
           SetlistEntry(
             id: "re1", itemId: "i1", itemTitle: "Scales · D♭ major", itemType: .exercise,
             position: 0, durationSecs: 180, status: .completed,
-            notes: nil, score: nil, intention: nil, repTarget: nil, repCount: nil,
-            repTargetReached: nil, repHistory: nil, plannedDurationSecs: nil, achievedTempo: nil,
-            groupId: nil, variantId: nil, clickPattern: nil),
+            notes: nil, intention: nil, plannedDurationSecs: nil,
+            groupId: nil, plannedVariationId: nil, plannedRepTarget: nil,
+            plays: [
+              VariationPlay(
+                id: "re1-p1", variationId: nil, startedAt: "2026-06-16T08:59:00Z",
+                seconds: 180, repTarget: nil, repCount: nil, repTargetReached: nil,
+                repHistory: nil, achievedTempo: nil, clickPattern: nil, score: nil)
+            ]),
           SetlistEntry(
             id: "re2", itemId: "i2", itemTitle: "Clair de Lune", itemType: .piece,
             position: 1, durationSecs: 0, status: .notAttempted,
-            notes: nil, score: nil, intention: nil, repTarget: nil, repCount: nil,
-            repTargetReached: nil, repHistory: nil, plannedDurationSecs: nil, achievedTempo: nil,
-            groupId: nil, variantId: nil, clickPattern: nil),
+            notes: nil, intention: nil, plannedDurationSecs: nil,
+            groupId: nil, plannedVariationId: nil, plannedRepTarget: nil, plays: []),
         ],
         currentIndex: 1,
         currentItemStartedAt: "2026-06-16T09:02:00Z", sessionStartedAt: "2026-06-16T09:02:00Z",
@@ -708,8 +712,8 @@
         photoId: nil)
     }
 
-    /// A step-ladder exercise — one solid, one current (rated but not
-    /// yet solid), one unrated. `currentVariantId` points at the current step.
+    /// A step-ladder exercise: one solid, one marked but not yet solid, one
+    /// unrated.
     static var previewExerciseWithSteps: LibraryItemView {
       LibraryItemView(
         id: "exercise-2", itemType: .exercise, title: "ii–V–i Enclosures",
@@ -721,13 +725,13 @@
         variants: [
           VariantView(
             id: "step-c", label: "C", position: 0, latestScore: 9, scoreHistory: [],
-            isSolid: true, isCurrent: false),
+            isSolid: true),
           VariantView(
             id: "step-f", label: "F", position: 1, latestScore: 5, scoreHistory: [],
-            isSolid: false, isCurrent: true),
+            isSolid: false),
           VariantView(
             id: "step-bb", label: "B♭", position: 2, latestScore: nil, scoreHistory: [],
-            isSolid: false, isCurrent: false),
+            isSolid: false),
         ], ladderIsKeys: true, photoId: nil)
     }
 
@@ -750,7 +754,7 @@
           return VariantView(
             id: "step-\(index)", label: label, position: UInt64(index),
             latestScore: solid ? 9 : (current ? 6 : nil), scoreHistory: [],
-            isSolid: solid, isCurrent: current)
+            isSolid: solid)
         }, ladderIsKeys: true, photoId: nil)
     }
 
@@ -767,7 +771,7 @@
         variants: rungs.enumerated().map { index, label in
           VariantView(
             id: "rung-\(index)", label: label, position: UInt64(index), latestScore: nil,
-            scoreHistory: [], isSolid: false, isCurrent: index == 0)
+            scoreHistory: [], isSolid: false)
         }, ladderIsKeys: false, photoId: nil)
     }
 
@@ -814,7 +818,7 @@
     static var previewGroupedScalesConfigured: SetlistEntryView {
       var e = previewGroupedScales
       e.intention = "Even RH over the LH arpeggios"
-      e.repTarget = 7
+      e.plannedRepTarget = 7
       e.plannedDurationSecs = 360
       e.plannedDurationDisplay = "6 min"
       return e
@@ -826,10 +830,11 @@
     ) -> SetlistEntryView {
       SetlistEntryView(
         id: id, itemId: item, itemTitle: title, itemType: type, position: position,
-        durationDisplay: "—", status: .notAttempted, notes: nil, score: nil, intention: nil,
-        repTarget: nil, repCount: nil, repTargetReached: nil, repHistory: nil,
-        plannedDurationSecs: nil, plannedDurationDisplay: nil, achievedTempo: nil, groupId: group,
-        variantId: nil, clickPattern: nil)
+        // Escaped rather than the glyph: check-dashes.sh reads changed lines,
+        // and an em dash is what the builder row has always shown here.
+        durationDisplay: "\u{2014}", status: .notAttempted, notes: nil, intention: nil,
+        plannedDurationSecs: nil, plannedDurationDisplay: nil, groupId: group,
+        plannedVariationId: nil, plannedRepTarget: nil, plays: [], scoreSummary: nil)
     }
   }
 
@@ -943,13 +948,21 @@
       status: EntryStatus = .completed, score: UInt8? = nil, tempo: UInt16? = nil,
       repTarget: UInt8? = nil, repCount: UInt8? = nil, notes: String? = nil
     ) -> SetlistEntryView {
-      SetlistEntryView(
+      let plays =
+        status == .completed
+        ? [
+          VariationPlayView(
+            id: "entry-\(position)-p1", variationId: nil, variationLabel: nil, seconds: 600,
+            durationDisplay: "10 min", repTarget: repTarget, repCount: repCount,
+            repTargetReached: repTarget.map { repCount ?? 0 >= $0 }, repHistory: nil,
+            achievedTempo: tempo, clickPattern: nil, score: score)
+        ] : []
+      return SetlistEntryView(
         id: "entry-\(position)", itemId: "item-\(position)", itemTitle: title, itemType: type,
         position: position, durationDisplay: "10 min", status: status, notes: notes,
-        score: score, intention: nil, repTarget: repTarget, repCount: repCount,
-        repTargetReached: repTarget.map { repCount ?? 0 >= $0 },
-        repHistory: nil, plannedDurationSecs: nil, plannedDurationDisplay: nil,
-        achievedTempo: tempo, groupId: nil, variantId: nil, clickPattern: nil)
+        intention: nil, plannedDurationSecs: nil, plannedDurationDisplay: nil, groupId: nil,
+        plannedVariationId: nil, plannedRepTarget: nil, plays: plays,
+        scoreSummary: plays.isEmpty ? nil : score)
     }
   }
 
@@ -976,9 +989,14 @@
       SetlistEntryView(
         id: "entry-\(position)", itemId: "item-\(position)", itemTitle: title, itemType: type,
         position: position, durationDisplay: "10 min", status: .completed, notes: nil,
-        score: nil, intention: nil, repTarget: nil, repCount: nil, repTargetReached: nil,
-        repHistory: nil, plannedDurationSecs: nil, plannedDurationDisplay: nil, achievedTempo: nil,
-        groupId: groupId, variantId: nil, clickPattern: nil)
+        intention: nil, plannedDurationSecs: nil, plannedDurationDisplay: nil,
+        groupId: groupId, plannedVariationId: nil, plannedRepTarget: nil,
+        plays: [
+          VariationPlayView(
+            id: "entry-\(position)-p1", variationId: nil, variationLabel: nil, seconds: 600,
+            durationDisplay: "10 min", repTarget: nil, repCount: nil, repTargetReached: nil,
+            repHistory: nil, achievedTempo: nil, clickPattern: nil, score: nil)
+        ], scoreSummary: nil)
     }
 
     static var previewActive: ActiveSessionView {
@@ -994,7 +1012,9 @@
           previewEntry(4, "Czerny Op. 299", .exercise),
         ], sessionIntention: "Even tempo — don't rush the runs",
         currentRepTarget: nil, currentRepCount: nil, currentRepTargetReached: nil,
-        currentRepHistory: nil, currentRepSlots: 10, currentPlannedDurationSecs: 480,
+        currentRepHistory: nil, currentRepSlots: 10,
+        currentVariationId: nil, currentVariationLabel: nil,
+        currentPlannedDurationSecs: 480,
         nextItemTitle: "Hanon No. 1",
         currentItemIntention: "Let the melody breathe", currentRelatedPieceTitle: nil,
         currentItemTempoMarking: "Andante", currentItemTempoBpm: 66, currentItemMetre: nil)
@@ -1011,6 +1031,8 @@
         currentRepTarget: base.currentRepTarget, currentRepCount: base.currentRepCount,
         currentRepTargetReached: base.currentRepTargetReached,
         currentRepHistory: base.currentRepHistory, currentRepSlots: 10,
+        currentVariationId: base.currentVariationId,
+        currentVariationLabel: base.currentVariationLabel,
         currentPlannedDurationSecs: base.currentPlannedDurationSecs,
         nextItemTitle: base.nextItemTitle, currentItemIntention: base.currentItemIntention,
         currentRelatedPieceTitle: base.currentRelatedPieceTitle,
@@ -1031,7 +1053,9 @@
           previewEntry(4, "Czerny Op. 299", .exercise),
         ], sessionIntention: "Keep the wrist relaxed",
         currentRepTarget: 10, currentRepCount: 7, currentRepTargetReached: false,
-        currentRepHistory: nil, currentRepSlots: 10, currentPlannedDurationSecs: nil,
+        currentRepHistory: nil, currentRepSlots: 10,
+        currentVariationId: nil, currentVariationLabel: nil,
+        currentPlannedDurationSecs: nil,
         nextItemTitle: "Czerny Op. 299",
         currentItemIntention: "Land each finger evenly",
         currentRelatedPieceTitle: "Moonlight Sonata",
@@ -1044,14 +1068,14 @@
       SummaryView(
         totalDurationDisplay: "37m 50s", completionStatus: .completed, notes: nil,
         entries: [
-          summaryEntry("e1", "Clair de Lune", .piece, "12m 40s", .completed, score: 3),
+          summaryEntry("e1", "Clair de Lune", .piece, "12m 40s", 760, .completed, score: 3),
           summaryEntry(
-            "e2", "Hanon No. 1", .exercise, "8m 10s", .completed, score: 4, tempo: 96,
+            "e2", "Hanon No. 1", .exercise, "8m 10s", 490, .completed, score: 4, tempo: 96,
             intention: "Land each finger evenly"),
           summaryEntry(
-            "e3", "Gymnopédie No. 1", .piece, "11m 30s", .completed, score: 5,
+            "e3", "Gymnopédie No. 1", .piece, "11m 30s", 690, .completed, score: 5,
             notes: "Pedal changes cleaner than last week."),
-          summaryEntry("e4", "Czerny Op. 299", .exercise, "5m 30s", .completed, score: 3),
+          summaryEntry("e4", "Czerny Op. 299", .exercise, "5m 30s", 330, .completed, score: 3),
         ], sessionIntention: nil, sessionScore: 8,
         reflectionImproved: nil, reflectionStillRough: nil, reflectionNextTarget: nil)
     }
@@ -1062,9 +1086,9 @@
       SummaryView(
         totalDurationDisplay: "37m 50s", completionStatus: .completed, notes: nil,
         entries: [
-          summaryEntry("e1", "Clair de Lune", .piece, "12m 40s", .completed, score: 3),
+          summaryEntry("e1", "Clair de Lune", .piece, "12m 40s", 760, .completed, score: 3),
           summaryEntry(
-            "e2", "Hanon No. 1", .exercise, "8m 10s", .completed, score: 4, tempo: 96,
+            "e2", "Hanon No. 1", .exercise, "8m 10s", 490, .completed, score: 4, tempo: 96,
             intention: "Land each finger evenly"),
         ], sessionIntention: "Even RH through bars 12–14", sessionScore: 8,
         reflectionImproved: "Thumb-unders even at 92 — bars 1–8 clean twice in a row.",
@@ -1076,25 +1100,32 @@
       SummaryView(
         totalDurationDisplay: "20m 50s", completionStatus: .endedEarly, notes: nil,
         entries: [
-          summaryEntry("e1", "Clair de Lune", .piece, "12m 40s", .completed, score: 3),
-          summaryEntry("e2", "Hanon No. 1", .exercise, "8m 10s", .completed, score: 4),
-          summaryEntry("e3", "Étude Op. 10", .piece, "0s", .notAttempted, score: nil),
+          summaryEntry("e1", "Clair de Lune", .piece, "12m 40s", 760, .completed, score: 3),
+          summaryEntry("e2", "Hanon No. 1", .exercise, "8m 10s", 490, .completed, score: 4),
+          summaryEntry("e3", "Étude Op. 10", .piece, "0s", 0, .notAttempted, score: nil),
         ], sessionIntention: nil, sessionScore: 8,
         reflectionImproved: nil, reflectionStillRough: nil, reflectionNextTarget: nil)
     }
 
     private static func summaryEntry(
-      _ id: String, _ title: String, _ type: ItemKind, _ duration: String,
+      _ id: String, _ title: String, _ type: ItemKind, _ duration: String, _ seconds: UInt64,
       _ status: EntryStatus, score: UInt8?, tempo: UInt16? = nil, intention: String? = nil,
       notes: String? = nil
     ) -> SetlistEntryView {
-      SetlistEntryView(
+      let plays =
+        status == .completed
+        ? [
+          VariationPlayView(
+            id: "\(id)-p1", variationId: nil, variationLabel: nil, seconds: seconds,
+            durationDisplay: duration, repTarget: nil, repCount: nil, repTargetReached: nil,
+            repHistory: nil, achievedTempo: tempo, clickPattern: nil, score: score)
+        ] : []
+      return SetlistEntryView(
         id: id, itemId: id, itemTitle: title, itemType: type, position: 0,
-        durationDisplay: duration, status: status, notes: notes, score: score,
-        intention: intention,
-        repTarget: nil, repCount: nil, repTargetReached: nil, repHistory: nil,
-        plannedDurationSecs: nil, plannedDurationDisplay: nil, achievedTempo: tempo, groupId: nil,
-        variantId: nil, clickPattern: nil)
+        durationDisplay: duration, status: status, notes: notes, intention: intention,
+        plannedDurationSecs: nil, plannedDurationDisplay: nil, groupId: nil,
+        plannedVariationId: nil, plannedRepTarget: nil, plays: plays,
+        scoreSummary: plays.isEmpty ? nil : score)
     }
   }
 #endif

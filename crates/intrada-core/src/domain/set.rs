@@ -198,17 +198,12 @@ pub fn handle_set_event(event: SetEvent, model: &mut Model) -> Command<Effect, E
                     duration_secs: 0,
                     status: EntryStatus::NotAttempted,
                     notes: None,
-                    score: None,
                     intention: None,
-                    rep_target: None,
-                    rep_count: None,
-                    rep_target_reached: None,
-                    rep_history: None,
                     planned_duration_secs: None,
-                    achieved_tempo: None,
                     group_id: None,
-                    variant_id: None,
-                    click_pattern: None,
+                    planned_variation_id: None,
+                    planned_rep_target: None,
+                    plays: Vec::new(),
                 });
             }
 
@@ -363,20 +358,7 @@ mod tests {
                 item_title: "Long Tones".to_string(),
                 item_type: ItemKind::Exercise,
                 position: 0,
-                duration_secs: 0,
-                status: EntryStatus::NotAttempted,
-                notes: None,
-                score: None,
-                intention: None,
-                rep_target: None,
-                rep_count: None,
-                rep_target_reached: None,
-                rep_history: None,
-                planned_duration_secs: None,
-                achieved_tempo: None,
-                group_id: None,
-                variant_id: None,
-                click_pattern: None,
+                ..SetlistEntry::fixture()
             },
             SetlistEntry {
                 id: "entry-2".to_string(),
@@ -384,20 +366,7 @@ mod tests {
                 item_title: "C Major Scale".to_string(),
                 item_type: ItemKind::Exercise,
                 position: 1,
-                duration_secs: 0,
-                status: EntryStatus::NotAttempted,
-                notes: None,
-                score: None,
-                intention: None,
-                rep_target: None,
-                rep_count: None,
-                rep_target_reached: None,
-                rep_history: None,
-                planned_duration_secs: None,
-                achieved_tempo: None,
-                group_id: None,
-                variant_id: None,
-                click_pattern: None,
+                ..SetlistEntry::fixture()
             },
         ]
     }
@@ -616,20 +585,7 @@ mod tests {
             item_title: "Existing Item".to_string(),
             item_type: ItemKind::Piece,
             position: 0,
-            duration_secs: 0,
-            status: EntryStatus::NotAttempted,
-            notes: None,
-            score: None,
-            intention: None,
-            rep_target: None,
-            rep_count: None,
-            rep_target_reached: None,
-            rep_history: None,
-            planned_duration_secs: None,
-            achieved_tempo: None,
-            group_id: None,
-            variant_id: None,
-            click_pattern: None,
+            ..SetlistEntry::fixture()
         }]);
         model.sets.push(set);
 
@@ -656,7 +612,7 @@ mod tests {
             assert_eq!(b.entries[1].duration_secs, 0);
             assert_eq!(b.entries[1].status, EntryStatus::NotAttempted);
             assert!(b.entries[1].notes.is_none());
-            assert!(b.entries[1].score.is_none());
+            assert!(b.entries[1].plays.is_empty());
         } else {
             panic!("Expected building status");
         }
@@ -973,20 +929,7 @@ mod tests {
                 item_title: "Arpeggios".to_string(),
                 item_type: ItemKind::Exercise,
                 position: 2,
-                duration_secs: 0,
-                status: EntryStatus::NotAttempted,
-                notes: None,
-                score: None,
-                intention: None,
-                rep_target: None,
-                rep_count: None,
-                rep_target_reached: None,
-                rep_history: None,
-                planned_duration_secs: None,
-                achieved_tempo: None,
-                group_id: None,
-                variant_id: None,
-                click_pattern: None,
+                ..SetlistEntry::fixture()
             });
         }
 
@@ -1030,20 +973,7 @@ mod tests {
                 item_title: "Arpeggios".to_string(),
                 item_type: ItemKind::Exercise,
                 position: 2,
-                duration_secs: 0,
-                status: EntryStatus::NotAttempted,
-                notes: None,
-                score: None,
-                intention: None,
-                rep_target: None,
-                rep_count: None,
-                rep_target_reached: None,
-                rep_history: None,
-                planned_duration_secs: None,
-                achieved_tempo: None,
-                group_id: None,
-                variant_id: None,
-                click_pattern: None,
+                ..SetlistEntry::fixture()
             });
         }
 

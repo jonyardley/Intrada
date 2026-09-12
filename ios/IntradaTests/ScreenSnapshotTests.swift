@@ -561,21 +561,6 @@ final class ScreenSnapshotTests: XCTestCase {
     assertSnapshot(of: host(sheet), as: config)
   }
 
-  // #1083 C2: Step picker, pre-selected to the current (not-yet-solid) step.
-  func testReflectionSheetWithStepPicker() {
-    let sheet = ZStack(alignment: .bottom) {
-      PaperBackground()
-      ReflectionSheet(
-        itemTitle: "ii–V–i Enclosures", elapsedDisplay: "7:00", tempoTarget: nil,
-        variants: LibraryItemView.previewExerciseWithSteps.variants,
-        currentVariantId: LibraryItemView.previewExerciseWithSteps.variants.first(
-          where: \.isCurrent
-        )?.id,
-        onSave: { _ in }, onSkip: {})
-    }
-    assertSnapshot(of: host(sheet), as: config)
-  }
-
   func testMasteryDial() {
     let dial = ZStack {
       PaperBackground()

@@ -494,8 +494,8 @@ final class StoreEffectLoopTests: XCTestCase {
 
   /// Real-bridge step round-trip (#846, #1083): `AddVariant` pushes a `Variant`
   /// onto the exercise, which then rides the whole `Item` and the derived
-  /// `steps`/`currentVariantId` back across the bincode wire — a shape the stub
-  /// bridge can't exercise. A wire break would drop the ladder silently.
+  /// ladder back across the bincode wire, a shape the stub bridge can't
+  /// exercise. A wire break would drop the ladder silently.
   func testRealBridgeAddVariantSurfacesStepsInViewModel() throws {
     let bridge = LiveBridge()
     _ = try bridge.update(.startApp(apiBaseUrl: "http://localhost:3001", localFirst: true))
@@ -516,9 +516,6 @@ final class StoreEffectLoopTests: XCTestCase {
       ex.variants.map(\.label), ["F major", "Bb major"],
       "steps round-trip the live bridge in ladder order (err=\(view.error ?? "nil"))")
     XCTAssertFalse(ex.variants.contains { $0.isSolid }, "unpractised steps aren't solid")
-    XCTAssertEqual(
-      ex.variants.first?.isCurrent, true,
-      "current step is the first not-yet-solid step")
   }
 
   /// Real-bridge wire pin (#846, #1467): a `Bool` that never made it across
@@ -708,7 +705,7 @@ final class StoreEffectLoopTests: XCTestCase {
     XCTAssertNil(try bridge.view().error, "clearing the rung round-trips")
   }
 
-  private func bridgeWithCompletedEntry() throws -> (LiveBridge, String) {
+  private func bridgeWithCompletedEntry() throws -> (LiveBridge, String, String) {
     let bridge = LiveBridge()
     _ = try bridge.update(.startApp(apiBaseUrl: "http://localhost:3001", localFirst: true))
     _ = try bridge.update(
@@ -736,7 +733,10 @@ final class StoreEffectLoopTests: XCTestCase {
     XCTAssertEqual(
       entries.first?.status, .completed,
       "the negative test must be asserting against a real completed entry")
-    return (bridge, try XCTUnwrap(entries.first?.id))
+    let entry = try XCTUnwrap(entries.first)
+    let playId = try XCTUnwrap(
+      entry.plays.last?.id, "a completed entry records the stretch it was practised as")
+    return (bridge, entry.id, playId)
   }
 
   /// Real-bridge wire pin for the pass counter (#1367): the timestamped tap
@@ -784,20 +784,21 @@ final class StoreEffectLoopTests: XCTestCase {
   /// in 7/8 with the click on group starts; the core must store 84 crotchets
   /// and the pattern that earned it, and both must come back across the wire.
   func testRealBridgeStoresAQuaverTempoAsCrotchetsWithItsPattern() throws {
-    let (bridge, entryId) = try bridgeWithCompletedEntry()
+    let (bridge, entryId, playId) = try bridgeWithCompletedEntry()
     let pattern = ClickState(
       metre: Metre(beats: 7, unit: 8, groups: [3, 2, 2]), sounding: 0b0101001)
 
     _ = try bridge.update(
       .session(
         .updateEntryTempo(
-          entryId: entryId, tempo: 168,
+          entryId: entryId, playId: playId, tempo: 168,
           observed: TempoObservation(userSet: false, clickSounding: true), click: pattern)))
 
     let entry = try XCTUnwrap(
       try bridge.view().activeSession?.entries.first { $0.id == entryId })
-    XCTAssertEqual(entry.achievedTempo, 84, "stored in crotchets, not quavers")
-    XCTAssertEqual(entry.clickPattern, pattern)
+    let play = try XCTUnwrap(entry.plays.last)
+    XCTAssertEqual(play.achievedTempo, 84, "stored in crotchets, not quavers")
+    XCTAssertEqual(play.clickPattern, pattern)
   }
 
   /// Real-bridge round trip for the item's metre (#1499): `SetMetre` carries an
@@ -827,34 +828,37 @@ final class StoreEffectLoopTests: XCTestCase {
   /// core's ruling has to hold end to end. A wire break would let an
   /// unevidenced default through, and the trend would draw it as a measurement.
   func testRealBridgeRecordsATempoTheUserSetThemselves() throws {
-    let (bridge, entryId) = try bridgeWithCompletedEntry()
+    let (bridge, entryId, playId) = try bridgeWithCompletedEntry()
 
     _ = try bridge.update(
       .session(
         .updateEntryTempo(
-          entryId: entryId, tempo: 132,
+          entryId: entryId, playId: playId, tempo: 132,
           observed: TempoObservation(userSet: true, clickSounding: false), click: nil)))
 
     let view = try bridge.view()
     XCTAssertNil(view.error, "the observation must decode on the wire (#846)")
     XCTAssertEqual(
-      view.activeSession?.entries.first?.achievedTempo, 132,
+      view.activeSession?.entries.first?.plays.last?.achievedTempo, 132,
       "a tempo the user set themselves is a measurement")
   }
 
   func testRealBridgeDoesNotRecordAnUntouchedPreFill() throws {
-    let (bridge, entryId) = try bridgeWithCompletedEntry()
+    let (bridge, entryId, playId) = try bridgeWithCompletedEntry()
 
     _ = try bridge.update(
       .session(
         .updateEntryTempo(
-          entryId: entryId, tempo: 96,
+          entryId: entryId, playId: playId, tempo: 96,
           observed: TempoObservation(userSet: false, clickSounding: false), click: nil)))
 
     let view = try bridge.view()
     XCTAssertNil(view.error, "declining to record is a silent success, not an error")
+    let play = try XCTUnwrap(
+      view.activeSession?.entries.first?.plays.last,
+      "the play the tempo was declined for is still on the entry")
     XCTAssertNil(
-      view.activeSession?.entries.first?.achievedTempo,
+      play.achievedTempo,
       "a pre-fill nobody looked at leaves no point for the trend to draw")
   }
 
@@ -1196,10 +1200,17 @@ final class StoreEffectLoopTests: XCTestCase {
     // Optional-payload events crossing bincode (the absent-vs-present wire
     // hazard, #846): set then clear a score and the session notes.
     let entryId = try XCTUnwrap(summary.summary?.entries.first?.id)
-    _ = try bridge.update(.session(.updateEntryScore(entryId: entryId, score: 4)))
-    XCTAssertEqual(try bridge.view().summary?.entries.first?.score, 4, "score should round-trip")
-    _ = try bridge.update(.session(.updateEntryScore(entryId: entryId, score: nil)))
-    XCTAssertNil(try bridge.view().summary?.entries.first?.score, "clearing a score round-trips")
+    let playId = try XCTUnwrap(summary.summary?.entries.first?.plays.last?.id)
+    _ = try bridge.update(
+      .session(.updateEntryScore(entryId: entryId, playId: playId, score: 4)))
+    XCTAssertEqual(
+      try bridge.view().summary?.entries.first?.plays.last?.score, 4,
+      "score should round-trip")
+    _ = try bridge.update(
+      .session(.updateEntryScore(entryId: entryId, playId: playId, score: nil)))
+    XCTAssertNil(
+      try bridge.view().summary?.entries.first?.plays.last?.score,
+      "clearing a score round-trips")
     // Per-entry notes — the hand-off reflection sheet's write, never previously
     // sent from Swift (#846). Round-trip set + clear through the live bridge.
     _ = try bridge.update(
@@ -1215,18 +1226,18 @@ final class StoreEffectLoopTests: XCTestCase {
     _ = try bridge.update(
       .session(
         .updateEntryTempo(
-          entryId: entryId, tempo: 96,
+          entryId: entryId, playId: playId, tempo: 96,
           observed: TempoObservation(userSet: true, clickSounding: false), click: nil)))
     XCTAssertEqual(
-      try bridge.view().summary?.entries.first?.achievedTempo, 96,
+      try bridge.view().summary?.entries.first?.plays.last?.achievedTempo, 96,
       "the tempo stepper's achieved tempo should round-trip")
     _ = try bridge.update(
       .session(
         .updateEntryTempo(
-          entryId: entryId, tempo: nil,
+          entryId: entryId, playId: playId, tempo: nil,
           observed: TempoObservation(userSet: true, clickSounding: false), click: nil)))
     XCTAssertNil(
-      try bridge.view().summary?.entries.first?.achievedTempo,
+      try bridge.view().summary?.entries.first?.plays.last?.achievedTempo,
       "clearing an achieved tempo round-trips")
     _ = try bridge.update(.session(.updateSessionNotes(notes: "Felt good")))
     XCTAssertEqual(try bridge.view().summary?.notes, "Felt good", "notes should round-trip")
@@ -1261,9 +1272,8 @@ final class StoreEffectLoopTests: XCTestCase {
     let blobEntry = SetlistEntry(
       id: "re1", itemId: "i1", itemTitle: "Recovered Scales", itemType: .exercise,
       position: 0, durationSecs: 0, status: .notAttempted,
-      notes: nil, score: nil, intention: nil, repTarget: nil, repCount: nil,
-      repTargetReached: nil, repHistory: nil, plannedDurationSecs: nil, achievedTempo: nil,
-      groupId: nil, variantId: nil, clickPattern: nil)
+      notes: nil, intention: nil, plannedDurationSecs: nil,
+      groupId: nil, plannedVariationId: nil, plannedRepTarget: nil, plays: [])
     let blob = ActiveSession(
       id: "recovered", entries: [blobEntry], currentIndex: 0,
       currentItemStartedAt: "2026-06-16T08:00:00Z", sessionStartedAt: "2026-06-16T08:00:00Z",
@@ -1300,7 +1310,6 @@ final class StoreEffectLoopTests: XCTestCase {
       ladder.map(\.label), ["C", "F", "B♭"],
       "the ladder should land (err=\(afterSet.error ?? "nil"))")
     XCTAssertTrue(ladder.allSatisfy { !$0.isSolid }, "an unrated ladder has no solid steps")
-    XCTAssertEqual(ladder.first?.isCurrent, true, "an unrated ladder starts at step one")
     let stepId = try XCTUnwrap(ladder.first?.id)
 
     // Reorder must keep ids (and so score history); reconcile-by-label.
@@ -1309,22 +1318,19 @@ final class StoreEffectLoopTests: XCTestCase {
     XCTAssertEqual(
       reordered.first { $0.label == "C" }?.id, stepId, "reordering keeps each step's id")
 
-    // Practise it to the summary, then attribute the entry to a step + clear.
+    // #1739 makes SetEntryVariant the builder's plan, so set + clear it there.
     _ = try bridge.update(.session(.startBuilding))
     _ = try bridge.update(.session(.addToSetlist(itemId: exId)))
-    _ = try bridge.update(.session(.startSession(now: "2026-07-17T10:00:00Z")))
-    _ = try bridge.update(.session(.nextItem(now: "2026-07-17T10:10:00Z")))
-    let summary = try bridge.view()
-    let entryId = try XCTUnwrap(summary.summary?.entries.first?.id)
+    let entryId = try XCTUnwrap(try bridge.view().buildingSetlist?.entries.first?.id)
 
     _ = try bridge.update(.session(.setEntryVariant(entryId: entryId, variantId: stepId)))
     let attributed = try bridge.view()
     XCTAssertEqual(
-      attributed.summary?.entries.first?.variantId, stepId,
+      attributed.buildingSetlist?.entries.first?.plannedVariationId, stepId,
       "the step attribution should round-trip (err=\(attributed.error ?? "nil"))")
     _ = try bridge.update(.session(.setEntryVariant(entryId: entryId, variantId: nil)))
     XCTAssertNil(
-      try bridge.view().summary?.entries.first?.variantId,
+      try bridge.view().buildingSetlist?.entries.first?.plannedVariationId,
       "clearing the attribution round-trips")
   }
 
@@ -1538,13 +1544,13 @@ final class StoreEffectLoopTests: XCTestCase {
     }
   }
 
-  /// Real-bridge full-field round trip for `SetlistEntryView` (#846, #1083,
-  /// #1420, #1499): drives every setter that reaches a single entry
-  /// (intention, rep target, planned duration, ladder attribution, block
-  /// grouping, reps, tempo + click pattern, notes, score) and asserts every
-  /// field of the resulting projection, so a dropped field anywhere on this
-  /// 20-field struct fails here even though each setter's own dedicated
-  /// spot-check elsewhere would stay green.
+  /// Real-bridge full-field round trip for `SetlistEntryView` and the
+  /// `VariationPlayView` under it (#846, #1083, #1420, #1499, #1739): drives
+  /// every setter that reaches a single entry (intention, rep target, planned
+  /// duration, ladder attribution, block grouping, reps, tempo + click pattern,
+  /// notes, score) and asserts every field of the resulting projection, so a
+  /// dropped field anywhere in that pair fails here even though each setter's
+  /// own dedicated spot-check elsewhere would stay green.
   func testRealBridgeSessionEntryFullFieldRoundTrip() throws {
     let bridge = LiveBridge()
     _ = try bridge.update(.startApp(apiBaseUrl: "http://localhost:3001", localFirst: true))
@@ -1589,15 +1595,20 @@ final class StoreEffectLoopTests: XCTestCase {
     _ = try bridge.update(.session(.repGotIt(now: "2026-09-04T09:03:30Z")))
     _ = try bridge.update(.session(.nextItem(now: "2026-09-04T09:04:00Z")))
 
+    let playId = try XCTUnwrap(
+      try bridge.view().activeSession?.entries.first { $0.id == entryId }?.plays.last?.id,
+      "the completed entry records the stretch it was practised as")
+
     let click = ClickState(metre: Metre(beats: 4, unit: 8, groups: [2, 2]), sounding: 0b0101)
     _ = try bridge.update(
       .session(
         .updateEntryTempo(
-          entryId: entryId, tempo: 176,
+          entryId: entryId, playId: playId, tempo: 176,
           observed: TempoObservation(userSet: false, clickSounding: true), click: click)))
     _ = try bridge.update(
       .session(.updateEntryNotes(entryId: entryId, notes: "Fingers not fully relaxed yet")))
-    _ = try bridge.update(.session(.updateEntryScore(entryId: entryId, score: 6)))
+    _ = try bridge.update(
+      .session(.updateEntryScore(entryId: entryId, playId: playId, score: 6)))
 
     _ = try bridge.update(.session(.nextItem(now: "2026-09-04T09:10:00Z")))
 
@@ -1613,19 +1624,28 @@ final class StoreEffectLoopTests: XCTestCase {
     XCTAssertFalse(final.durationDisplay.isEmpty)
     XCTAssertEqual(final.status, .completed)
     XCTAssertEqual(final.notes, "Fingers not fully relaxed yet")
-    XCTAssertEqual(final.score, 6)
     XCTAssertEqual(final.intention, "Warm up before the Prelude")
-    XCTAssertEqual(final.repTarget, 3)
-    XCTAssertEqual(final.repCount, 3, "missed then three got-its: 0, 1, 2, 3")
-    XCTAssertEqual(final.repTargetReached, true)
-    let history = try XCTUnwrap(final.repHistory)
-    XCTAssertEqual(history.map(\.action), [.missed, .success, .success, .success])
     XCTAssertEqual(final.plannedDurationSecs, 300)
     XCTAssertNotNil(final.plannedDurationDisplay)
-    XCTAssertEqual(final.achievedTempo, 88, "176 quavers halves to 88 crotchets")
     XCTAssertEqual(final.groupId, groupId)
-    XCTAssertEqual(final.variantId, variantId)
-    XCTAssertEqual(final.clickPattern, click)
+    XCTAssertEqual(final.plannedVariationId, variantId)
+    XCTAssertEqual(final.plannedRepTarget, 3)
+    XCTAssertEqual(final.scoreSummary, 6, "one play's mark is the whole entry's")
+
+    XCTAssertEqual(final.plays.count, 1, "one stretch of practice, never switched")
+    let play = try XCTUnwrap(final.plays.last)
+    XCTAssertEqual(play.id, playId)
+    XCTAssertEqual(play.variationId, variantId, "the plan seeds the play it opens")
+    XCTAssertEqual(play.variationLabel, "Slow")
+    XCTAssertFalse(play.durationDisplay.isEmpty)
+    XCTAssertEqual(play.score, 6)
+    XCTAssertEqual(play.repTarget, 3)
+    XCTAssertEqual(play.repCount, 3, "missed then three got-its: 0, 1, 2, 3")
+    XCTAssertEqual(play.repTargetReached, true)
+    let history = try XCTUnwrap(play.repHistory)
+    XCTAssertEqual(history.map(\.action), [.missed, .success, .success, .success])
+    XCTAssertEqual(play.achievedTempo, 88, "176 quavers halves to 88 crotchets")
+    XCTAssertEqual(play.clickPattern, click)
   }
 
   /// Real-bridge cross-domain round trip (#846, #1083): a session-side score,
@@ -1656,7 +1676,9 @@ final class StoreEffectLoopTests: XCTestCase {
     _ = try bridge.update(.session(.setEntryVariant(entryId: entryId, variantId: slowId)))
     _ = try bridge.update(.session(.startSession(now: "2026-09-04T09:00:00Z")))
     _ = try bridge.update(.session(.nextItem(now: "2026-09-04T09:05:00Z")))
-    _ = try bridge.update(.session(.updateEntryScore(entryId: entryId, score: 8)))
+    let playId = try XCTUnwrap(try bridge.view().summary?.entries.first?.plays.last?.id)
+    _ = try bridge.update(
+      .session(.updateEntryScore(entryId: entryId, playId: playId, score: 8)))
     _ = try bridge.update(.session(.saveSession(now: "2026-09-04T09:06:00Z")))
 
     let view = try bridge.view()
@@ -1671,12 +1693,10 @@ final class StoreEffectLoopTests: XCTestCase {
     XCTAssertFalse(historyEntry.sessionId.isEmpty)
     XCTAssertNotNil(SessionClock.parseRFC3339(historyEntry.sessionDate))
     XCTAssertTrue(slow.isSolid, "8 of 10 reaches SOLID_SCORE_MIN")
-    XCTAssertFalse(slow.isCurrent, "a solid step is never the one to work on")
 
     XCTAssertNil(fast.latestScore, "Fast was never practised")
     XCTAssertTrue(fast.scoreHistory.isEmpty)
     XCTAssertFalse(fast.isSolid)
-    XCTAssertTrue(fast.isCurrent, "Fast is the first not-yet-solid step once Slow is solid")
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────

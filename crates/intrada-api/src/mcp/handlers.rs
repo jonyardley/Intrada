@@ -198,7 +198,7 @@ pub async fn get_practice_summary(
         for entry in &session.entries {
             entry_count += 1;
             item_ids.insert(entry.item_id.clone());
-            if let Some(score) = entry.score {
+            if let Some(score) = entry.score_summary() {
                 score_sum += u32::from(score);
                 score_count += 1;
             }
@@ -210,7 +210,7 @@ pub async fn get_practice_summary(
             };
             acc.total_secs += entry.duration_secs;
             acc.entry_count += 1;
-            if let Some(score) = entry.score {
+            if let Some(score) = entry.score_summary() {
                 acc.score_sum += u32::from(score);
                 acc.score_count += 1;
             }
