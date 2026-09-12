@@ -3123,10 +3123,10 @@ mod tests {
         assert!(model.error_muted);
     }
 
-    // --- View: session status mapping ---
+    // --- View: which session slot the builder fills ---
 
     #[test]
-    fn test_view_session_status_building() {
+    fn test_view_populates_building_setlist_only() {
         use crate::domain::session::BuildingSession;
 
         let app = Intrada;
