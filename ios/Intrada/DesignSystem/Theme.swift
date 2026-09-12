@@ -155,10 +155,10 @@ enum IntradaFont {
   static let subtitle = Font.custom(Mono.regular, size: 14, relativeTo: .footnote)
   static let meta = Font.custom(Mono.regular, size: 14, relativeTo: .caption)
   /// 12 rather than 10 so the smallest type in the app clears a readable floor
-  /// (#1723). Folding its call sites into `meta` is still open.
+  /// (#1723).
   static let micro = Font.custom(Hanken.regular, size: 12, relativeTo: .caption2)
   static let metaMedium = Font.custom(Hanken.medium, size: 13.5, relativeTo: .caption)
-  static let badge = Font.custom(Hanken.semibold, size: 12.5, relativeTo: .caption)
+  static let badge = Font.custom(Hanken.semibold, size: 13, relativeTo: .caption)
   /// Uppercase section label (letter-spaced, `inkFaint`) — the eyebrow above
   /// every section on the refreshed screens.
   static let eyebrow = Font.custom(Hanken.semibold, size: 12, relativeTo: .caption2)
