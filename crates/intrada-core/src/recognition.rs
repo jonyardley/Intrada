@@ -314,12 +314,12 @@ impl Haystack {
             .reduce(f32::min)
     }
 
-    /// `bpm_in`'s rule, checked against every `=` on the page (#1683).
+    /// `bpm_in`, run per line rather than on the page joined: an `=` ending
+    /// one line must not pick up a page number printed on the next (#1683).
     fn bpm_follows_equals(&self, bpm: u16) -> bool {
-        self.text
-            .split('=')
-            .skip(1)
-            .any(|after| digits_after_equals(after) == Some(bpm))
+        self.lines
+            .iter()
+            .any(|span| bpm_in(&self.text[span.start..span.end]) == Some(bpm))
     }
 }
 
@@ -378,11 +378,8 @@ fn clamped_tempo(suggested: &SuggestedFields, haystack: &Haystack) -> Option<Tem
     })
 }
 
-/// Decision 5 keeps a suggested marking as the page's own span, print noise
-/// and all: "(MED.)" survives with its brackets. Strip an enclosing pair and a
-/// trailing full stop, then canonicalise against `TEMPO_MARKINGS` the way the
-/// heuristic path already does, plus the one abbreviation only fake books use
-/// (#1683).
+/// Decision 5 keeps a suggested marking verbatim, print noise and all: "(MED.)"
+/// survives with its brackets (#1683).
 fn canonical_marking(value: &str) -> Option<String> {
     let stripped = strip_print_noise(value);
     if stripped.is_empty() {
@@ -397,11 +394,14 @@ fn strip_print_noise(value: &str) -> &str {
     value.trim().trim_end_matches('.').trim()
 }
 
+/// Only a single matched pair with nothing bracketed inside it: "(MED.)"
+/// loses its brackets, "(BRIGHT) (SWING)" keeps both, unbalanced either way.
 fn strip_enclosing(value: &str, open: char, close: char) -> &str {
-    let inner = value
+    value
         .strip_prefix(open)
-        .and_then(|rest| rest.strip_suffix(close));
-    inner.unwrap_or(value)
+        .and_then(|rest| rest.strip_suffix(close))
+        .filter(|inner| !inner.contains(open) && !inner.contains(close))
+        .unwrap_or(value)
 }
 
 fn canonical_spelling(value: &str) -> String {
@@ -1294,12 +1294,10 @@ mod tests {
         expected_marking: Option<&'static str>,
     }
 
-    /// #1683: a Real Book prints its page number just above the marking, in
-    /// exactly the position a metronome mark would occupy, and the model read
-    /// it as one, and gave the marking back with its brackets and full stop.
-    /// A page that genuinely prints "Allegro = 120" rides along in the same
-    /// table so the fix cannot swallow a real metronome mark, and the "ca."
-    /// case documents that the suggested path is now no wider than `bpm_in`.
+    /// #1683: a page number sits where a metronome mark would, on its own
+    /// line or, on a photocopy, after a reduction mark's `=` on the line
+    /// above the title. "Allegro = 120" and "ca. 120" pin the genuine and the
+    /// still-rejected shape either side of the fix.
     #[test]
     fn a_page_number_is_not_read_as_the_bpm_and_med_becomes_medium() {
         let cases = vec![
@@ -1350,6 +1348,20 @@ mod tests {
                 },
                 expected_bpm: None,
                 expected_marking: Some("Allegro"),
+            },
+            TempoCase {
+                name: "a photocopy's reduction mark ends in = one line above the page number",
+                reading: page(vec![
+                    line("66% =", 0.008, 0.0240),
+                    line("239", 0.039, 0.0174),
+                    line("Cry Me A River", 0.029, 0.0247),
+                ]),
+                suggested: SuggestedFields {
+                    bpm: Some(239),
+                    ..no_suggestions()
+                },
+                expected_bpm: None,
+                expected_marking: None,
             },
         ];
 
