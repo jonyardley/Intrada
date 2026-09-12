@@ -118,7 +118,8 @@ pub struct TempoDraftField {
 pub enum DraftSource {
     /// Geometry heuristics in the core. The floor, available everywhere.
     Recognised,
-    /// The on-device model chose it and it survived the substring clamp.
+    /// The on-device model chose it and it survived the substring clamp,
+    /// except a tempo marking, which may then be tidied (#1683).
     Suggested,
 }
 
@@ -312,6 +313,14 @@ impl Haystack {
             .map(|line| line.confidence)
             .reduce(f32::min)
     }
+
+    /// `bpm_in`, run per line rather than on the page joined: an `=` ending
+    /// one line must not pick up a page number printed on the next (#1683).
+    fn bpm_follows_equals(&self, bpm: u16) -> bool {
+        self.lines
+            .iter()
+            .any(|span| bpm_in(&self.text[span.start..span.end]) == Some(bpm))
+    }
 }
 
 /// Decision 5, the whole of it: a suggested value the page does not literally
@@ -344,10 +353,14 @@ fn clamped_tempo(suggested: &SuggestedFields, haystack: &Haystack) -> Option<Tem
         suggested.tempo_marking.as_deref(),
         haystack,
         MAX_TEMPO_MARKING,
-    );
+    )
+    .and_then(|m| {
+        let value = canonical_marking(&m.value)?;
+        Some(TextDraftField { value, ..m })
+    });
     let bpm = suggested
         .bpm
-        .filter(|bpm| (MIN_READ_BPM..=MAX_BPM).contains(bpm))
+        .filter(|bpm| haystack.bpm_follows_equals(*bpm))
         .and_then(|bpm| haystack.confidence_of(&bpm.to_string()).map(|c| (bpm, c)));
 
     let confidence = match (&marking, &bpm) {
@@ -363,6 +376,43 @@ fn clamped_tempo(suggested: &SuggestedFields, haystack: &Haystack) -> Option<Tem
         confidence,
         weak: confidence < LOW_CONFIDENCE,
     })
+}
+
+/// Decision 5 keeps a suggested marking verbatim, print noise and all: "(MED.)"
+/// survives with its brackets (#1683).
+fn canonical_marking(value: &str) -> Option<String> {
+    let stripped = strip_print_noise(value);
+    if stripped.is_empty() {
+        return None;
+    }
+    Some(canonical_spelling(stripped))
+}
+
+fn strip_print_noise(value: &str) -> &str {
+    let value = strip_enclosing(value.trim(), '(', ')');
+    let value = strip_enclosing(value, '[', ']');
+    value.trim().trim_end_matches('.').trim()
+}
+
+/// Only a single matched pair with nothing bracketed inside it: "(MED.)"
+/// loses its brackets, "(BRIGHT) (SWING)" keeps both, unbalanced either way.
+fn strip_enclosing(value: &str, open: char, close: char) -> &str {
+    value
+        .strip_prefix(open)
+        .and_then(|rest| rest.strip_suffix(close))
+        .filter(|inner| !inner.contains(open) && !inner.contains(close))
+        .unwrap_or(value)
+}
+
+fn canonical_spelling(value: &str) -> String {
+    let lower = value.to_lowercase();
+    if lower == "med" {
+        return "Medium".to_string();
+    }
+    TEMPO_MARKINGS
+        .iter()
+        .find(|candidate| candidate.to_lowercase() == lower)
+        .map_or_else(|| value.to_string(), |candidate| (*candidate).to_string())
 }
 
 fn normalise(text: &str) -> String {
@@ -579,6 +629,12 @@ struct TempoRead {
 /// (open question 3).
 fn bpm_in(text: &str) -> Option<u16> {
     let (_, after) = text.rsplit_once('=')?;
+    digits_after_equals(after)
+}
+
+/// Shared with `Haystack::bpm_follows_equals`; the range check lives here so
+/// neither caller can skip it.
+fn digits_after_equals(after: &str) -> Option<u16> {
     let digits: String = after
         .trim_start()
         .chars()
@@ -1228,6 +1284,101 @@ mod tests {
         assert_eq!(tempo.source, DraftSource::Suggested);
         assert_eq!(tempo.confidence, 0.38);
         assert!(tempo.weak);
+    }
+
+    struct TempoCase {
+        name: &'static str,
+        reading: PageReading,
+        suggested: SuggestedFields,
+        expected_bpm: Option<u16>,
+        expected_marking: Option<&'static str>,
+    }
+
+    /// #1683: a page number sits where a metronome mark would, on its own
+    /// line or, on a photocopy, after a reduction mark's `=` on the line
+    /// above the title. "Allegro = 120" and "ca. 120" pin the genuine and the
+    /// still-rejected shape either side of the fix.
+    #[test]
+    fn a_page_number_is_not_read_as_the_bpm_and_med_becomes_medium() {
+        let cases = vec![
+            TempoCase {
+                name: "Real Book page 190: page number, marking, title, credit",
+                reading: page(vec![
+                    line("190", 0.03, 0.02),
+                    line("(MED.)", 0.06, 0.02),
+                    line("I Love You", 0.10, 0.08),
+                    line("Cole Porter", 0.20, 0.03),
+                ]),
+                suggested: SuggestedFields {
+                    tempo_marking: Some("(MED.)".to_string()),
+                    bpm: Some(190),
+                    ..no_suggestions()
+                },
+                expected_bpm: None,
+                expected_marking: Some("Medium"),
+            },
+            TempoCase {
+                name: "a page that actually prints a metronome mark",
+                reading: page(vec![line("Allegro = 120", 0.09, 0.03)]),
+                suggested: SuggestedFields {
+                    tempo_marking: Some("Allegro".to_string()),
+                    bpm: Some(120),
+                    ..no_suggestions()
+                },
+                expected_bpm: Some(120),
+                expected_marking: Some("Allegro"),
+            },
+            TempoCase {
+                name: "a bare number with no marking and no equals falls through to nothing",
+                reading: page(vec![line("304", 0.03, 0.02)]),
+                suggested: SuggestedFields {
+                    bpm: Some(304),
+                    ..no_suggestions()
+                },
+                expected_bpm: None,
+                expected_marking: None,
+            },
+            TempoCase {
+                name: "ca. before the number is the same rule bpm_in already applies",
+                reading: page(vec![line("Allegro = ca. 120", 0.09, 0.03)]),
+                suggested: SuggestedFields {
+                    tempo_marking: Some("Allegro".to_string()),
+                    bpm: Some(120),
+                    ..no_suggestions()
+                },
+                expected_bpm: None,
+                expected_marking: Some("Allegro"),
+            },
+            TempoCase {
+                name: "a photocopy's reduction mark ends in = one line above the page number",
+                reading: page(vec![
+                    line("66% =", 0.008, 0.0240),
+                    line("239", 0.039, 0.0174),
+                    line("Cry Me A River", 0.029, 0.0247),
+                ]),
+                suggested: SuggestedFields {
+                    bpm: Some(239),
+                    ..no_suggestions()
+                },
+                expected_bpm: None,
+                expected_marking: None,
+            },
+        ];
+
+        for case in cases {
+            let mut reading = case.reading;
+            reading.suggested = Some(case.suggested);
+            let tempo = read_fields(&reading).tempo;
+            let bpm = tempo.as_ref().and_then(|t| t.value.bpm);
+            let marking = tempo.as_ref().and_then(|t| t.value.marking.clone());
+            assert_eq!(bpm, case.expected_bpm, "{}: bpm", case.name);
+            assert_eq!(
+                marking.as_deref(),
+                case.expected_marking,
+                "{}: marking",
+                case.name
+            );
+        }
     }
 
     /// "Music by Joseph Kosma" is on the page, so it survives the clamp and beats
