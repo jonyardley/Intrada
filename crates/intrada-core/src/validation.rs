@@ -1,5 +1,6 @@
 use crate::domain::item::ItemKind;
 use crate::domain::profile::Profile;
+use crate::domain::session::SetlistEntry;
 use crate::domain::types::{CreateItem, Tempo, UpdateItem};
 use crate::error::LibraryError;
 use crate::model::Model;
@@ -24,6 +25,10 @@ pub const MAX_REP_HISTORY: usize = 500;
 pub const MAX_SET_NAME: usize = 200;
 pub const MAX_VARIANT_LABEL: usize = 100;
 pub const MAX_VARIANTS: usize = 24;
+pub const MAX_PLAYS_PER_ENTRY: usize = 24;
+/// Under this, a play with no mark and no repetitions is a stray tap on the
+/// picker rather than practice, and `FinishSession` drops it (#1739).
+pub const MIN_PLAY_SECONDS: u64 = 5;
 pub const MIN_PLANNED_DURATION_SECS: u32 = 60;
 pub const MAX_PLANNED_DURATION_SECS: u32 = 3600;
 pub const MIN_SESSION_TARGET_MINS: u32 = 5;
@@ -545,6 +550,64 @@ pub fn validate_variant_labels(labels: &[String]) -> Result<(), LibraryError> {
                 message: format!("Duplicate step \u{201c}{label}\u{201d}"),
             });
         }
+    }
+
+    Ok(())
+}
+
+/// A variation named against an entry must be a live variant of that entry's
+/// own item. `None` is always allowed and means unattributed, which is what a
+/// piece records (#1739).
+pub fn validate_entry_variation(
+    entry: &SetlistEntry,
+    variation_id: &Option<String>,
+    model: &Model,
+) -> Result<(), LibraryError> {
+    let Some(vid) = variation_id else {
+        return Ok(());
+    };
+
+    let owns_live_variant = model
+        .items
+        .iter()
+        .find(|i| i.id == entry.item_id)
+        .is_some_and(|item| {
+            item.variants
+                .iter()
+                .any(|v| v.id == *vid && v.deleted_at.is_none())
+        });
+
+    if !owns_live_variant {
+        return Err(LibraryError::Validation {
+            field: "variation_id".to_string(),
+            message: "That variation doesn't belong to this exercise".to_string(),
+        });
+    }
+
+    Ok(())
+}
+
+/// A `play_id` from the shell must name a play of the entry it was sent with,
+/// so one row of the item-complete sheet can never write another's (#1739).
+pub fn validate_play_belongs(entry: &SetlistEntry, play_id: &str) -> Result<(), LibraryError> {
+    if entry.plays.iter().any(|p| p.id == play_id) {
+        return Ok(());
+    }
+
+    Err(LibraryError::Validation {
+        field: "play_id".to_string(),
+        message: "That play doesn't belong to this item".to_string(),
+    })
+}
+
+/// Bounds the crash-recovery blob on the tier where the device is the only
+/// copy: an entry holds at most `MAX_PLAYS_PER_ENTRY` plays (#1739).
+pub fn validate_play_capacity(entry: &SetlistEntry) -> Result<(), LibraryError> {
+    if entry.plays.len() >= MAX_PLAYS_PER_ENTRY {
+        return Err(LibraryError::Validation {
+            field: "plays".to_string(),
+            message: format!("An item can record at most {MAX_PLAYS_PER_ENTRY} variations"),
+        });
     }
 
     Ok(())

@@ -39,9 +39,14 @@ final class LibraryStoreMigrationTests: XCTestCase {
     let entry = SetlistEntry(
       id: "e1", itemId: "i1", itemTitle: "Scales", itemType: .exercise,
       position: 0, durationSecs: 60, status: .completed,
-      notes: nil, score: 8, intention: nil, repTarget: nil, repCount: nil,
-      repTargetReached: nil, repHistory: nil, plannedDurationSecs: nil, achievedTempo: nil,
-      groupId: nil, variantId: nil, clickPattern: nil)
+      notes: nil, intention: nil, plannedDurationSecs: nil,
+      groupId: nil, plannedVariationId: nil, plannedRepTarget: nil,
+      plays: [
+        VariationPlay(
+          id: "e1-p1", variationId: nil, startedAt: "2026-01-01T10:00:00Z", seconds: 60,
+          repTarget: nil, repCount: nil, repTargetReached: nil, repHistory: nil,
+          achievedTempo: nil, clickPattern: nil, score: 8)
+      ])
     let session = PracticeSession(
       id: "sess-rt", entries: [entry],
       sessionNotes: nil, sessionIntention: nil,
@@ -96,9 +101,14 @@ final class LibraryStoreMigrationTests: XCTestCase {
     let entry = SetlistEntry(
       id: "e1", itemId: "i1", itemTitle: "Scales", itemType: .exercise,
       position: 0, durationSecs: 60, status: .completed,
-      notes: nil, score: nil, intention: nil, repTarget: nil, repCount: nil,
-      repTargetReached: nil, repHistory: nil, plannedDurationSecs: nil, achievedTempo: nil,
-      groupId: "block-1", variantId: nil, clickPattern: nil)
+      notes: nil, intention: nil, plannedDurationSecs: nil,
+      groupId: "block-1", plannedVariationId: nil, plannedRepTarget: nil,
+      plays: [
+        VariationPlay(
+          id: "e1-p1", variationId: nil, startedAt: "2026-01-01T10:00:00Z", seconds: 60,
+          repTarget: nil, repCount: nil, repTargetReached: nil, repHistory: nil,
+          achievedTempo: nil, clickPattern: nil, score: nil)
+      ])
     let session = PracticeSession(
       id: "sess-g", entries: [entry],
       sessionNotes: nil, sessionIntention: nil,
@@ -229,8 +239,10 @@ final class LibraryStoreMigrationTests: XCTestCase {
 
     let got = try XCTUnwrap(try store.loadSessions().first)
     let entry = try XCTUnwrap(got.entries.first)
-    XCTAssertEqual(entry.score, 6, "the old blob still decodes in full")
-    XCTAssertNil(entry.variantId, "a pre-variant entry reads as unattributed")
+    let play = try XCTUnwrap(entry.plays.first, "the old blob folds into one play")
+    XCTAssertEqual(play.score, 6, "the old blob still decodes in full")
+    XCTAssertNil(play.variationId, "a pre-variant entry reads as unattributed")
+    XCTAssertNil(entry.plannedVariationId, "and it carries no plan either")
   }
 
   func testV16AddsPhotoIdColumnWithExistingItemsIntact() throws {

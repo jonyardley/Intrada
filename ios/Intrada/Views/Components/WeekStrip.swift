@@ -25,6 +25,19 @@ struct WeekStrip: View {
         ) { selected = day }
       }
     }
+    .background(
+      GeometryReader { geo in
+        Color.clear.preference(key: WeekStripHeightKey.self, value: geo.size.height)
+      }
+    )
+  }
+}
+
+/// Reports a cell's natural height so the strip can size itself (#1730).
+struct WeekStripHeightKey: PreferenceKey {
+  static let defaultValue: CGFloat = 0
+  static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+    value = max(value, nextValue())
   }
 }
 
@@ -37,6 +50,9 @@ private struct WeekDayCell: View {
   let calendar: Calendar
   let onTap: () -> Void
   @Environment(\.locale) private var locale
+  // Scales with Dynamic Type, capped so seven days still fit the screen (#1730).
+  @ScaledMetric(relativeTo: .caption) private var dayCircleDiameter: CGFloat = 32
+  private var cappedDayCircleDiameter: CGFloat { min(dayCircleDiameter, 36) }
 
   var body: some View {
     Button(action: onTap) {
@@ -48,7 +64,9 @@ private struct WeekDayCell: View {
         Text(dayNumber)
           .font(IntradaFont.metaMedium)
           .foregroundStyle(dayNumberColor)
-          .frame(width: 32, height: 32)
+          .lineLimit(1)
+          .minimumScaleFactor(0.6)
+          .frame(width: cappedDayCircleDiameter, height: cappedDayCircleDiameter)
           .background(isSelected ? IntradaColor.accent : .clear, in: Circle())
           .overlay(
             Circle().strokeBorder(

@@ -57,6 +57,64 @@ pub struct RepEvent {
 
 // ── Domain Types ───────────────────────────────────────────────────────
 
+/// One stretch of an item spent on one variation (#1739): what was played,
+/// as against `SetlistEntry::planned_variation_id`, which is what was planned.
+/// Switching mid item closes the open play and opens another, so an entry
+/// practised in C and then D holds two.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "facet_typegen", derive(facet::Facet))]
+pub struct VariationPlay {
+    pub id: String,
+    /// A live variant of the entry's item; `None` means unattributed, which is
+    /// what a piece, and an exercise with no variations, always records.
+    pub variation_id: Option<String>,
+    pub started_at: DateTime<Utc>,
+    pub seconds: u64,
+    pub rep_target: Option<u8>,
+    pub rep_count: Option<u8>,
+    pub rep_target_reached: Option<bool>,
+    pub rep_history: Option<Vec<RepEvent>>,
+    pub achieved_tempo: Option<u16>,
+    pub click_pattern: Option<ClickState>,
+    pub score: Option<u8>,
+}
+
+impl VariationPlay {
+    pub fn opened(
+        variation_id: Option<String>,
+        rep_target: Option<u8>,
+        started_at: DateTime<Utc>,
+    ) -> Self {
+        Self {
+            id: ulid::Ulid::generate().to_string(),
+            variation_id,
+            started_at,
+            seconds: 0,
+            rep_target,
+            rep_count: None,
+            rep_target_reached: None,
+            rep_history: None,
+            achieved_tempo: None,
+            click_pattern: None,
+            score: None,
+        }
+    }
+
+    /// A mark or a banked repetition. Time alone is not a record: the clock
+    /// runs whether or not the musician played anything.
+    pub fn recorded_something(&self) -> bool {
+        self.score.is_some() || self.rep_count.unwrap_or(0) > 0
+    }
+
+    /// A play nobody practised: no mark, no repetitions and under five seconds.
+    /// A terminal transition drops these so a stray tap on the picker leaves no
+    /// trace. The time bound is what separates a stray tap from a stretch that
+    /// was genuinely played and simply not marked.
+    pub fn is_incidental(&self) -> bool {
+        !self.recorded_something() && self.seconds < validation::MIN_PLAY_SECONDS
+    }
+}
+
 /// An individual item within a session's setlist.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "facet_typegen", derive(facet::Facet))]
@@ -69,39 +127,93 @@ pub struct SetlistEntry {
     pub duration_secs: u64,
     pub status: EntryStatus,
     pub notes: Option<String>,
-    #[serde(default)]
-    pub score: Option<u8>,
-    #[serde(default)]
     pub intention: Option<String>,
-    #[serde(default)]
-    pub rep_target: Option<u8>,
-    #[serde(default)]
-    pub rep_count: Option<u8>,
-    #[serde(default)]
-    pub rep_target_reached: Option<bool>,
-    #[serde(default)]
-    pub rep_history: Option<Vec<RepEvent>>,
-    #[serde(default)]
     pub planned_duration_secs: Option<u32>,
-    #[serde(default)]
-    pub achieved_tempo: Option<u16>,
     /// Block grouping (building phase): entries pulled in alongside a piece via
     /// its related exercises share one `group_id`. A block is the contiguous run
     /// of entries with the same id; `None` = standalone.
-    #[serde(default)]
     pub group_id: Option<String>,
-    /// Which step of the exercise's ladder this entry practised (#1083).
-    /// `None` = unattributed (no ladder, or the user didn't say). Appended
-    /// LAST + `#[serde(default)]` so old bincode snapshots and JSON blob rows
-    /// decode (positional wire; #846). Dropped server-side until the sync
+    /// The variation the builder planned to practise; the plan, not the record
+    /// (#1739 decision 5). `None` = no plan. Dropped server-side until the sync
     /// engine, like `group_id` (invariant 6 scoped).
-    #[serde(default)]
-    pub variant_id: Option<String>,
-    /// What the click was doing when `achieved_tempo` was recorded (#1499).
-    /// "120 with the click on 2 and 4" is a different achievement from "120
-    /// straight", and without this the trend draws them as one point.
-    #[serde(default)]
-    pub click_pattern: Option<ClickState>,
+    pub planned_variation_id: Option<String>,
+    /// The repetition target set in the builder, a plan on the same footing as
+    /// `planned_variation_id`. Every play the entry opens starts from it, so a
+    /// switch redraws the same number of slots for the new variation.
+    pub planned_rep_target: Option<u8>,
+    /// What was actually practised, in order. Empty for an entry never
+    /// attempted; every practised entry has at least one, a piece included
+    /// (#1739 decision 3).
+    pub plays: Vec<VariationPlay>,
+}
+
+impl SetlistEntry {
+    pub fn open_play(&self) -> Option<&VariationPlay> {
+        self.plays.last()
+    }
+
+    pub fn open_play_mut(&mut self) -> Option<&mut VariationPlay> {
+        self.plays.last_mut()
+    }
+
+    /// The one place several marks collapse into one (#1739 decision 9): the
+    /// mean of the plays that carry a score, rounded to nearest. Per-variation
+    /// history reads the plays and never this.
+    pub fn score_summary(&self) -> Option<u8> {
+        let scored: Vec<u16> = self
+            .plays
+            .iter()
+            .filter_map(|p| p.score)
+            .map(u16::from)
+            .collect();
+        if scored.is_empty() {
+            return None;
+        }
+        let total: u16 = scored.iter().sum();
+        let count = scored.len() as u16;
+        Some(((total * 2 + count) / (count * 2)) as u8)
+    }
+}
+
+#[cfg(test)]
+impl VariationPlay {
+    pub(crate) fn fixture() -> Self {
+        Self {
+            id: "play-1".to_string(),
+            variation_id: None,
+            started_at: DateTime::<Utc>::from_timestamp(0, 0).expect("epoch"),
+            seconds: 60,
+            rep_target: None,
+            rep_count: None,
+            rep_target_reached: None,
+            rep_history: None,
+            achieved_tempo: None,
+            click_pattern: None,
+            score: None,
+        }
+    }
+}
+
+#[cfg(test)]
+impl SetlistEntry {
+    pub(crate) fn fixture() -> Self {
+        Self {
+            id: "entry-1".to_string(),
+            item_id: "item-1".to_string(),
+            item_title: "Item".to_string(),
+            item_type: ItemKind::Piece,
+            position: 0,
+            duration_secs: 0,
+            status: EntryStatus::NotAttempted,
+            notes: None,
+            intention: None,
+            planned_duration_secs: None,
+            group_id: None,
+            planned_variation_id: None,
+            planned_rep_target: None,
+            plays: Vec::new(),
+        }
+    }
 }
 
 /// A completed practice session (persisted to localStorage).
@@ -245,10 +357,11 @@ pub enum SessionEvent {
         entry_id: String,
         intention: Option<String>,
     },
-    /// Attribute an entry to one step of its exercise's ladder; `None` clears
-    /// (#1083). Valid in every phase: Building tags the rung you plan to
-    /// practise, Active/Summary is the reflection attribution. The step must
-    /// be a live variant of the entry's item. Local-first only until sync.
+    /// Plan which variation an entry will be practised on; `None` clears
+    /// (#1083, narrowed by #1739 decision 5). Building phase only: once
+    /// practice starts the record is the plays, and `SwitchVariation` is what
+    /// changes it. The variation must be a live variant of the entry's item.
+    /// Local-first only until sync.
     SetEntryVariant {
         entry_id: String,
         variant_id: Option<String>,
@@ -370,20 +483,33 @@ pub enum SessionEvent {
     RepMissed {
         now: DateTime<Utc>,
     },
+    /// Close the open play and open another on `variation_id` (#1739 decision
+    /// 6). Switching to the variation already open writes nothing, so a stray
+    /// tap cannot reset the repetition counter. Active phase only.
+    SwitchVariation {
+        entry_id: String,
+        variation_id: Option<String>,
+        now: DateTime<Utc>,
+    },
 
     // === Summary Phase ===
     UpdateEntryNotes {
         entry_id: String,
         notes: Option<String>,
     },
+    /// `play_id` names the row of the item-complete sheet being marked, and
+    /// must belong to `entry_id` (#1739).
     UpdateEntryScore {
         entry_id: String,
+        play_id: String,
         score: Option<u8>,
     },
     /// `tempo` is as displayed, in `click.metre.unit` beats per minute; the
-    /// core normalises it to crotchets before it is stored (#1499).
+    /// core normalises it to crotchets before it is stored (#1499). `play_id`
+    /// names the row, as `UpdateEntryScore`.
     UpdateEntryTempo {
         entry_id: String,
+        play_id: String,
         tempo: Option<u16>,
         observed: TempoObservation,
         click: Option<ClickState>,
@@ -479,17 +605,12 @@ fn create_entry(
         duration_secs: 0,
         status: EntryStatus::NotAttempted,
         notes: None,
-        score: None,
         intention: None,
-        rep_target: None,
-        rep_count: None,
-        rep_target_reached: None,
-        rep_history: None,
         planned_duration_secs: None,
-        achieved_tempo: None,
         group_id: None,
-        variant_id: None,
-        click_pattern: None,
+        planned_variation_id: None,
+        planned_rep_target: None,
+        plays: Vec::new(),
     }
 }
 
@@ -594,8 +715,53 @@ fn create_item_from_title(title: &str, kind: ItemKind) -> Item {
 }
 
 fn freeze_rep_state(entry: &mut SetlistEntry) {
-    if let (Some(target), Some(count)) = (entry.rep_target, entry.rep_count) {
-        entry.rep_target_reached = Some(count >= target);
+    if let Some(play) = entry.open_play_mut() {
+        if let (Some(target), Some(count)) = (play.rep_target, play.rep_count) {
+            play.rep_target_reached = Some(count >= target);
+        }
+    }
+}
+
+/// An entry that has just become current opens its first play, seeded from the
+/// builder's plan (#1739 decisions 3 and 5). Idempotent: a recovered session
+/// already carries its plays.
+fn open_first_play(entry: &mut SetlistEntry, now: DateTime<Utc>) {
+    if entry.plays.is_empty() {
+        entry.plays.push(VariationPlay::opened(
+            entry.planned_variation_id.clone(),
+            entry.planned_rep_target,
+            now,
+        ));
+    }
+}
+
+/// Stamp the open play's seconds from its own start, so a switch mid item
+/// splits the time rather than double-counting it.
+fn close_open_play(entry: &mut SetlistEntry, now: DateTime<Utc>) {
+    if let Some(play) = entry.open_play_mut() {
+        play.seconds = (now - play.started_at).num_seconds().max(0) as u64;
+    }
+}
+
+/// A stray tap on the picker is not practice: every terminal transition drops
+/// the plays that recorded nothing and ran for under five seconds. A practised
+/// entry always keeps at least one, though, so decision 3's invariant holds and
+/// the item-complete sheet always has a row to mark: dropping the only play
+/// would leave the shell sending a `play_id` the core has just deleted.
+fn drop_incidental_play(entry: &mut SetlistEntry) {
+    if entry.plays.len() < 2 {
+        return;
+    }
+    let opened = entry.plays[0].clone();
+    entry.plays.retain(|p| !p.is_incidental());
+    if entry.plays.is_empty() {
+        entry.plays.push(opened);
+    }
+}
+
+fn drop_incidental_plays(entries: &mut [SetlistEntry]) {
+    for entry in entries.iter_mut() {
+        drop_incidental_play(entry);
     }
 }
 
@@ -609,21 +775,27 @@ fn record_rep(model: &mut Model, action: RepAction, now: DateTime<Utc>) -> Comma
     let Some(entry) = active.entries.get_mut(active.current_index) else {
         return crux_core::render::render();
     };
-    if entry.rep_target_reached == Some(true) {
+    // Repetitions belong to the variation being played, so they retarget the
+    // open play and reset when a switch opens the next one (#1739 decision 6).
+    open_first_play(entry, now);
+    let Some(play) = entry.open_play_mut() else {
+        return crux_core::render::render();
+    };
+    if play.rep_target_reached == Some(true) {
         return crux_core::render::render();
     }
 
-    let target = *entry
+    let target = *play
         .rep_target
         .get_or_insert(validation::DEFAULT_REP_TARGET);
-    let count = entry.rep_count.unwrap_or(0);
+    let count = play.rep_count.unwrap_or(0);
     let new_count = match action {
         RepAction::Success => (count + 1).min(target),
         RepAction::Missed => count.saturating_sub(1),
     };
-    entry.rep_count = Some(new_count);
-    entry.rep_target_reached = Some(new_count >= target);
-    let history = entry.rep_history.get_or_insert_with(Vec::new);
+    play.rep_count = Some(new_count);
+    play.rep_target_reached = Some(new_count >= target);
+    let history = play.rep_history.get_or_insert_with(Vec::new);
     if history.len() < validation::MAX_REP_HISTORY {
         history.push(RepEvent { action, at: now });
     }
@@ -676,6 +848,8 @@ fn transition_to_summary(
     if let Some(entry) = active.entries.get_mut(active.current_index) {
         entry.duration_secs = elapsed;
         entry.status = EntryStatus::Completed;
+        open_first_play(entry, active.current_item_started_at);
+        close_open_play(entry, now);
         freeze_rep_state(entry);
     }
 
@@ -683,8 +857,11 @@ fn transition_to_summary(
         for entry in active.entries.iter_mut().skip(active.current_index + 1) {
             entry.status = EntryStatus::NotAttempted;
             entry.duration_secs = 0;
+            entry.plays.clear();
         }
     }
+
+    drop_incidental_plays(&mut active.entries);
 
     SummarySession {
         id: active.id.clone(),
@@ -813,7 +990,16 @@ pub fn handle_session_event(event: SessionEvent, model: &mut Model) -> Command<E
             if !model.local_first {
                 // Steps are local-first-only until sync (#1083; invariant 6
                 // consciously scoped); surfaced, never a silent no-op.
-                model.last_error = Some("Steps aren't available online yet".to_string());
+                model.last_error = Some("Variations aren't available online yet".to_string());
+                return crux_core::render::render();
+            }
+
+            // The plan is a Building-phase thing: once practice starts, the
+            // record is the plays and `SwitchVariation` is what changes it
+            // (#1739 decision 5).
+            if !matches!(model.session_status, SessionStatus::Building(_)) {
+                model.last_error =
+                    Some("A variation can only be planned while building".to_string());
                 return crux_core::render::render();
             }
 
@@ -822,28 +1008,16 @@ pub fn handle_session_event(event: SessionEvent, model: &mut Model) -> Command<E
                 return crux_core::render::render();
             };
 
-            if let Some(vid) = &variant_id {
-                let owns_live_variant = model
-                    .items
-                    .iter()
-                    .find(|i| i.id == entry.item_id)
-                    .is_some_and(|item| {
-                        item.variants
-                            .iter()
-                            .any(|v| v.id == *vid && v.deleted_at.is_none())
-                    });
-                if !owns_live_variant {
-                    model.last_error =
-                        Some("That step doesn't belong to this exercise".to_string());
-                    return crux_core::render::render();
-                }
+            if let Err(e) = validation::validate_entry_variation(entry, &variant_id, model) {
+                model.last_error = Some(e.to_string());
+                return crux_core::render::render();
             }
 
             let Some(entry) = entry_for_variant_mut(model, &entry_id) else {
                 model.last_error = Some(format!("Entry '{entry_id}' not found"));
                 return crux_core::render::render();
             };
-            entry.variant_id = variant_id;
+            entry.planned_variation_id = variant_id;
             model.last_error = None;
             crux_core::render::render()
         }
@@ -866,11 +1040,7 @@ pub fn handle_session_event(event: SessionEvent, model: &mut Model) -> Command<E
                 return crux_core::render::render();
             };
 
-            entry.rep_target = target;
-            // Changing the target invalidates any prior progress.
-            entry.rep_count = None;
-            entry.rep_target_reached = None;
-            entry.rep_history = None;
+            entry.planned_rep_target = target;
             model.last_error = None;
             crux_core::render::render()
         }
@@ -934,7 +1104,7 @@ pub fn handle_session_event(event: SessionEvent, model: &mut Model) -> Command<E
                     position,
                 );
                 entry.group_id = Some(group_id.clone());
-                entry.variant_id.clone_from(&suggested.variant_id);
+                entry.planned_variation_id.clone_from(&suggested.variant_id);
                 building.entries.push(entry);
             }
 
@@ -1283,7 +1453,7 @@ pub fn handle_session_event(event: SessionEvent, model: &mut Model) -> Command<E
                 return crux_core::render::render();
             }
 
-            let active = ActiveSession {
+            let mut active = ActiveSession {
                 id: ulid::Ulid::generate().to_string(),
                 entries: building.entries.clone(),
                 current_index: 0,
@@ -1291,6 +1461,10 @@ pub fn handle_session_event(event: SessionEvent, model: &mut Model) -> Command<E
                 session_started_at: now,
                 session_intention: building.session_intention.clone(),
             };
+
+            if let Some(entry) = active.entries.first_mut() {
+                open_first_play(entry, now);
+            }
 
             let save_effect = AppEffect::SaveSessionInProgress(active.clone());
             model.session_status = SessionStatus::Active(active);
@@ -1335,11 +1509,17 @@ pub fn handle_session_event(event: SessionEvent, model: &mut Model) -> Command<E
             if let Some(entry) = active.entries.get_mut(active.current_index) {
                 entry.duration_secs = elapsed;
                 entry.status = EntryStatus::Completed;
+                open_first_play(entry, active.current_item_started_at);
+                close_open_play(entry, now);
                 freeze_rep_state(entry);
+                drop_incidental_play(entry);
             }
 
             active.current_index += 1;
             active.current_item_started_at = now;
+            if let Some(entry) = active.entries.get_mut(active.current_index) {
+                open_first_play(entry, now);
+            }
             model.last_error = None;
 
             let save_effect = AppEffect::SaveSessionInProgress(active.clone());
@@ -1358,10 +1538,18 @@ pub fn handle_session_event(event: SessionEvent, model: &mut Model) -> Command<E
             if let Some(entry) = active.entries.get_mut(active.current_index) {
                 entry.duration_secs = 0;
                 entry.status = EntryStatus::Skipped;
+                // Skipped means not practised, so the play opened when the item
+                // became current goes (#1739 decision 3). A play that banked
+                // repetitions or a mark first is not that play and survives,
+                // exactly as rep state did before plays existed. Time alone
+                // does not count here: the clock ran while they decided to skip.
+                close_open_play(entry, now);
                 freeze_rep_state(entry);
+                entry.plays.retain(VariationPlay::recorded_something);
             }
 
             if active.current_index >= active.entries.len() - 1 {
+                drop_incidental_plays(&mut active.entries);
                 let summary = SummarySession {
                     id: active.id.clone(),
                     entries: active.entries.clone(),
@@ -1382,6 +1570,9 @@ pub fn handle_session_event(event: SessionEvent, model: &mut Model) -> Command<E
 
             active.current_index += 1;
             active.current_item_started_at = now;
+            if let Some(entry) = active.entries.get_mut(active.current_index) {
+                open_first_play(entry, now);
+            }
             model.last_error = None;
 
             let save_effect = AppEffect::SaveSessionInProgress(active.clone());
@@ -1489,10 +1680,74 @@ pub fn handle_session_event(event: SessionEvent, model: &mut Model) -> Command<E
 
         SessionEvent::RepMissed { now } => record_rep(model, RepAction::Missed, now),
 
+        SessionEvent::SwitchVariation {
+            entry_id,
+            variation_id,
+            now,
+        } => {
+            if !model.local_first {
+                model.last_error = Some("Variations aren't available online yet".to_string());
+                return crux_core::render::render();
+            }
+
+            if !matches!(model.session_status, SessionStatus::Active(_)) {
+                model.last_error = Some("Not in active state".to_string());
+                return crux_core::render::render();
+            }
+
+            let Some(entry) = entry_for_variant(model, &entry_id) else {
+                model.last_error = Some(format!("Entry '{entry_id}' not found"));
+                return crux_core::render::render();
+            };
+
+            // Switching to the variation already open writes nothing, so a
+            // stray tap cannot clear the dots (#1739 decision 6). Checked
+            // before capacity, or a full entry could not re-tap its own row.
+            if entry.open_play().map(|p| p.variation_id.as_deref()) == Some(variation_id.as_deref())
+            {
+                model.last_error = None;
+                return crux_core::render::render();
+            }
+
+            if let Err(e) = validation::validate_entry_variation(entry, &variation_id, model) {
+                model.last_error = Some(e.to_string());
+                return crux_core::render::render();
+            }
+
+            if let Err(e) = validation::validate_play_capacity(entry) {
+                model.last_error = Some(e.to_string());
+                return crux_core::render::render();
+            }
+
+            let SessionStatus::Active(ref mut active) = model.session_status else {
+                return crux_core::render::render();
+            };
+            let Some(entry) = active.entries.iter_mut().find(|e| e.id == entry_id) else {
+                return crux_core::render::render();
+            };
+
+            close_open_play(entry, now);
+            freeze_rep_state(entry);
+            let rep_target = entry.planned_rep_target;
+            entry
+                .plays
+                .push(VariationPlay::opened(variation_id, rep_target, now));
+
+            model.last_error = None;
+            Command::all([
+                Command::notify_shell(AppEffect::SaveSessionInProgress(active.clone())).into(),
+                crux_core::render::render(),
+            ])
+        }
+
         // ── Entry Updates (Active or Summary) ──────────────────────
         // Accepted in both phases so the mid-session reflection sheet can record
         // as the user moves on. Invariant: only Completed entries can be scored.
-        SessionEvent::UpdateEntryScore { entry_id, score } => {
+        SessionEvent::UpdateEntryScore {
+            entry_id,
+            play_id,
+            score,
+        } => {
             if let Some(s) = score {
                 if !(validation::MIN_SCORE..=validation::MAX_SCORE).contains(&s) {
                     return crux_core::render::render();
@@ -1507,13 +1762,21 @@ pub fn handle_session_event(event: SessionEvent, model: &mut Model) -> Command<E
                 return crux_core::render::render();
             }
 
-            entry.score = score;
+            if let Err(e) = validation::validate_play_belongs(entry, &play_id) {
+                model.last_error = Some(e.to_string());
+                return crux_core::render::render();
+            }
+
+            if let Some(play) = entry.plays.iter_mut().find(|p| p.id == play_id) {
+                play.score = score;
+            }
             model.last_error = None;
             crux_core::render::render()
         }
 
         SessionEvent::UpdateEntryTempo {
             entry_id,
+            play_id,
             tempo,
             observed,
             click,
@@ -1548,13 +1811,20 @@ pub fn handle_session_event(event: SessionEvent, model: &mut Model) -> Command<E
                 return crux_core::render::render();
             }
 
-            entry.achieved_tempo = crotchets;
-            // The pattern is evidence only if the click was actually heard.
-            entry.click_pattern = if crotchets.is_some() && observed.click_sounding {
-                click
-            } else {
-                None
-            };
+            if let Err(e) = validation::validate_play_belongs(entry, &play_id) {
+                model.last_error = Some(e.to_string());
+                return crux_core::render::render();
+            }
+
+            if let Some(play) = entry.plays.iter_mut().find(|p| p.id == play_id) {
+                play.achieved_tempo = crotchets;
+                // The pattern is evidence only if the click was actually heard.
+                play.click_pattern = if crotchets.is_some() && observed.click_sounding {
+                    click
+                } else {
+                    None
+                };
+            }
             model.last_error = None;
             crux_core::render::render()
         }
@@ -1852,6 +2122,31 @@ mod tests {
         }
     }
 
+    fn session_entries(model: &Model) -> &[SetlistEntry] {
+        match &model.session_status {
+            SessionStatus::Building(b) => &b.entries,
+            SessionStatus::Active(a) => &a.entries,
+            SessionStatus::Summary(s) => &s.entries,
+            SessionStatus::Idle => panic!("expected a session"),
+        }
+    }
+
+    fn play_of(entry: &SetlistEntry) -> &VariationPlay {
+        entry.open_play().expect("the entry has an open play")
+    }
+
+    fn first_play_id(model: &Model, entry_id: &str) -> String {
+        session_entries(model)
+            .iter()
+            .find(|e| e.id == entry_id)
+            .expect("the entry is in the session")
+            .plays
+            .first()
+            .expect("the entry has a play")
+            .id
+            .clone()
+    }
+
     fn ids(model: &Model) -> Vec<String> {
         building_entries(model)
             .iter()
@@ -2041,9 +2336,12 @@ mod tests {
 
         let e = building_entries(&m);
         let seeded = e.iter().find(|x| x.item_id == "ex-A").expect("ex-A seeded");
-        assert_eq!(seeded.variant_id.as_deref(), Some(step_id.as_str()));
+        assert_eq!(
+            seeded.planned_variation_id.as_deref(),
+            Some(step_id.as_str())
+        );
         let unladdered = e.iter().find(|x| x.item_id == "ex-B").expect("ex-B seeded");
-        assert_eq!(unladdered.variant_id, None);
+        assert_eq!(unladdered.planned_variation_id, None);
     }
 
     #[test]
@@ -3447,7 +3745,10 @@ mod tests {
 
         // Score the first entry before saving
         if let SessionStatus::Summary(ref mut summary) = model.session_status {
-            summary.entries[0].score = Some(4);
+            summary.entries[0]
+                .open_play_mut()
+                .expect("the practised entry has a play")
+                .score = Some(4);
         }
 
         let now = Utc::now();
@@ -3820,17 +4121,19 @@ mod tests {
             panic!("Expected Summary state");
         };
 
+        let play_id = first_play_id(&model, &entry_id);
         update(
             &mut model,
             Event::Session(SessionEvent::UpdateEntryScore {
                 entry_id: entry_id.clone(),
+                play_id,
                 score: Some(4),
             }),
         );
 
         assert!(model.last_error.is_none());
         if let SessionStatus::Summary(ref s) = model.session_status {
-            assert_eq!(s.entries[0].score, Some(4));
+            assert_eq!(play_of(&s.entries[0]).score, Some(4));
         } else {
             panic!("Expected Summary state");
         }
@@ -3847,25 +4150,29 @@ mod tests {
         };
 
         // Set score to 4
+        let play_id = first_play_id(&model, &entry_id);
         update(
             &mut model,
             Event::Session(SessionEvent::UpdateEntryScore {
                 entry_id: entry_id.clone(),
+                play_id,
                 score: Some(4),
             }),
         );
 
         // Clear score by setting to None (toggle)
+        let play_id = first_play_id(&model, &entry_id);
         update(
             &mut model,
             Event::Session(SessionEvent::UpdateEntryScore {
                 entry_id: entry_id.clone(),
+                play_id,
                 score: None,
             }),
         );
 
         if let SessionStatus::Summary(ref s) = model.session_status {
-            assert_eq!(s.entries[0].score, None);
+            assert_eq!(play_of(&s.entries[0]).score, None);
         } else {
             panic!("Expected Summary state");
         }
@@ -3889,24 +4196,29 @@ mod tests {
             Event::Session(SessionEvent::FinishSession { now: t2 }),
         );
 
-        let skipped_entry_id = if let SessionStatus::Summary(ref s) = model.session_status {
-            assert_eq!(s.entries[0].status, EntryStatus::Skipped);
-            s.entries[0].id.clone()
-        } else {
-            panic!("Expected Summary state");
-        };
+        let (skipped_entry_id, practised_entry_id) =
+            if let SessionStatus::Summary(ref s) = model.session_status {
+                assert_eq!(s.entries[0].status, EntryStatus::Skipped);
+                (s.entries[0].id.clone(), s.entries[1].id.clone())
+            } else {
+                panic!("Expected Summary state");
+            };
 
-        // Try to score the skipped entry — should be a no-op
+        // A skipped entry keeps no play of its own (#1739 decision 3), so the
+        // only real id the sheet could send is one from the practised item.
+        let play_id = first_play_id(&model, &practised_entry_id);
         update(
             &mut model,
             Event::Session(SessionEvent::UpdateEntryScore {
                 entry_id: skipped_entry_id.clone(),
+                play_id,
                 score: Some(3),
             }),
         );
 
         if let SessionStatus::Summary(ref s) = model.session_status {
-            assert_eq!(s.entries[0].score, None); // Score not set
+            assert_eq!(s.entries[0].score_summary(), None, "score not set");
+            assert!(s.entries[0].plays.is_empty());
         } else {
             panic!("Expected Summary state");
         }
@@ -3923,29 +4235,33 @@ mod tests {
         };
 
         // Score 0 — out of range
+        let play_id = first_play_id(&model, &entry_id);
         update(
             &mut model,
             Event::Session(SessionEvent::UpdateEntryScore {
                 entry_id: entry_id.clone(),
+                play_id,
                 score: Some(0),
             }),
         );
 
         if let SessionStatus::Summary(ref s) = model.session_status {
-            assert_eq!(s.entries[0].score, None); // Score not set
+            assert_eq!(play_of(&s.entries[0]).score, None); // Score not set
         }
 
         // Score 11 — out of range
+        let play_id = first_play_id(&model, &entry_id);
         update(
             &mut model,
             Event::Session(SessionEvent::UpdateEntryScore {
                 entry_id: entry_id.clone(),
+                play_id,
                 score: Some(11),
             }),
         );
 
         if let SessionStatus::Summary(ref s) = model.session_status {
-            assert_eq!(s.entries[0].score, None); // Score still not set
+            assert_eq!(play_of(&s.entries[0]).score, None); // Score still not set
         }
     }
 
@@ -3963,17 +4279,19 @@ mod tests {
             panic!("Expected Active state");
         };
 
+        let play_id = first_play_id(&model, &entry_id);
         update(
             &mut model,
             Event::Session(SessionEvent::UpdateEntryScore {
                 entry_id: entry_id.clone(),
+                play_id,
                 score: Some(3),
             }),
         );
 
         // Score not set — entry is still NotAttempted
         if let SessionStatus::Active(ref a) = model.session_status {
-            assert_eq!(a.entries[0].score, None);
+            assert_eq!(play_of(&a.entries[0]).score, None);
             assert_eq!(a.entries[0].status, EntryStatus::NotAttempted);
         } else {
             panic!("Expected Active state");
@@ -4005,10 +4323,12 @@ mod tests {
         };
 
         // Score the just-completed entry mid-session
+        let play_id = first_play_id(&model, &entry_id);
         update(
             &mut model,
             Event::Session(SessionEvent::UpdateEntryScore {
                 entry_id: entry_id.clone(),
+                play_id,
                 score: Some(4),
             }),
         );
@@ -4016,7 +4336,7 @@ mod tests {
         // Score persisted, session still Active
         assert!(model.last_error.is_none());
         if let SessionStatus::Active(ref a) = model.session_status {
-            assert_eq!(a.entries[0].score, Some(4));
+            assert_eq!(play_of(&a.entries[0]).score, Some(4));
         } else {
             panic!("Expected Active state — session shouldn't have ended");
         }
@@ -4041,10 +4361,12 @@ mod tests {
             panic!("Expected Active state after advancing one of two items");
         };
 
+        let play_id = first_play_id(&model, &entry_id);
         update(
             &mut model,
             Event::Session(SessionEvent::UpdateEntryScore {
                 entry_id,
+                play_id,
                 score: Some(4),
             }),
         );
@@ -4054,7 +4376,7 @@ mod tests {
         );
 
         if let SessionStatus::Summary(ref summary) = model.session_status {
-            assert_eq!(summary.entries[0].score, Some(4));
+            assert_eq!(play_of(&summary.entries[0]).score, Some(4));
         } else {
             panic!("Expected Summary state after finishing the session");
         }
@@ -4076,10 +4398,12 @@ mod tests {
             panic!("Expected Active state");
         };
 
+        let play_id = first_play_id(&model, &entry_id);
         update(
             &mut model,
             Event::Session(SessionEvent::UpdateEntryTempo {
                 entry_id,
+                play_id,
                 tempo: Some(120),
                 observed: TempoObservation {
                     user_set: true,
@@ -4091,7 +4415,7 @@ mod tests {
 
         assert!(model.last_error.is_none());
         if let SessionStatus::Active(ref a) = model.session_status {
-            assert_eq!(a.entries[0].achieved_tempo, Some(120));
+            assert_eq!(play_of(&a.entries[0]).achieved_tempo, Some(120));
         }
     }
 
@@ -4156,17 +4480,19 @@ mod tests {
         };
 
         // Score the last item — same code path the reflection sheet takes
+        let play_id = first_play_id(&model, &last_entry_id);
         update(
             &mut model,
             Event::Session(SessionEvent::UpdateEntryScore {
                 entry_id: last_entry_id,
+                play_id,
                 score: Some(5),
             }),
         );
 
         assert!(model.last_error.is_none());
         if let SessionStatus::Summary(ref s) = model.session_status {
-            assert_eq!(s.entries[1].score, Some(5));
+            assert_eq!(play_of(&s.entries[1]).score, Some(5));
         } else {
             panic!("Expected Summary state");
         }
@@ -4179,11 +4505,17 @@ mod tests {
         // match anything in the new model. `entry_for_update_mut` returns
         // None — the dispatch must be silent (no last_error, no panic).
         let mut model = model_with_summary();
+        let live_entry_id = match model.session_status {
+            SessionStatus::Summary(ref s) => s.entries[0].id.clone(),
+            _ => panic!("Expected Summary state"),
+        };
+        let play_id = first_play_id(&model, &live_entry_id);
 
         update(
             &mut model,
             Event::Session(SessionEvent::UpdateEntryScore {
                 entry_id: "no-such-entry".to_string(),
+                play_id: play_id.clone(),
                 score: Some(3),
             }),
         );
@@ -4193,6 +4525,7 @@ mod tests {
             &mut model,
             Event::Session(SessionEvent::UpdateEntryTempo {
                 entry_id: "no-such-entry".to_string(),
+                play_id,
                 tempo: Some(120),
                 observed: TempoObservation {
                     user_set: true,
@@ -4220,25 +4553,30 @@ mod tests {
             Event::Session(SessionEvent::SkipItem { now: t1 }),
         );
 
-        let skipped_entry_id = if let SessionStatus::Active(ref a) = model.session_status {
-            assert_eq!(a.entries[0].status, EntryStatus::Skipped);
-            assert_eq!(a.current_index, 1, "Should have advanced past skipped item");
-            a.entries[0].id.clone()
-        } else {
-            panic!("Expected Active state — second item should still be running");
-        };
+        let (skipped_entry_id, running_entry_id) =
+            if let SessionStatus::Active(ref a) = model.session_status {
+                assert_eq!(a.entries[0].status, EntryStatus::Skipped);
+                assert_eq!(a.current_index, 1, "Should have advanced past skipped item");
+                (a.entries[0].id.clone(), a.entries[1].id.clone())
+            } else {
+                panic!("Expected Active state: second item should still be running");
+            };
 
+        // A skipped entry keeps no play of its own (#1739 decision 3).
+        let play_id = first_play_id(&model, &running_entry_id);
         update(
             &mut model,
             Event::Session(SessionEvent::UpdateEntryScore {
                 entry_id: skipped_entry_id,
+                play_id,
                 score: Some(3),
             }),
         );
 
         // Score not applied — entry is Skipped, not Completed
         if let SessionStatus::Active(ref a) = model.session_status {
-            assert_eq!(a.entries[0].score, None);
+            assert_eq!(a.entries[0].score_summary(), None);
+            assert!(a.entries[0].plays.is_empty());
             assert_eq!(a.entries[0].status, EntryStatus::Skipped);
         }
     }
@@ -4254,29 +4592,33 @@ mod tests {
         };
 
         // Score 1 — minimum valid
+        let play_id = first_play_id(&model, &entry_id);
         update(
             &mut model,
             Event::Session(SessionEvent::UpdateEntryScore {
                 entry_id: entry_id.clone(),
+                play_id,
                 score: Some(1),
             }),
         );
 
         if let SessionStatus::Summary(ref s) = model.session_status {
-            assert_eq!(s.entries[0].score, Some(1));
+            assert_eq!(play_of(&s.entries[0]).score, Some(1));
         }
 
         // Score 10 — maximum valid
+        let play_id = first_play_id(&model, &entry_id);
         update(
             &mut model,
             Event::Session(SessionEvent::UpdateEntryScore {
                 entry_id: entry_id.clone(),
+                play_id,
                 score: Some(10),
             }),
         );
 
         if let SessionStatus::Summary(ref s) = model.session_status {
-            assert_eq!(s.entries[0].score, Some(10));
+            assert_eq!(play_of(&s.entries[0]).score, Some(10));
         }
     }
 
@@ -4308,13 +4650,12 @@ mod tests {
         ("v-c".to_string(), "v-f".to_string())
     }
 
-    /// Summary state whose single completed entry is the laddered exercise.
-    /// Local-first, as on iOS; steps are gated to that mode (#1083).
-    fn model_with_exercise_summary() -> (Model, String) {
+    /// Building state whose single entry is the laddered exercise. Local-first,
+    /// as on iOS; steps are gated to that mode (#1083).
+    fn model_with_exercise_building() -> (Model, String) {
         let mut model = model_with_library();
         model.local_first = true;
         give_exercise_a_ladder(&mut model);
-        let now = Utc::now();
         update(&mut model, Event::Session(SessionEvent::StartBuilding));
         update(
             &mut model,
@@ -4322,6 +4663,14 @@ mod tests {
                 item_id: "exercise-1".to_string(),
             }),
         );
+        let entry_id = building_entries(&model)[0].id.clone();
+        (model, entry_id)
+    }
+
+    /// The same setlist carried through to Summary.
+    fn model_with_exercise_summary() -> (Model, String) {
+        let (mut model, _) = model_with_exercise_building();
+        let now = Utc::now();
         update(
             &mut model,
             Event::Session(SessionEvent::StartSession { now }),
@@ -4340,42 +4689,32 @@ mod tests {
         (model, entry_id)
     }
 
-    fn summary_entry_variant(model: &Model) -> Option<String> {
-        if let SessionStatus::Summary(ref s) = model.session_status {
-            s.entries[0].variant_id.clone()
-        } else {
-            panic!("Expected Summary state");
-        }
+    fn planned_variation(model: &Model) -> Option<String> {
+        session_entries(model)[0].planned_variation_id.clone()
     }
 
+    /// Planning a variation is a Building-phase move (#1739 decision 5): once
+    /// the entry has been practised the record is its plays, and
+    /// `SwitchVariation` is what changes them.
     #[test]
-    fn set_entry_variant_sets_and_clears_on_a_completed_entry() {
+    fn set_entry_variant_is_rejected_on_a_completed_entry() {
         let (mut model, entry_id) = model_with_exercise_summary();
-
-        update(
-            &mut model,
-            Event::Session(SessionEvent::SetEntryVariant {
-                entry_id: entry_id.clone(),
-                variant_id: Some("v-c".to_string()),
-            }),
-        );
-        assert!(model.last_error.is_none());
-        assert_eq!(summary_entry_variant(&model).as_deref(), Some("v-c"));
 
         update(
             &mut model,
             Event::Session(SessionEvent::SetEntryVariant {
                 entry_id,
-                variant_id: None,
+                variant_id: Some("v-c".to_string()),
             }),
         );
-        assert!(model.last_error.is_none());
-        assert_eq!(summary_entry_variant(&model), None);
+
+        assert!(model.last_error.is_some(), "surfaced, not silent");
+        assert_eq!(planned_variation(&model), None);
     }
 
     #[test]
     fn set_entry_variant_rejects_a_variant_of_another_item() {
-        let (mut model, entry_id) = model_with_exercise_summary();
+        let (mut model, entry_id) = model_with_exercise_building();
         // A ladder on a different exercise.
         let now = Utc::now();
         model.items.push(Item {
@@ -4413,12 +4752,12 @@ mod tests {
         );
 
         assert!(model.last_error.is_some());
-        assert_eq!(summary_entry_variant(&model), None);
+        assert_eq!(planned_variation(&model), None);
     }
 
     #[test]
     fn set_entry_variant_rejects_a_tombstoned_variant() {
-        let (mut model, entry_id) = model_with_exercise_summary();
+        let (mut model, entry_id) = model_with_exercise_building();
         model
             .items
             .iter_mut()
@@ -4439,14 +4778,14 @@ mod tests {
         );
 
         assert!(model.last_error.is_some());
-        assert_eq!(summary_entry_variant(&model), None);
+        assert_eq!(planned_variation(&model), None);
     }
 
     #[test]
-    fn set_entry_variant_accepts_a_skipped_entry() {
-        // The tag is a plan as much as a reflection: a skipped entry may still
-        // carry the rung it was meant to climb. With no score it contributes
-        // nothing to per-step history, so stats stay clean.
+    fn a_skipped_entry_keeps_the_variation_it_was_planned_for() {
+        // The plan outlives the skip: the entry still says which variation it
+        // was meant to practise. It records no play, so it contributes nothing
+        // to per-variation history and the stats stay clean.
         let mut model = model_with_library();
         model.local_first = true;
         give_exercise_a_ladder(&mut model);
@@ -4460,6 +4799,17 @@ mod tests {
                 }),
             );
         }
+
+        let entry_id = building_entries(&model)[0].id.clone();
+        update(
+            &mut model,
+            Event::Session(SessionEvent::SetEntryVariant {
+                entry_id,
+                variant_id: Some("v-c".to_string()),
+            }),
+        );
+        assert!(model.last_error.is_none());
+
         update(
             &mut model,
             Event::Session(SessionEvent::StartSession { now }),
@@ -4477,32 +4827,29 @@ mod tests {
             }),
         );
 
-        let (skipped_id, status) = if let SessionStatus::Summary(ref s) = model.session_status {
-            (s.entries[0].id.clone(), s.entries[0].status.clone())
-        } else {
+        let SessionStatus::Summary(ref s) = model.session_status else {
             panic!("Expected Summary state");
         };
         assert_eq!(
-            status,
+            s.entries[0].status,
             EntryStatus::Skipped,
             "fixture: exercise was skipped"
         );
-
-        update(
-            &mut model,
-            Event::Session(SessionEvent::SetEntryVariant {
-                entry_id: skipped_id,
-                variant_id: Some("v-c".to_string()),
-            }),
+        assert_eq!(
+            s.entries[0].planned_variation_id.as_deref(),
+            Some("v-c"),
+            "the plan survives a skip"
         );
-
-        assert_eq!(summary_entry_variant(&model).as_deref(), Some("v-c"));
-        assert!(model.last_error.is_none());
+        assert!(
+            s.entries[0].plays.is_empty(),
+            "a skipped entry records no play, so it scores no variation"
+        );
     }
 
     #[test]
     fn set_entry_variant_flows_into_the_saved_session() {
-        let (mut model, entry_id) = model_with_exercise_summary();
+        let (mut model, entry_id) = model_with_exercise_building();
+        let now = Utc::now();
         update(
             &mut model,
             Event::Session(SessionEvent::SetEntryVariant {
@@ -4513,14 +4860,32 @@ mod tests {
 
         update(
             &mut model,
-            Event::Session(SessionEvent::SaveSession { now: Utc::now() }),
+            Event::Session(SessionEvent::StartSession { now }),
+        );
+        update(
+            &mut model,
+            Event::Session(SessionEvent::FinishSession {
+                now: now + chrono::Duration::seconds(60),
+            }),
+        );
+        update(
+            &mut model,
+            Event::Session(SessionEvent::SaveSession {
+                now: now + chrono::Duration::seconds(65),
+            }),
         );
 
         assert_eq!(model.sessions.len(), 1);
+        let saved = &model.sessions[0].entries[0];
         assert_eq!(
-            model.sessions[0].entries[0].variant_id.as_deref(),
+            saved.planned_variation_id.as_deref(),
             Some("v-c"),
             "the chosen step rides the persisted session"
+        );
+        assert_eq!(
+            play_of(saved).variation_id.as_deref(),
+            Some("v-c"),
+            "the first play is seeded from the plan, so the record names it too"
         );
     }
 
@@ -4528,7 +4893,7 @@ mod tests {
     fn set_entry_variant_online_mode_is_scoped_out_gracefully() {
         // Invariant 6 consciously scoped (#1083): steps are local-first-only
         // until sync; online surfaces the scope-out and changes nothing.
-        let (mut model, entry_id) = model_with_exercise_summary();
+        let (mut model, entry_id) = model_with_exercise_building();
         model.local_first = false;
 
         update(
@@ -4540,12 +4905,12 @@ mod tests {
         );
 
         assert!(model.last_error.is_some(), "surfaced, not silent");
-        assert_eq!(summary_entry_variant(&model), None);
+        assert_eq!(planned_variation(&model), None);
     }
 
     #[test]
     fn set_entry_variant_unknown_entry_surfaces_an_error() {
-        let (mut model, _) = model_with_exercise_summary();
+        let (mut model, _) = model_with_exercise_building();
 
         update(
             &mut model,
@@ -4576,7 +4941,7 @@ mod tests {
                 // Without this the negative tests would also pass against a
                 // skipped entry, which the handler rejects for another reason.
                 assert_eq!(entry.status, EntryStatus::Completed);
-                entry.achieved_tempo
+                play_of(entry).achieved_tempo
             }
             _ => panic!("Expected Summary state"),
         }
@@ -4595,13 +4960,10 @@ mod tests {
 
     fn click_pattern(model: &Model, entry_id: &str) -> Option<ClickState> {
         match model.session_status {
-            SessionStatus::Summary(ref s) => s
-                .entries
-                .iter()
-                .find(|e| e.id == entry_id)
-                .unwrap()
-                .click_pattern
-                .clone(),
+            SessionStatus::Summary(ref s) => {
+                let entry = s.entries.iter().find(|e| e.id == entry_id).unwrap();
+                play_of(entry).click_pattern.clone()
+            }
             _ => panic!("Expected Summary state"),
         }
     }
@@ -4613,10 +4975,12 @@ mod tests {
         let mut model = model_with_summary();
         let entry_id = tempo_entry_id(&model);
 
+        let play_id = first_play_id(&model, &entry_id);
         update(
             &mut model,
             Event::Session(SessionEvent::UpdateEntryTempo {
                 entry_id: entry_id.clone(),
+                play_id,
                 tempo: Some(168),
                 observed: TempoObservation {
                     user_set: false,
@@ -4640,10 +5004,12 @@ mod tests {
         let mut model = model_with_summary();
         let entry_id = tempo_entry_id(&model);
 
+        let play_id = first_play_id(&model, &entry_id);
         update(
             &mut model,
             Event::Session(SessionEvent::UpdateEntryTempo {
                 entry_id: entry_id.clone(),
+                play_id,
                 tempo: Some(120),
                 observed: TempoObservation {
                     user_set: false,
@@ -4666,10 +5032,12 @@ mod tests {
         let mut model = model_with_summary();
         let entry_id = tempo_entry_id(&model);
 
+        let play_id = first_play_id(&model, &entry_id);
         update(
             &mut model,
             Event::Session(SessionEvent::UpdateEntryTempo {
                 entry_id: entry_id.clone(),
+                play_id,
                 tempo: Some(169),
                 observed: TempoObservation {
                     user_set: true,
@@ -4691,19 +5059,23 @@ mod tests {
             user_set: false,
             click_sounding: true,
         };
+        let play_id = first_play_id(&model, &entry_id);
         update(
             &mut model,
             Event::Session(SessionEvent::UpdateEntryTempo {
                 entry_id: entry_id.clone(),
+                play_id,
                 tempo: Some(168),
                 observed: sounding,
                 click: Some(seven_eight_on_group_starts()),
             }),
         );
+        let play_id = first_play_id(&model, &entry_id);
         update(
             &mut model,
             Event::Session(SessionEvent::UpdateEntryTempo {
                 entry_id: entry_id.clone(),
+                play_id,
                 tempo: None,
                 observed: sounding,
                 click: Some(seven_eight_on_group_starts()),
@@ -4719,10 +5091,12 @@ mod tests {
         let mut model = model_with_summary();
         let entry_id = tempo_entry_id(&model);
 
+        let play_id = first_play_id(&model, &entry_id);
         update(
             &mut model,
             Event::Session(SessionEvent::UpdateEntryTempo {
                 entry_id: entry_id.clone(),
+                play_id,
                 tempo: Some(120),
                 observed: TempoObservation {
                     user_set: false,
@@ -4744,10 +5118,12 @@ mod tests {
         let mut model = model_with_summary();
         let entry_id = tempo_entry_id(&model);
 
+        let play_id = first_play_id(&model, &entry_id);
         update(
             &mut model,
             Event::Session(SessionEvent::UpdateEntryTempo {
                 entry_id: entry_id.clone(),
+                play_id,
                 tempo: Some(120),
                 observed: TempoObservation {
                     user_set: true,
@@ -4765,10 +5141,12 @@ mod tests {
         let mut model = model_with_summary();
         let entry_id = tempo_entry_id(&model);
 
+        let play_id = first_play_id(&model, &entry_id);
         update(
             &mut model,
             Event::Session(SessionEvent::UpdateEntryTempo {
                 entry_id: entry_id.clone(),
+                play_id,
                 tempo: Some(120),
                 observed: TempoObservation {
                     user_set: false,
@@ -4786,10 +5164,12 @@ mod tests {
         let mut model = model_with_summary();
         let entry_id = tempo_entry_id(&model);
 
+        let play_id = first_play_id(&model, &entry_id);
         update(
             &mut model,
             Event::Session(SessionEvent::UpdateEntryTempo {
                 entry_id: entry_id.clone(),
+                play_id,
                 tempo: Some(96),
                 observed: TempoObservation {
                     user_set: false,
@@ -4811,10 +5191,12 @@ mod tests {
         let mut model = model_with_summary();
         let entry_id = tempo_entry_id(&model);
 
+        let play_id = first_play_id(&model, &entry_id);
         update(
             &mut model,
             Event::Session(SessionEvent::UpdateEntryTempo {
                 entry_id: entry_id.clone(),
+                play_id,
                 tempo: Some(120),
                 observed: TempoObservation {
                     user_set: true,
@@ -4823,10 +5205,12 @@ mod tests {
                 click: None,
             }),
         );
+        let play_id = first_play_id(&model, &entry_id);
         update(
             &mut model,
             Event::Session(SessionEvent::UpdateEntryTempo {
                 entry_id: entry_id.clone(),
+                play_id,
                 tempo: Some(96),
                 observed: TempoObservation {
                     user_set: false,
@@ -4848,10 +5232,12 @@ mod tests {
         let mut model = model_with_summary();
         let entry_id = tempo_entry_id(&model);
 
+        let play_id = first_play_id(&model, &entry_id);
         update(
             &mut model,
             Event::Session(SessionEvent::UpdateEntryTempo {
                 entry_id: entry_id.clone(),
+                play_id,
                 tempo: Some(120),
                 observed: TempoObservation {
                     user_set: true,
@@ -4860,10 +5246,12 @@ mod tests {
                 click: None,
             }),
         );
+        let play_id = first_play_id(&model, &entry_id);
         update(
             &mut model,
             Event::Session(SessionEvent::UpdateEntryTempo {
                 entry_id: entry_id.clone(),
+                play_id,
                 tempo: None,
                 observed: TempoObservation {
                     user_set: false,
@@ -4880,6 +5268,7 @@ mod tests {
     fn update_entry_tempo_round_trips_on_ffi_bincode_wire() {
         crate::domain::types::assert_round_trips(Event::Session(SessionEvent::UpdateEntryTempo {
             entry_id: "entry-1".to_string(),
+            play_id: "play-1".to_string(),
             tempo: Some(132),
             observed: TempoObservation {
                 user_set: true,
@@ -4900,10 +5289,12 @@ mod tests {
         };
 
         // Set tempo to 120
+        let play_id = first_play_id(&model, &entry_id);
         update(
             &mut model,
             Event::Session(SessionEvent::UpdateEntryTempo {
                 entry_id: entry_id.clone(),
+                play_id,
                 tempo: Some(120),
                 observed: TempoObservation {
                     user_set: true,
@@ -4914,10 +5305,12 @@ mod tests {
         );
 
         // Clear tempo by setting to None
+        let play_id = first_play_id(&model, &entry_id);
         update(
             &mut model,
             Event::Session(SessionEvent::UpdateEntryTempo {
                 entry_id: entry_id.clone(),
+                play_id,
                 tempo: None,
                 observed: TempoObservation {
                     user_set: true,
@@ -4928,7 +5321,7 @@ mod tests {
         );
 
         if let SessionStatus::Summary(ref s) = model.session_status {
-            assert_eq!(s.entries[0].achieved_tempo, None);
+            assert_eq!(play_of(&s.entries[0]).achieved_tempo, None);
         } else {
             panic!("Expected Summary state");
         }
@@ -4953,22 +5346,31 @@ mod tests {
         );
 
         // Find the skipped entry
-        let skipped_entry_id = if let SessionStatus::Summary(ref s) = model.session_status {
-            s.entries
-                .iter()
-                .find(|e| e.status == EntryStatus::Skipped)
-                .expect("Should have a skipped entry")
-                .id
-                .clone()
-        } else {
-            panic!("Expected Summary state");
-        };
+        let (skipped_entry_id, practised_entry_id) =
+            if let SessionStatus::Summary(ref s) = model.session_status {
+                let skipped = s
+                    .entries
+                    .iter()
+                    .find(|e| e.status == EntryStatus::Skipped)
+                    .expect("Should have a skipped entry");
+                let practised = s
+                    .entries
+                    .iter()
+                    .find(|e| e.status == EntryStatus::Completed)
+                    .expect("Should have a completed entry");
+                (skipped.id.clone(), practised.id.clone())
+            } else {
+                panic!("Expected Summary state");
+            };
 
-        // Try to set tempo on the skipped entry — should be a no-op
+        // A skipped entry keeps no play of its own (#1739 decision 3), so the
+        // sheet can only ever send a play id from the practised item.
+        let play_id = first_play_id(&model, &practised_entry_id);
         update(
             &mut model,
             Event::Session(SessionEvent::UpdateEntryTempo {
                 entry_id: skipped_entry_id.clone(),
+                play_id,
                 tempo: Some(100),
                 observed: TempoObservation {
                     user_set: true,
@@ -4980,7 +5382,7 @@ mod tests {
 
         if let SessionStatus::Summary(ref s) = model.session_status {
             let skipped = s.entries.iter().find(|e| e.id == skipped_entry_id).unwrap();
-            assert_eq!(skipped.achieved_tempo, None);
+            assert!(skipped.plays.is_empty(), "no play means no tempo recorded");
         }
     }
 
@@ -4995,10 +5397,12 @@ mod tests {
         };
 
         // Tempo 0 — out of range
+        let play_id = first_play_id(&model, &entry_id);
         update(
             &mut model,
             Event::Session(SessionEvent::UpdateEntryTempo {
                 entry_id: entry_id.clone(),
+                play_id,
                 tempo: Some(0),
                 observed: TempoObservation {
                     user_set: true,
@@ -5009,14 +5413,16 @@ mod tests {
         );
 
         if let SessionStatus::Summary(ref s) = model.session_status {
-            assert_eq!(s.entries[0].achieved_tempo, None);
+            assert_eq!(play_of(&s.entries[0]).achieved_tempo, None);
         }
 
         // Tempo 501 — out of range
+        let play_id = first_play_id(&model, &entry_id);
         update(
             &mut model,
             Event::Session(SessionEvent::UpdateEntryTempo {
                 entry_id: entry_id.clone(),
+                play_id,
                 tempo: Some(501),
                 observed: TempoObservation {
                     user_set: true,
@@ -5027,7 +5433,7 @@ mod tests {
         );
 
         if let SessionStatus::Summary(ref s) = model.session_status {
-            assert_eq!(s.entries[0].achieved_tempo, None);
+            assert_eq!(play_of(&s.entries[0]).achieved_tempo, None);
         }
     }
 
@@ -5197,7 +5603,10 @@ mod tests {
         );
 
         let entry_id = if let SessionStatus::Building(ref b) = model.session_status {
-            assert_eq!(b.entries[0].variant_id, None, "entries start with no rung");
+            assert_eq!(
+                b.entries[0].planned_variation_id, None,
+                "entries start with no rung"
+            );
             b.entries[0].id.clone()
         } else {
             panic!("Expected Building state");
@@ -5212,7 +5621,7 @@ mod tests {
         );
         assert!(model.last_error.is_none());
         if let SessionStatus::Building(ref b) = model.session_status {
-            assert_eq!(b.entries[0].variant_id, Some("v-c".to_string()));
+            assert_eq!(b.entries[0].planned_variation_id, Some("v-c".to_string()));
         } else {
             panic!("Expected Building state");
         }
@@ -5225,7 +5634,10 @@ mod tests {
             }),
         );
         if let SessionStatus::Building(ref b) = model.session_status {
-            assert_eq!(b.entries[0].variant_id, None, "None clears the rung");
+            assert_eq!(
+                b.entries[0].planned_variation_id, None,
+                "None clears the rung"
+            );
         } else {
             panic!("Expected Building state");
         }
@@ -5465,7 +5877,7 @@ mod tests {
     }
 
     fn actions(entry: &SetlistEntry) -> Option<Vec<RepAction>> {
-        entry
+        play_of(entry)
             .rep_history
             .as_ref()
             .map(|h| h.iter().map(|e| e.action).collect())
@@ -5498,7 +5910,7 @@ mod tests {
 
         // Set rep target on first entry during building
         if let SessionStatus::Building(ref mut b) = model.session_status {
-            b.entries[0].rep_target = Some(target);
+            b.entries[0].planned_rep_target = Some(target);
         } else {
             panic!("Expected Building state");
         }
@@ -5517,16 +5929,16 @@ mod tests {
         let (model, _now) = model_with_active_session_and_rep(5);
 
         let targeted = active_entry(&model, 0);
-        assert_eq!(targeted.rep_target, Some(5));
-        assert_eq!(targeted.rep_count, None);
-        assert_eq!(targeted.rep_target_reached, None);
-        assert_eq!(targeted.rep_history, None);
+        assert_eq!(play_of(targeted).rep_target, Some(5));
+        assert_eq!(play_of(targeted).rep_count, None);
+        assert_eq!(play_of(targeted).rep_target_reached, None);
+        assert_eq!(play_of(targeted).rep_history, None);
 
         let untouched = active_entry(&model, 1);
-        assert_eq!(untouched.rep_target, None);
-        assert_eq!(untouched.rep_count, None);
-        assert_eq!(untouched.rep_target_reached, None);
-        assert_eq!(untouched.rep_history, None);
+        assert!(
+            untouched.plays.is_empty(),
+            "an item not yet reached has opened no play, so it banks nothing"
+        );
     }
 
     #[test]
@@ -5538,8 +5950,8 @@ mod tests {
         update(&mut model, got_it());
 
         if let SessionStatus::Active(ref a) = model.session_status {
-            assert_eq!(a.entries[0].rep_count, Some(3));
-            assert_eq!(a.entries[0].rep_target_reached, Some(false));
+            assert_eq!(play_of(&a.entries[0]).rep_count, Some(3));
+            assert_eq!(play_of(&a.entries[0]).rep_target_reached, Some(false));
         } else {
             panic!("Expected Active state");
         }
@@ -5554,8 +5966,8 @@ mod tests {
         update(&mut model, got_it());
 
         if let SessionStatus::Active(ref a) = model.session_status {
-            assert_eq!(a.entries[0].rep_count, Some(3));
-            assert_eq!(a.entries[0].rep_target_reached, Some(true));
+            assert_eq!(play_of(&a.entries[0]).rep_count, Some(3));
+            assert_eq!(play_of(&a.entries[0]).rep_target_reached, Some(true));
         } else {
             panic!("Expected Active state");
         }
@@ -5574,8 +5986,8 @@ mod tests {
         update(&mut model, got_it());
 
         if let SessionStatus::Active(ref a) = model.session_status {
-            assert_eq!(a.entries[0].rep_count, Some(3));
-            assert_eq!(a.entries[0].rep_target_reached, Some(true));
+            assert_eq!(play_of(&a.entries[0]).rep_count, Some(3));
+            assert_eq!(play_of(&a.entries[0]).rep_target_reached, Some(true));
         } else {
             panic!("Expected Active state");
         }
@@ -5592,8 +6004,8 @@ mod tests {
         update(&mut model, missed());
 
         if let SessionStatus::Active(ref a) = model.session_status {
-            assert_eq!(a.entries[0].rep_count, Some(2));
-            assert_eq!(a.entries[0].rep_target_reached, Some(false));
+            assert_eq!(play_of(&a.entries[0]).rep_count, Some(2));
+            assert_eq!(play_of(&a.entries[0]).rep_target_reached, Some(false));
         } else {
             panic!("Expected Active state");
         }
@@ -5607,7 +6019,7 @@ mod tests {
         update(&mut model, missed());
 
         if let SessionStatus::Active(ref a) = model.session_status {
-            assert_eq!(a.entries[0].rep_count, Some(0));
+            assert_eq!(play_of(&a.entries[0]).rep_count, Some(0));
         } else {
             panic!("Expected Active state");
         }
@@ -5626,8 +6038,8 @@ mod tests {
         update(&mut model, missed());
 
         if let SessionStatus::Active(ref a) = model.session_status {
-            assert_eq!(a.entries[0].rep_count, Some(3));
-            assert_eq!(a.entries[0].rep_target_reached, Some(true));
+            assert_eq!(play_of(&a.entries[0]).rep_count, Some(3));
+            assert_eq!(play_of(&a.entries[0]).rep_target_reached, Some(true));
         } else {
             panic!("Expected Active state");
         }
@@ -5636,16 +6048,19 @@ mod tests {
     #[test]
     fn test_first_got_it_on_untouched_entry_writes_all_four_fields() {
         let (mut model, _now) = model_with_active_session(2);
-        assert_eq!(active_entry(&model, 0).rep_target, None);
+        assert_eq!(play_of(active_entry(&model, 0)).rep_target, None);
 
         update(&mut model, got_it());
 
         let entry = active_entry(&model, 0);
-        assert_eq!(entry.rep_target, Some(validation::DEFAULT_REP_TARGET));
-        assert_eq!(entry.rep_count, Some(1));
-        assert_eq!(entry.rep_target_reached, Some(false));
         assert_eq!(
-            entry.rep_history,
+            play_of(entry).rep_target,
+            Some(validation::DEFAULT_REP_TARGET)
+        );
+        assert_eq!(play_of(entry).rep_count, Some(1));
+        assert_eq!(play_of(entry).rep_target_reached, Some(false));
+        assert_eq!(
+            play_of(entry).rep_history,
             Some(vec![RepEvent {
                 action: RepAction::Success,
                 at: tap_at()
@@ -5660,9 +6075,12 @@ mod tests {
         update(&mut model, missed());
 
         let entry = active_entry(&model, 0);
-        assert_eq!(entry.rep_target, Some(validation::DEFAULT_REP_TARGET));
-        assert_eq!(entry.rep_count, Some(0));
-        assert_eq!(entry.rep_target_reached, Some(false));
+        assert_eq!(
+            play_of(entry).rep_target,
+            Some(validation::DEFAULT_REP_TARGET)
+        );
+        assert_eq!(play_of(entry).rep_count, Some(0));
+        assert_eq!(play_of(entry).rep_target_reached, Some(false));
         assert_eq!(actions(entry), Some(vec![RepAction::Missed]));
     }
 
@@ -5673,8 +6091,8 @@ mod tests {
         update(&mut model, got_it());
 
         let entry = active_entry(&model, 0);
-        assert_eq!(entry.rep_target, Some(7));
-        assert_eq!(entry.rep_count, Some(1));
+        assert_eq!(play_of(entry).rep_target, Some(7));
+        assert_eq!(play_of(entry).rep_count, Some(1));
     }
 
     #[test]
@@ -5698,7 +6116,7 @@ mod tests {
         );
 
         assert_eq!(
-            active_entry(&model, 0).rep_history,
+            play_of(active_entry(&model, 0)).rep_history,
             Some(vec![
                 RepEvent {
                     action: RepAction::Success,
@@ -5730,8 +6148,8 @@ mod tests {
 
         if let SessionStatus::Active(ref a) = model.session_status {
             // First entry frozen: 3/5, target not reached
-            assert_eq!(a.entries[0].rep_count, Some(3));
-            assert_eq!(a.entries[0].rep_target_reached, Some(false));
+            assert_eq!(play_of(&a.entries[0]).rep_count, Some(3));
+            assert_eq!(play_of(&a.entries[0]).rep_target_reached, Some(false));
             // Now on second item
             assert_eq!(a.current_index, 1);
         } else {
@@ -5739,6 +6157,9 @@ mod tests {
         }
     }
 
+    /// Repetitions banked before a skip are a record of practice and survive
+    /// it, frozen, as they did before plays existed. What a skip discards is
+    /// the play that recorded nothing (#1739 decision 3).
     #[test]
     fn test_rep_state_frozen_on_skip_item() {
         let (mut model, start) = model_with_active_session_and_rep(5);
@@ -5750,9 +6171,12 @@ mod tests {
         update(&mut model, Event::Session(SessionEvent::SkipItem { now }));
 
         if let SessionStatus::Active(ref a) = model.session_status {
-            // First entry frozen: 1/5, target not reached
-            assert_eq!(a.entries[0].rep_count, Some(1));
-            assert_eq!(a.entries[0].rep_target_reached, Some(false));
+            assert_eq!(a.entries[0].status, EntryStatus::Skipped);
+            assert_eq!(a.entries[0].plays.len(), 1);
+            assert_eq!(a.entries[0].plays[0].rep_count, Some(1));
+            assert_eq!(a.entries[0].plays[0].rep_target, Some(5));
+            assert_eq!(a.entries[0].plays[0].rep_target_reached, Some(false));
+            assert_eq!(a.entries[0].planned_rep_target, Some(5));
         } else {
             panic!("Expected Active state");
         }
@@ -5774,9 +6198,9 @@ mod tests {
         );
 
         if let SessionStatus::Summary(ref s) = model.session_status {
-            assert_eq!(s.entries[0].rep_target, Some(3));
-            assert_eq!(s.entries[0].rep_count, Some(3));
-            assert_eq!(s.entries[0].rep_target_reached, Some(true));
+            assert_eq!(play_of(&s.entries[0]).rep_target, Some(3));
+            assert_eq!(play_of(&s.entries[0]).rep_count, Some(3));
+            assert_eq!(play_of(&s.entries[0]).rep_target_reached, Some(true));
         } else {
             panic!("Expected Summary state");
         }
@@ -5804,9 +6228,12 @@ mod tests {
         );
 
         assert_eq!(model.sessions.len(), 1);
-        assert_eq!(model.sessions[0].entries[0].rep_target, Some(3));
-        assert_eq!(model.sessions[0].entries[0].rep_count, Some(3));
-        assert_eq!(model.sessions[0].entries[0].rep_target_reached, Some(true));
+        assert_eq!(play_of(&model.sessions[0].entries[0]).rep_target, Some(3));
+        assert_eq!(play_of(&model.sessions[0].entries[0]).rep_count, Some(3));
+        assert_eq!(
+            play_of(&model.sessions[0].entries[0]).rep_target_reached,
+            Some(true)
+        );
     }
 
     #[test]
@@ -5816,10 +6243,10 @@ mod tests {
         update(&mut model, got_it());
 
         let other = active_entry(&model, 1);
-        assert_eq!(other.rep_target, None);
-        assert_eq!(other.rep_count, None);
-        assert_eq!(other.rep_target_reached, None);
-        assert_eq!(other.rep_history, None);
+        assert!(
+            other.plays.is_empty(),
+            "the tap opened no play on an item that is not current"
+        );
     }
 
     #[test]
@@ -5832,8 +6259,8 @@ mod tests {
         }
 
         if let SessionStatus::Active(ref a) = model.session_status {
-            assert_eq!(a.entries[0].rep_count, Some(3)); // capped at target
-            assert_eq!(a.entries[0].rep_target_reached, Some(true));
+            assert_eq!(play_of(&a.entries[0]).rep_count, Some(3)); // capped at target
+            assert_eq!(play_of(&a.entries[0]).rep_target_reached, Some(true));
         } else {
             panic!("Expected Active state");
         }
@@ -5856,15 +6283,13 @@ mod tests {
 
         if let SessionStatus::Summary(ref s) = model.session_status {
             // Item 1: rep state frozen — 2/5, not reached
-            assert_eq!(s.entries[0].rep_target, Some(5));
-            assert_eq!(s.entries[0].rep_count, Some(2));
-            assert_eq!(s.entries[0].rep_target_reached, Some(false));
+            assert_eq!(play_of(&s.entries[0]).rep_target, Some(5));
+            assert_eq!(play_of(&s.entries[0]).rep_count, Some(2));
+            assert_eq!(play_of(&s.entries[0]).rep_target_reached, Some(false));
             assert_eq!(s.entries[0].status, EntryStatus::Completed);
 
-            // Item 2: no rep target set, marked not_attempted
-            assert_eq!(s.entries[1].rep_target, None);
-            assert_eq!(s.entries[1].rep_count, None);
-            assert_eq!(s.entries[1].rep_target_reached, None);
+            // Item 2: never reached, so it records nothing at all
+            assert!(s.entries[1].plays.is_empty());
             assert_eq!(s.entries[1].status, EntryStatus::NotAttempted);
         } else {
             panic!("Expected Summary state");
@@ -5900,9 +6325,11 @@ mod tests {
 
         assert!(model.last_error.is_none());
         if let SessionStatus::Building(ref b) = model.session_status {
-            assert_eq!(b.entries[0].rep_target, Some(7));
-            assert_eq!(b.entries[0].rep_count, None);
-            assert_eq!(b.entries[0].rep_target_reached, None);
+            assert_eq!(b.entries[0].planned_rep_target, Some(7));
+            assert!(
+                b.entries[0].plays.is_empty(),
+                "a target is a plan: it banks no progress"
+            );
         } else {
             panic!("Expected Building state");
         }
@@ -5945,7 +6372,7 @@ mod tests {
 
         assert!(model.last_error.is_none());
         if let SessionStatus::Building(ref b) = model.session_status {
-            assert_eq!(b.entries[0].rep_target, None);
+            assert_eq!(b.entries[0].planned_rep_target, None);
         } else {
             panic!("Expected Building state");
         }
@@ -5979,7 +6406,7 @@ mod tests {
 
         assert!(model.last_error.is_some());
         if let SessionStatus::Building(ref b) = model.session_status {
-            assert_eq!(b.entries[0].rep_target, None); // unchanged
+            assert_eq!(b.entries[0].planned_rep_target, None); // unchanged
         } else {
             panic!("Expected Building state");
         }
@@ -6029,12 +6456,13 @@ mod tests {
         );
 
         let entry = active_entry(&model, 0);
-        assert_eq!(entry.rep_target, Some(8));
+        assert_eq!(play_of(entry).rep_target, Some(8));
         assert_eq!(
-            entry.rep_count, None,
+            play_of(entry).rep_count,
+            None,
             "nothing is banked before the first tap"
         );
-        assert_eq!(entry.rep_target_reached, None);
+        assert_eq!(play_of(entry).rep_target_reached, None);
     }
 
     #[test]
@@ -6051,7 +6479,7 @@ mod tests {
         );
 
         if let SessionStatus::Active(ref a) = model.session_status {
-            assert_eq!(a.entries[0].rep_target, Some(5)); // unchanged
+            assert_eq!(play_of(&a.entries[0]).rep_target, Some(5)); // unchanged
         } else {
             panic!("Expected Active state");
         }
@@ -6196,26 +6624,33 @@ mod tests {
             duration_secs: 300,
             status: EntryStatus::Completed,
             notes: Some("warm up".to_string()),
-            score: Some(6),
             intention: Some("even tone".to_string()),
-            rep_target: Some(5),
-            rep_count: Some(5),
-            rep_target_reached: Some(true),
-            rep_history: Some(vec![
-                RepEvent {
-                    action: RepAction::Success,
-                    at: tap_at(),
-                },
-                RepEvent {
-                    action: RepAction::Missed,
-                    at: tap_at(),
-                },
-            ]),
             planned_duration_secs: Some(300),
-            achieved_tempo: Some(96),
             group_id: Some("g1".to_string()),
-            variant_id: Some("v-1".to_string()),
-            click_pattern: None,
+            planned_variation_id: Some("v-1".to_string()),
+            planned_rep_target: Some(5),
+            plays: vec![VariationPlay {
+                id: "e1-play".to_string(),
+                variation_id: Some("v-1".to_string()),
+                started_at: tap_at(),
+                seconds: 300,
+                rep_target: Some(5),
+                rep_count: Some(5),
+                rep_target_reached: Some(true),
+                rep_history: Some(vec![
+                    RepEvent {
+                        action: RepAction::Success,
+                        at: tap_at(),
+                    },
+                    RepEvent {
+                        action: RepAction::Missed,
+                        at: tap_at(),
+                    },
+                ]),
+                achieved_tempo: Some(96),
+                click_pattern: None,
+                score: Some(6),
+            }],
         });
     }
 
@@ -6226,30 +6661,37 @@ mod tests {
         touched.status = EntryStatus::Completed;
         touched.duration_secs = 300;
         touched.notes = Some("phrasing".to_string());
-        touched.score = Some(4);
         touched.intention = Some("evenness".to_string());
-        touched.rep_target = Some(10);
-        touched.rep_count = Some(1);
-        touched.rep_target_reached = Some(false);
-        touched.rep_history = Some(vec![
-            RepEvent {
-                action: RepAction::Success,
-                at: tap_at(),
-            },
-            RepEvent {
-                action: RepAction::Missed,
-                at: tap_at() + chrono::Duration::seconds(40),
-            },
-            RepEvent {
-                action: RepAction::Success,
-                at: tap_at() + chrono::Duration::seconds(95),
-            },
-        ]);
         touched.planned_duration_secs = Some(300);
-        touched.achieved_tempo = Some(120);
         touched.group_id = Some("g1".to_string());
-        touched.variant_id = Some("v-1".to_string());
-        touched.click_pattern = Some(seven_eight_on_group_starts());
+        touched.planned_variation_id = Some("v-1".to_string());
+        touched.planned_rep_target = Some(10);
+        touched.plays = vec![VariationPlay {
+            id: "e1-play".to_string(),
+            variation_id: Some("v-1".to_string()),
+            started_at: tap_at(),
+            seconds: 300,
+            rep_target: Some(10),
+            rep_count: Some(1),
+            rep_target_reached: Some(false),
+            rep_history: Some(vec![
+                RepEvent {
+                    action: RepAction::Success,
+                    at: tap_at(),
+                },
+                RepEvent {
+                    action: RepAction::Missed,
+                    at: tap_at() + chrono::Duration::seconds(40),
+                },
+                RepEvent {
+                    action: RepAction::Success,
+                    at: tap_at() + chrono::Duration::seconds(95),
+                },
+            ]),
+            achieved_tempo: Some(120),
+            click_pattern: Some(seven_eight_on_group_starts()),
+            score: Some(4),
+        }];
         let mut untouched = create_entry("x1", "Scales", ItemKind::Exercise, 1);
         untouched.id = "e2".to_string();
         ActiveSession {
@@ -6263,17 +6705,19 @@ mod tests {
     }
 
     const PINNED_ACTIVE_SESSION_HEX: &str = concat!(
-        "02000000000000007331020000000000000002000000000000006531020000000000000070310d00",
-        "000000000000436c616972206465204c756e650000000000000000000000002c0100000000000000",
-        "0000000108000000000000007068726173696e6701040108000000000000006576656e6e65737301",
-        "0a01010100010300000000000000010000001400000000000000323032362d30392d30335430393a",
-        "30303a30305a000000001400000000000000323032362d30392d30335430393a30303a34305a0100",
-        "00001400000000000000323032362d30392d30335430393a30313a33355a012c0100000178000102",
-        "000000000000006731010300000000000000762d3101070801030000000000000003020229000200",
-        "00000000000065320200000000000000783106000000000000005363616c65730100000001000000",
-        "00000000000000000000000002000000000000000000000000000000010000000000000014000000",
-        "00000000323032362d30392d30335430393a30303a30305a1400000000000000323032362d30392d",
-        "30335430383a34373a30305a0107000000000000007761726d207570",
+        "02000000000000007331020000000000000002000000000000006531020000000000000070310d",
+        "00000000000000436c616972206465204c756e650000000000000000000000002c010000000000",
+        "00000000000108000000000000007068726173696e670108000000000000006576656e6e657373",
+        "012c0100000102000000000000006731010300000000000000762d31010a010000000000000007",
+        "0000000000000065312d706c6179010300000000000000762d311400000000000000323032362d",
+        "30392d30335430393a30303a30305a2c01000000000000010a0101010001030000000000000001",
+        "0000001400000000000000323032362d30392d30335430393a30303a30305a0000000014000000",
+        "00000000323032362d30392d30335430393a30303a34305a010000001400000000000000323032",
+        "362d30392d30335430393a30313a33355a01780001070801030000000000000003020229000104",
+        "020000000000000065320200000000000000783106000000000000005363616c65730100000001",
+        "000000000000000000000000000000020000000000000000000000000000000000010000000000",
+        "00001400000000000000323032362d30392d30335430393a30303a30305a140000000000000032",
+        "3032362d30392d30335430383a34373a30305a0107000000000000007761726d207570",
     );
 
     /// `AppEffect::SaveSessionInProgress(ActiveSession)` is positional bincode
@@ -6313,6 +6757,7 @@ mod tests {
     fn update_entry_tempo_with_click_state_round_trips_on_ffi_bincode_wire() {
         crate::domain::types::assert_round_trips(Event::Session(SessionEvent::UpdateEntryTempo {
             entry_id: "e1".to_string(),
+            play_id: "play-1".to_string(),
             tempo: Some(168),
             observed: TempoObservation {
                 user_set: false,
@@ -6322,6 +6767,7 @@ mod tests {
         }));
         crate::domain::types::assert_round_trips(Event::Session(SessionEvent::UpdateEntryTempo {
             entry_id: "e1".to_string(),
+            play_id: "play-1".to_string(),
             tempo: None,
             observed: TempoObservation {
                 user_set: true,
@@ -6331,10 +6777,11 @@ mod tests {
         }));
     }
 
-    /// The rung tag (#1083) is the newest bincode field on the entry and the
-    /// sole input to per-step score derivation — a silent drop on the wire would
-    /// unscore every step. Guard the entry with `variant_id` set, and the event
-    /// that writes it, against the #846 class.
+    /// The variation tag (#1083, #1739) is the sole input to per-variation
+    /// score derivation, and it now rides the wire twice: as the entry's plan
+    /// and as the play's record. A silent drop on either would unscore every
+    /// variation. Guard both, and the event that writes the plan, against the
+    /// #846 class.
     #[test]
     fn set_entry_variant_payloads_round_trip_on_ffi_bincode_wire() {
         crate::domain::types::assert_round_trips(SetlistEntry {
@@ -6346,23 +6793,530 @@ mod tests {
             duration_secs: 300,
             status: EntryStatus::Completed,
             notes: None,
-            score: Some(8),
             intention: None,
-            rep_target: None,
-            rep_count: None,
-            rep_target_reached: None,
-            rep_history: None,
             planned_duration_secs: None,
-            achieved_tempo: None,
             group_id: None,
-            variant_id: Some("v1".to_string()),
-            click_pattern: None,
+            planned_variation_id: Some("v1".to_string()),
+            planned_rep_target: None,
+            plays: vec![VariationPlay {
+                id: "e1-play".to_string(),
+                variation_id: Some("v1".to_string()),
+                started_at: tap_at(),
+                seconds: 300,
+                score: Some(8),
+                ..VariationPlay::fixture()
+            }],
         });
 
         crate::domain::types::assert_round_trips(crate::app::Event::Session(
             SessionEvent::SetEntryVariant {
                 entry_id: "e1".to_string(),
                 variant_id: Some("v1".to_string()),
+            },
+        ));
+    }
+
+    // ── Variations and plays (#1739) ───────────────────────────────────
+
+    /// An exercise with two live variations and one tombstoned, in a session
+    /// that has already started. `v-gone` is the dead one.
+    fn model_with_variations() -> (Model, DateTime<Utc>) {
+        let (model, now) = building_with_variations();
+        let mut model = model;
+        update(
+            &mut model,
+            Event::Session(SessionEvent::StartSession { now }),
+        );
+        (model, now)
+    }
+
+    fn building_with_variations() -> (Model, DateTime<Utc>) {
+        use crate::domain::variant::Variant;
+
+        let mut model = model_with_library();
+        model.local_first = true;
+        let now = Utc::now();
+        let exercise = model
+            .items
+            .iter_mut()
+            .find(|i| i.id == "exercise-1")
+            .expect("the library fixture has exercise-1");
+        exercise.variants = vec![
+            Variant {
+                id: "v-c".to_string(),
+                label: "C".to_string(),
+                position: 0,
+                updated_at: now,
+                deleted_at: None,
+            },
+            Variant {
+                id: "v-d".to_string(),
+                label: "D".to_string(),
+                position: 1,
+                updated_at: now,
+                deleted_at: None,
+            },
+            Variant {
+                id: "v-gone".to_string(),
+                label: "E flat".to_string(),
+                position: 2,
+                updated_at: now,
+                deleted_at: Some(now),
+            },
+        ];
+
+        update(&mut model, Event::Session(SessionEvent::StartBuilding));
+        update(
+            &mut model,
+            Event::Session(SessionEvent::AddToSetlist {
+                item_id: "exercise-1".to_string(),
+            }),
+        );
+        (model, now)
+    }
+
+    fn only_entry(model: &Model) -> &SetlistEntry {
+        &session_entries(model)[0]
+    }
+
+    #[test]
+    fn starting_a_session_opens_one_play_seeded_from_the_plan() {
+        let (mut model, now) = building_with_variations();
+        let entry_id = only_entry(&model).id.clone();
+
+        update(
+            &mut model,
+            Event::Session(SessionEvent::SetEntryVariant {
+                entry_id,
+                variant_id: Some("v-c".to_string()),
+            }),
+        );
+        update(
+            &mut model,
+            Event::Session(SessionEvent::StartSession { now }),
+        );
+
+        let entry = only_entry(&model);
+        assert_eq!(entry.plays.len(), 1);
+        assert_eq!(play_of(entry).variation_id.as_deref(), Some("v-c"));
+        assert_eq!(entry.planned_variation_id.as_deref(), Some("v-c"));
+    }
+
+    #[test]
+    fn a_piece_records_exactly_one_unattributed_play() {
+        let (model, _) = model_with_active_session(1);
+
+        let entry = only_entry(&model);
+        assert_eq!(entry.item_type, ItemKind::Piece);
+        assert_eq!(entry.plays.len(), 1);
+        assert_eq!(play_of(entry).variation_id, None);
+    }
+
+    #[test]
+    fn switching_mid_item_closes_the_open_play_and_opens_another() {
+        let (mut model, start) = model_with_variations();
+        let entry_id = only_entry(&model).id.clone();
+        let switched_at = start + chrono::Duration::seconds(180);
+
+        update(
+            &mut model,
+            Event::Session(SessionEvent::SwitchVariation {
+                entry_id,
+                variation_id: Some("v-d".to_string()),
+                now: switched_at,
+            }),
+        );
+
+        assert!(model.last_error.is_none());
+        let entry = only_entry(&model);
+        assert_eq!(entry.plays.len(), 2);
+        assert_eq!(entry.plays[0].seconds, 180);
+        assert_eq!(entry.plays[1].variation_id.as_deref(), Some("v-d"));
+        assert_eq!(entry.plays[1].seconds, 0);
+    }
+
+    #[test]
+    fn switching_to_the_variation_already_open_writes_nothing() {
+        let (mut model, start) = model_with_variations();
+        let entry_id = only_entry(&model).id.clone();
+        update(
+            &mut model,
+            Event::Session(SessionEvent::SwitchVariation {
+                entry_id: entry_id.clone(),
+                variation_id: Some("v-c".to_string()),
+                now: start + chrono::Duration::seconds(60),
+            }),
+        );
+        update(
+            &mut model,
+            Event::Session(SessionEvent::RepGotIt {
+                now: start + chrono::Duration::seconds(70),
+            }),
+        );
+
+        update(
+            &mut model,
+            Event::Session(SessionEvent::SwitchVariation {
+                entry_id,
+                variation_id: Some("v-c".to_string()),
+                now: start + chrono::Duration::seconds(80),
+            }),
+        );
+
+        let entry = only_entry(&model);
+        assert_eq!(entry.plays.len(), 2, "the stray tap opened nothing");
+        assert_eq!(
+            play_of(entry).rep_count,
+            Some(1),
+            "the stray tap did not clear the dots"
+        );
+    }
+
+    #[test]
+    fn repetitions_and_tempo_land_on_the_open_play_and_reset_on_a_switch() {
+        let (mut model, start) = model_with_variations();
+        let entry_id = only_entry(&model).id.clone();
+
+        update(
+            &mut model,
+            Event::Session(SessionEvent::RepGotIt {
+                now: start + chrono::Duration::seconds(10),
+            }),
+        );
+        update(
+            &mut model,
+            Event::Session(SessionEvent::RepGotIt {
+                now: start + chrono::Duration::seconds(20),
+            }),
+        );
+        assert_eq!(play_of(only_entry(&model)).rep_count, Some(2));
+
+        update(
+            &mut model,
+            Event::Session(SessionEvent::SwitchVariation {
+                entry_id,
+                variation_id: Some("v-d".to_string()),
+                now: start + chrono::Duration::seconds(30),
+            }),
+        );
+
+        let entry = only_entry(&model);
+        assert_eq!(
+            entry.plays[0].rep_count,
+            Some(2),
+            "the first play keeps its"
+        );
+        assert_eq!(play_of(entry).rep_count, None, "the new play starts empty");
+    }
+
+    #[test]
+    fn scoring_names_the_play_it_marks() {
+        let (mut model, start) = model_with_variations();
+        let entry_id = only_entry(&model).id.clone();
+        update(
+            &mut model,
+            Event::Session(SessionEvent::SwitchVariation {
+                entry_id: entry_id.clone(),
+                variation_id: Some("v-d".to_string()),
+                now: start + chrono::Duration::seconds(60),
+            }),
+        );
+        update(
+            &mut model,
+            Event::Session(SessionEvent::FinishSession {
+                now: start + chrono::Duration::seconds(600),
+            }),
+        );
+        let first = only_entry(&model).plays[0].id.clone();
+
+        update(
+            &mut model,
+            Event::Session(SessionEvent::UpdateEntryScore {
+                entry_id,
+                play_id: first,
+                score: Some(7),
+            }),
+        );
+
+        let entry = only_entry(&model);
+        assert_eq!(entry.plays[0].score, Some(7));
+        assert_eq!(entry.plays[1].score, None, "only the named play is marked");
+    }
+
+    #[test]
+    fn a_play_id_from_another_entry_is_rejected() {
+        let (mut model, start) = model_with_active_session(2);
+        update(
+            &mut model,
+            Event::Session(SessionEvent::NextItem {
+                now: start + chrono::Duration::seconds(300),
+            }),
+        );
+        update(
+            &mut model,
+            Event::Session(SessionEvent::FinishSession {
+                now: start + chrono::Duration::seconds(600),
+            }),
+        );
+        let first_entry = session_entries(&model)[0].id.clone();
+        let second_entry = session_entries(&model)[1].id.clone();
+        let foreign = first_play_id(&model, &second_entry);
+
+        update(
+            &mut model,
+            Event::Session(SessionEvent::UpdateEntryScore {
+                entry_id: first_entry.clone(),
+                play_id: foreign,
+                score: Some(7),
+            }),
+        );
+
+        assert!(model.last_error.is_some());
+        let entry = session_entries(&model)
+            .iter()
+            .find(|e| e.id == first_entry)
+            .expect("the entry is there");
+        assert!(entry.plays.iter().all(|p| p.score.is_none()));
+    }
+
+    #[test]
+    fn switching_to_a_dead_variation_is_rejected() {
+        let (mut model, start) = model_with_variations();
+        let entry_id = only_entry(&model).id.clone();
+
+        update(
+            &mut model,
+            Event::Session(SessionEvent::SwitchVariation {
+                entry_id,
+                variation_id: Some("v-gone".to_string()),
+                now: start + chrono::Duration::seconds(60),
+            }),
+        );
+
+        assert!(model.last_error.is_some());
+        assert_eq!(only_entry(&model).plays.len(), 1);
+    }
+
+    #[test]
+    fn an_entry_stops_at_the_play_cap() {
+        let (mut model, start) = model_with_variations();
+        let entry_id = only_entry(&model).id.clone();
+
+        // Alternate, so every switch is a real one rather than a no-op.
+        for i in 0..validation::MAX_PLAYS_PER_ENTRY + 4 {
+            let variation = if i % 2 == 0 { "v-d" } else { "v-c" };
+            update(
+                &mut model,
+                Event::Session(SessionEvent::SwitchVariation {
+                    entry_id: entry_id.clone(),
+                    variation_id: Some(variation.to_string()),
+                    now: start + chrono::Duration::seconds(60 * (i as i64 + 1)),
+                }),
+            );
+        }
+
+        assert_eq!(
+            only_entry(&model).plays.len(),
+            validation::MAX_PLAYS_PER_ENTRY
+        );
+        assert!(model.last_error.is_some());
+    }
+
+    #[test]
+    fn finishing_drops_a_play_that_recorded_nothing() {
+        let (mut model, start) = model_with_variations();
+        let entry_id = only_entry(&model).id.clone();
+        let opened = only_entry(&model).plays[0].id.clone();
+        // A stray tap on the picker, two seconds before the end.
+        update(
+            &mut model,
+            Event::Session(SessionEvent::SwitchVariation {
+                entry_id,
+                variation_id: Some("v-d".to_string()),
+                now: start + chrono::Duration::seconds(298),
+            }),
+        );
+
+        update(
+            &mut model,
+            Event::Session(SessionEvent::FinishSession {
+                now: start + chrono::Duration::seconds(300),
+            }),
+        );
+
+        let entry = only_entry(&model);
+        assert_eq!(entry.plays.len(), 1);
+        assert_eq!(
+            entry.plays[0].id, opened,
+            "the stray tap's play went, not the real one"
+        );
+    }
+
+    /// The drop must never empty a practised entry, or the item-complete sheet
+    /// would hold a `play_id` the core has just deleted and every mark it sent
+    /// would be refused (decision 3's invariant).
+    #[test]
+    fn finishing_keeps_the_only_play_however_short() {
+        let (mut model, start) = model_with_variations();
+        let opened = only_entry(&model).plays[0].id.clone();
+
+        update(
+            &mut model,
+            Event::Session(SessionEvent::FinishSession {
+                now: start + chrono::Duration::seconds(2),
+            }),
+        );
+
+        let entry = only_entry(&model);
+        assert_eq!(entry.status, EntryStatus::Completed);
+        assert_eq!(entry.plays.len(), 1);
+        assert_eq!(entry.plays[0].id, opened);
+    }
+
+    #[test]
+    fn moving_off_an_item_keeps_its_only_play_however_short() {
+        let (mut model, start) = model_with_active_session(2);
+        let entry_id = session_entries(&model)[0].id.clone();
+        let opened = session_entries(&model)[0].plays[0].id.clone();
+
+        update(
+            &mut model,
+            Event::Session(SessionEvent::NextItem {
+                now: start + chrono::Duration::seconds(2),
+            }),
+        );
+
+        let entry = session_entries(&model)
+            .iter()
+            .find(|e| e.id == entry_id)
+            .expect("the entry is still in the session");
+        assert_eq!(entry.plays.len(), 1);
+        assert_eq!(entry.plays[0].id, opened);
+    }
+
+    #[test]
+    fn finishing_keeps_a_short_play_that_banked_a_repetition() {
+        let (mut model, start) = model_with_variations();
+        let entry_id = only_entry(&model).id.clone();
+        update(
+            &mut model,
+            Event::Session(SessionEvent::SwitchVariation {
+                entry_id,
+                variation_id: Some("v-d".to_string()),
+                now: start + chrono::Duration::seconds(298),
+            }),
+        );
+        update(
+            &mut model,
+            Event::Session(SessionEvent::RepGotIt {
+                now: start + chrono::Duration::seconds(299),
+            }),
+        );
+
+        update(
+            &mut model,
+            Event::Session(SessionEvent::FinishSession {
+                now: start + chrono::Duration::seconds(300),
+            }),
+        );
+
+        let entry = only_entry(&model);
+        assert_eq!(entry.plays.len(), 2);
+        assert_eq!(entry.plays[1].rep_count, Some(1));
+    }
+
+    #[test]
+    fn a_skipped_entry_keeps_a_play_that_banked_repetitions() {
+        let (mut model, start) = model_with_variations();
+        update(
+            &mut model,
+            Event::Session(SessionEvent::RepGotIt {
+                now: start + chrono::Duration::seconds(30),
+            }),
+        );
+
+        update(
+            &mut model,
+            Event::Session(SessionEvent::SkipItem {
+                now: start + chrono::Duration::seconds(60),
+            }),
+        );
+
+        let entry = only_entry(&model);
+        assert_eq!(entry.status, EntryStatus::Skipped);
+        assert_eq!(entry.plays.len(), 1);
+        assert_eq!(entry.plays[0].rep_count, Some(1));
+    }
+
+    #[test]
+    fn a_skipped_entry_that_recorded_nothing_keeps_no_play() {
+        let (mut model, start) = model_with_variations();
+
+        update(
+            &mut model,
+            Event::Session(SessionEvent::SkipItem {
+                now: start + chrono::Duration::seconds(60),
+            }),
+        );
+
+        assert!(only_entry(&model).plays.is_empty());
+    }
+
+    #[test]
+    fn score_summary_is_the_mean_of_the_plays_that_carry_a_mark() {
+        let mut entry = SetlistEntry::fixture();
+        entry.plays = vec![
+            VariationPlay {
+                score: Some(8),
+                ..VariationPlay::fixture()
+            },
+            VariationPlay {
+                score: Some(5),
+                ..VariationPlay::fixture()
+            },
+            VariationPlay {
+                score: None,
+                ..VariationPlay::fixture()
+            },
+        ];
+
+        assert_eq!(entry.score_summary(), Some(7), "13 over 2 rounds to 7");
+    }
+
+    #[test]
+    fn score_summary_is_none_when_no_play_carries_a_mark() {
+        let mut entry = SetlistEntry::fixture();
+        entry.plays = vec![VariationPlay::fixture()];
+
+        assert_eq!(entry.score_summary(), None);
+    }
+
+    #[test]
+    fn switch_variation_and_the_play_id_events_round_trip_on_the_bincode_wire() {
+        crate::domain::types::assert_round_trips(crate::app::Event::Session(
+            SessionEvent::SwitchVariation {
+                entry_id: "e1".to_string(),
+                variation_id: Some("v-d".to_string()),
+                now: tap_at(),
+            },
+        ));
+        crate::domain::types::assert_round_trips(crate::app::Event::Session(
+            SessionEvent::UpdateEntryScore {
+                entry_id: "e1".to_string(),
+                play_id: "e1-play".to_string(),
+                score: Some(7),
+            },
+        ));
+        crate::domain::types::assert_round_trips(crate::app::Event::Session(
+            SessionEvent::UpdateEntryTempo {
+                entry_id: "e1".to_string(),
+                play_id: "e1-play".to_string(),
+                tempo: Some(120),
+                observed: TempoObservation {
+                    user_set: true,
+                    click_sounding: false,
+                },
+                click: None,
             },
         ));
     }

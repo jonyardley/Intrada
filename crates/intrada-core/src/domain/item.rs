@@ -895,7 +895,7 @@ pub fn handle_item_event(event: ItemEvent, model: &mut Model) -> Command<Effect,
             if !model.local_first {
                 // Steps are local-first-only until sync (#1083; invariant 6
                 // consciously scoped); surfaced, never a silent no-op.
-                model.last_error = Some("Steps aren't available online yet".to_string());
+                model.last_error = Some("Variations aren't available online yet".to_string());
                 return crux_core::render::render();
             }
 
@@ -1041,7 +1041,7 @@ pub fn handle_item_event(event: ItemEvent, model: &mut Model) -> Command<Effect,
         ItemEvent::AddVariant { item_id, label } => {
             if !model.local_first {
                 // Same scope-out as SetVariants (#1083; invariant 6).
-                model.last_error = Some("Steps aren't available online yet".to_string());
+                model.last_error = Some("Variations aren't available online yet".to_string());
                 return crux_core::render::render();
             }
 
@@ -1091,7 +1091,7 @@ pub fn handle_item_event(event: ItemEvent, model: &mut Model) -> Command<Effect,
         } => {
             if !model.local_first {
                 // Same scope-out as SetVariants/AddVariant (#1083; invariant 6).
-                model.last_error = Some("Steps aren't available online yet".to_string());
+                model.last_error = Some("Variations aren't available online yet".to_string());
                 return crux_core::render::render();
             }
 

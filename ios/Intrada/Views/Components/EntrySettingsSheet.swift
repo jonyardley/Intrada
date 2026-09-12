@@ -32,11 +32,11 @@ struct EntrySettingsSheet: View {
   init(entry: SetlistEntryView) {
     self.entry = entry
     _intention = State(initialValue: entry.intention ?? "")
-    _tracksReps = State(initialValue: entry.repTarget != nil)
-    _repTarget = State(initialValue: Int(entry.repTarget ?? UInt8(defaultRepTarget)))
+    _tracksReps = State(initialValue: entry.plannedRepTarget != nil)
+    _repTarget = State(initialValue: Int(entry.plannedRepTarget ?? UInt8(defaultRepTarget)))
     _hasPlannedDuration = State(initialValue: entry.plannedDurationSecs != nil)
     _plannedMinutes = State(initialValue: Int((entry.plannedDurationSecs ?? 360) / 60))
-    _variantId = State(initialValue: entry.variantId)
+    _variantId = State(initialValue: entry.plannedVariationId)
   }
 
   var body: some View {

@@ -120,7 +120,7 @@ struct PracticeSessionDetailScreen: View {
   /// column is narrow enough for the meta line to break mid-word (#1471).
   private func entryRow(_ entry: SetlistEntryView) -> some View {
     let played = entry.status == .completed
-    let ring = played ? entry.score.map(Int.init) : nil
+    let ring = played ? entry.scoreSummary.map(Int.init) : nil
     return Group {
       if dynamicTypeSize.isAccessibilitySize {
         VStack(alignment: .leading, spacing: IntradaSpacing.controlGap) {
@@ -166,10 +166,12 @@ struct PracticeSessionDetailScreen: View {
     case .notAttempted: return "Not played"
     case .skipped: return "Skipped"
     case .completed:
+      // One line for the last play. #1739 Phase B gives each variation a row.
       var parts = [entry.itemType.label, entry.durationDisplay]
-      if let tempo = entry.achievedTempo { parts.append("\(tempo) bpm") }
-      if let target = entry.repTarget {
-        parts.append("\(entry.repCount ?? 0) of \(target) reps")
+      let play = entry.plays.last
+      if let tempo = play?.achievedTempo { parts.append("\(tempo) bpm") }
+      if let target = play?.repTarget {
+        parts.append("\(play?.repCount ?? 0) of \(target) reps")
       }
       return parts.joined(separator: " · ")
     }
@@ -177,7 +179,7 @@ struct PracticeSessionDetailScreen: View {
 
   private func entryAccessibilityLabel(_ entry: SetlistEntryView) -> String {
     var parts = [entry.itemTitle, entryMeta(entry)]
-    if entry.status == .completed, let score = entry.score {
+    if entry.status == .completed, let score = entry.scoreSummary {
       parts.append("marked \(score) out of 10")
     }
     if let notes = entry.notes, !notes.isEmpty { parts.append(notes) }

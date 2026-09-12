@@ -97,7 +97,7 @@ struct UsedInRow: View {
     VStack(alignment: .leading, spacing: IntradaSpacing.controlGap) {
       // controlGap, not row, around the trailing controls: a row carrying both a
       // Link button and a chevron has little width left for the meta line.
-      HStack(spacing: IntradaSpacing.controlGap) {
+      HStack(alignment: .top, spacing: IntradaSpacing.controlGap) {
         if navigable, let piece = usage.piece {
           NavigationLink(value: piece.id) { content }
             .buttonStyle(.plain)
@@ -129,8 +129,13 @@ struct UsedInRow: View {
     .background(IntradaColor.cardFill)
   }
 
+  // Stacked at accessibility sizes so a long title word doesn't break mid-word beside the ring (#1731).
   private var content: some View {
-    HStack(spacing: IntradaSpacing.row) {
+    let layout: AnyLayout =
+      dynamicTypeSize.isAccessibilitySize
+      ? AnyLayout(VStackLayout(alignment: .leading, spacing: IntradaSpacing.controlGap))
+      : AnyLayout(HStackLayout(spacing: IntradaSpacing.row))
+    return layout {
       // Decorative here: the ring's rest glyph and "not practised together yet"
       // are the same fact, and for a rated row the mark is already spoken by
       // `spokenRow` (#1468).

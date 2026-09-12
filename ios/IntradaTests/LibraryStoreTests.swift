@@ -198,14 +198,18 @@ final class LibraryStoreTests: XCTestCase {
   private func entry(_ id: String) -> SetlistEntry {
     SetlistEntry(
       id: id, itemId: "item-\(id)", itemTitle: "Etude", itemType: .exercise, position: 0,
-      durationSecs: 300, status: .completed, notes: "good", score: 4, intention: "evenness",
-      repTarget: 5, repCount: 5, repTargetReached: true,
-      repHistory: [
-        RepEvent(action: .success, at: "2026-01-01T00:01:00Z"),
-        RepEvent(action: .missed, at: "2026-01-01T00:02:00Z"),
-        RepEvent(action: .success, at: "2026-01-01T00:03:30Z"),
-      ], plannedDurationSecs: 300, achievedTempo: 120,
-      groupId: nil, variantId: nil, clickPattern: nil)
+      durationSecs: 300, status: .completed, notes: "good", intention: "evenness",
+      plannedDurationSecs: 300, groupId: nil, plannedVariationId: nil, plannedRepTarget: 5,
+      plays: [
+        VariationPlay(
+          id: "\(id)-p1", variationId: nil, startedAt: "2026-01-01T00:00:00Z", seconds: 300,
+          repTarget: 5, repCount: 5, repTargetReached: true,
+          repHistory: [
+            RepEvent(action: .success, at: "2026-01-01T00:01:00Z"),
+            RepEvent(action: .missed, at: "2026-01-01T00:02:00Z"),
+            RepEvent(action: .success, at: "2026-01-01T00:03:30Z"),
+          ], achievedTempo: 120, clickPattern: nil, score: 4)
+      ])
   }
 
   private func session(_ id: String, completedAt: String = "2026-01-01T00:00:00Z")
@@ -231,16 +235,18 @@ final class LibraryStoreTests: XCTestCase {
     let e = try XCTUnwrap(got.entries.first)
     XCTAssertEqual(e.itemType, .exercise)
     XCTAssertEqual(e.status, .completed)
-    XCTAssertEqual(e.score, 4)
-    XCTAssertEqual(e.repTarget, 5)
+    XCTAssertEqual(e.plannedRepTarget, 5)
+    let play = try XCTUnwrap(e.plays.first)
+    XCTAssertEqual(play.score, 4)
+    XCTAssertEqual(play.repTarget, 5)
     XCTAssertEqual(
-      e.repHistory,
+      play.repHistory,
       [
         RepEvent(action: .success, at: "2026-01-01T00:01:00Z"),
         RepEvent(action: .missed, at: "2026-01-01T00:02:00Z"),
         RepEvent(action: .success, at: "2026-01-01T00:03:30Z"),
       ], "each tap keeps its own time through the blob")
-    XCTAssertEqual(e.achievedTempo, 120)
+    XCTAssertEqual(play.achievedTempo, 120)
   }
 
   /// Rows written before #1367 hold bare action strings with no time. They
@@ -263,8 +269,9 @@ final class LibraryStoreTests: XCTestCase {
                 NULL, NULL, '\(entries)', '2026-01-01T09:30:00Z', NULL)
         """)
     let e = try XCTUnwrap(try store.loadSessions().first?.entries.first)
+    let play = try XCTUnwrap(e.plays.first, "a legacy completed entry folds into one play")
     XCTAssertEqual(
-      e.repHistory,
+      play.repHistory,
       [
         RepEvent(action: .success, at: "2026-01-01T09:00:00Z"),
         RepEvent(action: .missed, at: "2026-01-01T09:00:00Z"),
@@ -294,15 +301,19 @@ final class LibraryStoreTests: XCTestCase {
     XCTAssertEqual(got.entries.map(\.status), [.skipped, .notAttempted])
   }
 
-  func testEntriesBlobRoundTripsVariantId() throws {
+  func testEntriesBlobRoundTripsTheVariationAttribution() throws {
     let store = try makeStore()
     var s = session("s1")
-    s.entries[0].variantId = "v-c"
+    s.entries[0].plannedVariationId = "v-c"
+    s.entries[0].plays[0].variationId = "v-c"
     try store.saveSession(s)
 
     let got = try XCTUnwrap(try store.loadSessions().first)
-    XCTAssertEqual(got.entries[0].variantId, "v-c", "the step attribution rides the blob")
-    XCTAssertNil(got.entries[1].variantId)
+    XCTAssertEqual(got.entries[0].plannedVariationId, "v-c", "the plan rides the blob")
+    XCTAssertEqual(
+      got.entries[0].plays.first?.variationId, "v-c", "and so does what was practised")
+    XCTAssertNil(got.entries[1].plannedVariationId)
+    XCTAssertNil(got.entries[1].plays.first?.variationId)
   }
 
   func testEntriesBlobRoundTripsTheClickPattern() throws {
@@ -310,12 +321,13 @@ final class LibraryStoreTests: XCTestCase {
     var s = session("s1")
     let pattern = ClickState(
       metre: Metre(beats: 7, unit: 8, groups: [3, 2, 2]), sounding: 0b0101001)
-    s.entries[0].clickPattern = pattern
+    s.entries[0].plays[0].clickPattern = pattern
     try store.saveSession(s)
 
     let got = try XCTUnwrap(try store.loadSessions().first)
-    XCTAssertEqual(got.entries[0].clickPattern, pattern, "the pattern rides the blob")
-    XCTAssertNil(got.entries[1].clickPattern)
+    XCTAssertEqual(
+      got.entries[0].plays.first?.clickPattern, pattern, "the pattern rides the blob")
+    XCTAssertNil(got.entries[1].plays.first?.clickPattern)
   }
 
   func testSessionsLoadNewestFirst() throws {
@@ -334,8 +346,10 @@ final class LibraryStoreTests: XCTestCase {
   /// Unknown stored enum strings (an older binary reading a newer row) fall back
   /// to conservative defaults rather than silently miscategorising (#949).
   func testUnknownStoredEnumStringsFallBackToConservativeDefaults() throws {
+    // The rep action rides a second, completed entry: an unknown status folds to
+    // notAttempted, which keeps no play, so e1 has nowhere to carry a tap.
     let entries =
-      #"[{"id":"e1","itemId":"i1","itemTitle":"X","itemType":"klingon","position":0,"durationSecs":0,"status":"quantum","repHistory":["warp"]}]"#
+      #"[{"id":"e1","itemId":"i1","itemTitle":"X","itemType":"klingon","position":0,"durationSecs":0,"status":"quantum"},{"id":"e2","itemId":"i1","itemTitle":"X","itemType":"piece","position":1,"durationSecs":0,"status":"completed","repHistory":["warp"]}]"#
     let store = try LibraryStore.upgradeTestStore(
       migratedTo: "v3_session",
       seed: """
@@ -358,8 +372,9 @@ final class LibraryStoreTests: XCTestCase {
     XCTAssertEqual(
       e.status, .notAttempted, "unknown entry status → conservative notAttempted, not completed")
     XCTAssertEqual(e.itemType, .piece, "unknown kind → piece")
+    let played = try XCTUnwrap(got.entries.last?.plays.first)
     XCTAssertEqual(
-      e.repHistory?.map(\.action), [.missed], "unknown rep action → conservative missed")
+      played.repHistory?.map(\.action), [.missed], "unknown rep action → conservative missed")
   }
 
   /// Upgrade path: a pre-existing v2 item row survives the v3 session migration.

@@ -86,9 +86,12 @@ pub fn compute_up_next(items: &[LibraryItemView], clock: LocalClock) -> Option<S
         .linked_exercises
         .iter()
         .map(|ex| {
+            // The first variation that is not yet solid. The ladder's "current
+            // rung" went with #1739 decision 1; the same rule stays here as
+            // this card's own recommendation until #1501 replaces it.
             let step = by_id
                 .get(ex.id.as_str())
-                .and_then(|full| full.variants.iter().find(|v| v.is_current));
+                .and_then(|full| full.variants.iter().find(|v| !v.is_solid));
             let mark = match step {
                 Some(step) => step.latest_score,
                 None => ex.piece_context_score,
@@ -488,7 +491,6 @@ mod tests {
             },
             VariantView {
                 latest_score: Some(4),
-                is_current: true,
                 ..VariantView::fixture("v1", "F", 1)
             },
         ];
@@ -530,7 +532,6 @@ mod tests {
             .expect("the exercise");
         ex.variants = vec![VariantView {
             latest_score: Some(1),
-            is_current: true,
             ..VariantView::fixture("v1", "F♯", 0)
         }];
 
@@ -658,10 +659,7 @@ mod tests {
             .iter_mut()
             .find(|i| i.id == "d-ex1")
             .expect("the exercise");
-        ex.variants = vec![VariantView {
-            is_current: true,
-            ..VariantView::fixture("v", "B♭", 0)
-        }];
+        ex.variants = vec![VariantView::fixture("v", "B♭", 0)];
         libraries.push(cold);
 
         for library in &libraries {
