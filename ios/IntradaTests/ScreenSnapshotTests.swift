@@ -877,7 +877,6 @@ final class ScreenSnapshotTests: XCTestCase {
     assertSnapshot(of: host(pushed, store: store), as: config)
   }
 
-  /// Pins "Variations" for a ladder of inversions, not keys (#1464).
   func testExerciseDetailWithNamedVariations() {
     let store = Store(bridge: PreviewBridge(items: [.previewExerciseWithNamedVariations]))
     let pushed = NavigationStack(

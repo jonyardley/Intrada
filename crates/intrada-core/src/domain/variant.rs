@@ -2,10 +2,11 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 /// One rung of an exercise's step ladder: "C", "Root position", "Land on
-/// the 3rd". The core's name; on screen it's "Variations", or "Keys" when
-/// every live rung names one, via `ladder_is_all_keys` (#1083, moved off the
-/// shell in #1467) — the shell only prints the word. Score history is
-/// derived from session entries tagged with this `id`, never stored here.
+/// the 3rd". The core's name; on screen a ladder is "Variations", or "Keys"
+/// when every live rung names one. Which of the two is the core's call, via
+/// `ladder_is_all_keys` (#1083, moved off the shell in #1467) — the shell
+/// only prints the word. Score history is derived from session entries
+/// tagged with this `id`, never stored here.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "facet_typegen", derive(facet::Facet))]
 pub struct Variant {
