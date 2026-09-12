@@ -26,6 +26,11 @@ PR creation, saying which agent produced it. While the review runs the lead
 writes the PR body, opens the deferred issues and re-reads the diff; it does
 not sit in a wait.
 
+**Open the PR through `just pr-open "Title (#N)" "Body text" --draft`**, not a
+bare `gh pr create`: it refuses when an issue number in the title has no claim
+naming the current branch (#1702), which is the second way #1694 got built
+twice on 2026-09-11 (the first is skipping `just claim` itself).
+
 **Non-trivial PRs open as drafts.** `gh pr create --draft`, then `gh pr ready`
 only once the self-review comment is posted, its blockers are fixed and the
 deferred issues exist. CI has no draft filter, so this costs nothing. Run
