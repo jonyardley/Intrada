@@ -129,26 +129,46 @@ struct UsedInRow: View {
     .background(IntradaColor.cardFill)
   }
 
-  private var content: some View {
-    HStack(spacing: IntradaSpacing.row) {
-      // Decorative here: the ring's rest glyph and "not practised together yet"
-      // are the same fact, and for a rated row the mark is already spoken by
-      // `spokenRow` (#1468).
-      ScoreRing(score: usage.latestScore.map(Int.init), size: 44)
-        .accessibilityHidden(true)
-      VStack(alignment: .leading, spacing: 3) {
-        Text(usage.rowTitle)
-          .font(isStandalone ? IntradaFont.bodyMedium : IntradaFont.cardTitle())
-          .foregroundStyle(usage.pieceRemoved ? IntradaColor.inkSecondary : IntradaColor.ink)
-          .fixedSize(horizontal: false, vertical: true)
-        Text(usage.metaLine(locale: locale, calendar: calendar))
-          .font(IntradaFont.meta)
-          .foregroundStyle(IntradaColor.inkSecondary)
-          .fixedSize(horizontal: false, vertical: true)
-      }
-      .frame(maxWidth: .infinity, alignment: .leading)
+  // Decorative here: the ring's rest glyph and "not practised together yet"
+  // are the same fact, and for a rated row the mark is already spoken by
+  // `spokenRow` (#1468).
+  private var scoreRing: some View {
+    ScoreRing(score: usage.latestScore.map(Int.init), size: 44)
+      .accessibilityHidden(true)
+  }
+
+  private var titleAndMeta: some View {
+    VStack(alignment: .leading, spacing: 3) {
+      Text(usage.rowTitle)
+        .font(isStandalone ? IntradaFont.bodyMedium : IntradaFont.cardTitle())
+        .foregroundStyle(usage.pieceRemoved ? IntradaColor.inkSecondary : IntradaColor.ink)
+        .fixedSize(horizontal: false, vertical: true)
+      Text(usage.metaLine(locale: locale, calendar: calendar))
+        .font(IntradaFont.meta)
+        .foregroundStyle(IntradaColor.inkSecondary)
+        .fixedSize(horizontal: false, vertical: true)
     }
-    .contentShape(Rectangle())
+    .frame(maxWidth: .infinity, alignment: .leading)
+  }
+
+  // At accessibility sizes a single long title word is wider than the text
+  // column beside a 44pt ring, so it breaks mid-word rather than wrapping.
+  // The fix is a shape change, not a text modifier: stack the ring above the
+  // title so it gets the card's full width, the way other rows do (#1731).
+  @ViewBuilder private var content: some View {
+    if dynamicTypeSize.isAccessibilitySize {
+      VStack(alignment: .leading, spacing: IntradaSpacing.controlGap) {
+        scoreRing
+        titleAndMeta
+      }
+      .contentShape(Rectangle())
+    } else {
+      HStack(spacing: IntradaSpacing.row) {
+        scoreRing
+        titleAndMeta
+      }
+      .contentShape(Rectangle())
+    }
   }
 
   private func linkButton(_ action: @escaping () -> Void) -> some View {

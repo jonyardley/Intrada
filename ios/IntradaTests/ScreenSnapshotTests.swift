@@ -258,6 +258,32 @@ final class ScreenSnapshotTests: XCTestCase {
         traits: .init(displayScale: 2)))
   }
 
+  /// Proves the week strip sizes to its content rather than clipping the day
+  /// numbers, since nothing pinned that height at large text before (#1730).
+  /// Component-level, not full-screen: the strip is what changes, and a
+  /// cropped reference stays well under the snapshot size ceiling.
+  func testWeekStripAccessibilitySize() {
+    let calendar = PreviewCalendar.utc
+    let referenceDate = PracticeSessionView.previewReferenceDate
+    let week = PracticeWeek.days(containing: referenceDate, calendar: calendar)
+    let strip = ZStack {
+      PaperBackground()
+      WeekStrip(
+        days: week, today: referenceDate,
+        practiceDays: Swift.Set([week[1], week[3]]),
+        selected: .constant(week[2]), calendar: calendar
+      )
+      .padding(IntradaSpacing.card)
+    }
+    assertSnapshot(
+      of: host(strip),
+      as: .image(
+        precision: 0.99, size: CGSize(width: 390, height: 160),
+        traits: UITraitCollection { traits in
+          traits.preferredContentSizeCategory = .accessibilityExtraExtraExtraLarge
+        }))
+  }
+
   func testPracticeScreenQuietDay() {
     // Open on Monday — a day with no practice — to lock the per-day empty state.
     let monday = PracticeWeek.days(
@@ -1222,6 +1248,9 @@ final class ScreenSnapshotTests: XCTestCase {
         LibraryItemCard(item: starred, showsMastery: true)
         LibraryItemCard(item: .previewExerciseWithFullLadder)
         LibraryItemCard(item: .previewExerciseWithStepLadder)
+        // No composer, key or tempo: the prompt fills the metadata slot
+        // rather than the card collapsing to one ragged line (#1734).
+        LibraryItemCard(item: .previewMinimal, showsMastery: true)
       }
       .padding(16)
     }

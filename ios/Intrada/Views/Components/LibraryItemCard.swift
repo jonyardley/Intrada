@@ -27,6 +27,14 @@ struct LibraryItemCard: View {
           Text(meta)
             .font(IntradaFont.meta)
             .foregroundStyle(IntradaColor.inkSecondary)
+        } else if item.subtitle.isEmpty {
+          // Nothing recorded yet: a one-pass capture is meant to be filled in
+          // later, so the empty case gets a prompt rather than a card that
+          // collapses to a single ragged line (#1734). Tapping the row
+          // already opens the item where these can be added.
+          Text(missingDetailsPrompt)
+            .font(IntradaFont.meta)
+            .foregroundStyle(IntradaColor.inkFaint)
         }
         if item.priority || hasLinkedExercises || hasStepLadder || !item.tags.isEmpty {
           HStack(spacing: 6) {
@@ -113,6 +121,10 @@ struct LibraryItemCard: View {
   private var metaLine: String? {
     let parts = [item.keyDisplay, item.tempoDisplay].compactMap { $0 }.filter { !$0.isEmpty }
     return parts.isEmpty ? nil : parts.joined(separator: " · ")
+  }
+
+  private var missingDetailsPrompt: String {
+    item.itemType == .piece ? "Add composer, key and tempo" : "Add key and tempo"
   }
 
   private var accessibilityLabel: String {

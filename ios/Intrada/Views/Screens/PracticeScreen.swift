@@ -17,6 +17,9 @@ struct PracticeScreen: View {
   @State private var suggestionDismissed = false
   @State private var openSessionId: String?
   @State private var showingProfile = false
+  // Measured from a cell, not hard-coded: the fixed 64 clipped the day
+  // numbers once Dynamic Type grew past it (#1730).
+  @State private var weekStripHeight: CGFloat = 64
 
   init(referenceDate: Date = Date()) {
     self.referenceDate = referenceDate
@@ -185,8 +188,8 @@ struct PracticeScreen: View {
           .accessibilityHidden(true)
         Text("Practise your priorities")
       }
-      .font(IntradaFont.subtitle)
-      .foregroundStyle(IntradaColor.inkSecondary)
+      .font(IntradaFont.button)
+      .foregroundStyle(IntradaColor.accent)
       .frame(maxWidth: .infinity)
       .padding(.vertical, IntradaSpacing.controlGap)
     }
@@ -258,14 +261,6 @@ struct PracticeScreen: View {
       .buttonStyle(PressRebound())
       .accessibilityLabel("Start practising")
       .padding(.vertical, IntradaSpacing.controlGap)
-
-      if let lastPractised {
-        Text(lastPractised.relativeDay)
-          .font(IntradaFont.bodyMedium)
-          .foregroundStyle(IntradaColor.onAccent.opacity(0.85))
-          .multilineTextAlignment(.center)
-          .accessibilityHidden(true)  // already spoken as part of heroLabel
-      }
     }
     .frame(maxWidth: .infinity)
     .padding(IntradaSpacing.section)
@@ -311,7 +306,10 @@ struct PracticeScreen: View {
         .tabViewStyle(.page(indexDisplayMode: .never))
       }
     }
-    .frame(height: 64)
+    .frame(height: weekStripHeight)
+    .onPreferenceChange(WeekStripHeightKey.self) { height in
+      if height > 0 { weekStripHeight = height }
+    }
   }
 
   private func weekStripView(_ days: [Date]) -> some View {
@@ -411,12 +409,15 @@ struct PracticeScreen: View {
       })
   }
 
-  // The greeting leads and the fact keeps its place (T25); both strings are
-  // the core's, the shell only joins them.
+  // The greeting is the only thing said up here now (T25): the hero card
+  // below already carries the last-practised fact, in its eyebrow and its
+  // piece title, so repeating it in the subtitle said the same thing three
+  // times before a scroll (#1725).
   private var subtitle: String {
-    let fact = lastPractised?.label ?? "No sessions yet"
-    guard let greeting = store.viewModel?.profile.greeting, !greeting.isEmpty else { return fact }
-    return "\(greeting) · \(fact)"
+    guard let greeting = store.viewModel?.profile.greeting, !greeting.isEmpty else {
+      return lastPractised?.label ?? "No sessions yet"
+    }
+    return greeting
   }
 }
 

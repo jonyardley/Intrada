@@ -5,6 +5,16 @@ import SwiftUI
 /// day's sessions below. A day is always selected (the screen auto-selects on
 /// open). Today is marked with a ring, the selected day with a fill, practised
 /// days carry a dot, and not-yet days dim.
+/// Reports a cell's natural height so the strip can size itself instead of
+/// clipping the day numbers once Dynamic Type grows past the old fixed
+/// height (#1730).
+struct WeekStripHeightKey: PreferenceKey {
+  static let defaultValue: CGFloat = 0
+  static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+    value = max(value, nextValue())
+  }
+}
+
 struct WeekStrip: View {
   let days: [Date]
   let today: Date
@@ -25,6 +35,11 @@ struct WeekStrip: View {
         ) { selected = day }
       }
     }
+    .background(
+      GeometryReader { geo in
+        Color.clear.preference(key: WeekStripHeightKey.self, value: geo.size.height)
+      }
+    )
   }
 }
 
