@@ -53,7 +53,7 @@ Accounts).
 
 ## Quick start
 
-The app is offline-first — everything works with no network and no account.
+The app is offline-first: everything works with no network and no account.
 
 ```bash
 just ios

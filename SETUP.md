@@ -43,7 +43,7 @@ push to PR:   test → clippy → fmt → security & hygiene → native iOS buil
 push to main: all checks → native iOS release build
 ```
 
-The native iOS app ships separately via TestFlight — see §3 below.
+The native iOS app ships separately via TestFlight (see §3 below).
 
 ### GitHub Actions secrets
 
