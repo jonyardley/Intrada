@@ -50,7 +50,7 @@ Coverage: <!-- Tier 2+: the expected patch-coverage gaps and why. What the new t
 - [ ] `just check` passes (fmt + clippy + tests, mirrors CI's flags)
 - [ ] `ios/` changes: `just ios-fmt-check` and `just ios-test-full` pass (the merge gate; `just ios-test` is the fast inner-loop tier); snapshots re-recorded and `just ios-snapshots-optimize` run if UI changed
 - [ ] New UI uses `Intrada*` tokens (colour, spacing, radius, type), no raw literals
-- [ ] Persistence or new-entity changes: offline-first PR checklist in `.claude/rules/offline-first.md` applied (`updated_at` / `deleted_at`, client-minted ulid, `local_first` branches tested both ways)
+- [ ] Persistence or new-entity changes: offline-first PR checklist in `.claude/rules/offline-first.md` applied (`updated_at` / `deleted_at`, client-minted ulid, a failed write resolving `Failed`)
 - [ ] CLAUDE.md updated (if architecture, components or patterns changed)
 - [ ] Roadmap updated (if a feature is now complete or scope changed)
 - [ ] Deferred items opened as tracked issues and listed in the self-review comment

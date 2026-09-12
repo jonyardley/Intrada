@@ -52,7 +52,5 @@ A destructive or buggy migration that ships is unrecoverable data loss.
 - [ ] New table or columns carry `updated_at` and `deleted_at`; no hard delete (2)
 - [ ] Client-minted ulid as the canonical id (3)
 - [ ] Merge logic in the core (4)
-- [ ] Write handlers branch on `local_first` (or use `save_or_put`) and a local
-      failure resolves `Failed`, not `Ack` (5)
-- [ ] Both `local_first` branches of a touched handler still tested (6)
+- [ ] A failed local write resolves `Failed`, never `Ack` (5)
 - [ ] Migration appended, additive where possible, with an upgrade-path test
