@@ -241,15 +241,12 @@ worktree-new name:
 
     # cmux labels a workspace with the branch and PR of the directory its pane
     # started in, so a session launched in the main checkout shows the main
-    # checkout's branch however many worktrees it cds into.
+    # checkout's branch however many worktrees it cds into. Printed, never run:
+    # which client the work happens in is the reader's choice, not this
+    # recipe's (#1720).
     if [ -n "${CMUX_SOCKET_PATH:-}" ] && [ "${INTRADA_WORKTREE_CMUX:-1}" != 0 ] && command -v cmux >/dev/null; then
-        if [ -n "${CLAUDECODE:-}" ]; then
-            echo "  for a cmux sidebar that tracks this branch, start the session there:"
-            echo "  cmux new-workspace --name {{name}} --cwd $target --command claude --focus true"
-        else
-            cmux new-workspace --name "{{name}}" --cwd "$target" --command claude --focus true >/dev/null
-            echo "→ opened cmux workspace '{{name}}' running claude in the worktree"
-        fi
+        echo "  for a cmux sidebar that tracks this branch, open a workspace there:"
+        echo "  cmux new-workspace --name {{name}} --cwd $target --focus true"
     fi
 
 # Companion to worktree-new: cleans the worktree's throwaway sim (if any),
