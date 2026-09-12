@@ -412,7 +412,8 @@ struct PracticeScreen: View {
 
   // nil once there's a last-practised fact: the hero eyebrow says it instead (#1725).
   private var subtitle: String? {
-    let greeting = store.viewModel?.profile.greeting.flatMap { $0.isEmpty ? nil : $0 }
+    let rawGreeting: String? = store.viewModel?.profile.greeting
+    let greeting = rawGreeting.flatMap { $0.isEmpty ? nil : $0 }
     guard lastPractised != nil else {
       guard let greeting else { return "No sessions yet" }
       return "\(greeting) · No sessions yet"
