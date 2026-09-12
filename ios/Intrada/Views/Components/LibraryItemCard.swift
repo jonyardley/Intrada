@@ -11,8 +11,7 @@ struct LibraryItemCard: View {
   // When true, the row shows a trailing ScoreRing for the item's latest
   // 0–10 score (en-dash when never practised) — the glanceable mastery signal.
   var showsMastery: Bool = false
-  // Library list only (#1734): the picker sheets reuse this card with their
-  // own "Add" affordance, and a second, unrelated "add" reads as one too many.
+  // Library list only, not the picker sheets, which have their own "Add" (#1734).
   var showsMissingDetailsPrompt: Bool = false
 
   var body: some View {

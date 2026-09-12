@@ -129,8 +129,7 @@ struct UsedInRow: View {
     .background(IntradaColor.cardFill)
   }
 
-  // Stacked at accessibility sizes: a long title word is wider than the
-  // column beside a 44pt ring, so it breaks mid-word otherwise (#1731).
+  // Stacked at accessibility sizes so a long title word doesn't break mid-word beside the ring (#1731).
   private var content: some View {
     let layout: AnyLayout =
       dynamicTypeSize.isAccessibilitySize
