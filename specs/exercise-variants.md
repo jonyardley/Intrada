@@ -4,6 +4,11 @@
 > reversed on 2026-08-13 (#1344); the surface it describes returned with the
 > restored session builder. Describes shipped behaviour; verify against the
 > code before extending.
+>
+> **Decisions 4 and 5 are superseded** by
+> [`exercise-variations.md`](exercise-variations.md) (#1739): the current-rung
+> concept is gone, and a session entry holds a list of plays rather than one
+> score, one tempo and one variant.
 
 > Tier 3 spec. Issue [#1083] (epic [#1087], workstream C). Landed in two
 > passes: PR #1112 (schema slice: `Variant` type, `Item.variants`,
