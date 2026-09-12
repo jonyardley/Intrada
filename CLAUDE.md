@@ -64,12 +64,11 @@ User → Events → crux_core (Rust) → Effects (Persistence, App, Render) → 
 ```
 
 1. **Core owns all logic.** The shell never understands domain types.
-2. **The shell is a dumb pipe.** It fulfils persistence via GRDB and renders
-   the `ViewModel`. No business rules, validation, domain decisions or domain
-   state in Swift (UI interaction state only): if you are tempted, it belongs
-   in `intrada-core` as an `Event` or `Command`. Crash recovery: UserDefaults
-   (`AppEffect::SaveSessionInProgress`); local data: GRDB
-   (`PersistenceOperation`).
+2. **The shell is a dumb pipe.** It fulfils persistence via GRDB and renders the
+   `ViewModel`. No business rules, validation, domain decisions or domain state in Swift (UI
+   interaction state only): if you are tempted, it belongs in `intrada-core` as an `Event`
+   or `Command`. Crash recovery: UserDefaults (`AppEffect::SaveSessionInProgress`); local
+   data: GRDB (`PersistenceOperation`).
 3. **Typed bindings, no hand-written FFI.** `Event` / `Effect` / `ViewModel` cross the
    bridge as generated bincode. Never hand-edit `ios/generated/`; fix the Rust type and
    regenerate.
@@ -135,64 +134,60 @@ touching it, never wholesale; XCUITest stays on XCTest.
 
 Match ceremony to scope; if unsure, go one tier lighter and drift up.
 
-- **Tier 1, just do it**: bug fixes, copy, style, renames, lint, single-file
-  refactors, doc updates.
-- **Tier 2, plan mode** (default for feature work): a component or screen on
-  existing patterns, an endpoint on established conventions, a field on a
-  model. UI work does Claude Design first, and a new screen starts by reading an
-  existing one, which loads the UI rules.
-- **Tier 3, lightweight spec** (architectural): net-new top-level features,
-  Crux core or bridge changes, auth or schema changes. One `specs/<feature>.md`
-  of 100 to 200 lines, riding as the first commit of Phase A, never its own PR.
+- **Tier 1, just do it**: bug fixes, copy, style, renames, lint, single-file refactors, doc
+  updates.
+- **Tier 2, plan mode** (default for feature work): a component or screen on existing
+  patterns, an endpoint on established conventions, a field on a model. UI work does Claude
+  Design first, and a new screen starts by reading an existing one, which loads the UI
+  rules.
+- **Tier 3, lightweight spec** (architectural): net-new top-level features, Crux core or
+  bridge changes, auth or schema changes. One `specs/<feature>.md` of 100 to 200 lines,
+  riding as the first commit of Phase A, never its own PR.
 
-**Domain-sensitivity override**: auth, the bridge contract, DB schema or
-migrations go up at least one tier and up the model ladder. **A phase that
-introduces a bridge shape, a migration, or a change inside the `ActiveSession`
-blob graph ships as two PRs, core first, screens in the same working session**,
-or the core PR waits (#1348, #1374); spanning core and screens is not itself the
-trigger. Review the core PR before the screens.
+**Domain-sensitivity override**: auth, the bridge contract, DB schema or migrations go up at
+least one tier and up the model ladder. **A phase that introduces a bridge shape, a
+migration, or a change inside the `ActiveSession` blob graph ships as two PRs, core first,
+screens in the same working session**, or the core PR waits (#1348, #1374); spanning core
+and screens is not itself the trigger. Review the core PR before the screens.
 
-Test-first for non-UI Tier 2, all Tier 3 and `intrada-core` changes by default:
-a test retrofit to pass agrees with the implementation by construction (#1256).
-Review through the `reviewer` agent for Tier 2+ and triage its findings. Model,
-effort and streams per activity, and what a plan must say:
-[`docs/working-with-agents.md`](docs/working-with-agents.md). **UI verification
-means driving the app on the simulator**; if you cannot, say what needs a hand check.
+Test-first for non-UI Tier 2, all Tier 3 and `intrada-core` changes by default: a test
+retrofit to pass agrees with the implementation by construction (#1256). Review through the
+`reviewer` agent for Tier 2+ and triage its findings. Model, effort and streams per
+activity, and what a plan must say:
+[`docs/working-with-agents.md`](docs/working-with-agents.md). **UI verification means
+driving the app on the simulator**; if you cannot, say what needs a hand check.
 
 ### Always
 
-1. **Claim the issue before building it: `just claim N`** (#1214, #1702). It
-   refuses and names the other branch when the issue is already claimed (the
-   `in-flight` label, or its newest "Claimed" comment) or an open PR
-   references it; otherwise it adds the label, comments the branch and moves
-   the board to In progress in one step, so the board never gets stuck between
-   Backlog and Done (#1660). `just pr-open` wraps `gh pr create` and refuses if
-   an issue number in the title has no claim naming the current branch.
-   Handover openers start with `just claim` and a fresh worktree. Drop the
-   label when the PR closes (automatic on merge; drop it by hand if the PR
-   closes without merging).
+1. **Claim the issue before building it: `just claim N`** (#1214, #1702). It refuses and
+   names the other branch when the issue is already claimed (the `in-flight` label, or its
+   newest "Claimed" comment) or an open PR references it; otherwise it adds the label,
+   comments the branch and moves the board to In progress in one step, so the board never
+   gets stuck between Backlog and Done (#1660). `just pr-open` wraps `gh pr create` and
+   refuses if an issue number in the title has no claim naming the current branch. Handover
+   openers start with `just claim` and a fresh worktree. Drop the label when the PR closes
+   (automatic on merge; drop it by hand if the PR closes without merging).
 2. Find the roadmap item, or discuss first; check the
-   [project board](https://github.com/users/jonyardley/projects/2). Read the
-   issue and what it points at before any code, then plan and state resourcing.
-3. **Always a feature branch in its own worktree, and a PR; a human merges.**
-   Start every session in one (`just worktree-new <name>`, then the command it
-   prints), since path-scoped rules load only under the start directory. A
-   session already running in the main checkout does not hand the command back:
-   it makes the worktree, prefixes every shell command with `cd <worktree> && `,
-   and reads the rules for the files it touches by hand, since cd-ing does not
-   load them (#1720). Who may read, build and edit where, and what the worktree
-   lease claims: [`docs/worktrees.md`](docs/worktrees.md).
-   Agents touch the main checkout only for `git pull --ff-only` (#1686). Branch protection
-   refuses a push to main and `gh pr merge` is denied in settings. CI green is
-   the session's job: after every push watch the run to a conclusion, react, push
-   again, and surface the PR only when green or stuck. Read the PR's mergeability,
-   not just the job list: a renamed job leaves its old context "expected" for ever (#1542).
+   [project board](https://github.com/users/jonyardley/projects/2). Read the issue and what
+   it points at before any code, then plan and state resourcing.
+3. **Always a feature branch in its own worktree, and a PR; a human merges.** Start every
+   session in one (`just worktree-new <name>`, then the command it prints), since
+   path-scoped rules load only under the start directory. A session already running in the
+   main checkout does not hand the command back: it makes the worktree, prefixes every shell
+   command with `cd <worktree> && `, and reads the rules for the files it touches by hand,
+   since cd-ing does not load them (#1720). Who may read, build and edit where, and what the
+   worktree lease claims: [`docs/worktrees.md`](docs/worktrees.md). Agents touch the main
+   checkout only for `git pull --ff-only` (#1686). Branch protection refuses a push to main
+   and `gh pr merge` is denied in settings. CI green is the session's job: after every push
+   watch the run to a conclusion, react, push again, and surface the PR only when green or
+   stuck. Read the PR's mergeability, not just the job list: a renamed job leaves its old
+   context "expected" for ever (#1542).
 4. **Ship through `/ship`**, which follows
    [`.claude/skills/intrada-shipping/SKILL.md`](.claude/skills/intrada-shipping/SKILL.md).
 5. **After completing work**: close the issue, drop `in-flight` and run
-   `just project-status N "Done"` (that is the status update); update
-   `docs/roadmap.md` and `docs/where-we-are.md` if a phase changed, this file
-   if architecture did; `just worktree-rm` once merged.
+   `just project-status N "Done"` (that is the status update); update `docs/roadmap.md` and
+   `docs/where-we-are.md` if a phase changed, this file if architecture did;
+   `just worktree-rm` once merged.
 
 **More than one session at once** follows
 [`.claude/skills/intrada-parallel-streams/SKILL.md`](.claude/skills/intrada-parallel-streams/SKILL.md);

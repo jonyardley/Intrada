@@ -453,28 +453,13 @@ test and turned clones back on in the self-hosted gate.
 
 ## Mutate-response variants, in full
 
-Writes reconcile with the server response directly, with no full-list refetch.
-Three create variants live in the codebase.
-
-**Temp-id mutate-response** (`Item`) — the default for new entities. The domain
-handler pushes the optimistic entry with a client-generated ulid; the HTTP
-wrapper carries that ulid; the `*Created { temp_id, entity }` event replaces the
-optimistic entry, since the server-assigned ulid differs from the client one.
-
-**Client-owned ulid** (`Session`) — the client ulid is the canonical id. POST is
-fire-and-forget: `SessionSaved` just clears the error state and the model keeps
-the optimistic write.
-
-**Save-counter + refetch** (`Set`) — designed as optimistic push, bump
-`set_saves_committed`, then a full refetch via `SetSaveSucceeded`, with the
-counter driving a save-form's optimistic-to-confirmed UI flip. **Shell-dead
-since the coach-pivot builder deletion (#1344):** no Swift screen sends a
-`SetEvent`, and `domain/set.rs` fires HTTP unconditionally with no
-`local_first` branch. Tracked in #1348 — don't wire a new caller to it, and
-don't copy this variant for a new entity, until that's resolved.
-
-Updates use `*Updated { entity }` (the server echoes the row). Deletes use
-`DeleteConfirmed`, since the model is already mutated optimistically.
+A write assigns a temp id in core: the domain handler mints a ulid, pushes the
+entry into the model immediately, and dispatches the save through the
+persistence `Effect` (`PersistenceOperation::SaveItem` / `SaveSession`, or the
+delete equivalent). The store's confirmation reconciles the entity already in
+the model: `PersistenceOutput::Ack` is a no-op, since the write already
+happened optimistically, and `Failed` surfaces `last_error`. There is no
+refetch and no server echo.
 
 ## Glossary
 
