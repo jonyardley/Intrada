@@ -65,6 +65,10 @@ final class ScreenSnapshotTests: XCTestCase {
       perceptualPrecision: 0.98, traits: .init(displayScale: 1))
   }
 
+  private var splitConfig: Snapshotting<UIViewController, UIImage> {
+    .image(on: .iPadPro11(.landscape), perceptualPrecision: 0.98, traits: .init(displayScale: 1))
+  }
+
   /// Largest accessibility text size — proves layouts reflow rather than clip/wrap.
   private var axConfig: Snapshotting<UIViewController, UIImage> {
     .image(
@@ -120,6 +124,19 @@ final class ScreenSnapshotTests: XCTestCase {
 
   func testLibraryScreen() {
     assertSnapshot(of: host(NavigationStack { LibraryScreen() }), as: config)
+  }
+
+  func testLibrarySplitViewEmptyDetail() {
+    assertSnapshot(
+      of: host(LibrarySplitView(), store: .previewLibrary), as: splitConfig)
+  }
+
+  /// The column line must stop below the top strip, not run past the tabs
+  /// (#1682); see `LibrarySplitAlignmentTests` for header alignment.
+  func testLibrarySplitViewWithSelection() {
+    assertSnapshot(
+      of: host(LibrarySplitView(previewSelection: "piece-1"), store: .previewLibrary),
+      as: splitConfig)
   }
 
   func testLibraryScreenPopulated() {

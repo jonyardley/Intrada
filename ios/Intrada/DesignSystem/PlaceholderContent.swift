@@ -4,13 +4,14 @@ import SwiftUI
 struct PlaceholderContent: View {
   let systemImage: String
   let message: String
+  var glyphTint: Color = IntradaColor.accent.opacity(0.55)
   @ScaledMetric(relativeTo: .largeTitle) private var glyphSize: CGFloat = 40
 
   var body: some View {
     VStack(spacing: IntradaSpacing.cardCompact) {
       Image(systemName: systemImage)
         .font(.system(size: glyphSize, weight: .regular))
-        .foregroundStyle(IntradaColor.accent.opacity(0.55))
+        .foregroundStyle(glyphTint)
       Text(message)
         .font(IntradaFont.body)
         .foregroundStyle(IntradaColor.inkFaint)

@@ -26,15 +26,16 @@ runtimes = json.load(sys.stdin)['devices']
 def ver(key):
     m = re.search(r'iOS-(\d+)-(\d+)', key)
     return (int(m.group(1)), int(m.group(2))) if m else (-1, -1)
+family = 'iPad' if want.startswith('iPad') else 'iPhone'
 cands = [
     (dev['name'] == want, ver(key), dev['udid'])
     for key, devices in runtimes.items() if 'iOS' in key
-    for dev in devices if 'iPhone' in dev['name']
+    for dev in devices if family in dev['name']
 ]
 print(max(cands)[2] if cands else '')
 " "$SIM_DEVICE")
 if [ -z "$UDID" ]; then
-    echo "✗ No iPhone simulator available (Xcode → Settings → Platforms → iOS)" >&2
+    echo "✗ No $SIM_DEVICE simulator available (Xcode → Settings → Platforms → iOS)" >&2
     exit 1
 fi
 

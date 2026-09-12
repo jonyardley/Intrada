@@ -12,6 +12,7 @@ struct LibraryScreen: View {
   // iPad split mode: when set, rows select into the shared binding (detail pane)
   // instead of pushing a stack. nil on compact — the unchanged push navigation.
   private var selection: Binding<String?>? = nil
+  private var inSplit: Bool { selection != nil }
   private let previewSearch: String?
 
   init() { previewSearch = nil }
@@ -42,8 +43,8 @@ struct LibraryScreen: View {
       }
     }
     // The list draws its own header, so suppress the nav bar here; the
-    // detail keeps it for the back chevron.
-    .toolbar(.hidden, for: .navigationBar)
+    // detail keeps it, so in split an empty one here matches it (#1682).
+    .toolbar(inSplit ? .visible : .hidden, for: .navigationBar)
     // The read belongs to the sheet. `onDismiss`, not the add screen's own
     // `onDisappear`, which the scanner's full-screen cover also triggers.
     .sheet(isPresented: $adding, onDismiss: { store.send(.discardPhotoDraft) }) {

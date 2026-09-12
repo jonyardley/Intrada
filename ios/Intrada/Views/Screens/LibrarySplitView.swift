@@ -9,6 +9,15 @@ struct LibrarySplitView: View {
   @Environment(\.horizontalSizeClass) private var sizeClass
   @State private var selectedId: String?
 
+  init() {}
+
+  #if DEBUG
+    /// Preview/snapshot seed: render with a detail already selected.
+    init(previewSelection: String?) {
+      _selectedId = State(initialValue: previewSelection)
+    }
+  #endif
+
   private var items: [LibraryItemView] { store.viewModel?.items ?? [] }
   private var selectedItem: LibraryItemView? {
     selectedId.flatMap { id in items.first { $0.id == id } }
@@ -19,7 +28,9 @@ struct LibrarySplitView: View {
       HStack(spacing: 0) {
         NavigationStack { LibraryScreen(selection: $selectedId) }
           .frame(maxWidth: 380)
-        Divider()
+        // PaperBackground ignores the safe area, so without this the line
+        // runs up behind the tabs instead of starting below them (#1682).
+        Divider().safeAreaPadding(.top)
         NavigationStack {
           detailColumn
             // Related exercises / pieces push within the detail pane, not the list.
@@ -43,8 +54,11 @@ struct LibrarySplitView: View {
       ZStack {
         PaperBackground()
         PlaceholderContent(
-          systemImage: "books.vertical", message: "Select an item to see its details.")
+          systemImage: "sidebar.left", message: "Select an item to see its details.",
+          glyphTint: IntradaColor.inkFainter)
       }
+      // No title or toolbar here means no nav bar; force one for chrome parity (#1682).
+      .toolbar(.visible, for: .navigationBar)
     }
   }
 }
