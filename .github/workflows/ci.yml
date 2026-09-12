@@ -15,7 +15,7 @@ on:
     types: [opened, synchronize, reopened, labeled, unlabeled]
 
 # Cancel in-flight runs when a new commit lands on the same PR. Don't cancel
-# main-branch runs — those need to run to completion so a red main is visible
+# main-branch runs: those need to run to completion so a red main is visible
 # and `alert-on-red-main` fires.
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
