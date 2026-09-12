@@ -33,9 +33,10 @@ env:
   # Asserted by the self-hosted gate, which runs on a machine that updates
   # itself. Not the rented pin below, which matches nothing we own (#1637).
   SELFHOSTED_XCODE: "26.6"
-  # `swift format`'s defaults ship inside Xcode, so this must move in lockstep
-  # with the rented Xcode pin below. Measured on local dev at Xcode 26.6.
-  RENTED_SWIFT_FORMAT_VERSION: "6.3.0"
+  # Measured on local dev at Xcode 26.6; asserted where setup-xcode pins the
+  # same version explicitly (native-ios-build, below) rather than relying on
+  # a self-updating machine (#1637).
+  SWIFT_FORMAT_VERSION: "6.3.0"
 
 jobs:
   # Detects which paths changed in the PR — used to skip jobs whose inputs
@@ -351,9 +352,7 @@ jobs:
       - name: Pin the Rust toolchain for this job
         run: echo "RUSTUP_TOOLCHAIN=${{ env.RUST_VERSION }}" >> "$GITHUB_ENV"
       - name: swift format check
-        run: |
-          swift format --version
-          just ios-fmt-check
+        run: just ios-fmt-check
       - name: Clippy (iOS device target)
         run: cargo clippy -p intrada-ffi --target aarch64-apple-ios -- -D warnings
       - name: Regenerate Swift bindings (facet typegen + cargo-swift)
@@ -459,14 +458,14 @@ jobs:
         with:
           tool: just
       # Swift formatting gate (mirror of cargo fmt --check). Needs only the
-      # Xcode toolchain, so it runs first and fails fast. `swift format`'s
-      # defaults ship inside Xcode, so a drift here would silently move the
+      # Xcode toolchain, so it runs first and fails fast. A drift between the
+      # pinned Xcode above and its bundled formatter would silently move the
       # gate with no code change; asserted rather than just printed (#1637).
       - name: swift format check
         run: |
           have="$(swift format --version)"
-          if [ "$have" != "$RENTED_SWIFT_FORMAT_VERSION" ]; then
-            echo "runner's swift format is $have, this gate expects $RENTED_SWIFT_FORMAT_VERSION (#1637)" >&2
+          if [ "$have" != "$SWIFT_FORMAT_VERSION" ]; then
+            echo "runner's swift format is $have, this gate expects $SWIFT_FORMAT_VERSION (#1637)" >&2
             exit 1
           fi
           just ios-fmt-check
@@ -589,9 +588,11 @@ jobs:
       # `_ios-test-run` calls (#1198, split further in #1207) — the
       # xcodebuild invocation lives in exactly one place shared between CI and
       # local, instead of a hand-copied one that can drift from it. The
-      # reference is recorded on iOS 26.5 / Xcode 26.6 (= local dev); SwiftUI
-      # snapshots are renderer-specific — bump the pin in the justfile + the
-      # reference together when local dev moves to a newer Xcode/iOS.
+      # reference is recorded on iOS 26.5 (the simulator runtime, justfile) /
+      # Xcode 26.6 (the toolchain, above) = local dev; the two pins move
+      # separately. SwiftUI snapshots are renderer-specific, so bump the
+      # justfile's runtime pin and the reference together when local dev
+      # moves to a newer iOS.
       - name: Build for testing (just _ios-build-for-testing)
         run: just _ios-build-for-testing
       # Not all of DerivedData — just the built app + .xctest bundles (and the
