@@ -17,27 +17,6 @@ db-urls = ["https://github.com/rustsec/advisory-db"]
 # Unmaintained crates are informational, not vulnerabilities — warn, don't fail.
 unmaintained = "workspace"
 
-ignore = [
-    # rsa 0.9.x Marvin Attack (timing side-channel on RSA key recovery).
-    # No upstream fix. jsonwebtoken's `rust_crypto` feature pulls in the rsa
-    # crate for RSA math, but we only perform RS256 *signature verification*
-    # (public-key operation) — the Marvin attack targets RSA *decryption*
-    # (PKCS#1v1.5 padding oracle), which is never exercised in the JWT path.
-    # Re-evaluate when rsa 0.10 drops or if advisory scope broadens.
-    { id = "RUSTSEC-2023-0071", reason = "only public-key verification, Marvin attack targets decryption" },
-
-    # rustls-webpki advisories pulled in transitively by libsql 0.9.30 →
-    # tonic 0.11.0. Cleared by upgrading libsql to ≥0.10. Tracked in
-    # https://github.com/jonyardley/intrada/issues/568.
-    { id = "RUSTSEC-2026-0049", reason = "transitive via libsql; tracked in #568" },
-    { id = "RUSTSEC-2026-0098", reason = "transitive via libsql; tracked in #568" },
-    { id = "RUSTSEC-2026-0099", reason = "transitive via libsql; tracked in #568" },
-    { id = "RUSTSEC-2026-0104", reason = "transitive via libsql; tracked in #568" },
-    # h2 0.3 unbounded empty DATA frames (low-severity DoS), transitive via
-    # libsql 0.9.30 → hyper 0.14. Patched only in h2 0.4.16, no 0.3 release.
-    { id = "RUSTSEC-2026-0258", reason = "transitive via libsql, no h2 0.3 patch; tracked in #568" },
-]
-
 # ── Licenses ─────────────────────────────────────────────────────────────
 # Allowlist of acceptable SPDX license expressions. Anything not listed
 # here fails CI — catches unexpected copyleft or proprietary deps early.
@@ -57,16 +36,6 @@ allow = [
 ]
 confidence-threshold = 0.8
 
-# Our own workspace crates are private / unlicensed.
-exceptions = [
-    { allow = ["CDLA-Permissive-2.0"], crate = "webpki-roots" },
-]
-
-[[licenses.clarify]]
-name = "ring"
-expression = "MIT AND ISC AND OpenSSL"
-license-files = [{ path = "LICENSE", hash = 0xbd0eed23 }]
-
 # Private workspace crates — no license field needed.
 [licenses.private]
 ignore = true
@@ -84,8 +53,3 @@ wildcards = "allow"
 unknown-registry = "deny"
 unknown-git = "deny"
 allow-registry = ["https://github.com/rust-lang/crates.io-index"]
-# jsonwebtoken v10.3.0 has a bug (#489): Header.extras is
-# HashMap<String, String>, so non-string header fields (like Clerk's
-# `oiat: <number>`) fail deserialization. PR #496 fixes this.
-# Remove this entry once the fix lands in a released version.
-allow-git = ["https://github.com/kp-timo-beyel/jsonwebtoken.git"]

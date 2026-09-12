@@ -26,7 +26,6 @@ Accurate about how the app works or is being built now.
 | [`session-builder-revert.md`](session-builder-revert.md) | **The 2026-08 revert.** Restores the session builder and removes the coach machinery (#1344). The decision that set the current product shape |
 | [`native-ios.md`](native-ios.md) | The SwiftUI shell on the Crux core, the only shell. Its offline-first decisions are now enforced through `.claude/rules/offline-first.md`, which is where the invariants live; the paid-sync framing survives only here |
 | [`ios-testflight-cicd.md`](ios-testflight-cicd.md) | Signing, match, the release lane (`.github/workflows/release-testflight.yml`) |
-| [`mcp-server.md`](mcp-server.md) | The API's MCP surface. `crates/intrada-api/src/mcp/` cites this spec and self-identifies as its Phase 3 |
 | [`key-modality.md`](key-modality.md) | Tonic plus major/minor instead of a free-text key (`Modality` in `domain/item.rs`) |
 | [`library-sort.md`](library-sort.md) | Sorting the library list (`LibrarySort` in `domain/types.rs`) |
 | [`exercise-relations.md`](exercise-relations.md) | The single "Used in" list replacing the related-to breadcrumb (`UsedInCard.swift`) |
@@ -34,6 +33,7 @@ Accurate about how the app works or is being built now.
 | [`practice-instruments.md`](practice-instruments.md) | The Focus Player's timer, rep counter and honest click (`click_sounding` in `domain/session.rs`) |
 | [`up-next-card.md`](up-next-card.md) | The "Up next" suggestion on the Practice tab (`compute_up_next` in `suggestion.rs`) |
 | [`getting-cold-signal.md`](getting-cold-signal.md) | Weighting the "not practised in a while" signal by how well learned a piece is (`staleness.rs`) |
+| [`api-removal.md`](api-removal.md) | The 2026-09-12 decision to remove the API and the sync, account and MCP-token client code (#1746, #1749); what went, what stays, what Jon tears down by hand |
 
 ## Planned, designed and not finished
 
@@ -42,7 +42,6 @@ Accurate about how the app works or is being built now.
 | [`piece-from-photo.md`](piece-from-photo.md) | Adding a piece from a photograph of the page. Phases A, B and C shipped (#1443, #1455, #1476); Phase D unstarted (#1355, #1387) |
 | [`one-pass-create.md`](one-pass-create.md) | Adding a piece with its chord chart and exercises in one save. Core landed 2026-09-07 (#1390, PR #1591) and `ItemEvent::AddPieceInFull` has no caller in `ios/Intrada` yet: this is the screens half of a two-PR split, still owed |
 | [`picker-core-sort.md`](picker-core-sort.md) | The linked-item picker sheet's sort and search calling into the core instead of a Swift copy. Core landed on main (`sort_and_filter_candidates` in `app.rs`, `sort_and_filter_picker_candidates` in `intrada-ffi`, #1653, #1662); the screens half wiring `LinkedItemPickerSheet` to it and deleting the Swift copies is #1664, open |
-| [`account-settings-and-deletion.md`](account-settings-and-deletion.md) | Settings and GDPR account deletion. `delete_account` and `AccountPreferences` exist in core and the API, but no native Settings screen does, and the spec's entry points ("mobile app via Tauri", "web header") are both dead shells. The premise needs rewriting before the UI is built |
 
 ## Shipped record, verify against the code before extending
 
@@ -79,5 +78,7 @@ cannot be found and should not be recreated from them.
 | [`live-activity-plugin.md`](live-activity-plugin.md) | Same: an ActivityKit design as a Tauri plugin in a deleted crate. Its reference Swift was removed in #1745 too; same recovery route. A native lock-screen spec does not exist yet |
 
 [`_archive/`](_archive/) holds the numbered SpecKit-era folders and retired
-single-file specs (`seo-prerender.md`), and is excluded from the knowledge
-graph. Do not run `/speckit-*` commands.
+single-file specs (`seo-prerender.md`, `mcp-server.md`,
+`account-settings-and-deletion.md`: the last two targeted the removed API,
+#1746), and is excluded from the knowledge graph. Do not run `/speckit-*`
+commands.

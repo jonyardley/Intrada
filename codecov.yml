@@ -33,7 +33,3 @@ ignore:
   # lives in the Crux core (covered above). Swift unit tests exist but aren't
   # measured. Wiring xccov→Codecov is tracked in #896 (horizon:later).
   - "ios/**"
-
-  # Migrations — pure SQL strings, validated by integration tests
-  # but the Rust wrapper lines are just string constants.
-  - "crates/intrada-api/src/migrations.rs"

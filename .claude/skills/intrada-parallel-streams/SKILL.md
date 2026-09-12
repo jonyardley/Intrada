@@ -25,9 +25,8 @@ crate, which is what most UX issues are (for example #1616, #1617, #1618 and
   "Running alongside another checkout"). A fast-tier run is well under a
   minute either way, so queuing costs little.
 - A **stream that touches neither the core crates nor `ios/`** keeps to the
-  decoupled set: `crates/intrada-api`, `docs/`, `specs/`, `design/`, or CI and
-  tooling (`justfile`, `.github/workflows/`). An API task that needs a new
-  domain field is a core change and joins the vertical stream.
+  decoupled set: `docs/`, `specs/`, `design/`, or CI and tooling (`justfile`,
+  `.github/workflows/`).
 - **Core serialisation points.** If your task and another live branch both
   touch one of these, serialise: `crates/intrada-core/src/app.rs`,
   `crates/intrada-core/src/domain/session.rs`, `Cargo.lock` (never pair

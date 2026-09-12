@@ -14,7 +14,6 @@ just test                  # nextest, same as CI's `test` job
 just lint                  # clippy -D warnings, same targets as CI's `clippy` job
 just hygiene               # typos, cargo-shear, actionlint, links, release name, self-tests
 just pr-visuals            # before/after markdown for snapshot references this branch changed
-cargo test -p intrada-api  # API tests only
 just ios-fmt               # format Swift sources in place (swift format)
 just ios-fmt-check         # Swift formatting gate (CI runs this too)
 just ios                   # regen bindings (if core changed) + open Xcode
@@ -72,7 +71,7 @@ runs on `workflow_dispatch` or a `v*` tag, never per-PR). Signing is fastlane
 **match**, and it needs Ruby >= 3 — system Ruby 2.6 is too old, use `rbenv` —
 plus a one-time App Store Connect and match bootstrap. Full setup and decisions:
 [`../specs/ios-testflight-cicd.md`](../specs/ios-testflight-cicd.md) and
-SETUP.md §4a.
+SETUP.md §3.
 
 A tagged run also bakes `SENTRY_DSN_NATIVE` into the build and, after the
 upload, creates the matching Sentry release in `intrada-mobile`, so a beta
@@ -128,16 +127,6 @@ it costs a small fraction of a full build.
 
 ## Environment variables
 
-### API (intrada-api)
-
-`TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN` (required), `CLERK_ISSUER_URL` (required
-in prod), `ALLOWED_ORIGIN` (see SETUP.md §2), `PORT` (default 3001).
-
-### Native iOS build (compile-time)
-
-`CLERK_PUBLISHABLE_KEY`, `INTRADA_API_URL` (default
-`https://intrada-api.fly.dev`).
-
 ### Native iOS (optional): Sentry
 
 `SENTRY_DSN_NATIVE` in `.env` captures crash and error events from local dev
@@ -187,14 +176,6 @@ and everything they contain):
   *real*-bridge round-trip (`LiveBridge` in `StoreEffectLoopTests`) that drives
   the actual Swift↔Rust bincode serialization. See
   `testRealBridgeEditAppliesToViewModel`.
-
-### `option_env!` needs `cargo:rerun-if-env-changed`
-
-If a build script — or an `option_env!` site indirectly, via macro expansion —
-reads an env var, pair it with `println!("cargo:rerun-if-env-changed=NAME")` in
-`build.rs`. Without it, cargo caches the macro expansion across builds and your
-"I changed the env var" rebuild silently uses stale values. We have hit this on
-`CLERK_PUBLISHABLE_KEY` and `INTRADA_API_URL`.
 
 ## Why agent teams were retired (#1223)
 
@@ -470,51 +451,15 @@ had been saturating the machine enough that a UI test which silently skipped
 its own field-clearing under load started reddening main. #1642 fixed that
 test and turned clones back on in the self-hosted gate.
 
-## The API image build stopped caching its layers (2026-09-04)
-
-**API Docker Build** exported a buildkit layer cache to GitHub Actions
-(`cache-to: type=gha,mode=max`). One run of it wrote 26 `buildkit-blob-*`
-entries and 1.96 GB, a fifth of the repo's 10 GB allowance, for a lane that
-only runs when the API changes and is on hold behind the iOS pivot. Neither
-mode was worth that:
-
-- `mode=max` caches every intermediate layer, which is what made it 1.96 GB.
-- `mode=min` caches only what the final image exports, and the `Dockerfile` is
-  a cargo-chef build whose expensive layer (`cargo chef cook --release`) lives
-  in the `builder` stage, so `mode=min` would export the runtime stage and
-  never the layer the file is designed around.
-
-So the lane builds with no layer cache at all. A cold build measured **139s**,
-which is cheaper than it looks because the allowance it frees is restored by
-every iOS pull request. If the API comes back into focus, `mode=max` plus a
-prune rule that treats the blobs and their index as one all-or-nothing set is
-the shape to add: deleting blobs while keeping the index that names them
-produces buildkit's `blob not found` import failure rather than a cold build.
-
 ## Mutate-response variants, in full
 
-Writes reconcile with the server response directly, with no full-list refetch.
-Three create variants live in the codebase.
-
-**Temp-id mutate-response** (`Item`) — the default for new entities. The domain
-handler pushes the optimistic entry with a client-generated ulid; the HTTP
-wrapper carries that ulid; the `*Created { temp_id, entity }` event replaces the
-optimistic entry, since the server-assigned ulid differs from the client one.
-
-**Client-owned ulid** (`Session`) — the client ulid is the canonical id. POST is
-fire-and-forget: `SessionSaved` just clears the error state and the model keeps
-the optimistic write.
-
-**Save-counter + refetch** (`Set`) — designed as optimistic push, bump
-`set_saves_committed`, then a full refetch via `SetSaveSucceeded`, with the
-counter driving a save-form's optimistic-to-confirmed UI flip. **Shell-dead
-since the coach-pivot builder deletion (#1344):** no Swift screen sends a
-`SetEvent`, and `domain/set.rs` fires HTTP unconditionally with no
-`local_first` branch. Tracked in #1348 — don't wire a new caller to it, and
-don't copy this variant for a new entity, until that's resolved.
-
-Updates use `*Updated { entity }` (the server echoes the row). Deletes use
-`DeleteConfirmed`, since the model is already mutated optimistically.
+A write assigns a temp id in core: the domain handler mints a ulid, pushes the
+entry into the model immediately, and dispatches the save through the
+persistence `Effect` (`PersistenceOperation::SaveItem` / `SaveSession`, or the
+delete equivalent). The store's confirmation reconciles the entity already in
+the model: `PersistenceOutput::Ack` is a no-op, since the write already
+happened optimistically, and `Failed` surfaces `last_error`. There is no
+refetch and no server echo.
 
 ## Glossary
 
@@ -664,20 +609,6 @@ in CI, add the `comments-justified` label to the PR instead. When invoking any
 code-review agent for a PR, include "comment-policy violations are Blockers,
 not Nits" so the review treats drift as a merge-blocker rather than a taste
 note. The policy itself is in CLAUDE.md under *Code Style*.
-
-## iOS authentication flow
-
-Google OAuth runs in Safari via `ASWebAuthenticationSession`, because Google
-blocks OAuth in an in-app browser. The Clerk JWT is exchanged for a long-lived
-PAT via `POST /api/auth/ios/exchange`, and every later call uses the PAT.
-
-JWTs are RS256, validated against JWKS; PATs are validated by SHA-256 hash
-lookup. All DB queries are scoped by `user_id`, taken from the JWT `sub` or the
-PAT owner. When `CLERK_ISSUER_URL` is unset, auth is disabled, which is local
-dev only.
-
-Key files: `intrada-api/src/auth.rs`, `intrada-api/src/routes/auth_ios.rs`,
-`intrada-api/src/clerk.rs`.
 
 ## How a rule leaves CLAUDE.md (2026-09-08)
 

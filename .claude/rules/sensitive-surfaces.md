@@ -3,20 +3,18 @@ paths:
   - "crates/intrada-core/src/domain/session.rs"
   - "crates/intrada-ffi/**"
   - "ios/generated/**"
-  - "crates/intrada-api/src/migrations.rs"
-  - "crates/intrada-api/src/auth.rs"
-  - "crates/intrada-api/src/clerk.rs"
-  - "crates/intrada-api/src/routes/auth_ios.rs"
   - "ios/Intrada/Core/LibraryStore.swift"
 ---
 
 # You are on a silent-failure surface
 
 A wrong change here does not crash. It decodes into a plausible wrong value,
-drops a write, or destroys the only copy of a user's data. Before editing:
+drops a write, or destroys the only copy of a user's data. Never spell out an
+exploitable gap in a public PR body: say a gap exists and route the detail to
+Jon. Before editing:
 
-1. **Be on the strongest rung.** Fable at `xhigh` for the bridge and auth,
-   `max` for a migration or anything inside the `ActiveSession` blob graph.
+1. **Be on the strongest rung.** Fable at `xhigh` for the bridge, `max` for a
+   migration or anything inside the `ActiveSession` blob graph.
    Check with `/model` and `/effort`, and switch before the first edit.
 2. **Pair the `reviewer` agent on the core diff before the screens half
    starts**, not only at the end. It is pinned never weaker than the writer.
@@ -40,9 +38,5 @@ The hazards, by file:
   invalidates every crash-recovery blob on every device (#1345).
   `active_session_blob_wire_is_pinned` fails on purpose: bump
   `Store.sessionInProgressKey` first, then re-pin. Never only re-pin.
-- **`migrations.rs` and `LibraryStore.swift`.** Sequential, one SQL statement
-  each on the server; append-only on the device, per
+- **`LibraryStore.swift`.** Append-only on the device, per
   `.claude/rules/offline-first.md`.
-- **Auth files.** Every query is scoped by `user_id`; the flow is in
-  `docs/reference.md`. Never spell out an exploitable gap in a public PR body:
-  say a gap exists and route the detail to Jon.

@@ -4,18 +4,6 @@ set dotenv-load
 default:
     @just --list
 
-# Kills any stale processes first so port conflicts don't serve old builds.
-# Start the API dev server
-dev:
-    #!/usr/bin/env bash
-    set -e
-    pkill -f "intrada-api" 2>/dev/null || true
-    sleep 0.3
-    cargo run -p intrada-api
-
-# Start only the API server (alias for `dev`)
-dev-api: dev
-
 # Type-check only (no codegen) — fastest feedback for "does it compile?"
 check-fast:
     cargo check --workspace
@@ -135,10 +123,6 @@ pre-push: check
 # fast `ios-test` tier only; `ship` and CI additionally gate on
 # `ios-test-full` (XCUITests too) before merge — see #1198.
 check-all: check ios-test
-
-# Seed development data (API must be running)
-seed:
-    bash scripts/seed-dev-data.sh
 
 # ─────────────────────────────────────────────
 # Worktrees — warm-start bootstrap (#1205)
@@ -323,20 +307,6 @@ lsp-setup: _ios-sync
         COMPILER_INDEX_STORE_ENABLE=YES CODE_SIGNING_ALLOWED=NO \
         | (cd .. && xcode-build-server parse)
     echo "✓ rust-analyzer installed; Swift diagnostics, hover and cross-file definition wired"
-
-# Helps diagnose "Address already in use" errors when a previous dev session
-# didn't shut down cleanly. Pair with `dev` / `dev-api`, which already pkill
-# stale processes — use this when those scripts can't reach the holder (e.g.
-# a foreign process holding the port).
-# Show what's listening on the dev ports we use (API).
-ports:
-    #!/usr/bin/env bash
-    for PORT in 3001; do
-        echo "Port $PORT:"
-        lsof -nP -iTCP:$PORT -sTCP:LISTEN 2>/dev/null || echo "  (free)"
-        echo
-    done
-
 
 # ─────────────────────────────────────────────
 # iOS — native SwiftUI app (on the Crux core)

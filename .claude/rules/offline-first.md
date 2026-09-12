@@ -13,22 +13,19 @@ only copy of the user's data. Break one of these and the app silently stops
 being offline.
 
 1. **No network on the local-first path.** New reads and writes go through the
-   persistence `Effect`, never HTTP. Test-enforced: local-first launch and
-   mutations assert zero `Http`.
+   persistence `Effect`, and there is no network path.
 2. **Every persisted entity is sync-ready from day one**: `updated_at` and a
    soft-delete `deleted_at` tombstone, no hard deletes. Test-enforced for the
    schema.
 3. **Client-owned ids.** New entities mint their ulid locally as the canonical
-   id. The temp-id default in CLAUDE.md governs server-backed writes only.
+   id.
 4. **Reconciliation lives in the core.** Sync, LWW and merge logic is Rust; the
    shell executes typed storage ops.
 5. **A failed local write is never a silent success.** Storage ops resolve
    `PersistenceOutput::Failed` and the core surfaces it; never fake an `Ack`
    (#816).
-6. **Existing dual-mode handlers stay intact; new code is local-first only.**
-   When touching a handler that branches on `local_first`, keep both branches
-   passing. New domain code does not add an online branch
-   (`docs/rebuild-review.md` §3).
+6. **A single write path.** There is one local-first path, not two branches to
+   keep in sync.
 7. **No account gate on core functionality.** Only sync may require auth.
 8. **Relational data in GRDB; only small singletons in `crux_kv`** (settings,
    the crash-recovery blob).

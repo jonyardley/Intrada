@@ -1,15 +1,14 @@
 [workspace]
-# Active build = the native iOS stack (core + ffi) and the API; the earlier
-# web and mobile-host crates were removed (see docs/rebuild-review.md).
+# Active build = the native iOS stack (core + ffi). The Leptos web shell, the
+# Tauri shell (see docs/rebuild-review.md) and the API (#1746) were removed;
+# the native SwiftUI app on the Crux core is the only shell going forward.
 members = [
   "crates/intrada-core",
   "crates/intrada-ffi",
-  "crates/intrada-api",
 ]
 resolver = "2"
 # MSRV floor, set by crux_core 0.20's own rust-version. The dev/CI toolchain is
-# newer (rust-toolchain.toml). intrada-api depends on intrada-core, so it
-# inherits this floor too — it has no lower one of its own.
+# newer (rust-toolchain.toml).
 package.rust-version = "1.90"
 
 [workspace.dependencies]

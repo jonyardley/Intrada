@@ -132,8 +132,9 @@ ships and as we learn.
 
 The native SwiftUI app on the shared Crux core **is** the shell, and has been
 since the 2026-05-31 decision completed: app-first, **local-first** (on-device
-SQLite is the source of truth; Axum + Turso is a future sync target, not the live
-read path). The Tauri 2 + Leptos WKWebView host and the Leptos web app were
+SQLite is the source of truth; the API server that once carried sync was
+removed in #1746, and any future sync starts from a new spec, not by reviving
+it). The Tauri 2 + Leptos WKWebView host and the Leptos web app were
 deleted in #1133; two pieces of Swift worth reusing were mined into
 `ios/Reference/` first — the background-audio session handling and a Live
 Activity implementation. That reference Swift was itself removed in #1745,
