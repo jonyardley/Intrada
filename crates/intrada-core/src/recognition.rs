@@ -312,6 +312,17 @@ impl Haystack {
             .map(|line| line.confidence)
             .reduce(f32::min)
     }
+
+    /// The same rule `bpm_in` applies to a single line, checked against every
+    /// `=` the page prints: a suggested BPM only counts when the page itself
+    /// prints it after an equals sign, not merely somewhere on the page — a
+    /// page number sitting above the marking must not pass (#1683).
+    fn bpm_follows_equals(&self, bpm: u16) -> bool {
+        self.text
+            .split('=')
+            .skip(1)
+            .any(|after| digits_after_equals(after) == Some(bpm))
+    }
 }
 
 /// Decision 5, the whole of it: a suggested value the page does not literally
@@ -344,10 +355,15 @@ fn clamped_tempo(suggested: &SuggestedFields, haystack: &Haystack) -> Option<Tem
         suggested.tempo_marking.as_deref(),
         haystack,
         MAX_TEMPO_MARKING,
-    );
+    )
+    .and_then(|m| {
+        let value = canonical_marking(&m.value)?;
+        Some(TextDraftField { value, ..m })
+    });
     let bpm = suggested
         .bpm
         .filter(|bpm| (MIN_READ_BPM..=MAX_BPM).contains(bpm))
+        .filter(|bpm| haystack.bpm_follows_equals(*bpm))
         .and_then(|bpm| haystack.confidence_of(&bpm.to_string()).map(|c| (bpm, c)));
 
     let confidence = match (&marking, &bpm) {
@@ -362,6 +378,21 @@ fn clamped_tempo(suggested: &SuggestedFields, haystack: &Haystack) -> Option<Tem
         source: DraftSource::Suggested,
         confidence,
         weak: confidence < LOW_CONFIDENCE,
+    })
+}
+
+/// The clamp keeps the suggested marking as the page's own span, print noise
+/// and all (decision 5): a fake book's "(MED.)" survives with its brackets and
+/// full stop. Strip the print punctuation and expand the one abbreviation fake
+/// books actually use; "Medium" is the word a musician would type (#1683).
+fn canonical_marking(value: &str) -> Option<String> {
+    let trimmed = value.trim_matches(|c: char| c.is_whitespace() || "()[].".contains(c));
+    if trimmed.is_empty() {
+        return None;
+    }
+    Some(match trimmed.to_lowercase().as_str() {
+        "med" => "Medium".to_string(),
+        _ => trimmed.to_string(),
     })
 }
 
@@ -579,6 +610,11 @@ struct TempoRead {
 /// (open question 3).
 fn bpm_in(text: &str) -> Option<u16> {
     let (_, after) = text.rsplit_once('=')?;
+    digits_after_equals(after)
+}
+
+/// The digits immediately after an `=`, read as a plausible BPM.
+fn digits_after_equals(after: &str) -> Option<u16> {
     let digits: String = after
         .trim_start()
         .chars()
@@ -1228,6 +1264,66 @@ mod tests {
         assert_eq!(tempo.source, DraftSource::Suggested);
         assert_eq!(tempo.confidence, 0.38);
         assert!(tempo.weak);
+    }
+
+    struct TempoCase {
+        name: &'static str,
+        reading: PageReading,
+        suggested: SuggestedFields,
+        expected_bpm: Option<u16>,
+        expected_marking: Option<&'static str>,
+    }
+
+    /// #1683: a Real Book prints its page number just above the marking, in
+    /// exactly the position a metronome mark would occupy, and the model read
+    /// it as one. A page that genuinely prints "Allegro = 120" rides along in
+    /// the same table so the fix cannot swallow a real metronome mark.
+    #[test]
+    fn a_page_number_above_the_marking_is_not_read_as_the_bpm() {
+        let cases = vec![
+            TempoCase {
+                name: "Real Book page 190: page number, marking, title, credit",
+                reading: page(vec![
+                    line("190", 0.03, 0.02),
+                    line("(MED.)", 0.06, 0.02),
+                    line("I Love You", 0.10, 0.08),
+                    line("Cole Porter", 0.20, 0.03),
+                ]),
+                suggested: SuggestedFields {
+                    tempo_marking: Some("(MED.)".to_string()),
+                    bpm: Some(190),
+                    ..no_suggestions()
+                },
+                expected_bpm: None,
+                expected_marking: Some("Medium"),
+            },
+            TempoCase {
+                name: "a page that actually prints a metronome mark",
+                reading: page(vec![line("Allegro = 120", 0.09, 0.03)]),
+                suggested: SuggestedFields {
+                    tempo_marking: Some("Allegro".to_string()),
+                    bpm: Some(120),
+                    ..no_suggestions()
+                },
+                expected_bpm: Some(120),
+                expected_marking: Some("Allegro"),
+            },
+        ];
+
+        for case in cases {
+            let mut reading = case.reading;
+            reading.suggested = Some(case.suggested);
+            let tempo = read_fields(&reading).tempo;
+            let bpm = tempo.as_ref().and_then(|t| t.value.bpm);
+            let marking = tempo.as_ref().and_then(|t| t.value.marking.clone());
+            assert_eq!(bpm, case.expected_bpm, "{}: bpm", case.name);
+            assert_eq!(
+                marking.as_deref(),
+                case.expected_marking,
+                "{}: marking",
+                case.name
+            );
+        }
     }
 
     /// "Music by Joseph Kosma" is on the page, so it survives the clamp and beats
