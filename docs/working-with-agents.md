@@ -211,17 +211,12 @@ rules in `.claude/rules/` load only under the directory a session started in. A
 session already running does not get them by cd-ing: it reads the rules for the
 files it is about to touch by hand, or it is working blind.
 
-The mechanism is the `cd` prefix. The `EnterWorktree` tool is still banned here,
-since it marks the session isolated and the bash guard then refuses every
-version control command; instead, create the worktree and prefix each shell
-command with `cd <worktree> && `. The guard resolves that prefix and judges the
-command where it lands, so the commit, the gates and the PR all work, and the
-first write takes the worktree's lease. File tools take absolute paths inside
-the worktree as they always did.
-
-The prefix is honoured only in a shape the guard can read, and denies rather
-than guesses. The four conditions, and what happens on a machine whose hooks
-predate all this, are in [`docs/worktrees.md`](worktrees.md).
+The mechanism is the `cd` prefix, and the `EnterWorktree` tool is still banned
+here: it marks the session isolated and the bash guard then refuses every
+version control command, so that session can never commit. Create the worktree
+and prefix each shell command instead. The exact shape the prefix must take, and
+what happens on a machine whose hooks predate all this, are in
+[`docs/worktrees.md`](worktrees.md).
 
 ## Build and test control
 

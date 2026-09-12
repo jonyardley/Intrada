@@ -12,19 +12,21 @@ not a ban on reading.
 
 ## Three places, one rule each
 
-**The main checkout.** Any number of sessions can sit here. Each can read, build,
-run the gates and create worktrees. None can edit files. That is the only
-restriction, and it is what keeps main the clean base every branch starts from.
-A session that arrives to find another already here is never stuck: making its
-own worktree is a command it can always run.
+Everything below assumes the repo has at least one linked worktree, which is how
+intrada is always worked. Before the first one exists there is nothing to keep
+separate, so the main checkout behaves like any other tree and one session holds
+it at a time.
 
-**Your own worktree.** The first write claims it. Inside, everything works:
-edit, commit, build, push, open the PR.
+**The main checkout.** Any number of sessions can sit here, so a session never
+arrives to find itself with nothing it can do. None of them can edit files or run
+shell that mutates the source, which is what keeps main the clean base every
+branch starts from.
 
-**Someone else's worktree.** You can look and not touch. Reads pass so a session
-can see what is there before backing out. Edits, commits and builds are all
-denied, builds included, because two builds share one `target/` and one
-throwaway simulator.
+**Your own worktree.** The first write claims it, and everything works inside.
+
+**Someone else's worktree.** Reads pass, so a session can see what is there
+before backing out. Builds are denied along with the writes, because two builds
+share one `target/` and one throwaway simulator.
 
 ## The lease
 
@@ -33,27 +35,29 @@ directory (`.git/worktrees/<name>/` for a linked worktree, `.git/` for the main
 checkout). It cannot be committed, and it disappears when the worktree is
 removed.
 
-The holder is identified by its Claude Code session id, with the process id and
-that process's start time as a fallback for sessions launched without a session
-id. Liveness therefore survives process id reuse: a recycled id running
-something that is not `claude` never reads as a live holder.
+The holder is identified by its Claude Code session id. If no live process
+matches that id, the recorded process id and that process's start time decide it
+instead, which is what covers a session launched without a session id on its
+command line. Liveness therefore survives process id reuse: a recycled id
+running something that is not `claude` never reads as a live holder.
 
 - **Taken** at session start for the tree the session starts in, and on the
   first write for any other tree the session drives.
 - **Released** when the session ends, and the release sweeps **every** lease
   that session took in the repo, not only the one it started in. Before that
-  swept, a session driving three worktrees handed back one.
-- **Aged out** when a session dies without tidying up. The holder reads as dead,
-  and the next session takes the tree over without asking.
+  swept, a session that had driven two worktrees handed back neither.
+- **Taken over** when the holder has died. There is no timeout: a lease never
+  expires while its holder is alive, however idle, and the next session claims
+  it the moment that process is gone.
 - **Never blocking in the main checkout.** Main's lease is still written, so
   `just worktrees` can say who is working there, but it never denies anything.
   Main is held by the rule above instead.
 
 ## What the guard allows
 
-`~/.claude/hooks/guard-worktree.sh` runs before `Edit`, `Write`, `NotebookEdit`
-and `Bash`, and judges the write by the worktree it would land in: the file path
-for a file tool, the working directory for a shell command.
+`~/.claude/hooks/guard-worktree.sh` runs before `Edit`, `Write`, `MultiEdit`,
+`NotebookEdit` and `Bash`, and judges the write by the worktree it would land in:
+the file path for a file tool, the working directory for a shell command.
 
 |                        | main checkout | your worktree | someone else's |
 | ---------------------- | ------------- | ------------- | -------------- |
@@ -63,13 +67,24 @@ for a file tool, the working directory for a shell command.
 | Build, test, `just check` | yes        | yes           | no             |
 | Edit, commit, push     | no            | yes           | no             |
 
+A pull in the main checkout is denied with the rest of the mutating git
+subcommands, which contradicts CLAUDE.md and is tracked in #1740. `git fetch`
+is allowed, and `just worktree-new` branches from fresh `origin/main` regardless,
+so nothing is blocked by it today.
+
 Read-only is judged on the whole command, not its first word. Every segment of a
 compound command has to be read-only, so `cat x && rm -rf y` is a write; a
 redirection anywhere makes it one, so `echo x > f` is too. Quoted text is data,
 so a pipe inside `grep -E 'a|b'` does not split the command, and a heredoc body
-is data as well. `sed` without `-i` reads; `find` without `-delete` or `-exec`
-reads; `rtk read` reads, while `rtk test` and `rtk err` run whatever they are
-handed and do not.
+is data as well.
+
+The read-only list is a list, not a principle, so expect to meet a tool that
+reads and is denied anyway. It currently allows the usual file and text
+commands, shell keywords, `sed` without `-i`, `find` without `-delete` or
+`-exec`, read-only `git` subcommands, `rtk read`, `just` limited to `worktrees`,
+`status`, `worktree-new` and `--list`, and `gh` limited to `view`, `list`,
+`checks` and `status`. So `rtk read` reads while `rtk test` and `rtk err` run
+whatever they are handed, and `gh pr checks` reads while `gh pr create` does not.
 
 The guarantee is on the file tools. Shell coverage is best effort, aimed at the
 shapes an agent actually writes files with: redirection, `sed -i`, `cp`, `mv`,
@@ -78,17 +93,10 @@ blocking every write.
 
 ## Driving a worktree from the main checkout
 
-Starting in the worktree is still the default, because the path-scoped rules in
-`.claude/rules/` load only under the directory a session started in. A session
-already running does not get them by moving directory: it reads the rules for
-the files it is about to touch by hand, or it is working blind.
-
-A session in the main checkout cannot move itself, so it prefixes each shell
-command with `cd <worktree> && `. The guard resolves the prefix and judges the
-command where it lands, so the commit, the gates and the PR all work, and the
-first write takes the worktree's lease. The `EnterWorktree` tool stays banned
-here: it marks the session isolated and the bash guard then refuses every version
-control command, so that session can never commit.
+A session cannot move its own working directory, so one in the main checkout
+prefixes each shell command with `cd <worktree> && `. The guard resolves the
+prefix and judges the command where it lands, so the commit, the gates and the
+PR all work, and the first write takes the worktree's lease.
 
 The prefix is honoured only in a shape the guard can read, and denies rather
 than guesses:
@@ -105,21 +113,6 @@ than guesses:
 - `git -C <dir>` is deliberately not resolved and stays denied from main.
 
 File tools take absolute paths inside the worktree as they always did.
-
-## Is that worktree free?
-
-`just worktrees` is the answer: branch, uncommitted file count and holding
-session for each worktree of the repo. Read it before touching a tree you did
-not create. **A clean tree sitting at main is not evidence that it is free**:
-from the outside, uncommitted work looks identical to an abandoned branch. A
-session that started before it had a lease shows as free too, so a busy peer in
-the session list still beats the table.
-
-`just worktree-new <name>` branches from fresh `origin/main` and seeds the warm
-caches; `just worktree-rm <name>` removes a worktree and deletes its throwaway
-simulator. Never make a worktree for a session that is not running yet: the
-session that creates one and writes in it holds the lease, which locks out the
-session it was meant for.
 
 ## Escape hatches
 
@@ -142,3 +135,8 @@ live sessions are relying on.
 On a machine whose copy predates all this, nothing is enforced and the `cd`
 prefix is denied, which puts a main-checkout session back to handing commands
 over.
+
+The recipes, and how a session picks up the path-scoped rules, are in
+[`working-with-agents.md`](working-with-agents.md). Running more than one
+session at once has its own rules in
+`.claude/skills/intrada-parallel-streams/SKILL.md`.
