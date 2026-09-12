@@ -134,18 +134,23 @@ fn strip_mode_word(value: &str) -> &str {
     }
 }
 
+/// The sign after the tonic letter is a symbol ("F#", "Bb") or the word a
+/// musician types instead ("E flat", "F sharp") — the latter is what #1478
+/// was filed over.
 fn is_tonic(raw: &str) -> bool {
-    let chars: Vec<char> = raw.trim().chars().collect();
-    let Some(first) = chars.first() else {
+    let trimmed = raw.trim();
+    let mut chars = trimmed.chars();
+    let Some(first) = chars.next() else {
         return false;
     };
     if !('A'..='G').contains(&first.to_ascii_uppercase()) {
         return false;
     }
-    match chars.len() {
-        1 => true,
-        2 => matches!(chars[1], '#' | 'b' | 'B'),
-        _ => false,
+    let sign = chars.as_str().trim_start();
+    match sign.chars().count() {
+        0 => true,
+        1 => matches!(sign.chars().next().unwrap(), '#' | 'b' | 'B'),
+        _ => matches!(sign.to_lowercase().as_str(), "flat" | "sharp"),
     }
 }
 
@@ -172,6 +177,12 @@ mod tests {
             "D\u{266F} major",
             "G# major",
             "Db minor",
+            // Spelled out, the #1478 gap: a musician types the sign as a
+            // word rather than reaching for a symbol.
+            "E flat major",
+            "F sharp minor",
+            "A flat",
+            "c sharp",
         ] {
             assert!(is_key_label(label), "{label:?} names a key");
         }
@@ -193,10 +204,8 @@ mod tests {
             "H",
             "",
             "major",
-            // Spelled-out accidentals are a deliberate gap, carried over from
-            // the Swift this replaces: the tonic is a letter and a sign.
-            "E flat major",
-            "F sharp minor",
+            "E flatten major",
+            "F sharpish minor",
         ] {
             assert!(!is_key_label(label), "{label:?} does not name a key");
         }

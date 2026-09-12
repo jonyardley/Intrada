@@ -513,7 +513,7 @@ struct LibraryDetailScreen: View {
 
   private var variationsHeader: some View {
     HStack(alignment: .firstTextBaseline) {
-      Eyebrow("Variations")
+      Eyebrow(item.ladderIsKeys ? "Keys" : "Variations")
       if !item.variants.isEmpty {
         Text("\(solidVariationCount) of \(item.variants.count) solid")
           .font(IntradaFont.meta)
