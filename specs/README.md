@@ -33,6 +33,7 @@ Accurate about how the app works or is being built now.
 | [`practice-instruments.md`](practice-instruments.md) | The Focus Player's timer, rep counter and honest click (`click_sounding` in `domain/session.rs`) |
 | [`up-next-card.md`](up-next-card.md) | The "Up next" suggestion on the Practice tab (`compute_up_next` in `suggestion.rs`) |
 | [`getting-cold-signal.md`](getting-cold-signal.md) | Weighting the "not practised in a while" signal by how well learned a piece is (`staleness.rs`) |
+| [`api-removal.md`](api-removal.md) | The 2026-09-12 decision to remove the API and the sync, account and MCP-token client code (#1746, #1749); what went, what stays, what Jon tears down by hand |
 
 ## Planned, designed and not finished
 

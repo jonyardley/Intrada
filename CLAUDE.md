@@ -67,11 +67,11 @@ User → Events → crux_core (Rust) → Effects (Persistence, App, Render) → 
 
 1. **Core owns all logic.** The shell never understands domain types.
 2. **The shell is a dumb pipe.** It fulfils persistence via GRDB and renders
-   the `ViewModel`. No business rules,
-   validation, domain decisions or domain state in Swift (UI interaction state
-   only): if you are tempted, it belongs in `intrada-core` as an `Event` or
-   `Command`. Crash recovery: UserDefaults (`AppEffect::SaveSessionInProgress`);
-   local data: GRDB (`PersistenceOperation`).
+   the `ViewModel`. No business rules, validation, domain decisions or domain
+   state in Swift (UI interaction state only): if you are tempted, it belongs
+   in `intrada-core` as an `Event` or `Command`. Crash recovery: UserDefaults
+   (`AppEffect::SaveSessionInProgress`); local data: GRDB
+   (`PersistenceOperation`).
 3. **Typed bindings, no hand-written FFI.** `Event` / `Effect` / `ViewModel`
    cross the bridge as generated bincode. Never hand-edit `ios/generated/`; fix
    the Rust type and regenerate.

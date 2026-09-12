@@ -71,7 +71,7 @@ runs on `workflow_dispatch` or a `v*` tag, never per-PR). Signing is fastlane
 **match**, and it needs Ruby >= 3 — system Ruby 2.6 is too old, use `rbenv` —
 plus a one-time App Store Connect and match bootstrap. Full setup and decisions:
 [`../specs/ios-testflight-cicd.md`](../specs/ios-testflight-cicd.md) and
-SETUP.md §4a.
+SETUP.md §3.
 
 A tagged run also bakes `SENTRY_DSN_NATIVE` into the build and, after the
 upload, creates the matching Sentry release in `intrada-mobile`, so a beta
