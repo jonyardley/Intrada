@@ -178,8 +178,6 @@ mod tests {
             "D\u{266F} major",
             "G# major",
             "Db minor",
-            // Spelled out, the #1478 gap: a musician types the sign as a
-            // word rather than reaching for a symbol.
             "E flat major",
             "F sharp minor",
             "A flat",

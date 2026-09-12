@@ -877,9 +877,7 @@ final class ScreenSnapshotTests: XCTestCase {
     assertSnapshot(of: host(pushed, store: store), as: config)
   }
 
-  /// A ladder of inversions, not keys: pins "Variations" on the detail
-  /// screen's heading against #1464's fix, which reads it as "Keys" only
-  /// when every rung names one.
+  /// Pins "Variations" for a ladder of inversions, not keys (#1464).
   func testExerciseDetailWithNamedVariations() {
     let store = Store(bridge: PreviewBridge(items: [.previewExerciseWithNamedVariations]))
     let pushed = NavigationStack(

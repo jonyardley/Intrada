@@ -512,9 +512,7 @@ struct LibraryDetailScreen: View {
     }
   }
 
-  /// The noun this ladder reads as ("keys" once every rung names one,
-  /// "variations" otherwise), so the heading and every reference to it under
-  /// this screen agree (#1464).
+  /// So the heading, labels and rename field agree (#1464).
   private var ladderNounPlural: String { item.ladderIsKeys ? "keys" : "variations" }
   private var ladderNounSingular: String { item.ladderIsKeys ? "key" : "variation" }
 
