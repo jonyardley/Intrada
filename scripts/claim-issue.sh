@@ -4,7 +4,7 @@
 # with no comment to identify an owner, or an open PR on a different branch
 # already references it (#1702). Before this, adding the label to an
 # already-labelled issue succeeded silently and a claim comment could land
-# on top of another session's — two sessions built the same greeting on
+# on top of another session's: two sessions built the same greeting on
 # 2026-09-11 (#1694) because nothing caught either.
 #
 # Called via `just claim <number>`.
