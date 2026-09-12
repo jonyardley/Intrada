@@ -25,17 +25,6 @@ ignore = [
     # (PKCS#1v1.5 padding oracle), which is never exercised in the JWT path.
     # Re-evaluate when rsa 0.10 drops or if advisory scope broadens.
     { id = "RUSTSEC-2023-0071", reason = "only public-key verification, Marvin attack targets decryption" },
-
-    # rustls-webpki advisories pulled in transitively by libsql 0.9.30 →
-    # tonic 0.11.0. Cleared by upgrading libsql to ≥0.10. Tracked in
-    # https://github.com/jonyardley/intrada/issues/568.
-    { id = "RUSTSEC-2026-0049", reason = "transitive via libsql; tracked in #568" },
-    { id = "RUSTSEC-2026-0098", reason = "transitive via libsql; tracked in #568" },
-    { id = "RUSTSEC-2026-0099", reason = "transitive via libsql; tracked in #568" },
-    { id = "RUSTSEC-2026-0104", reason = "transitive via libsql; tracked in #568" },
-    # h2 0.3 unbounded empty DATA frames (low-severity DoS), transitive via
-    # libsql 0.9.30 → hyper 0.14. Patched only in h2 0.4.16, no 0.3 release.
-    { id = "RUSTSEC-2026-0258", reason = "transitive via libsql, no h2 0.3 patch; tracked in #568" },
 ]
 
 # ── Licenses ─────────────────────────────────────────────────────────────
@@ -84,8 +73,3 @@ wildcards = "allow"
 unknown-registry = "deny"
 unknown-git = "deny"
 allow-registry = ["https://github.com/rust-lang/crates.io-index"]
-# jsonwebtoken v10.3.0 has a bug (#489): Header.extras is
-# HashMap<String, String>, so non-string header fields (like Clerk's
-# `oiat: <number>`) fail deserialization. PR #496 fixes this.
-# Remove this entry once the fix lands in a released version.
-allow-git = ["https://github.com/kp-timo-beyel/jsonwebtoken.git"]

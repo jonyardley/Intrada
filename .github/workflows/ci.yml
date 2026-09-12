@@ -43,7 +43,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       rust: ${{ steps.filter.outputs.rust }}
-      api: ${{ steps.filter.outputs.api }}
       native: ${{ steps.filter.outputs.native }}
     steps:
       - uses: actions/checkout@v7
@@ -56,11 +55,6 @@ jobs:
               - 'Cargo.lock'
               - 'rust-toolchain.toml'
               - 'crates/**'
-              - '.github/workflows/ci.yml'
-            api:
-              - 'Dockerfile'
-              - 'rust-toolchain.toml'
-              - 'crates/intrada-api/**'
               - '.github/workflows/ci.yml'
             native:
               - 'Cargo.toml'
@@ -902,79 +896,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  api-docker-build:
-    # Catches Dockerfile / API-specific build bugs on PRs. Narrowly filtered
-    # to Dockerfile + intrada-api crate only — Cargo.toml, Cargo.lock, and
-    # intrada-core changes are already validated by test/clippy jobs, so they
-    # don't need an ~8 min Docker build. Always runs on main pushes (gates
-    # deploy).
-    #
-    # On main pushes the resulting image is pushed to Fly's registry tagged
-    # with the commit SHA, and `deploy-api` deploys that image instead of
-    # rebuilding from scratch on Fly's remote builder. PRs don't push.
-    name: API Docker Build
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    needs: changes
-    # iOS-pivot focus mode: API on hold — never runs on PRs. On main, only runs
-    # when the API actually changed (Dockerfile / intrada-api / ci.yml). When it
-    # didn't, this job skips → `deploy-api` (which lists it in `needs`) skips too,
-    # so we don't rebuild + redeploy an unchanged image on every unrelated main
-    # push. The previously-deployed API keeps running.
-    if: github.event_name == 'push' && needs.changes.outputs.api == 'true'
-    steps:
-      - uses: actions/checkout@v7
-      - uses: docker/setup-buildx-action@v4
-      - name: Log in to Fly registry
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: docker/login-action@v4
-        with:
-          registry: registry.fly.io
-          username: x
-          password: ${{ secrets.FLY_API_TOKEN }}
-      # No `cache-to: type=gha`. `mode=max` cost 1.96GB, a fifth of the repo's
-      # 10GB cache allowance, and `mode=min` would export only the runtime
-      # stage, never the cargo-chef dependency layer this Dockerfile is built
-      # around. A cold build here measured 139s, so the allowance is worth more
-      # to the iOS caches every pull request restores.
-      - name: Build intrada-api image
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-          tags: registry.fly.io/intrada-api:${{ github.sha }}
-          build-args: |
-            GIT_SHA=${{ github.sha }}
-
-  deploy-api:
-    name: Deploy API to Fly.io
-    runs-on: ubuntu-latest
-    # api-docker-build only runs on main when the API changed; when it skips,
-    # this job skips with it (so an unchanged API isn't needlessly redeployed).
-    needs: [test, clippy, fmt, api-docker-build]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    steps:
-      - uses: actions/checkout@v7
-      - uses: superfly/flyctl-actions/setup-flyctl@master
-      # Deploy the image already built, tested (via api-docker-build's gate)
-      # and pushed to Fly's registry — no rebuild on Fly's remote builder.
-      # GIT_SHA was baked in at CI build time via the GIT_SHA build-arg.
-      - run: flyctl deploy --image registry.fly.io/intrada-api:${{ github.sha }}
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-      - name: Create Sentry release (intrada-api)
-        if: env.SENTRY_AUTH_TOKEN != ''
-        continue-on-error: true
-        uses: getsentry/action-release@v3
-        env:
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_PROJECT: intrada-api
-        with:
-          environment: production
-          version: ${{ github.sha }}
-          set_commits: auto
-          finalize: true
-
   # Only signal for a red run on main: PR failures are already visible on the
   # PR, so this is scoped to push events on main (#1554). gh + GITHUB_TOKEN is
   # the zero-dependency option here: no webhook secret to provision. Comments
@@ -983,7 +904,7 @@ jobs:
   alert-on-red-main:
     name: Alert on red main
     runs-on: ubuntu-latest
-    needs: [changes, test, msrv, clippy, native-ios, snapshot-hygiene, fmt, security, api-docker-build, deploy-api]
+    needs: [changes, test, msrv, clippy, native-ios, snapshot-hygiene, fmt, security]
     if: failure() && github.ref == 'refs/heads/main' && github.event_name == 'push'
     permissions:
       issues: write
