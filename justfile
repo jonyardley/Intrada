@@ -650,9 +650,10 @@ _ios-test-without-building filters retry parallel="0":
     # pressure, which reds the gate for no test reason, and a rented 7GB
     # runner has too little to hold more than one. A 48GB dev machine holds
     # five, which takes the UI tier from 339s to 86s, so the local full tier
-    # opts in. CI does not: the self-hosted gate ran with clones for one
-    # commit and a UI test that silently skips its own setup under load
-    # reddened main (#1642). Both CI paths keep the job fan-out for now.
+    # and the self-hosted CI gate both opt in. The rented `native-ios-test-ui`
+    # job stays sequential at 7GB. #1642 fixed the rename test that used to
+    # silently skip its own field-clearing under clone load and reddened
+    # main; both CI paths still keep the job fan-out.
     flags=()
     if [ "{{parallel}}" = "1" ]; then
         flags+=(-parallel-testing-enabled YES -maximum-concurrent-test-simulator-destinations 4)

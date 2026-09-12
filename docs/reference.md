@@ -463,10 +463,12 @@ which the host's `log show` does not hold: `xcrun simctl spawn <udid> log show
 --process SpringBoard`, and the line to look for is "Cannot launch application
 scene while it's application is being updated".
 
-**Cloned simulators are off in CI**, though the local full tier still uses them.
+**Cloned simulators are on in the self-hosted CI gate**, same as the local full
+tier; the rented `native-ios-test-ui` job stays sequential on its 7GB runner.
 They took the UI tier from 339 seconds to 86 in measurement, but five at once
-saturate the machine enough that a UI test which silently skips its own setup
-under load starts reddening main. #1642 hardens that test and turns them back on.
+had been saturating the machine enough that a UI test which silently skipped
+its own field-clearing under load started reddening main. #1642 fixed that
+test and turned clones back on in the self-hosted gate.
 
 ## The API image build stopped caching its layers (2026-09-04)
 
