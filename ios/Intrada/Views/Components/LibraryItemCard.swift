@@ -11,7 +11,7 @@ struct LibraryItemCard: View {
   // When true, the row shows a trailing ScoreRing for the item's latest
   // 0–10 score (en-dash when never practised) — the glanceable mastery signal.
   var showsMastery: Bool = false
-  // Library list only, not the picker sheets, which have their own "Add" (#1734).
+  // Library list only, not the picker sheets, which have their own "Add" (#1727).
   var showsMissingDetailsPrompt: Bool = false
 
   var body: some View {
@@ -30,7 +30,7 @@ struct LibraryItemCard: View {
             .font(IntradaFont.meta)
             .foregroundStyle(IntradaColor.inkSecondary)
         } else if item.subtitle.isEmpty && showsMissingDetailsPrompt {
-          // A prompt, not a collapsed ragged line (#1734).
+          // A prompt, not a collapsed ragged line (#1727).
           Text(missingDetailsPrompt)
             .font(IntradaFont.meta)
             .foregroundStyle(IntradaColor.inkSecondary)
