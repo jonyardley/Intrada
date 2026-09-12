@@ -136,7 +136,8 @@ SQLite is the source of truth; Axum + Turso is a future sync target, not the liv
 read path). The Tauri 2 + Leptos WKWebView host and the Leptos web app were
 deleted in #1133; two pieces of Swift worth reusing were mined into
 `ios/Reference/` first — the background-audio session handling and a Live
-Activity implementation.
+Activity implementation. That reference Swift was itself removed in #1745,
+recoverable from git history.
 
 See [`specs/native-ios.md`](../specs/native-ios.md) for the shell spec. Work
 tracks under [`ios`](https://github.com/jonyardley/intrada/labels/ios).
@@ -220,8 +221,8 @@ These are unresolved product questions. Each one likely produces issues
 1. **Metronome (answered 2026-08-14).** The builder product does want one:
    tracked as #1366 (audit Phase 4), with tempo as a tracked unit of
    measure. The coach-era click (removed in #1344, recoverable from
-   history) and the preserved `ios/Reference/` audio-session Swift are the
-   starting points.
+   history) and the `ios/Reference/` audio-session Swift (removed in
+   #1745, also recoverable from history) are the starting points.
 
 2. **Offline-first architecture (resolved 2026-07).** The native app is
    offline-first by design — on-device SQLite is the source of truth, with

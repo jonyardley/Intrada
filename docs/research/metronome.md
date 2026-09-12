@@ -76,11 +76,12 @@ threaded through the core end to end:
   count-in and per-beat callbacks carrying `hostTime`, interruption
   observation, and a pure `buildSchedule` testable without a live engine
   (`e85cb2c`, #1282). This is a production-quality engine, not a spike.
-- **Background audio groundwork** — `ios/Reference/BackgroundAudioPlugin.swift`
-  (preserved from the Tauri shell, per its README): `AVAudioSession`
-  `.playback` + `.mixWithOthers`, a silent-loop keep-alive so iOS does not
-  suspend timers in the background, interruption re-arm, and
-  `MPNowPlayingInfoCenter` seeding. Spec: `specs/background-audio-plugin.md`.
+- **Background audio groundwork** — the reference `BackgroundAudioPlugin.swift`
+  (preserved from the Tauri shell, removed in #1745 and recoverable from git
+  history): `AVAudioSession` `.playback` + `.mixWithOthers`, a silent-loop
+  keep-alive so iOS does not suspend timers in the background, interruption
+  re-arm, and `MPNowPlayingInfoCenter` seeding. Spec:
+  `specs/background-audio-plugin.md`.
 
 **Genuinely new:** the click wired into the builder's Focus Player rather
 than the deleted coach loop; a rendered tempo trend (item detail and/or
@@ -142,7 +143,8 @@ a *practice variable* and as a *measure*.
 
 - **Slice 1 — the click (Tier 2, iOS-only, zero schema).** Resurrect
   `ClickEngine` from `8af4891^` into the Focus Player; port the
-  audio-session handling from `ios/Reference/BackgroundAudioPlugin.swift`.
+  audio-session handling from the reference `BackgroundAudioPlugin.swift`
+  (removed in #1745, recoverable from git history).
   BPM seeds from `current_item_tempo_bpm` (already in the ViewModel); the
   click setting is UI interaction state, so the dumb-pipe rule is untouched.
   Independently valuable: no more leaving the app for a click.
@@ -202,8 +204,9 @@ Repo: [`docs/roadmap.md`](../roadmap.md) (Open Questions 1, 3) ·
 [#1366](https://github.com/jonyardley/intrada/issues/1366) ·
 [`docs/research-foundation.md`](../research-foundation.md) ·
 [`docs/journeys.md`](../journeys.md) · [`VISION.md`](../../VISION.md) ·
-[`docs/rebuild-review.md`](../rebuild-review.md) · `ios/Reference/README.md` ·
-`git show 8af4891^:ios/Intrada/Coach/ClickEngine.swift`.
+[`docs/rebuild-review.md`](../rebuild-review.md) ·
+`git show 8af4891^:ios/Intrada/Coach/ClickEngine.swift` ·
+`git show PENDING_COMMIT_HASH^:ios/Reference/README.md`.
 
 Web:
 

@@ -262,8 +262,7 @@ final class ClickEngine {
     onPulseDied?()
   }
 
-  /// Synthesized inline (mirrors ios/Reference/BackgroundAudioPlugin.swift's
-  /// silent-WAV trick) rather than bundled, to avoid a resource dependency.
+  /// Synthesized inline rather than bundled, to avoid a resource dependency.
   private static func synthesizeClick(format: AVAudioFormat, frequency: Double) throws
     -> AVAudioPCMBuffer
   {
