@@ -136,66 +136,6 @@ pub struct SessionsData {
     pub sessions: Vec<PracticeSession>,
 }
 
-// ── API request DTOs ─────────────────────────────────────────────────
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "facet_typegen", derive(facet::Facet))]
-pub struct CreateSetRequest {
-    pub name: String,
-    pub entries: Vec<CreateSetEntryRequest>,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "facet_typegen", derive(facet::Facet))]
-pub struct CreateSetEntryRequest {
-    pub item_id: String,
-    pub item_title: String,
-    pub item_type: ItemKind,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "facet_typegen", derive(facet::Facet))]
-pub struct UpdateSetRequest {
-    pub name: String,
-    pub entries: Vec<CreateSetEntryRequest>,
-}
-
-// ── Conversion helpers ──────────────────────────────────────────────
-
-impl CreateSetRequest {
-    pub fn from_set(set: &super::set::Set) -> Self {
-        Self {
-            name: set.name.clone(),
-            entries: set
-                .entries
-                .iter()
-                .map(|e| CreateSetEntryRequest {
-                    item_id: e.item_id.clone(),
-                    item_title: e.item_title.clone(),
-                    item_type: e.item_type.clone(),
-                })
-                .collect(),
-        }
-    }
-}
-
-impl UpdateSetRequest {
-    pub fn from_set(set: &super::set::Set) -> Self {
-        Self {
-            name: set.name.clone(),
-            entries: set
-                .entries
-                .iter()
-                .map(|e| CreateSetEntryRequest {
-                    item_id: e.item_id.clone(),
-                    item_title: e.item_title.clone(),
-                    item_type: e.item_type.clone(),
-                })
-                .collect(),
-        }
-    }
-}
-
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Default)]
 #[cfg_attr(feature = "facet_typegen", derive(facet::Facet))]
 pub struct ListQuery {
@@ -409,19 +349,6 @@ mod tests {
     // Remaining bridge-crossing write payloads — guard against a #846-class break.
 
     #[test]
-    fn item_tag_events_round_trip_on_ffi_bincode_wire() {
-        use crate::domain::item::ItemEvent;
-        assert_round_trips(ItemEvent::AddTags {
-            id: "p1".to_string(),
-            tags: vec!["etude".to_string(), "warmup".to_string()],
-        });
-        assert_round_trips(ItemEvent::RemoveTags {
-            id: "p1".to_string(),
-            tags: vec!["etude".to_string()],
-        });
-    }
-
-    #[test]
     fn item_link_events_round_trip_on_ffi_bincode_wire() {
         use crate::domain::item::ItemEvent;
         assert_round_trips(ItemEvent::LinkExercise {
@@ -469,23 +396,6 @@ mod tests {
                 tags: vec![],
                 photo_id: None,
             },
-        });
-    }
-
-    #[test]
-    fn set_requests_round_trip_on_ffi_bincode_wire() {
-        let entries = vec![CreateSetEntryRequest {
-            item_id: "p1".to_string(),
-            item_title: "Clair de Lune".to_string(),
-            item_type: ItemKind::Piece,
-        }];
-        assert_round_trips(CreateSetRequest {
-            name: "Warm-ups".to_string(),
-            entries: entries.clone(),
-        });
-        assert_round_trips(UpdateSetRequest {
-            name: "Warm-ups (revised)".to_string(),
-            entries,
         });
     }
 

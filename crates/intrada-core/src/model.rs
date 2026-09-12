@@ -10,7 +10,6 @@ use crate::domain::session::{
     ActiveSession, ClickState, CompletionStatus, EntryStatus, PracticeSession, RepEvent,
     SessionStatus, SetlistEntry, SummarySession, VariationPlay,
 };
-use crate::domain::set::Set;
 use crate::domain::Metre;
 use crate::domain::{LibrarySort, ListQuery};
 use crate::recognition::PhotoDraft;
@@ -42,9 +41,8 @@ pub struct Model {
     /// success via [`Model::record_success`], signalling the system has
     /// recovered and new failures are worth surfacing again (#346).
     pub error_muted: bool,
-    pub sets: Vec<Set>,
     pub practice_summaries: HashMap<String, ItemPracticeSummary>,
-    /// Device data, not account data: survives sign-out (`specs/profile.md`).
+    /// Device data, not account data (`specs/profile.md`).
     pub profile: Profile,
     /// Bumped by every update that concludes with `last_error` present, so
     /// shells can tell a repeated identical failure from a success (#1056).
@@ -112,35 +110,6 @@ impl Model {
         self.last_error = None;
         self.error_muted = true;
     }
-
-    /// Reset all user-scoped state on sign-out so a subsequent sign-in
-    /// (potentially as a different user on the same device) starts from a
-    /// clean slate. Without this, the next user briefly sees the previous
-    /// user's library (#645).
-    pub fn reset_for_sign_out(&mut self) {
-        *self = Self {
-            // Device state, not user state: the next user is in the same place.
-            utc_offset_minutes: self.utc_offset_minutes,
-            profile: std::mem::take(&mut self.profile),
-            ..Self::default()
-        };
-    }
-}
-
-/// View-layer representation of session lifecycle state.
-///
-/// Mirrors the internal `SessionStatus` enum but is serializable and
-/// exposed to shells via the `ViewModel`. Using an enum instead of a
-/// String gives compile-time safety in both Rust and generated Swift code.
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Default)]
-#[cfg_attr(feature = "facet_typegen", derive(facet::Facet))]
-#[cfg_attr(feature = "facet_typegen", repr(C))]
-pub enum SessionStatusView {
-    #[default]
-    Idle,
-    Building,
-    Active,
-    Summary,
 }
 
 /// Where on the create form the failure the banner names actually is (#1595).
@@ -219,7 +188,6 @@ pub struct ViewModel {
     pub active_session: Option<ActiveSessionView>,
     pub building_setlist: Option<BuildingSetlistView>,
     pub summary: Option<SummaryView>,
-    pub session_status: SessionStatusView,
     pub error: Option<String>,
     /// See [`Model::last_error_target`].
     pub error_target: Option<FormErrorTarget>,
@@ -227,7 +195,6 @@ pub struct ViewModel {
     pub error_seq: u64,
     pub analytics: Option<AnalyticsView>,
     pub last_practised: Option<LastPractisedView>,
-    pub sets: Vec<SetView>,
     pub profile: ProfileView,
     /// The one suggested session on the Practice tab (#1082). `None` whenever
     /// nothing qualifies: it suggests, it never gates.
@@ -261,25 +228,6 @@ pub enum PhotoRecognitionStatus {
     Ready,
     Unsupported,
     Failed,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "facet_typegen", derive(facet::Facet))]
-pub struct SetView {
-    pub id: String,
-    pub name: String,
-    pub entry_count: usize,
-    pub entries: Vec<SetEntryView>,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "facet_typegen", derive(facet::Facet))]
-pub struct SetEntryView {
-    pub id: String,
-    pub item_id: String,
-    pub item_title: String,
-    pub item_type: ItemKind,
-    pub position: usize,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -584,23 +532,6 @@ pub struct ActiveSessionView {
     pub current_item_metre: Option<Metre>,
 }
 
-/// Whether the builder's entries originate from, and relate to, a saved Set.
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Default)]
-#[cfg_attr(feature = "facet_typegen", derive(facet::Facet))]
-#[cfg_attr(feature = "facet_typegen", repr(C))]
-pub enum SetSourceStatus {
-    #[default]
-    NoSource,
-    UnmodifiedFromSource {
-        set_id: String,
-        set_name: String,
-    },
-    ModifiedFromSource {
-        set_id: String,
-        set_name: String,
-    },
-}
-
 /// A unit in the builder queue: a block (a piece with its related exercises) or
 /// a single standalone item. `group_id == None` means standalone.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -628,7 +559,6 @@ pub struct BuildingSetlistView {
     pub total_duration_summary: Option<String>,
     pub session_intention: Option<String>,
     pub target_duration_mins: Option<u32>,
-    pub source_status: SetSourceStatus,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -1122,41 +1052,6 @@ mod tests {
         assert!(!model.error_muted);
         model.surface_error("new error");
         assert_eq!(model.last_error.as_deref(), Some("new error"));
-    }
-
-    #[test]
-    fn reset_for_sign_out_clears_user_data_and_keeps_device_state() {
-        let mut model = Model {
-            utc_offset_minutes: 60,
-            ..Default::default()
-        };
-        model.items.push(Item {
-            id: "item-1".to_string(),
-            title: "leftover".to_string(),
-            kind: ItemKind::Piece,
-            composer: None,
-            key: None,
-            modality: None,
-            tempo: None,
-            notes: None,
-            tags: vec![],
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-            linked_exercise_ids: vec![],
-            priority: false,
-            chord_chart: None,
-            variants: vec![],
-            photo_id: None,
-            metre: None,
-        });
-        model.surface_error("stale banner");
-        model.reset_for_sign_out();
-        assert_eq!(
-            model.utc_offset_minutes, 60,
-            "device state survives sign-out"
-        );
-        assert!(model.items.is_empty());
-        assert!(model.last_error.is_none());
     }
 
     // ── entry_to_view ──────────────────────────────────────────────────

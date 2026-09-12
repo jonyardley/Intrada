@@ -15,13 +15,11 @@ use crate::domain::session::{
 };
 #[cfg(test)]
 use crate::domain::session::{CompletionStatus, EntryStatus, SetlistEntry};
-use crate::domain::set::{handle_set_event, SetEvent};
 use crate::domain::types::{LibrarySort, ListQuery, SortDirection, SortField};
 use crate::model::{
     build_active_session_view, build_blocks, build_summary_view, entry_to_view, session_to_view,
     BuildingSetlistView, ItemPracticeSummary, LibraryItemView, LinkedExerciseView, Model,
-    PhotoRecognitionView, ScaffoldPreviewView, ScaffoldSpecView, SessionStatusView,
-    SetSourceStatus, ViewModel,
+    PhotoRecognitionView, ScaffoldPreviewView, ScaffoldSpecView, ViewModel,
 };
 use crate::persistence::{self, PersistenceOperation, PersistenceOutput};
 use crate::recognition::{self, RecognitionOperation, RecognitionOutput};
@@ -47,14 +45,10 @@ pub enum Event {
     },
     /// Demo dataset, opt-in only (e.g. iOS `--seed-sample-data`) — never in production.
     LoadSampleData,
-    /// Reset all user-scoped state so the next sign-in doesn't inherit the
-    /// previous user's data (#645).
-    SignedOut,
 
     // ── Domain ──────────────────────────────────────────────────────
     Item(ItemEvent),
     Session(SessionEvent),
-    Set(SetEvent),
     Profile(ProfileEvent),
 
     // ── Error handling ──────────────────────────────────────────────
@@ -167,20 +161,10 @@ impl Intrada {
                 model.last_error = None;
                 crux_core::render::render()
             }
-            Event::SignedOut => {
-                model.reset_for_sign_out();
-                // The crash-recovery blob isn't user-scoped, so clear it too —
-                // else user A's session hydrates into user B on next sign-in (#645).
-                Command::all([
-                    Command::notify_shell(AppEffect::ClearSessionInProgress).into(),
-                    crux_core::render::render(),
-                ])
-            }
 
             // ── Domain handlers ──────────────────────────────────────
             Event::Item(item_event) => handle_item_event(item_event, model),
             Event::Session(session_event) => handle_session_event(session_event, model),
-            Event::Set(set_event) => handle_set_event(set_event, model),
             Event::Profile(profile_event) => handle_profile_event(profile_event, model),
 
             // ── Error handling ───────────────────────────────────────
@@ -385,42 +369,6 @@ impl Intrada {
                 let item_count = entries.len();
                 let blocks = build_blocks(&entries);
                 let block_count = blocks.len();
-                let source_status = match &building.source_set_id {
-                    None => SetSourceStatus::NoSource,
-                    Some(sid) => {
-                        let set_name = model
-                            .sets
-                            .iter()
-                            .find(|s| &s.id == sid)
-                            .map(|s| s.name.clone());
-                        match set_name {
-                            None => SetSourceStatus::NoSource,
-                            Some(name) => {
-                                let current_ids: Vec<&str> = building
-                                    .entries
-                                    .iter()
-                                    .map(|e| e.item_id.as_str())
-                                    .collect();
-                                let snapshot_ids: Vec<&str> = building
-                                    .source_set_entry_snapshot
-                                    .iter()
-                                    .map(|s| s.as_str())
-                                    .collect();
-                                if current_ids == snapshot_ids {
-                                    SetSourceStatus::UnmodifiedFromSource {
-                                        set_id: sid.clone(),
-                                        set_name: name,
-                                    }
-                                } else {
-                                    SetSourceStatus::ModifiedFromSource {
-                                        set_id: sid.clone(),
-                                        set_name: name,
-                                    }
-                                }
-                            }
-                        }
-                    }
-                };
                 let planned_total_secs: u64 = building
                     .entries
                     .iter()
@@ -450,7 +398,6 @@ impl Intrada {
                         total_duration_summary,
                         session_intention: building.session_intention.clone(),
                         target_duration_mins: building.target_duration_mins,
-                        source_status,
                     }),
                     None,
                 )
@@ -467,13 +414,6 @@ impl Intrada {
             ),
         };
 
-        let session_status = match &model.session_status {
-            SessionStatus::Idle => SessionStatusView::Idle,
-            SessionStatus::Building(_) => SessionStatusView::Building,
-            SessionStatus::Active(_) => SessionStatusView::Active,
-            SessionStatus::Summary(_) => SessionStatusView::Summary,
-        };
-
         let (analytics, last_practised) = if model.sessions.is_empty() {
             (None, None)
         } else {
@@ -487,30 +427,6 @@ impl Intrada {
                 crate::analytics::compute_last_practised(&model.sessions, clock),
             )
         };
-
-        let sets = model
-            .sets
-            .iter()
-            .map(|r| {
-                use crate::model::{SetEntryView, SetView};
-                SetView {
-                    id: r.id.clone(),
-                    name: r.name.clone(),
-                    entry_count: r.entries.len(),
-                    entries: r
-                        .entries
-                        .iter()
-                        .map(|e| SetEntryView {
-                            id: e.id.clone(),
-                            item_id: e.item_id.clone(),
-                            item_title: e.item_title.clone(),
-                            item_type: e.item_type.clone(),
-                            position: e.position,
-                        })
-                        .collect(),
-                }
-            })
-            .collect();
 
         ViewModel {
             items,
@@ -526,13 +442,11 @@ impl Intrada {
             active_session,
             building_setlist,
             summary,
-            session_status,
             error: model.last_error.clone(),
             error_target: model.last_error_target.clone(),
             error_seq: model.error_seq,
             analytics,
             last_practised,
-            sets,
             profile: build_profile_view(&model.profile, clock.hour_of(now)),
             up_next,
             has_priorities,
@@ -1585,71 +1499,6 @@ mod tests {
     }
 
     #[test]
-    fn test_signed_out_resets_user_scoped_state() {
-        let app = Intrada;
-        let now = chrono::Utc::now();
-
-        // Populate a model with state from a fully signed-in user across
-        // every sensitive field that could leak to the next user (#645).
-        let mut model = Model {
-            items: vec![Item {
-                id: "i1".to_string(),
-                title: "Clair de Lune".to_string(),
-                kind: ItemKind::Piece,
-                composer: Some("Debussy".to_string()),
-                key: None,
-                modality: None,
-                tempo: None,
-                notes: None,
-                tags: vec![],
-                created_at: now,
-                updated_at: now,
-                linked_exercise_ids: vec![],
-                priority: false,
-                chord_chart: None,
-                variants: vec![],
-                photo_id: None,
-                metre: None,
-            }],
-            sessions: vec![PracticeSession {
-                id: "sess1".to_string(),
-                entries: vec![],
-                session_notes: Some("private notes".to_string()),
-                session_intention: Some("focus".to_string()),
-                started_at: now,
-                completed_at: now,
-                total_duration_secs: 60,
-                completion_status: CompletionStatus::Completed,
-                session_score: None,
-                reflection_improved: None,
-                reflection_still_rough: None,
-                reflection_next_target: None,
-            }],
-            session_status: SessionStatus::Active(ActiveSession {
-                id: "active1".to_string(),
-                entries: vec![],
-                current_index: 0,
-                current_item_started_at: now,
-                session_started_at: now,
-                session_intention: Some("in-progress intention".to_string()),
-            }),
-            last_error: Some("connection lost".to_string()),
-            error_muted: true,
-            ..Default::default()
-        };
-
-        let _cmd = app.update(Event::SignedOut, &mut model);
-
-        // Everything user-scoped returns to Default: exhaustive checks across
-        // the fields the next user would otherwise see in the ViewModel.
-        assert!(model.items.is_empty());
-        assert!(model.sessions.is_empty());
-        assert!(matches!(model.session_status, SessionStatus::Idle));
-        assert!(model.last_error.is_none());
-        assert!(!model.error_muted);
-    }
-
-    #[test]
     fn test_view_empty_model() {
         let app = Intrada;
         let model = Model::default();
@@ -1658,7 +1507,6 @@ mod tests {
         assert!(vm.items.is_empty());
         assert_eq!(vm.items.len(), 0);
         assert!(vm.error.is_none());
-        assert_eq!(vm.session_status, SessionStatusView::Idle);
     }
 
     #[test]
@@ -3291,7 +3139,6 @@ mod tests {
         };
 
         let vm = app.view(&model);
-        assert_eq!(vm.session_status, SessionStatusView::Building);
         assert!(vm.building_setlist.is_some());
         assert!(vm.active_session.is_none());
         assert!(vm.summary.is_none());
@@ -3300,48 +3147,6 @@ mod tests {
             setlist.session_intention,
             Some("Focus on dynamics".to_string())
         );
-    }
-
-    // --- View: sets ---
-
-    #[test]
-    fn test_view_renders_sets() {
-        use crate::domain::set::{Set, SetEntry};
-
-        let app = Intrada;
-        let now = chrono::Utc::now();
-        let model = Model {
-            sets: vec![Set {
-                id: "r1".to_string(),
-                name: "Morning Warm-up".to_string(),
-                entries: vec![
-                    SetEntry {
-                        id: "re1".to_string(),
-                        item_id: "item-1".to_string(),
-                        item_title: "Scales".to_string(),
-                        item_type: ItemKind::Exercise,
-                        position: 0,
-                    },
-                    SetEntry {
-                        id: "re2".to_string(),
-                        item_id: "item-2".to_string(),
-                        item_title: "Arpeggios".to_string(),
-                        item_type: ItemKind::Exercise,
-                        position: 1,
-                    },
-                ],
-                created_at: now,
-                updated_at: now,
-            }],
-            ..Model::default()
-        };
-
-        let vm = app.view(&model);
-        assert_eq!(vm.sets.len(), 1);
-        assert_eq!(vm.sets[0].name, "Morning Warm-up");
-        assert_eq!(vm.sets[0].entry_count, 2);
-        assert_eq!(vm.sets[0].entries[0].item_title, "Scales");
-        assert_eq!(vm.sets[0].entries[1].item_title, "Arpeggios");
     }
 
     // --- Practice summaries edge cases ---
@@ -4029,116 +3834,6 @@ mod tests {
         let model = Model::default();
         let vm = app.view(&model);
         assert!(vm.analytics.is_none());
-    }
-
-    #[test]
-    fn view_set_source_status_no_source() {
-        let app = Intrada;
-        let model = Model {
-            session_status: SessionStatus::Building(
-                crate::domain::session::BuildingSession::default(),
-            ),
-            ..Default::default()
-        };
-        let vm = app.view(&model);
-        let building = vm.building_setlist.unwrap();
-        assert_eq!(building.source_status, SetSourceStatus::NoSource);
-    }
-
-    #[test]
-    fn view_set_source_status_unmodified() {
-        let app = Intrada;
-        let mut model = Model {
-            sets: vec![crate::domain::set::Set {
-                id: "set-1".to_string(),
-                name: "Morning".to_string(),
-                entries: vec![],
-                created_at: chrono::Utc::now(),
-                updated_at: chrono::Utc::now(),
-            }],
-            ..Default::default()
-        };
-        let entry = SetlistEntry {
-            id: "e1".to_string(),
-            item_id: "item-a".to_string(),
-            item_title: "Scale".to_string(),
-            item_type: ItemKind::Exercise,
-            position: 0,
-            duration_secs: 0,
-            status: EntryStatus::NotAttempted,
-            notes: None,
-            intention: None,
-            planned_duration_secs: None,
-            group_id: None,
-            planned_variation_id: None,
-            planned_rep_target: None,
-            plays: vec![VariationPlay {
-                seconds: 0,
-                achieved_tempo: None,
-                score: None,
-                ..VariationPlay::fixture()
-            }],
-        };
-        model.session_status = SessionStatus::Building(crate::domain::session::BuildingSession {
-            entries: vec![entry],
-            source_set_id: Some("set-1".to_string()),
-            source_set_entry_snapshot: vec!["item-a".to_string()],
-            ..Default::default()
-        });
-        let vm = app.view(&model);
-        let building = vm.building_setlist.unwrap();
-        assert!(matches!(
-            building.source_status,
-            SetSourceStatus::UnmodifiedFromSource { .. }
-        ));
-    }
-
-    #[test]
-    fn view_set_source_status_modified() {
-        let app = Intrada;
-        let mut model = Model {
-            sets: vec![crate::domain::set::Set {
-                id: "set-1".to_string(),
-                name: "Morning".to_string(),
-                entries: vec![],
-                created_at: chrono::Utc::now(),
-                updated_at: chrono::Utc::now(),
-            }],
-            ..Default::default()
-        };
-        let entry = SetlistEntry {
-            id: "e1".to_string(),
-            item_id: "item-b".to_string(),
-            item_title: "Etude".to_string(),
-            item_type: ItemKind::Piece,
-            position: 0,
-            duration_secs: 0,
-            status: EntryStatus::NotAttempted,
-            notes: None,
-            intention: None,
-            planned_duration_secs: None,
-            group_id: None,
-            planned_variation_id: None,
-            planned_rep_target: None,
-            plays: vec![VariationPlay {
-                seconds: 0,
-                achieved_tempo: None,
-                score: None,
-                ..VariationPlay::fixture()
-            }],
-        };
-        model.session_status = SessionStatus::Building(crate::domain::session::BuildingSession {
-            entries: vec![entry],
-            source_set_id: Some("set-1".to_string()),
-            source_set_entry_snapshot: vec!["item-a".to_string()],
-            ..Default::default()
-        });
-        let vm = app.view(&model);
-        let building = vm.building_setlist.unwrap();
-        assert!(matches!(
-            building.source_status,
-            SetSourceStatus::ModifiedFromSource { .. }
-        ));
     }
 
     fn building_entry(id: &str, planned_duration_secs: Option<u32>) -> SetlistEntry {

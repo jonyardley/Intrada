@@ -22,7 +22,6 @@ pub const DEFAULT_REP_TARGET: u8 = 10;
 pub const MIN_REP_TARGET: u8 = 3;
 pub const MAX_REP_TARGET: u8 = 10;
 pub const MAX_REP_HISTORY: usize = 500;
-pub const MAX_SET_NAME: usize = 200;
 pub const MAX_VARIANT_LABEL: usize = 100;
 pub const MAX_VARIANTS: usize = 24;
 pub const MAX_PLAYS_PER_ENTRY: usize = 24;
@@ -31,8 +30,6 @@ pub const MAX_PLAYS_PER_ENTRY: usize = 24;
 pub const MIN_PLAY_SECONDS: u64 = 5;
 pub const MIN_PLANNED_DURATION_SECS: u32 = 60;
 pub const MAX_PLANNED_DURATION_SECS: u32 = 3600;
-pub const MIN_SESSION_TARGET_MINS: u32 = 5;
-pub const MAX_SESSION_TARGET_MINS: u32 = 120;
 pub const MIN_ACHIEVED_TEMPO: u16 = 1;
 pub const MAX_ACHIEVED_TEMPO: u16 = 500;
 pub const MIN_METRE_BEATS: u8 = 2;
@@ -54,9 +51,9 @@ fn trimmed_nonempty(value: Option<String>) -> Option<String> {
 }
 
 fn normalize_tags(tags: Vec<String>) -> Vec<String> {
-    // Case-insensitive dedupe keeping first-seen casing, matching the AddTags
-    // handler's case-fold and the available_tags vocabulary — so create/update
-    // can't store "Jazz" + "jazz" as two tags.
+    // Case-insensitive dedupe keeping first-seen casing, matching the
+    // available_tags vocabulary, so create/update can't store "Jazz" and
+    // "jazz" as two tags.
     let mut seen = std::collections::HashSet::new();
     tags.into_iter()
         .map(|t| t.trim().to_string())
@@ -228,18 +225,6 @@ pub fn validate_intention(intention: &Option<String>) -> Result<(), LibraryError
     Ok(())
 }
 
-pub fn validate_score(score: &Option<u8>) -> Result<(), LibraryError> {
-    if let Some(s) = score {
-        if !(MIN_SCORE..=MAX_SCORE).contains(s) {
-            return Err(LibraryError::Validation {
-                field: "score".to_string(),
-                message: format!("Score must be between {MIN_SCORE} and {MAX_SCORE}"),
-            });
-        }
-    }
-    Ok(())
-}
-
 pub fn validate_rep_target(rep_target: &Option<u8>) -> Result<(), LibraryError> {
     if let Some(t) = rep_target {
         if !(MIN_REP_TARGET..=MAX_REP_TARGET).contains(t) {
@@ -302,53 +287,6 @@ pub fn validate_tempo(tempo: &Tempo) -> Result<(), LibraryError> {
             return Err(LibraryError::Validation {
                 field: "tempo".to_string(),
                 message: format!("BPM must be between {MIN_BPM} and {MAX_BPM}"),
-            });
-        }
-    }
-    Ok(())
-}
-
-pub fn validate_set_name(name: &str) -> Result<(), LibraryError> {
-    let trimmed = name.trim();
-    if trimmed.is_empty() {
-        return Err(LibraryError::Validation {
-            field: "name".to_string(),
-            message: "Set name is required".to_string(),
-        });
-    }
-    if trimmed.len() > MAX_SET_NAME {
-        return Err(LibraryError::Validation {
-            field: "name".to_string(),
-            message: format!("Set name must not exceed {MAX_SET_NAME} characters"),
-        });
-    }
-    Ok(())
-}
-
-/// Validate rep field consistency: rep_count must be <= rep_target, and
-/// rep_count, rep_target_reached, and rep_history all require rep_target.
-pub fn validate_rep_consistency(
-    rep_target: Option<u8>,
-    rep_count: Option<u8>,
-    rep_target_reached: Option<bool>,
-    rep_history_present: bool,
-) -> Result<(), LibraryError> {
-    if let Some(target) = rep_target {
-        if let Some(count) = rep_count {
-            if count > target {
-                return Err(LibraryError::Validation {
-                    field: "rep_count".to_string(),
-                    message: format!("rep_count ({count}) cannot exceed rep_target ({target})"),
-                });
-            }
-        }
-    } else {
-        // No target ⇒ count, reached, and history must also be absent.
-        if rep_count.is_some() || rep_target_reached.is_some() || rep_history_present {
-            return Err(LibraryError::Validation {
-                field: "rep_target".to_string(),
-                message: "rep_count, rep_target_reached, and rep_history require rep_target"
-                    .to_string(),
             });
         }
     }
@@ -610,22 +548,6 @@ pub fn validate_play_capacity(entry: &SetlistEntry) -> Result<(), LibraryError> 
         });
     }
 
-    Ok(())
-}
-
-pub fn validate_set_entry_fields(item_id: &str, item_title: &str) -> Result<(), LibraryError> {
-    if item_id.trim().is_empty() {
-        return Err(LibraryError::Validation {
-            field: "item_id".to_string(),
-            message: "Entry item_id must not be empty".to_string(),
-        });
-    }
-    if item_title.trim().is_empty() {
-        return Err(LibraryError::Validation {
-            field: "item_title".to_string(),
-            message: "Entry item_title must not be empty".to_string(),
-        });
-    }
     Ok(())
 }
 
@@ -1690,126 +1612,6 @@ mod tests {
             LibraryError::Validation { field, message } => {
                 assert_eq!(field, "entries");
                 assert_eq!(message, "Set must have at least one entry");
-            }
-            _ => panic!("Expected Validation error"),
-        }
-    }
-
-    // --- validate_rep_consistency tests ---
-
-    #[test]
-    fn test_rep_consistency_all_none() {
-        assert!(validate_rep_consistency(None, None, None, false).is_ok());
-    }
-
-    #[test]
-    fn test_rep_consistency_valid() {
-        assert!(validate_rep_consistency(Some(5), Some(3), Some(false), true).is_ok());
-    }
-
-    #[test]
-    fn test_rep_consistency_count_at_target() {
-        assert!(validate_rep_consistency(Some(5), Some(5), Some(true), true).is_ok());
-    }
-
-    #[test]
-    fn test_rep_consistency_count_exceeds_target() {
-        let err = validate_rep_consistency(Some(5), Some(6), None, false).unwrap_err();
-        match err {
-            LibraryError::Validation { field, message } => {
-                assert_eq!(field, "rep_count");
-                assert_eq!(message, "rep_count (6) cannot exceed rep_target (5)");
-            }
-            _ => panic!("Expected Validation error"),
-        }
-    }
-
-    #[test]
-    fn test_rep_consistency_count_without_target() {
-        let err = validate_rep_consistency(None, Some(3), None, false).unwrap_err();
-        match err {
-            LibraryError::Validation { field, message } => {
-                assert_eq!(field, "rep_target");
-                assert_eq!(
-                    message,
-                    "rep_count, rep_target_reached, and rep_history require rep_target"
-                );
-            }
-            _ => panic!("Expected Validation error"),
-        }
-    }
-
-    #[test]
-    fn test_rep_consistency_reached_without_target() {
-        let err = validate_rep_consistency(None, None, Some(true), false).unwrap_err();
-        match err {
-            LibraryError::Validation { field, .. } => {
-                assert_eq!(field, "rep_target");
-            }
-            _ => panic!("Expected Validation error"),
-        }
-    }
-
-    #[test]
-    fn test_rep_consistency_history_without_target() {
-        let err = validate_rep_consistency(None, None, None, true).unwrap_err();
-        match err {
-            LibraryError::Validation { field, .. } => {
-                assert_eq!(field, "rep_target");
-            }
-            _ => panic!("Expected Validation error"),
-        }
-    }
-
-    // --- validate_score tests ---
-
-    #[test]
-    fn validate_score_accepts_full_0_to_10_band() {
-        assert!(validate_score(&Some(1)).is_ok());
-        assert!(validate_score(&Some(10)).is_ok());
-        assert!(validate_score(&None).is_ok());
-        // 0 is "unrated" (None), never a settable score; 11 is out of range.
-        assert!(validate_score(&Some(0)).is_err());
-        assert!(validate_score(&Some(11)).is_err());
-    }
-
-    // --- validate_set_entry_fields tests ---
-
-    #[test]
-    fn test_set_entry_fields_valid() {
-        assert!(validate_set_entry_fields("id1", "Sonata").is_ok());
-    }
-
-    #[test]
-    fn test_set_entry_fields_empty_item_id() {
-        let err = validate_set_entry_fields("", "Sonata").unwrap_err();
-        match err {
-            LibraryError::Validation { field, message } => {
-                assert_eq!(field, "item_id");
-                assert_eq!(message, "Entry item_id must not be empty");
-            }
-            _ => panic!("Expected Validation error"),
-        }
-    }
-
-    #[test]
-    fn test_set_entry_fields_whitespace_item_id() {
-        let err = validate_set_entry_fields("  ", "Sonata").unwrap_err();
-        match err {
-            LibraryError::Validation { field, .. } => {
-                assert_eq!(field, "item_id");
-            }
-            _ => panic!("Expected Validation error"),
-        }
-    }
-
-    #[test]
-    fn test_set_entry_fields_empty_item_title() {
-        let err = validate_set_entry_fields("id1", "").unwrap_err();
-        match err {
-            LibraryError::Validation { field, message } => {
-                assert_eq!(field, "item_title");
-                assert_eq!(message, "Entry item_title must not be empty");
             }
             _ => panic!("Expected Validation error"),
         }
