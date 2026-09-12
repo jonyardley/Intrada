@@ -120,7 +120,7 @@ mod tests {
     #[test]
     fn hydrate_from_store_emits_a_load_effect() {
         let app = crate::app::Intrada;
-        let mut model = Model::test_default();
+        let mut model = Model::default();
         let mut cmd = app.update(Event::HydrateFromStore, &mut model);
         assert!(cmd
             .effects()
@@ -130,8 +130,10 @@ mod tests {
     #[test]
     fn store_loaded_items_replaces_model_items() {
         let app = crate::app::Intrada;
-        let mut model = Model::test_default();
-        model.items = vec![sample_item("stale")];
+        let mut model = Model {
+            items: vec![sample_item("stale")],
+            ..Default::default()
+        };
         let _ = app.update(
             Event::StoreLoaded(PersistenceOutput::Items(vec![sample_item("fresh")])),
             &mut model,
@@ -143,7 +145,7 @@ mod tests {
     #[test]
     fn store_loaded_failed_surfaces_an_error() {
         let app = crate::app::Intrada;
-        let mut model = Model::test_default();
+        let mut model = Model::default();
         let mut cmd = app.update(Event::StoreLoaded(PersistenceOutput::Failed), &mut model);
         assert!(
             model.last_error.is_some(),
@@ -155,7 +157,7 @@ mod tests {
     #[test]
     fn store_written_failed_surfaces_and_rehydrates() {
         let app = crate::app::Intrada;
-        let mut model = Model::test_default();
+        let mut model = Model::default();
         let mut cmd = app.update(Event::StoreWritten(PersistenceOutput::Failed), &mut model);
         assert!(
             model.last_error.is_some(),
@@ -168,7 +170,7 @@ mod tests {
     #[test]
     fn store_written_ack_is_a_noop() {
         let app = crate::app::Intrada;
-        let mut model = Model::test_default();
+        let mut model = Model::default();
         let mut cmd = app.update(Event::StoreWritten(PersistenceOutput::Ack), &mut model);
         assert!(model.last_error.is_none());
         assert!(!cmd.effects().any(|e| matches!(e, Effect::Persistence(_))));
@@ -177,8 +179,10 @@ mod tests {
     #[test]
     fn store_loaded_ack_leaves_items_untouched() {
         let app = crate::app::Intrada;
-        let mut model = Model::test_default();
-        model.items = vec![sample_item("keep")];
+        let mut model = Model {
+            items: vec![sample_item("keep")],
+            ..Default::default()
+        };
         let _ = app.update(Event::StoreLoaded(PersistenceOutput::Ack), &mut model);
         assert_eq!(model.items.len(), 1);
         assert_eq!(model.items[0].id, "keep");
@@ -193,15 +197,15 @@ mod tests {
         })
     }
 
+    fn has_persistence(cmd: &mut Command<Effect, Event>) -> bool {
+        cmd.effects().any(|e| matches!(e, Effect::Persistence(_)))
+    }
+
     fn has_delete(cmd: &mut Command<Effect, Event>, id: &str) -> bool {
         cmd.effects().any(|e| {
             matches!(e, Effect::Persistence(req)
             if matches!(&req.operation, PersistenceOperation::DeleteItem { id: op_id, .. } if op_id == id))
         })
-    }
-
-    fn has_http(cmd: &mut Command<Effect, Event>) -> bool {
-        cmd.effects().any(|e| matches!(e, Effect::Http(_)))
     }
 
     #[test]
@@ -235,12 +239,12 @@ mod tests {
     }
 
     #[test]
-    fn local_first_delete_stamps_the_delete_instant() {
+    fn delete_stamps_the_delete_instant() {
         let app = crate::app::Intrada;
-        let mut model = Model::test_default();
-        model.local_first = true;
-        model.items = vec![sample_item("p1")];
-
+        let mut model = Model {
+            items: vec![sample_item("p1")],
+            ..Default::default()
+        };
         let before = chrono::Utc::now();
         let mut cmd = app.update(
             Event::Item(crate::domain::item::ItemEvent::Delete {
@@ -281,31 +285,27 @@ mod tests {
     }
 
     #[test]
-    fn local_first_add_persists_and_skips_http() {
+    fn add_persists_with_the_client_ulid() {
         use crate::domain::item::ItemEvent;
         let app = crate::app::Intrada;
-        let mut model = Model::test_default();
-        model.local_first = true;
+        let mut model = Model::default();
         let mut cmd = app.update(Event::Item(ItemEvent::Add(create_item())), &mut model);
         let id = model.items[0].id.clone();
         assert!(
             has_save(&mut cmd, &id),
-            "local-first create persists with the client ulid"
-        );
-        assert!(
-            !has_http(&mut cmd),
-            "local-first create makes no HTTP request"
+            "create persists with the client ulid"
         );
     }
 
     #[test]
-    fn local_first_update_persists_and_skips_http() {
+    fn update_persists_the_edited_row() {
         use crate::domain::item::ItemEvent;
         use crate::domain::types::UpdateItem;
         let app = crate::app::Intrada;
-        let mut model = Model::test_default();
-        model.local_first = true;
-        model.items = vec![sample_item("p1")];
+        let mut model = Model {
+            items: vec![sample_item("p1")],
+            ..Default::default()
+        };
         let input = UpdateItem {
             title: Some("Renamed".into()),
             kind: None,
@@ -325,36 +325,35 @@ mod tests {
             &mut model,
         );
         assert!(has_save(&mut cmd, "p1"));
-        assert!(!has_http(&mut cmd));
     }
 
     #[test]
-    fn local_first_delete_persists_tombstone_and_skips_http() {
+    fn delete_persists_a_tombstone() {
         use crate::domain::item::ItemEvent;
         let app = crate::app::Intrada;
-        let mut model = Model::test_default();
-        model.local_first = true;
-        model.items = vec![sample_item("p1")];
+        let mut model = Model {
+            items: vec![sample_item("p1")],
+            ..Default::default()
+        };
         let mut cmd = app.update(
             Event::Item(ItemEvent::Delete { id: "p1".into() }),
             &mut model,
         );
         assert!(has_delete(&mut cmd, "p1"));
-        assert!(!has_http(&mut cmd));
     }
 
     #[test]
-    fn local_first_failed_delete_rolls_back_via_store_reload() {
+    fn a_failed_delete_rolls_back_via_store_reload() {
         // End-to-end rollback (#834): an optimistic delete whose store write
         // fails must never be a silent success (invariant #5) — it surfaces an
         // error and reloads from the store, which still holds the row the
         // failed write never removed.
         use crate::domain::item::ItemEvent;
         let app = crate::app::Intrada;
-        let mut model = Model::test_default();
-        model.local_first = true;
-        model.items = vec![sample_item("p1")];
-
+        let mut model = Model {
+            items: vec![sample_item("p1")],
+            ..Default::default()
+        };
         let mut cmd = app.update(
             Event::Item(ItemEvent::Delete { id: "p1".into() }),
             &mut model,
@@ -389,23 +388,10 @@ mod tests {
     }
 
     #[test]
-    fn online_add_uses_http_not_persistence() {
+    fn a_successful_write_clears_the_dismiss_mute() {
         use crate::domain::item::ItemEvent;
         let app = crate::app::Intrada;
-        let mut model = Model::test_default();
-        let mut cmd = app.update(Event::Item(ItemEvent::Add(create_item())), &mut model);
-        assert!(has_http(&mut cmd), "online create POSTs to the server");
-        assert!(!cmd.effects().any(|e| matches!(e, Effect::Persistence(_))));
-    }
-
-    #[test]
-    fn local_first_write_clears_the_dismiss_mute() {
-        // Local-first has no server callback, so a successful local write
-        // must record the success itself.
-        use crate::domain::item::ItemEvent;
-        let app = crate::app::Intrada;
-        let mut model = Model::test_default();
-        model.local_first = true;
+        let mut model = Model::default();
         model.dismiss_error();
         let _ = app.update(Event::Item(ItemEvent::Add(create_item())), &mut model);
         assert!(
@@ -415,61 +401,29 @@ mod tests {
     }
 
     #[test]
-    fn start_app_local_first_hydrates_from_store() {
+    fn start_app_hydrates_from_store() {
         let app = crate::app::Intrada;
-        let mut model = Model::test_default();
-        let mut cmd = app.update(
-            Event::StartApp {
-                api_base_url: "http://x".into(),
-                local_first: true,
-            },
-            &mut model,
-        );
-        assert!(model.local_first);
+        let mut model = Model::default();
+        let mut cmd = app.update(Event::StartApp, &mut model);
         assert!(cmd.effects().any(|e| matches!(e, Effect::Persistence(req)
             if req.operation == PersistenceOperation::LoadItems)));
-        assert!(
-            !has_http(&mut cmd),
-            "local-first launch hydrates from the store, no HTTP"
-        );
     }
 
+    /// Offline-first invariant 1 (`.claude/rules/offline-first.md`): every step
+    /// of the lifecycle (launch, create, update, delete) reaches the on-device
+    /// store, so nothing the musician does lives only in memory.
     #[test]
-    fn start_app_online_fetches_over_http() {
-        let app = crate::app::Intrada;
-        let mut model = Model::test_default();
-        let mut cmd = app.update(
-            Event::StartApp {
-                api_base_url: "http://x".into(),
-                local_first: false,
-            },
-            &mut model,
-        );
-        assert!(!model.local_first);
-        assert!(has_http(&mut cmd));
-        assert!(!cmd.effects().any(|e| matches!(e, Effect::Persistence(_))));
-    }
-
-    /// Offline-first invariant #1 (CLAUDE.md): the full local-first lifecycle
-    /// (launch/create/update/delete) emits zero HTTP — a regression sentinel.
-    #[test]
-    fn offline_invariant_local_first_lifecycle_makes_no_http() {
+    fn offline_invariant_lifecycle_reaches_the_store_at_every_step() {
         use crate::domain::item::ItemEvent;
         use crate::domain::types::UpdateItem;
         let app = crate::app::Intrada;
-        let mut model = Model::test_default();
+        let mut model = Model::default();
 
-        let mut launch = app.update(
-            Event::StartApp {
-                api_base_url: "http://x".into(),
-                local_first: true,
-            },
-            &mut model,
-        );
-        assert!(!has_http(&mut launch), "launch");
+        let mut launch = app.update(Event::StartApp, &mut model);
+        assert!(has_persistence(&mut launch), "launch");
 
         let mut add = app.update(Event::Item(ItemEvent::Add(create_item())), &mut model);
-        assert!(!has_http(&mut add), "create");
+        assert!(has_persistence(&mut add), "create");
         let id = model.items[0].id.clone();
 
         let input = UpdateItem {
@@ -490,10 +444,10 @@ mod tests {
             }),
             &mut model,
         );
-        assert!(!has_http(&mut update), "update");
+        assert!(has_persistence(&mut update), "update");
 
         let mut delete = app.update(Event::Item(ItemEvent::Delete { id }), &mut model);
-        assert!(!has_http(&mut delete), "delete");
+        assert!(has_persistence(&mut delete), "delete");
     }
 
     // ── Sessions ────────────────────────────────────────────────────────
@@ -533,8 +487,10 @@ mod tests {
     #[test]
     fn sessions_store_loaded_replaces_model_sessions() {
         let app = crate::app::Intrada;
-        let mut model = Model::test_default();
-        model.sessions = vec![sample_session("stale")];
+        let mut model = Model {
+            sessions: vec![sample_session("stale")],
+            ..Default::default()
+        };
         let _ = app.update(
             Event::SessionsStoreLoaded(PersistenceOutput::Sessions(vec![sample_session("fresh")])),
             &mut model,
@@ -544,25 +500,18 @@ mod tests {
     }
 
     #[test]
-    fn start_app_local_first_also_loads_sessions() {
+    fn start_app_also_loads_sessions() {
         let app = crate::app::Intrada;
-        let mut model = Model::test_default();
-        let mut cmd = app.update(
-            Event::StartApp {
-                api_base_url: "http://x".into(),
-                local_first: true,
-            },
-            &mut model,
-        );
+        let mut model = Model::default();
+        let mut cmd = app.update(Event::StartApp, &mut model);
         assert!(cmd.effects().any(|e| matches!(e, Effect::Persistence(req)
             if req.operation == PersistenceOperation::LoadSessions)));
-        assert!(!has_http(&mut cmd), "local-first launch makes no HTTP");
     }
 
     #[test]
     fn session_store_written_failed_reloads_sessions() {
         let app = crate::app::Intrada;
-        let mut model = Model::test_default();
+        let mut model = Model::default();
         let mut cmd = app.update(
             Event::SessionStoreWritten(PersistenceOutput::Failed),
             &mut model,

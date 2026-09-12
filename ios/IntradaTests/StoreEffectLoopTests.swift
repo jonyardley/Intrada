@@ -7,17 +7,11 @@ import XCTest
 @MainActor
 final class StoreEffectLoopTests: XCTestCase {
 
-  override func tearDown() {
-    MockURLProtocol.handler = nil
-    MockURLProtocol.lastRequest = nil
-    super.tearDown()
-  }
-
   // ── Effect dispatch ────────────────────────────────────────────────────
 
   func testInitRendersInitialViewModel() {
     let bridge = FakeBridge()
-    let store = Store(bridge: bridge, session: mockSession())
+    let store = Store(bridge: bridge)
     XCTAssertNotNil(store.viewModel, "init should seed the ViewModel from the bridge")
     XCTAssertEqual(bridge.viewCallCount, 1)
   }
@@ -25,7 +19,7 @@ final class StoreEffectLoopTests: XCTestCase {
   func testRenderEffectRefreshesViewModel() {
     let bridge = FakeBridge()
     bridge.updateHandler = { _ in [Request(id: 1, effect: .render(RenderOperation()))] }
-    let store = Store(bridge: bridge, session: mockSession())
+    let store = Store(bridge: bridge)
 
     bridge.nextViewModel = {
       var vm = try emptyViewModel()
@@ -47,7 +41,7 @@ final class StoreEffectLoopTests: XCTestCase {
     bridge.updateHandler = { _ in
       [Request(id: 1, effect: .app(.saveSessionInProgress(active)))]
     }
-    let store = Store(bridge: bridge, session: mockSession(), sortDefaults: defaults)
+    let store = Store(bridge: bridge, sortDefaults: defaults)
 
     store.send(.setQuery(nil))
 
@@ -72,7 +66,7 @@ final class StoreEffectLoopTests: XCTestCase {
     bridge.updateHandler = { _ in
       [Request(id: 1, effect: .app(.saveSessionInProgress(active)))]
     }
-    let store = Store(bridge: bridge, session: mockSession(), sortDefaults: defaults)
+    let store = Store(bridge: bridge, sortDefaults: defaults)
     store.send(.setQuery(nil))
     store.recoverableSession = store.pendingSessionInProgress()
     XCTAssertNotNil(store.recoverableSession)
@@ -87,7 +81,7 @@ final class StoreEffectLoopTests: XCTestCase {
     // Why never resolve: testRealBridgeAppEffectIsNeverResolved (#882).
     let bridge = FakeBridge()
     bridge.updateHandler = { _ in [Request(id: 7, effect: .app(.clearSessionInProgress))] }
-    let store = Store(bridge: bridge, session: mockSession())
+    let store = Store(bridge: bridge)
 
     store.send(.setQuery(nil))
 
@@ -97,7 +91,7 @@ final class StoreEffectLoopTests: XCTestCase {
   func testPersistenceLoadResolvesFromStore() {
     let bridge = FakeBridge()
     bridge.updateHandler = { _ in [Request(id: 8, effect: .persistence(.loadItems))] }
-    let store = Store(bridge: bridge, session: mockSession())
+    let store = Store(bridge: bridge)
 
     store.send(.setQuery(nil))
 
@@ -117,7 +111,7 @@ final class StoreEffectLoopTests: XCTestCase {
     bridge.updateHandler = { _ in
       [Request(id: 11, effect: .recognition(.readPage(photoId: Ulid.generate())))]
     }
-    let store = Store(bridge: bridge, session: mockSession())
+    let store = Store(bridge: bridge)
 
     await whenResolved(bridge) { store.send(.setQuery(nil)) }
 
@@ -130,7 +124,7 @@ final class StoreEffectLoopTests: XCTestCase {
     bridge.updateHandler = { _ in
       [Request(id: 9, effect: .persistence(.saveItem(Self.sampleItem)))]
     }
-    let store = Store(bridge: bridge, session: mockSession(), store: FailingStore())
+    let store = Store(bridge: bridge, store: FailingStore())
 
     store.send(.setQuery(nil))
 
@@ -147,7 +141,7 @@ final class StoreEffectLoopTests: XCTestCase {
         Request(id: 2, effect: .render(RenderOperation())),
       ]
     }
-    let store = Store(bridge: bridge, session: mockSession())
+    let store = Store(bridge: bridge)
 
     bridge.nextViewModel = {
       var vm = try emptyViewModel()
@@ -167,7 +161,7 @@ final class StoreEffectLoopTests: XCTestCase {
     let sort = LibrarySort(field: .title, direction: .ascending)
     let bridge = FakeBridge()
     bridge.updateHandler = { _ in [Request(id: 5, effect: .app(.saveLibrarySort(sort)))] }
-    let store = Store(bridge: bridge, session: mockSession(), sortDefaults: defaults)
+    let store = Store(bridge: bridge, sortDefaults: defaults)
 
     store.send(.setQuery(nil))
 
@@ -188,7 +182,7 @@ final class StoreEffectLoopTests: XCTestCase {
       sentEvents.append(event)
       return []
     }
-    let store = Store(bridge: bridge, session: mockSession(), sortDefaults: defaults)
+    let store = Store(bridge: bridge, sortDefaults: defaults)
 
     store.restorePersistedSort()
 
@@ -204,7 +198,7 @@ final class StoreEffectLoopTests: XCTestCase {
       sentEvents.append(event)
       return []
     }
-    let store = Store(bridge: bridge, session: mockSession(), sortDefaults: defaults)
+    let store = Store(bridge: bridge, sortDefaults: defaults)
 
     store.restorePersistedSort()
 
@@ -218,7 +212,7 @@ final class StoreEffectLoopTests: XCTestCase {
     let profile = Profile(name: "Jon", instrument: "Piano", iconChoice: .harp, colour: .sky)
     let bridge = FakeBridge()
     bridge.updateHandler = { _ in [Request(id: 7, effect: .app(.saveProfile(profile)))] }
-    let store = Store(bridge: bridge, session: mockSession(), sortDefaults: defaults)
+    let store = Store(bridge: bridge, sortDefaults: defaults)
 
     store.send(.setQuery(nil))
 
@@ -239,7 +233,7 @@ final class StoreEffectLoopTests: XCTestCase {
       sentEvents.append(event)
       return []
     }
-    let store = Store(bridge: bridge, session: mockSession(), sortDefaults: defaults)
+    let store = Store(bridge: bridge, sortDefaults: defaults)
 
     store.restorePersistedProfile()
 
@@ -252,7 +246,7 @@ final class StoreEffectLoopTests: XCTestCase {
     let defaults = try XCTUnwrap(UserDefaults(suiteName: "profile-\(UUID().uuidString)"))
     let profile = Profile(name: "Jon", instrument: "Cello", iconChoice: nil, colour: .butter)
     defaults.set(Data(try profile.bincodeSerialize()), forKey: Store.profileDefaultsKey)
-    let store = Store(bridge: FakeBridge(), session: mockSession(), sortDefaults: defaults)
+    let store = Store(bridge: FakeBridge(), sortDefaults: defaults)
 
     store.forgetPersistedProfile()
 
@@ -267,7 +261,7 @@ final class StoreEffectLoopTests: XCTestCase {
       sentEvents.append(event)
       return []
     }
-    let store = Store(bridge: bridge, session: mockSession(), sortDefaults: defaults)
+    let store = Store(bridge: bridge, sortDefaults: defaults)
 
     store.restorePersistedProfile()
 
@@ -279,11 +273,11 @@ final class StoreEffectLoopTests: XCTestCase {
   func testUpdateThrowIsSwallowedWithoutCrashing() {
     let bridge = FakeBridge()
     bridge.throwOnUpdate = TestError()
-    let store = Store(bridge: bridge, session: mockSession())
+    let store = Store(bridge: bridge)
 
     store.send(.setQuery(nil))
 
-    XCTAssertTrue(bridge.resolved.isEmpty)
+    XCTAssertTrue(bridge.persistenceResolved.isEmpty)
     XCTAssertTrue(bridge.emptyResolved.isEmpty)
     XCTAssertNotNil(store.viewModel, "a thrown update should fail soft, not wipe the ViewModel")
   }
@@ -291,131 +285,23 @@ final class StoreEffectLoopTests: XCTestCase {
   func testViewThrowAtInitLeavesViewModelNil() {
     let bridge = FakeBridge()
     bridge.throwOnView = TestError()
-    let store = Store(bridge: bridge, session: mockSession())
+    let store = Store(bridge: bridge)
 
     XCTAssertNil(store.viewModel, "a thrown view() should leave nil (loading state), not crash")
   }
 
-  // ── HTTP execution + result mapping ────────────────────────────────────
-
-  func testHttpEffectMapsOkResponse() async {
+  func testResolveChainedRenderRefreshesView() {
     let bridge = FakeBridge()
-    bridge.updateHandler = { _ in
-      [
-        Request(
-          id: 3,
-          effect: .http(
-            HttpRequest(method: "GET", url: "https://x.test/items", headers: [], body: [])))
-      ]
-    }
-    MockURLProtocol.handler = { request in
-      let response = HTTPURLResponse(
-        url: request.url!, statusCode: 201,
-        httpVersion: nil, headerFields: ["X-Test": "yes"])!
-      return (response, Data("hello".utf8))
-    }
-    let store = Store(bridge: bridge, session: mockSession())
-
-    await whenResolved(bridge) { store.send(.setQuery(nil)) }
-
-    guard case .ok(let response) = bridge.resolved.first?.result else {
-      return XCTFail("expected .ok, got \(String(describing: bridge.resolved.first?.result))")
-    }
-    XCTAssertEqual(bridge.resolved.first?.id, 3)
-    XCTAssertEqual(response.status, 201)
-    XCTAssertEqual(response.body, [UInt8]("hello".utf8))
-    XCTAssertTrue(
-      response.headers.contains { $0.name == "X-Test" && $0.value == "yes" },
-      "server headers should map into HttpResponse")
-  }
-
-  func testHttpEffectMapsNetworkErrorToIo() async {
-    let bridge = httpBridge()
-    MockURLProtocol.handler = { _ in throw URLError(.notConnectedToInternet) }
-    let store = Store(bridge: bridge, session: mockSession())
-
-    await whenResolved(bridge) { store.send(.setQuery(nil)) }
-
-    guard case .err(.io) = bridge.resolved.first?.result else {
-      return XCTFail("expected .err(.io), got \(String(describing: bridge.resolved.first?.result))")
-    }
-  }
-
-  func testHttpEffectMapsTimeout() async {
-    let bridge = httpBridge()
-    MockURLProtocol.handler = { _ in throw URLError(.timedOut) }
-    let store = Store(bridge: bridge, session: mockSession())
-
-    await whenResolved(bridge) { store.send(.setQuery(nil)) }
-
-    XCTAssertEqual(bridge.resolved.first?.result, .err(.timeout))
-  }
-
-  func testHttpEffectMapsInvalidUrl() async {
-    let bridge = FakeBridge()
-    bridge.updateHandler = { _ in
-      [
-        Request(
-          id: 9,
-          effect: .http(HttpRequest(method: "GET", url: "h ttp://nope", headers: [], body: [])))
-      ]
-    }
-    let store = Store(bridge: bridge, session: mockSession())
-
-    await whenResolved(bridge) { store.send(.setQuery(nil)) }
-
-    guard case .err(.url) = bridge.resolved.first?.result else {
-      return XCTFail(
-        "expected .err(.url), got \(String(describing: bridge.resolved.first?.result))")
-    }
-  }
-
-  func testHttpRequestMapsMethodAndHeaders() async {
-    let bridge = FakeBridge()
-    bridge.updateHandler = { _ in
-      [
-        Request(
-          id: 5,
-          effect: .http(
-            HttpRequest(
-              method: "POST", url: "https://x.test/items",
-              headers: [HttpHeader(name: "Content-Type", value: "application/json")],
-              body: [1, 2, 3])))
-      ]
-    }
-    MockURLProtocol.handler = { request in
-      MockURLProtocol.lastRequest = request
-      return (
-        HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
-        Data()
-      )
-    }
-    let store = Store(bridge: bridge, session: mockSession())
-
-    await whenResolved(bridge) { store.send(.setQuery(nil)) }
-
-    XCTAssertEqual(MockURLProtocol.lastRequest?.httpMethod, "POST")
-    XCTAssertEqual(
-      MockURLProtocol.lastRequest?.value(forHTTPHeaderField: "Content-Type"), "application/json")
-  }
-
-  func testResolveChainedRenderRefreshesView() async {
-    let bridge = httpBridge()
-    bridge.resolveHandler = { _, _ in [Request(id: 2, effect: .render(RenderOperation()))] }
-    MockURLProtocol.handler = { request in
-      (
-        HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
-        Data()
-      )
-    }
-    let store = Store(bridge: bridge, session: mockSession())
+    bridge.updateHandler = { _ in [Request(id: 4, effect: .persistence(.loadItems))] }
+    bridge.resolveHandler = { _ in [Request(id: 2, effect: .render(RenderOperation()))] }
+    let store = Store(bridge: bridge)
 
     bridge.nextViewModel = {
       var vm = try emptyViewModel()
       vm.error = "post-resolve"
       return vm
     }
-    await whenResolved(bridge) { store.send(.setQuery(nil)) }
+    store.send(.setQuery(nil))
 
     XCTAssertEqual(
       store.viewModel?.error, "post-resolve", "render from a resolve should refresh view")
@@ -428,7 +314,7 @@ final class StoreEffectLoopTests: XCTestCase {
   /// Store.send's `guarded`.
   func testRealBridgeEditAppliesToViewModel() throws {
     let bridge = LiveBridge()
-    _ = try bridge.update(.startApp(apiBaseUrl: "http://localhost:3001", localFirst: true))
+    _ = try bridge.update(.startApp)
     _ = try bridge.update(
       .item(
         .add(
@@ -462,7 +348,7 @@ final class StoreEffectLoopTests: XCTestCase {
   /// decode in the core, and the derived view must ride back.
   func testRealBridgeProfileSaveProjectsTheView() throws {
     let bridge = LiveBridge()
-    _ = try bridge.update(.startApp(apiBaseUrl: "http://localhost:3001", localFirst: true))
+    _ = try bridge.update(.startApp)
 
     let requests = try bridge.update(
       .profile(
@@ -498,7 +384,7 @@ final class StoreEffectLoopTests: XCTestCase {
   /// exercise. A wire break would drop the ladder silently.
   func testRealBridgeAddVariantSurfacesStepsInViewModel() throws {
     let bridge = LiveBridge()
-    _ = try bridge.update(.startApp(apiBaseUrl: "http://localhost:3001", localFirst: true))
+    _ = try bridge.update(.startApp)
     _ = try bridge.update(
       .item(
         .add(
@@ -523,7 +409,7 @@ final class StoreEffectLoopTests: XCTestCase {
   /// no crash, no error, just the wrong noun.
   func testRealBridgeLadderIsKeysCrossesTheWire() throws {
     let bridge = LiveBridge()
-    _ = try bridge.update(.startApp(apiBaseUrl: "http://localhost:3001", localFirst: true))
+    _ = try bridge.update(.startApp)
     _ = try bridge.update(
       .item(
         .add(
@@ -553,7 +439,7 @@ final class StoreEffectLoopTests: XCTestCase {
   /// cannot catch a break in any of the three.
   func testRealBridgePhotoIdCrossesTheWireBothWays() throws {
     let bridge = LiveBridge()
-    _ = try bridge.update(.startApp(apiBaseUrl: "http://localhost:3001", localFirst: true))
+    _ = try bridge.update(.startApp)
     _ = try bridge.update(
       .item(
         .add(
@@ -583,7 +469,7 @@ final class StoreEffectLoopTests: XCTestCase {
   /// in Swift back in, and the draft the form will read out of the projection.
   func testRealBridgeReadPhotoFillsTheDraft() throws {
     let bridge = LiveBridge()
-    _ = try bridge.update(.startApp(apiBaseUrl: "http://localhost:3001", localFirst: true))
+    _ = try bridge.update(.startApp)
     let photoId = Ulid.generate()
 
     let requests = try bridge.update(.item(.readPhoto(photoId: photoId)))
@@ -626,7 +512,7 @@ final class StoreEffectLoopTests: XCTestCase {
   /// photographing the same page twice (#1436).
   func testRealBridgeCreateCarriesTheScannedPage() throws {
     let bridge = LiveBridge()
-    _ = try bridge.update(.startApp(apiBaseUrl: "http://localhost:3001", localFirst: true))
+    _ = try bridge.update(.startApp)
     let photoId = Ulid.generate()
 
     _ = try bridge.update(
@@ -648,7 +534,7 @@ final class StoreEffectLoopTests: XCTestCase {
   /// agree.
   func testRealBridgeAcceptsAUlidTheShellMinted() throws {
     let bridge = LiveBridge()
-    _ = try bridge.update(.startApp(apiBaseUrl: "http://localhost:3001", localFirst: true))
+    _ = try bridge.update(.startApp)
     _ = try bridge.update(
       .item(
         .add(
@@ -671,7 +557,7 @@ final class StoreEffectLoopTests: XCTestCase {
   /// in the next view read.
   func testRealBridgeSetUtcOffsetCrossesTheWire() throws {
     let bridge = LiveBridge()
-    _ = try bridge.update(.startApp(apiBaseUrl: "http://localhost:3001", localFirst: true))
+    _ = try bridge.update(.startApp)
 
     _ = try bridge.update(.setUtcOffset(minutes: -300))
 
@@ -683,7 +569,7 @@ final class StoreEffectLoopTests: XCTestCase {
   /// through the live bridge and assert it decodes without error.
   func testRealBridgeTagEntryWithVariantDecodesOnWire() throws {
     let bridge = LiveBridge()
-    _ = try bridge.update(.startApp(apiBaseUrl: "http://localhost:3001", localFirst: true))
+    _ = try bridge.update(.startApp)
     _ = try bridge.update(
       .item(
         .add(
@@ -707,7 +593,7 @@ final class StoreEffectLoopTests: XCTestCase {
 
   private func bridgeWithCompletedEntry() throws -> (LiveBridge, String, String) {
     let bridge = LiveBridge()
-    _ = try bridge.update(.startApp(apiBaseUrl: "http://localhost:3001", localFirst: true))
+    _ = try bridge.update(.startApp)
     _ = try bridge.update(
       .item(
         .add(
@@ -745,7 +631,7 @@ final class StoreEffectLoopTests: XCTestCase {
   /// first tap writes the target along with itself.
   func testRealBridgeFirstTapWritesTheTargetAndItsTime() throws {
     let bridge = LiveBridge()
-    _ = try bridge.update(.startApp(apiBaseUrl: "http://localhost:3001", localFirst: true))
+    _ = try bridge.update(.startApp)
     _ = try bridge.update(
       .item(
         .add(
@@ -805,7 +691,7 @@ final class StoreEffectLoopTests: XCTestCase {
   /// optional nested struct with an optional list inside it, the #846 shape.
   func testRealBridgeSetsAndClearsTheItemsMetre() throws {
     let bridge = LiveBridge()
-    _ = try bridge.update(.startApp(apiBaseUrl: "http://localhost:3001", localFirst: true))
+    _ = try bridge.update(.startApp)
     _ = try bridge.update(
       .item(
         .add(
@@ -867,7 +753,7 @@ final class StoreEffectLoopTests: XCTestCase {
   /// error and never store a partial.
   func testRealBridgeSetChordChartDerivesScaffoldPreview() throws {
     let bridge = LiveBridge()
-    _ = try bridge.update(.startApp(apiBaseUrl: "http://localhost:3001", localFirst: true))
+    _ = try bridge.update(.startApp)
     _ = try bridge.update(
       .item(
         .add(
@@ -902,7 +788,7 @@ final class StoreEffectLoopTests: XCTestCase {
   /// selected exercises.
   func testRealBridgeCommitScaffoldLinksExercises() throws {
     let bridge = LiveBridge()
-    _ = try bridge.update(.startApp(apiBaseUrl: "http://localhost:3001", localFirst: true))
+    _ = try bridge.update(.startApp)
     _ = try bridge.update(
       .item(
         .add(
@@ -936,7 +822,7 @@ final class StoreEffectLoopTests: XCTestCase {
   /// wire holds (#846). Pinned here before any screen sends it.
   func testRealBridgeAddPieceInFullCarriesChartAndExercises() throws {
     let bridge = LiveBridge()
-    _ = try bridge.update(.startApp(apiBaseUrl: "http://localhost:3001", localFirst: true))
+    _ = try bridge.update(.startApp)
     _ = try bridge.update(
       .item(
         .add(
@@ -997,7 +883,7 @@ final class StoreEffectLoopTests: XCTestCase {
   /// the wire holds (#846). The screens read this to point at the failure.
   func testRealBridgeRejectedCreateCarriesWhereItFailed() throws {
     let bridge = LiveBridge()
-    _ = try bridge.update(.startApp(apiBaseUrl: "http://localhost:3001", localFirst: true))
+    _ = try bridge.update(.startApp)
 
     _ = try bridge.update(
       .item(
@@ -1077,7 +963,7 @@ final class StoreEffectLoopTests: XCTestCase {
   /// catch an absent-vs-present wire break (#846).
   func testRealBridgePriorityToggleAppliesToViewModel() throws {
     let bridge = LiveBridge()
-    _ = try bridge.update(.startApp(apiBaseUrl: "http://localhost:3001", localFirst: true))
+    _ = try bridge.update(.startApp)
     _ = try bridge.update(
       .item(
         .add(
@@ -1110,7 +996,7 @@ final class StoreEffectLoopTests: XCTestCase {
   /// write — round-trip it through the real bincode bridge (#846).
   func testRealBridgePractiseThisSeedsBuilder() throws {
     let bridge = LiveBridge()
-    _ = try bridge.update(.startApp(apiBaseUrl: "http://localhost:3001", localFirst: true))
+    _ = try bridge.update(.startApp)
     _ = try bridge.update(
       .item(
         .add(
@@ -1132,7 +1018,7 @@ final class StoreEffectLoopTests: XCTestCase {
   /// open an empty builder rather than fail, which is the #846 shape.
   func testRealBridgePrioritiesSeedTheBuilder() throws {
     let bridge = LiveBridge()
-    _ = try bridge.update(.startApp(apiBaseUrl: "http://localhost:3001", localFirst: true))
+    _ = try bridge.update(.startApp)
 
     for title in ["Hanon No. 1", "Scales"] {
       _ = try bridge.update(
@@ -1167,7 +1053,7 @@ final class StoreEffectLoopTests: XCTestCase {
   /// hide (#846).
   func testRealBridgeSessionFlowBuildPlaySave() throws {
     let bridge = LiveBridge()
-    _ = try bridge.update(.startApp(apiBaseUrl: "http://localhost:3001", localFirst: true))
+    _ = try bridge.update(.startApp)
     _ = try bridge.update(
       .item(
         .add(
@@ -1294,7 +1180,7 @@ final class StoreEffectLoopTests: XCTestCase {
   /// ladder create → reorder-preserves-ids → per-entry attribution set/clear.
   func testRealBridgeStepLadderAndEntryAttribution() throws {
     let bridge = LiveBridge()
-    _ = try bridge.update(.startApp(apiBaseUrl: "http://localhost:3001", localFirst: true))
+    _ = try bridge.update(.startApp)
     _ = try bridge.update(
       .item(
         .add(
@@ -1334,46 +1220,6 @@ final class StoreEffectLoopTests: XCTestCase {
       "clearing the attribution round-trips")
   }
 
-  /// A stub bridge can't catch a regression here (#1272): the message is
-  /// assembled in the core, so only the real wire carries a 4xx body in and the
-  /// finished string back out.
-  func testRealBridgeSurfacesTheMessageTheServerSentWithARejection() throws {
-    let bridge = LiveBridge()
-    _ = try bridge.update(.startApp(apiBaseUrl: "http://localhost:3001", localFirst: true))
-
-    let requests = try bridge.update(.account(.loadPreferences))
-    let http = try XCTUnwrap(
-      requests.first { if case .http = $0.effect { return true } else { return false } },
-      "preferences are server-backed, so loading them emits an Http effect")
-
-    let body = Array(#"{"error":"Your session has expired. Sign in again."}"#.utf8)
-    _ = try bridge.resolve(
-      http.id, httpResult: .ok(HttpResponse(status: 401, headers: [], body: body)))
-
-    XCTAssertEqual(
-      try bridge.view().error,
-      "Failed to load preferences: Your session has expired. Sign in again.",
-      "the API's sentence must reach the banner, not the bare status")
-  }
-
-  /// Guards the banner going blank rather than showing the status.
-  func testRealBridgeFallsBackToTheStatusWhenARejectionIsNotOurEnvelope() throws {
-    let bridge = LiveBridge()
-    _ = try bridge.update(.startApp(apiBaseUrl: "http://localhost:3001", localFirst: true))
-
-    let requests = try bridge.update(.account(.loadPreferences))
-    let http = try XCTUnwrap(
-      requests.first { if case .http = $0.effect { return true } else { return false } })
-
-    _ = try bridge.resolve(
-      http.id,
-      httpResult: .ok(
-        HttpResponse(status: 502, headers: [], body: Array("<html>Bad Gateway</html>".utf8))))
-
-    let error = try XCTUnwrap(try bridge.view().error, "a rejection must surface something")
-    XCTAssertTrue(error.contains("502"), "got \(error)")
-  }
-
   /// App effects come from `notify_shell` — fire-and-forget notifications the
   /// live bridge rejects resolving, so the Store must not resolve `.app`. The
   /// stub bridge can't enforce this; pinned here against the real bridge (#882).
@@ -1401,7 +1247,7 @@ final class StoreEffectLoopTests: XCTestCase {
   /// own default; that field's dedicated setter test above covers it.
   func testRealBridgeItemCreateAndPatchPreservesEveryField() throws {
     let bridge = LiveBridge()
-    _ = try bridge.update(.startApp(apiBaseUrl: "http://localhost:3001", localFirst: true))
+    _ = try bridge.update(.startApp)
     let photoId = Ulid.generate()
 
     _ = try bridge.update(
@@ -1482,7 +1328,7 @@ final class StoreEffectLoopTests: XCTestCase {
   /// looking fine.
   func testRealBridgeItemNestedShapesPreserveEveryField() throws {
     let bridge = LiveBridge()
-    _ = try bridge.update(.startApp(apiBaseUrl: "http://localhost:3001", localFirst: true))
+    _ = try bridge.update(.startApp)
     _ = try bridge.update(
       .item(
         .add(
@@ -1553,7 +1399,7 @@ final class StoreEffectLoopTests: XCTestCase {
   /// own dedicated spot-check elsewhere would stay green.
   func testRealBridgeSessionEntryFullFieldRoundTrip() throws {
     let bridge = LiveBridge()
-    _ = try bridge.update(.startApp(apiBaseUrl: "http://localhost:3001", localFirst: true))
+    _ = try bridge.update(.startApp)
     _ = try bridge.update(
       .item(
         .add(
@@ -1656,7 +1502,7 @@ final class StoreEffectLoopTests: XCTestCase {
   /// the other's fields looking fine.
   func testRealBridgeVariantScoreAggregatesIntoLadderView() throws {
     let bridge = LiveBridge()
-    _ = try bridge.update(.startApp(apiBaseUrl: "http://localhost:3001", localFirst: true))
+    _ = try bridge.update(.startApp)
     _ = try bridge.update(
       .item(
         .add(
@@ -1701,22 +1547,9 @@ final class StoreEffectLoopTests: XCTestCase {
 
   // ── Helpers ────────────────────────────────────────────────────────────
 
-  private func httpBridge() -> FakeBridge {
-    let bridge = FakeBridge()
-    bridge.updateHandler = { _ in
-      [
-        Request(
-          id: 4,
-          effect: .http(
-            HttpRequest(method: "GET", url: "https://x.test/items", headers: [], body: [])))
-      ]
-    }
-    return bridge
-  }
-
-  /// Resume on the bridge's `resolve` callback, not a wall-clock `fulfillment`
-  /// — a loaded CI runner starves the detached HTTP Task; a tight ceiling flakes
-  /// (#956, #861). The 30s net is a fail-bounded backstop, not the happy path.
+  /// Resume on the bridge's `resolve` callback, not a wall-clock `fulfillment`:
+  /// a loaded CI runner starves the detached recognition Task and a tight
+  /// ceiling flakes (#956, #861). The 30s net is a backstop, not the happy path.
   private func whenResolved(
     _ bridge: FakeBridge, _ action: () -> Void,
     file: StaticString = #filePath, line: UInt = #line
@@ -1747,11 +1580,6 @@ final class StoreEffectLoopTests: XCTestCase {
     updatedAt: "2026-01-01T00:00:00Z", priority: false, chordChart: nil, variants: [], photoId: nil,
     metre: nil)
 
-  private func mockSession() -> URLSession {
-    let config = URLSessionConfiguration.ephemeral
-    config.protocolClasses = [MockURLProtocol.self]
-    return URLSession(configuration: config)
-  }
 }
 
 private func emptyViewModel() throws -> ViewModel {
@@ -1760,7 +1588,7 @@ private func emptyViewModel() throws -> ViewModel {
 
 private final class FakeBridge: CoreBridge {
   var updateHandler: (Event) -> [Request] = { _ in [] }
-  var resolveHandler: (UInt32, HttpResult) -> [Request] = { _, _ in [] }
+  var resolveHandler: (UInt32) -> [Request] = { _ in [] }
   var nextViewModel: (() throws -> ViewModel)?
   var onResolve: (() -> Void)?
   /// When set, the corresponding bridge call throws — drives the Store's
@@ -1769,7 +1597,6 @@ private final class FakeBridge: CoreBridge {
   var throwOnView: Error?
 
   private(set) var events: [Event] = []
-  private(set) var resolved: [(id: UInt32, result: HttpResult)] = []
   private(set) var persistenceResolved: [(id: UInt32, output: PersistenceOutput)] = []
   private(set) var recognitionResolved: [(id: UInt32, output: RecognitionOutput)] = []
   private(set) var emptyResolved: [UInt32] = []
@@ -1781,16 +1608,10 @@ private final class FakeBridge: CoreBridge {
     return updateHandler(event)
   }
 
-  func resolve(_ id: UInt32, httpResult: HttpResult) throws -> [Request] {
-    resolved.append((id, httpResult))
-    onResolve?()
-    return resolveHandler(id, httpResult)
-  }
-
   func resolve(_ id: UInt32, persistenceOutput: PersistenceOutput) throws -> [Request] {
     persistenceResolved.append((id, persistenceOutput))
     onResolve?()
-    return []
+    return resolveHandler(id)
   }
 
   func resolve(_ id: UInt32, recognitionOutput: RecognitionOutput) throws -> [Request] {
@@ -1835,29 +1656,4 @@ private struct FailingStore: ItemStore {
   func delete(id: String, deletedAt: String) throws { throw TestError() }
   func loadSessions() throws -> [PracticeSession] { throw TestError() }
   func saveSession(_ session: PracticeSession) throws { throw TestError() }
-}
-
-final class MockURLProtocol: URLProtocol {
-  nonisolated(unsafe) static var handler: ((URLRequest) throws -> (HTTPURLResponse, Data))?
-  nonisolated(unsafe) static var lastRequest: URLRequest?
-
-  override class func canInit(with request: URLRequest) -> Bool { true }
-  override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
-
-  override func startLoading() {
-    guard let handler = Self.handler else {
-      client?.urlProtocol(self, didFailWithError: URLError(.unknown))
-      return
-    }
-    do {
-      let (response, data) = try handler(request)
-      client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
-      client?.urlProtocol(self, didLoad: data)
-      client?.urlProtocolDidFinishLoading(self)
-    } catch {
-      client?.urlProtocol(self, didFailWithError: error)
-    }
-  }
-
-  override func stopLoading() {}
 }

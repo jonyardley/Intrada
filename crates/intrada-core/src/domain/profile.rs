@@ -378,7 +378,7 @@ mod tests {
 
     #[test]
     fn save_trims_updates_the_model_and_emits_the_save_effect() {
-        let mut model = Model::test_default();
+        let mut model = Model::default();
         let mut cmd = save(
             &mut model,
             Profile {
@@ -396,7 +396,7 @@ mod tests {
     /// reads the second save as refused (`Store+Feedback.swift`).
     #[test]
     fn an_accepted_save_clears_the_error_a_rejected_one_left() {
-        let mut model = Model::test_default();
+        let mut model = Model::default();
         let _ = save(
             &mut model,
             Profile {
@@ -413,7 +413,7 @@ mod tests {
 
     #[test]
     fn the_cap_counts_characters_not_bytes() {
-        let mut model = Model::test_default();
+        let mut model = Model::default();
         let accented = Profile {
             name: "é".repeat(MAX_PROFILE_NAME),
             instrument: "ü".repeat(MAX_INSTRUMENT),
@@ -429,7 +429,7 @@ mod tests {
 
     #[test]
     fn save_over_the_cap_keeps_the_last_profile_and_targets_the_field() {
-        let mut model = Model::test_default();
+        let mut model = Model::default();
         let _ = save(&mut model, fixture());
 
         let mut cmd = save(
@@ -470,7 +470,7 @@ mod tests {
 
     #[test]
     fn save_at_the_cap_is_accepted() {
-        let mut model = Model::test_default();
+        let mut model = Model::default();
         let at_cap = Profile {
             name: "n".repeat(MAX_PROFILE_NAME),
             instrument: "i".repeat(MAX_INSTRUMENT),
@@ -483,7 +483,7 @@ mod tests {
 
     #[test]
     fn loaded_sets_the_model_without_re_saving() {
-        let mut model = Model::test_default();
+        let mut model = Model::default();
         let mut cmd = Intrada.update(Event::Profile(ProfileEvent::Loaded(fixture())), &mut model);
         assert_eq!(model.profile, fixture());
         assert_eq!(
@@ -495,7 +495,7 @@ mod tests {
 
     #[test]
     fn view_model_projects_the_profile() {
-        let mut model = Model::test_default();
+        let mut model = Model::default();
         let _ = save(&mut model, fixture());
         let projected = Intrada.view(&model).profile;
         assert!(
@@ -515,10 +515,10 @@ mod tests {
     // and fails if view() reads UTC instead of the musician's offset.
     #[test]
     fn view_greets_by_the_musicians_clock_not_utc() {
-        let mut east = Model::test_default();
+        let mut east = Model::default();
         let _ = save(&mut east, fixture());
         east.utc_offset_minutes = 0;
-        let mut west = Model::test_default();
+        let mut west = Model::default();
         let _ = save(&mut west, fixture());
         west.utc_offset_minutes = -720;
         assert_ne!(
@@ -529,7 +529,7 @@ mod tests {
 
     #[test]
     fn sign_out_keeps_the_profile() {
-        let mut model = Model::test_default();
+        let mut model = Model::default();
         let _ = save(&mut model, fixture());
         let _ = Intrada.update(Event::SignedOut, &mut model);
         assert_eq!(model.profile, fixture(), "device data, not account data");

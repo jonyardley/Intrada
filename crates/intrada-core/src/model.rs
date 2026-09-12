@@ -3,11 +3,8 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 use crate::analytics::{AnalyticsView, LastPractisedView};
-use crate::domain::account::AccountPreferences;
 use crate::domain::chart::{ChordChart, ScaffoldKind};
 use crate::domain::item::{Item, ItemKind, Modality};
-use crate::domain::mcp_audit::McpAuditEntry;
-use crate::domain::mcp_tokens::{CreatedMcpToken, McpToken};
 use crate::domain::profile::{Profile, ProfileField, ProfileView};
 use crate::domain::session::{
     ActiveSession, ClickState, CompletionStatus, EntryStatus, PracticeSession, RepEvent,
@@ -22,11 +19,6 @@ use crate::suggestion::SuggestedSession;
 /// Internal application state — not exposed to shells.
 #[derive(Debug, Default)]
 pub struct Model {
-    pub api_base_url: String,
-    /// When true (set by the iOS shell at `StartApp`), the Library is local-
-    /// first: reads hydrate from the on-device store and writes persist locally
-    /// with no HTTP. The web shell leaves this false and stays online.
-    pub local_first: bool,
     /// The device's UTC offset in minutes (BST = 60, New York = −240/−300),
     /// reported by the shell via `SetUtcOffset` at launch and on foreground.
     /// Turns UTC instants into user-local days for analytics (#1330); 0 until
@@ -43,54 +35,17 @@ pub struct Model {
     /// error the event in hand reported. It says nothing about shell state that
     /// has changed since, which is the shell's to drop (#1595).
     pub last_error_target: Option<FormErrorTarget>,
-    /// Set when the user dismisses the error banner. While true, errors from
-    /// HTTP failures routed through [`Model::surface_error`] are silently
-    /// swallowed — avoids the "dismiss → next refetch fails → banner
-    /// reappears" loop when the underlying problem (network down, auth
-    /// expired) hasn't been resolved. Cleared by any confirmed API success
-    /// via [`Model::record_success`], signalling the system has recovered
-    /// and new failures are worth surfacing again (#346).
+    /// Set when the user dismisses the error banner. While true, failures
+    /// routed through [`Model::surface_error`] are silently swallowed, which
+    /// avoids the "dismiss, next write fails, banner reappears" loop when the
+    /// underlying problem hasn't been resolved. Cleared by any confirmed
+    /// success via [`Model::record_success`], signalling the system has
+    /// recovered and new failures are worth surfacing again (#346).
     pub error_muted: bool,
     pub sets: Vec<Set>,
     pub practice_summaries: HashMap<String, ItemPracticeSummary>,
-    /// Per-user practice defaults; `None` until first load completes.
-    pub account_preferences: Option<AccountPreferences>,
     /// Device data, not account data: survives sign-out (`specs/profile.md`).
     pub profile: Profile,
-    /// True while a `DELETE /api/account` request is outstanding.
-    pub delete_in_flight: bool,
-    /// One-shot terminal signal: server confirmed the account was
-    /// deleted. The shell watches this to sign out + route home.
-    /// Does not reset (account is gone; nothing to reset to).
-    pub account_deleted: bool,
-    /// MCP Personal Access Tokens for the current user. Newest first.
-    pub mcp_tokens: Vec<McpToken>,
-    /// Set to `true` after the first successful `LoadTokens` so the UI can
-    /// distinguish "loading" from "loaded but empty".
-    pub mcp_tokens_loaded: bool,
-    /// True while a token list / create / revoke request is outstanding.
-    pub mcp_tokens_loading: bool,
-    /// Set transiently after `CreateToken` succeeds — carries the full
-    /// token bytes so the UI can show them once. Cleared by
-    /// `DismissCreatedToken` (or naturally when the user navigates away
-    /// and the model is reloaded).
-    pub just_created_token: Option<CreatedMcpToken>,
-    /// Audit-log entries for the current user, newest first.
-    pub mcp_audit: Vec<McpAuditEntry>,
-    /// True after the first successful `LoadAudit` so the UI can
-    /// distinguish "loading" from "loaded but empty".
-    pub mcp_audit_loaded: bool,
-    /// True while a `LoadAudit` HTTP request is outstanding.
-    pub mcp_audit_loading: bool,
-    /// True while the OAuth `/oauth/finalize` request is outstanding.
-    pub oauth_in_flight: bool,
-    /// Set transiently when `/oauth/finalize` returns; the consent view
-    /// reacts by navigating the browser to this URL (which contains the
-    /// auth code + state for the OAuth client).
-    pub oauth_redirect_url: Option<String>,
-    /// Set from the confirmed `SetSaveSucceeded { request_id }`; per-form
-    /// id-matching isolates concurrent `SetSaveForm` instances (#663).
-    pub last_set_save_request_id: Option<String>,
     /// Bumped by every update that concludes with `last_error` present, so
     /// shells can tell a repeated identical failure from a success (#1056).
     pub error_seq: u64,
@@ -124,7 +79,7 @@ pub enum PhotoRecognition {
 }
 
 impl Model {
-    /// Surface an error from a background HTTP failure. Respects the
+    /// Surface an error from a background failure. Respects the
     /// dismiss-mute state set by [`Model::dismiss_error`]: if the user has
     /// already dismissed the banner and the system has not yet recovered,
     /// the error is silently swallowed to stop the banner re-popping. Also
@@ -141,10 +96,10 @@ impl Model {
         self.last_error = Some(msg);
     }
 
-    /// Mark a confirmed API success. Clears any active error and exits the
-    /// dismiss-mute state — the system has demonstrably recovered, so
+    /// Mark a confirmed success. Clears any active error and exits the
+    /// dismiss-mute state, since the system has demonstrably recovered and
     /// future failures are worth showing again. Call from any handler that
-    /// receives a successful API response.
+    /// completes a write.
     pub fn record_success(&mut self) {
         self.last_error = None;
         self.error_muted = false;
@@ -159,35 +114,16 @@ impl Model {
     }
 
     /// Reset all user-scoped state on sign-out so a subsequent sign-in
-    /// (potentially as a different user on the same browser) starts from a
-    /// clean slate. Preserves `api_base_url` (set once at app startup; not
-    /// per-user). Without this, the next user briefly sees the previous
-    /// user's data — most concerning for MCP tokens / audit which are a
-    /// soft information disclosure until the first refetch overwrites them
-    /// (#645).
+    /// (potentially as a different user on the same device) starts from a
+    /// clean slate. Without this, the next user briefly sees the previous
+    /// user's library (#645).
     pub fn reset_for_sign_out(&mut self) {
-        let api_base_url = std::mem::take(&mut self.api_base_url);
         *self = Self {
-            api_base_url,
             // Device state, not user state: the next user is in the same place.
             utc_offset_minutes: self.utc_offset_minutes,
             profile: std::mem::take(&mut self.profile),
             ..Self::default()
         };
-    }
-}
-
-#[cfg(test)]
-impl Model {
-    /// Create a test model with a valid API base URL.
-    ///
-    /// crux_http requires absolute URLs, so tests must use this instead of
-    /// `Model::default()` when the handler under test produces HTTP effects.
-    pub fn test_default() -> Self {
-        Self {
-            api_base_url: "http://localhost:3001".to_string(),
-            ..Default::default()
-        }
     }
 }
 
@@ -292,20 +228,7 @@ pub struct ViewModel {
     pub analytics: Option<AnalyticsView>,
     pub last_practised: Option<LastPractisedView>,
     pub sets: Vec<SetView>,
-    pub account_preferences: Option<AccountPreferences>,
     pub profile: ProfileView,
-    pub delete_in_flight: bool,
-    pub account_deleted: bool,
-    pub mcp_tokens: Vec<McpToken>,
-    pub mcp_tokens_loaded: bool,
-    pub mcp_tokens_loading: bool,
-    pub just_created_token: Option<CreatedMcpToken>,
-    pub mcp_audit: Vec<McpAuditEntry>,
-    pub mcp_audit_loaded: bool,
-    pub mcp_audit_loading: bool,
-    pub oauth_in_flight: bool,
-    pub oauth_redirect_url: Option<String>,
-    pub last_set_save_request_id: Option<String>,
     /// The one suggested session on the Practice tab (#1082). `None` whenever
     /// nothing qualifies: it suggests, it never gates.
     pub up_next: Option<SuggestedSession>,
@@ -1158,6 +1081,38 @@ mod tests {
     }
 
     #[test]
+    fn surface_error_replaces_an_existing_distinct_message() {
+        // A failed save must reach the banner even while a stale load failure
+        // is still showing, or the user gets no feedback at all (#346).
+        let mut model = Model::default();
+        model.surface_error("Couldn't load your library.");
+        model.surface_error("Couldn't save that piece.");
+        assert_eq!(
+            model.last_error.as_deref(),
+            Some("Couldn't save that piece.")
+        );
+    }
+
+    #[test]
+    fn a_burst_of_distinct_failures_after_dismiss_stays_muted() {
+        // The reproduction in #346: dismiss, then several different failures
+        // against a still-broken store, none of which re-pops the banner.
+        let mut model = Model::default();
+        model.surface_error("Couldn't load your library.");
+        model.dismiss_error();
+
+        for msg in [
+            "Couldn't access local storage.",
+            "Couldn't load your library.",
+            "Couldn't save that piece.",
+        ] {
+            model.surface_error(msg);
+            assert!(model.last_error.is_none(), "still muted after: {msg}");
+            assert!(model.error_muted, "the mute persists across the burst");
+        }
+    }
+
+    #[test]
     fn record_success_clears_error_and_unmutes() {
         let mut model = Model::default();
         model.surface_error("oops");
@@ -1170,9 +1125,8 @@ mod tests {
     }
 
     #[test]
-    fn reset_for_sign_out_preserves_api_base_url() {
+    fn reset_for_sign_out_clears_user_data_and_keeps_device_state() {
         let mut model = Model {
-            api_base_url: "https://api.example.com".to_string(),
             utc_offset_minutes: 60,
             ..Default::default()
         };
@@ -1195,15 +1149,14 @@ mod tests {
             photo_id: None,
             metre: None,
         });
-        model.last_set_save_request_id = Some("req-1".to_string());
+        model.surface_error("stale banner");
         model.reset_for_sign_out();
-        assert_eq!(model.api_base_url, "https://api.example.com");
         assert_eq!(
             model.utc_offset_minutes, 60,
             "device state survives sign-out"
         );
         assert!(model.items.is_empty());
-        assert!(model.last_set_save_request_id.is_none());
+        assert!(model.last_error.is_none());
     }
 
     // ── entry_to_view ──────────────────────────────────────────────────
@@ -1660,7 +1613,6 @@ mod tests {
                 photo_id: None,
                 metre: None,
             }],
-            api_base_url: "http://localhost:3001".to_string(),
             ..Default::default()
         };
 
