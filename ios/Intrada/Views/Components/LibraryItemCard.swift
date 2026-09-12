@@ -11,6 +11,9 @@ struct LibraryItemCard: View {
   // When true, the row shows a trailing ScoreRing for the item's latest
   // 0–10 score (en-dash when never practised) — the glanceable mastery signal.
   var showsMastery: Bool = false
+  // Library list only (#1734): the picker sheets reuse this card with their
+  // own "Add" affordance, and a second, unrelated "add" reads as one too many.
+  var showsMissingDetailsPrompt: Bool = false
 
   var body: some View {
     HStack(spacing: IntradaSpacing.row) {
@@ -27,7 +30,7 @@ struct LibraryItemCard: View {
           Text(meta)
             .font(IntradaFont.meta)
             .foregroundStyle(IntradaColor.inkSecondary)
-        } else if item.subtitle.isEmpty {
+        } else if item.subtitle.isEmpty && showsMissingDetailsPrompt {
           // A prompt, not a collapsed ragged line (#1734).
           Text(missingDetailsPrompt)
             .font(IntradaFont.meta)
@@ -135,7 +138,9 @@ struct LibraryItemCard: View {
     if !item.subtitle.isEmpty { parts.append(item.subtitle) }
     if let key = item.keyDisplay { parts.append(key) }
     if let tempo = item.tempoSpoken { parts.append(tempo) }
-    if metaLine == nil, item.subtitle.isEmpty { parts.append(missingDetailsPrompt) }
+    if metaLine == nil, item.subtitle.isEmpty, showsMissingDetailsPrompt {
+      parts.append(missingDetailsPrompt)
+    }
     return parts.joined(separator: ", ")
   }
 }
