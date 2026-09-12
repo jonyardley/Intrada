@@ -141,9 +141,10 @@ a *practice variable* and as a *measure*.
 
 ## 5. Shape sketch
 
-- **Slice 1 — the click (Tier 2, iOS-only, zero schema).** Resurrect
-  `ClickEngine` from `8af4891^` into the Focus Player; port the
-  audio-session handling from the reference `BackgroundAudioPlugin.swift`
+- **Slice 1 — the click (Tier 2, iOS-only, zero schema).** Port
+  `ClickEngine` (`ios/Intrada/Core/ClickEngine.swift`) into the Focus
+  Player; port the audio-session handling from the reference
+  `BackgroundAudioPlugin.swift`
   (removed in #1745, recoverable from git history).
   BPM seeds from `current_item_tempo_bpm` (already in the ViewModel); the
   click setting is UI interaction state, so the dumb-pipe rule is untouched.
@@ -205,7 +206,7 @@ Repo: [`docs/roadmap.md`](../roadmap.md) (Open Questions 1, 3) ·
 [`docs/research-foundation.md`](../research-foundation.md) ·
 [`docs/journeys.md`](../journeys.md) · [`VISION.md`](../../VISION.md) ·
 [`docs/rebuild-review.md`](../rebuild-review.md) ·
-`git show 8af4891^:ios/Intrada/Coach/ClickEngine.swift` ·
+`ios/Intrada/Core/ClickEngine.swift` (the click, live in the tree) ·
 `git log --diff-filter=D -- ios/Reference/` (the reference Swift, removed in
 #1745; recover it from the commit before that change in `main`'s history).
 
