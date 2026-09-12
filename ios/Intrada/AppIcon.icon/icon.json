@@ -1,40 +1,14 @@
 {
   "fill" : {
-    "linear-gradient" : [
-      "display-p3:0.98682,0.98096,0.95557,1.00000",
-      "display-p3:0.91992,0.90771,0.85889,1.00000"
-    ],
-    "orientation" : {
-      "start" : {
-        "x" : 0.5,
-        "y" : 1
-      },
-      "stop" : {
-        "x" : 0.5,
-        "y" : 0.3
-      }
-    }
+    "solid" : "display-p3:0.98541,0.91676,0.67230,1.00000"
   },
   "groups" : [
-    {
-      "layers" : [
-
-      ],
-      "shadow" : {
-        "kind" : "neutral",
-        "opacity" : 0.5
-      },
-      "translucency" : {
-        "enabled" : true,
-        "value" : 0.5
-      }
-    },
     {
       "layers" : [
         {
           "blend-mode" : "normal",
           "fill" : {
-            "solid" : "display-p3:0.28979,0.24890,0.62793,1.00000"
+            "solid" : "display-p3:0.22115,0.16738,0.12445,1.00000"
           },
           "glass-specializations" : [
             {
@@ -49,10 +23,10 @@
               "value" : false
             }
           ],
-          "image-name" : "quarter-note-rest-music-svgrepo-com.svg",
-          "name" : "quarter-note-rest-music-svgrepo-com",
+          "image-name" : "keyboard-ink.svg",
+          "name" : "keyboard-ink",
           "position" : {
-            "scale" : 1,
+            "scale" : 0.61,
             "translation-in-points" : [
               0,
               0
@@ -62,10 +36,50 @@
       ],
       "shadow" : {
         "kind" : "neutral",
-        "opacity" : 0.5
+        "opacity" : 0
       },
       "translucency" : {
-        "enabled" : true,
+        "enabled" : false,
+        "value" : 0.5
+      }
+    },
+    {
+      "layers" : [
+        {
+          "blend-mode" : "normal",
+          "fill" : {
+            "solid" : "display-p3:0.96655,0.95726,0.93924,1.00000"
+          },
+          "glass-specializations" : [
+            {
+              "value" : false
+            },
+            {
+              "appearance" : "light",
+              "value" : false
+            },
+            {
+              "idiom" : "square",
+              "value" : false
+            }
+          ],
+          "image-name" : "keyboard-body.svg",
+          "name" : "keyboard-body",
+          "position" : {
+            "scale" : 0.61,
+            "translation-in-points" : [
+              0,
+              0
+            ]
+          }
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0
+      },
+      "translucency" : {
+        "enabled" : false,
         "value" : 0.5
       }
     }
