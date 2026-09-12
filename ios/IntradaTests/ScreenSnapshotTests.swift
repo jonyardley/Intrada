@@ -273,9 +273,10 @@ final class ScreenSnapshotTests: XCTestCase {
         traits: .init(displayScale: 2)))
   }
 
-  /// Proves the real `PracticeScreen` week strip — the paging `TabView`, not
-  /// the animations-disabled static branch — sizes itself to its content and
-  /// every day stays reachable, at the largest accessibility text (#1730).
+  /// Proves the real `PracticeScreen` week strip, via the paging `TabView`
+  /// rather than the animations-disabled static branch, sizes itself to its
+  /// content and every day stays reachable at the largest accessibility text
+  /// size (#1730).
   func testPracticeScreenWeekStripAccessibilitySize() {
     assertSnapshot(
       of: host(
@@ -1358,7 +1359,7 @@ final class ScreenSnapshotTests: XCTestCase {
       of: host(InstrumentIconPicker(suggested: .cello, choice: .constant(.harp))), as: config)
   }
 
-  /// The greeting leads the subtitle and the badge is the way in (#1694, T25).
+  /// The greeting is the subtitle, and the badge is the way in (#1694, T25).
   func testPracticeScreenGreeting() {
     assertSnapshot(
       of: host(

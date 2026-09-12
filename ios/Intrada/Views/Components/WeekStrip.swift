@@ -52,11 +52,10 @@ private struct WeekDayCell: View {
   let onTap: () -> Void
   @Environment(\.locale) private var locale
   // Scales with Dynamic Type so the numeral isn't clipped to an ellipsis, but
-  // capped: uncapped growth pushed four of seven days off a 390pt screen at
-  // the largest accessibility size (#1730). The number itself still shrinks
-  // to fit via minimumScaleFactor if it would overrun the capped circle.
+  // capped: uncapped growth needs more width than seven days have even on a
+  // phone, let alone iPad Slide Over (#1730).
   @ScaledMetric(relativeTo: .caption) private var dayCircleDiameter: CGFloat = 32
-  private var cappedDayCircleDiameter: CGFloat { min(dayCircleDiameter, 40) }
+  private var cappedDayCircleDiameter: CGFloat { min(dayCircleDiameter, 36) }
 
   var body: some View {
     Button(action: onTap) {

@@ -269,16 +269,13 @@ struct PracticeScreen: View {
     .heroShadow()
   }
 
-  // The day lives here now, not in a separate line under the play button
-  // (#1725) — this, plus `subtitle` above, is the only place it appears.
+  // The day lives here now, not under the play button (#1725).
   private var heroEyebrow: String {
     guard let lastPractised else { return "First session" }
     return "Last practised · \(lastPractised.relativeDay)"
   }
 
-  // Uses the core's own sentence (`label`, e.g. "Last practised Tuesday")
-  // rather than rebuilding one from the eyebrow, so VoiceOver doesn't lean on
-  // how it happens to read the "·" separator.
+  // The core's own sentence, not one rebuilt from the eyebrow's "·".
   private var heroLabel: String {
     guard let lastPractised else { return heroEyebrow }
     return "\(lastPractised.label), \(lastPractised.itemTitle)"
@@ -415,14 +412,15 @@ struct PracticeScreen: View {
       })
   }
 
-  // Greeting only (T25): the hero eyebrow now carries the last-practised
-  // fact, so repeating it here said the same thing three times (#1725).
-  // nil, not the fact, when there is no greeting and something has been
-  // practised: the hero eyebrow already says it, and a nameless profile is
-  // the default, not an edge case (#1725).
+  // Drops the last-practised fact once there is one to drop: the hero
+  // eyebrow already says it, with or without a greeting (#1725). "No
+  // sessions yet" isn't said anywhere else, so it still rides with the
+  // greeting.
   private var subtitle: String? {
-    guard let greeting = store.viewModel?.profile.greeting, !greeting.isEmpty else {
-      return lastPractised == nil ? "No sessions yet" : nil
+    let greeting = store.viewModel?.profile.greeting.flatMap { $0.isEmpty ? nil : $0 }
+    guard lastPractised != nil else {
+      guard let greeting else { return "No sessions yet" }
+      return "\(greeting) · No sessions yet"
     }
     return greeting
   }
