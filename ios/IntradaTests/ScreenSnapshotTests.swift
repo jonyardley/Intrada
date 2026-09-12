@@ -1241,7 +1241,8 @@ final class ScreenSnapshotTests: XCTestCase {
         LibraryItemCard(item: starred, showsMastery: true)
         LibraryItemCard(item: .previewExerciseWithFullLadder)
         LibraryItemCard(item: .previewExerciseWithStepLadder)
-        LibraryItemCard(item: .previewMinimal, showsMastery: true, showsMissingDetailsPrompt: true)  // #1734
+        // #1734
+        LibraryItemCard(item: .previewMinimal, showsMastery: true, showsMissingDetailsPrompt: true)
       }
       .padding(16)
     }
