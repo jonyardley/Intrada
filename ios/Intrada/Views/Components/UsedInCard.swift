@@ -95,10 +95,9 @@ struct UsedInRow: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: IntradaSpacing.controlGap) {
-      // controlGap, not row, around the trailing controls: a row carrying both a
-      // Link button and a chevron has little width left for the meta line.
-      // Top-aligned: `content` stacks taller than the chevron at accessibility
-      // sizes, which would otherwise centre it partway down the stack (#1731).
+      // controlGap, not row: a row with both a Link button and a chevron has
+      // little width for the meta line. Top-aligned since `content` stacks
+      // taller than the chevron at accessibility sizes (#1731).
       HStack(alignment: .top, spacing: IntradaSpacing.controlGap) {
         if navigable, let piece = usage.piece {
           NavigationLink(value: piece.id) { content }
@@ -131,45 +130,33 @@ struct UsedInRow: View {
     .background(IntradaColor.cardFill)
   }
 
-  // Decorative here: the ring's rest glyph and "not practised together yet"
-  // are the same fact, and for a rated row the mark is already spoken by
-  // `spokenRow` (#1468).
-  private var scoreRing: some View {
-    ScoreRing(score: usage.latestScore.map(Int.init), size: 44)
-      .accessibilityHidden(true)
-  }
-
-  private var titleAndMeta: some View {
-    VStack(alignment: .leading, spacing: 3) {
-      Text(usage.rowTitle)
-        .font(isStandalone ? IntradaFont.bodyMedium : IntradaFont.cardTitle())
-        .foregroundStyle(usage.pieceRemoved ? IntradaColor.inkSecondary : IntradaColor.ink)
-        .fixedSize(horizontal: false, vertical: true)
-      Text(usage.metaLine(locale: locale, calendar: calendar))
-        .font(IntradaFont.meta)
-        .foregroundStyle(IntradaColor.inkSecondary)
-        .fixedSize(horizontal: false, vertical: true)
-    }
-    .frame(maxWidth: .infinity, alignment: .leading)
-  }
-
-  // At accessibility sizes a long title word is wider than the column beside
-  // a 44pt ring, so it breaks mid-word; stacking gives it the full card width
-  // instead (#1731).
-  @ViewBuilder private var content: some View {
-    if dynamicTypeSize.isAccessibilitySize {
-      VStack(alignment: .leading, spacing: IntradaSpacing.controlGap) {
-        scoreRing
-        titleAndMeta
+  // Stacked at accessibility sizes (#1731): a long title word is wider than
+  // the column beside a 44pt ring, so it breaks mid-word unless the ring
+  // moves above it instead of beside it.
+  private var content: some View {
+    let layout: AnyLayout =
+      dynamicTypeSize.isAccessibilitySize
+      ? AnyLayout(VStackLayout(alignment: .leading, spacing: IntradaSpacing.controlGap))
+      : AnyLayout(HStackLayout(spacing: IntradaSpacing.row))
+    return layout {
+      // Decorative here: the ring's rest glyph and "not practised together yet"
+      // are the same fact, and for a rated row the mark is already spoken by
+      // `spokenRow` (#1468).
+      ScoreRing(score: usage.latestScore.map(Int.init), size: 44)
+        .accessibilityHidden(true)
+      VStack(alignment: .leading, spacing: 3) {
+        Text(usage.rowTitle)
+          .font(isStandalone ? IntradaFont.bodyMedium : IntradaFont.cardTitle())
+          .foregroundStyle(usage.pieceRemoved ? IntradaColor.inkSecondary : IntradaColor.ink)
+          .fixedSize(horizontal: false, vertical: true)
+        Text(usage.metaLine(locale: locale, calendar: calendar))
+          .font(IntradaFont.meta)
+          .foregroundStyle(IntradaColor.inkSecondary)
+          .fixedSize(horizontal: false, vertical: true)
       }
-      .contentShape(Rectangle())
-    } else {
-      HStack(spacing: IntradaSpacing.row) {
-        scoreRing
-        titleAndMeta
-      }
-      .contentShape(Rectangle())
+      .frame(maxWidth: .infinity, alignment: .leading)
     }
+    .contentShape(Rectangle())
   }
 
   private func linkButton(_ action: @escaping () -> Void) -> some View {
