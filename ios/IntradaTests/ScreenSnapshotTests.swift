@@ -79,6 +79,17 @@ final class ScreenSnapshotTests: XCTestCase {
       })
   }
 
+  private var practiceHeaderAxConfig: Snapshotting<UIViewController, UIImage> {
+    .image(
+      on: ViewImageConfig(
+        safeArea: .zero, size: CGSize(width: 390, height: 1400), traits: .init(displayScale: 1)),
+      perceptualPrecision: 0.98,
+      traits: UITraitCollection { traits in
+        traits.displayScale = 1
+        traits.preferredContentSizeCategory = .accessibilityExtraExtraExtraLarge
+      })
+  }
+
   /// Flat fills only: the reference stays byte-stable and cheap as lossless PNG.
   private static let page: UIImage = {
     let size = CGSize(width: 600, height: 850)
@@ -256,6 +267,14 @@ final class ScreenSnapshotTests: XCTestCase {
       as: .image(
         perceptualPrecision: 0.98, size: CGSize(width: 390, height: 240),
         traits: .init(displayScale: 2)))
+  }
+
+  /// The real `PracticeScreen`/`TabView` path, not a bare component (#1730).
+  func testPracticeScreenWeekStripAccessibilitySize() {
+    assertSnapshot(
+      of: host(
+        PracticeScreen(referenceDate: PracticeSessionView.previewReferenceDate),
+        store: .previewPractice), as: practiceHeaderAxConfig)
   }
 
   func testPracticeScreenQuietDay() {
@@ -1207,10 +1226,11 @@ final class ScreenSnapshotTests: XCTestCase {
         LibraryItemCard(item: starred, showsMastery: true)
         LibraryItemCard(item: .previewExerciseWithFullLadder)
         LibraryItemCard(item: .previewExerciseWithStepLadder)
+        LibraryItemCard(item: .previewMinimal, showsMastery: true, showsMissingDetailsPrompt: true)
       }
       .padding(16)
     }
-    assertSnapshot(of: host(cards), as: config)
+    assertSnapshot(of: host(cards), as: tallFormConfig)
   }
 
   /// Both tempo-trend states in one frame: the plot with two breaks in the line

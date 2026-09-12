@@ -102,7 +102,7 @@ struct LibraryScreen: View {
       Button {
         selection.wrappedValue = item.id
       } label: {
-        LibraryItemCard(item: item, showsMastery: true)
+        LibraryItemCard(item: item, showsMastery: true, showsMissingDetailsPrompt: true)
           .overlay(
             RoundedRectangle(cornerRadius: IntradaRadius.card)
               .stroke(IntradaColor.accent, lineWidth: 2)
@@ -111,7 +111,7 @@ struct LibraryScreen: View {
       .buttonStyle(.plain)
     } else {
       NavigationLink(value: item.id) {
-        LibraryItemCard(item: item, showsMastery: true)
+        LibraryItemCard(item: item, showsMastery: true, showsMissingDetailsPrompt: true)
       }
       .buttonStyle(.plain)
     }

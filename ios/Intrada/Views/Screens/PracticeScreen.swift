@@ -17,6 +17,8 @@ struct PracticeScreen: View {
   @State private var suggestionDismissed = false
   @State private var openSessionId: String?
   @State private var showingProfile = false
+  // Measured from a cell, not hard-coded (#1730).
+  @State private var weekStripHeight: CGFloat = 64
 
   init(referenceDate: Date = Date()) {
     self.referenceDate = referenceDate
@@ -185,8 +187,8 @@ struct PracticeScreen: View {
           .accessibilityHidden(true)
         Text("Practise your priorities")
       }
-      .font(IntradaFont.subtitle)
-      .foregroundStyle(IntradaColor.inkSecondary)
+      .font(IntradaFont.button)
+      .foregroundStyle(IntradaColor.accent)
       .frame(maxWidth: .infinity)
       .padding(.vertical, IntradaSpacing.controlGap)
     }
@@ -258,14 +260,6 @@ struct PracticeScreen: View {
       .buttonStyle(PressRebound())
       .accessibilityLabel("Start practising")
       .padding(.vertical, IntradaSpacing.controlGap)
-
-      if let lastPractised {
-        Text(lastPractised.relativeDay)
-          .font(IntradaFont.bodyMedium)
-          .foregroundStyle(IntradaColor.onAccent.opacity(0.85))
-          .multilineTextAlignment(.center)
-          .accessibilityHidden(true)  // already spoken as part of heroLabel
-      }
     }
     .frame(maxWidth: .infinity)
     .padding(IntradaSpacing.section)
@@ -274,13 +268,15 @@ struct PracticeScreen: View {
     .heroShadow()
   }
 
+  // The day lives here now, not under the play button (#1725).
   private var heroEyebrow: String {
-    lastPractised == nil ? "First session" : "Last practised"
+    guard let lastPractised else { return "First session" }
+    return "Last practised · \(lastPractised.relativeDay)"
   }
 
   private var heroLabel: String {
     guard let lastPractised else { return heroEyebrow }
-    return "\(heroEyebrow), \(lastPractised.itemTitle), \(lastPractised.relativeDay)"
+    return "\(lastPractised.label), \(lastPractised.itemTitle)"
   }
 
   // MARK: - (1) This week
@@ -311,7 +307,10 @@ struct PracticeScreen: View {
         .tabViewStyle(.page(indexDisplayMode: .never))
       }
     }
-    .frame(height: 64)
+    .frame(height: weekStripHeight)
+    .onPreferenceChange(WeekStripHeightKey.self) { height in
+      if height > 0 { weekStripHeight = height }
+    }
   }
 
   private func weekStripView(_ days: [Date]) -> some View {
@@ -411,12 +410,15 @@ struct PracticeScreen: View {
       })
   }
 
-  // The greeting leads and the fact keeps its place (T25); both strings are
-  // the core's, the shell only joins them.
-  private var subtitle: String {
-    let fact = lastPractised?.label ?? "No sessions yet"
-    guard let greeting = store.viewModel?.profile.greeting, !greeting.isEmpty else { return fact }
-    return "\(greeting) · \(fact)"
+  // nil once there's a last-practised fact: the hero eyebrow says it instead (#1725).
+  private var subtitle: String? {
+    let rawGreeting: String? = store.viewModel?.profile.greeting
+    let greeting = rawGreeting.flatMap { $0.isEmpty ? nil : $0 }
+    guard lastPractised != nil else {
+      guard let greeting else { return "No sessions yet" }
+      return "\(greeting) · No sessions yet"
+    }
+    return greeting
   }
 }
 
