@@ -24,9 +24,9 @@ and rep counting, and score how it went. Pillars: **Plan** (library),
 `just status`, which reads GitHub. There is no status file, deliberately.
 
 Crates: `intrada-core` (pure Crux core, no I/O), `intrada-ffi` (UniFFI bridge
-generating the Swift bindings), `intrada-api` (axum 0.8 + Turso on Fly.io).
-`ios/` is the SwiftUI app (iOS 17+, GRDB on-device); `ios/Reference/` holds two
-unbuilt Swift pieces from the removed Tauri shell. Rust 2021, MSRV 1.90.
+generating the Swift bindings). `ios/` is the SwiftUI app (iOS 17+, GRDB
+on-device); `ios/Reference/` holds two unbuilt Swift pieces from the removed
+Tauri shell. Rust 2021, MSRV 1.90.
 
 ## Commands
 
@@ -63,11 +63,10 @@ questions; grep for symbols; never rebuild it without `.graphifyignore`.
 ## Architecture (non-negotiables)
 
 ```text
-User → Events → crux_core (Rust) → Effects (Http, Persistence, App, Render) → Shell (Swift) → I/O
+User → Events → crux_core (Rust) → Effects (Persistence, App, Render) → Shell (Swift) → I/O
 ```
 
-1. **Core owns all logic.** HTTP requests are built in core via `crux_http`;
-   core does all JSON serialization. The shell never understands domain types.
+1. **Core owns all logic.** The shell never understands domain types.
 2. **The shell is a dumb pipe.** It fulfils `HttpRequest` via `URLSession` and
    persistence via GRDB, and renders the `ViewModel`. No business rules,
    validation, domain decisions or domain state in Swift (UI interaction state
@@ -78,20 +77,15 @@ User → Events → crux_core (Rust) → Effects (Http, Persistence, App, Render
    cross the bridge as generated bincode. Never hand-edit `ios/generated/`; fix
    the Rust type and regenerate.
 
-- **Validation** lives in `intrada-core/src/validation.rs`. **DB**: positional
-  column indexing with `SELECT_COLUMNS`; migrations sequential in
-  `intrada-api/src/migrations.rs`, one statement each.
-- **Mutate response**: writes reconcile with the server response, no refetch.
-  Temp-id for new entities, `*Updated { entity }`, `DeleteConfirmed`.
+- **Validation** lives in `intrada-core/src/validation.rs`.
+- **Mutate response**: writes commit locally, no refetch. Temp-id for new
+  entities, `*Updated { entity }`, `DeleteConfirmed`.
 - **Swift**: an `@Observable @MainActor` store, not `ObservableObject`; effect
   handlers run off the main actor and hop back. `try!`, force-unwraps and `as!`
   are banned like `unwrap()`. Persistence is a core `Effect` driven by
   `Command`: GRDB executes typed effects, the core decides reads, writes and
   LWW reconciliation; `crux_kv` is for singletons. Every colour, font, spacing
   and radius is a named token from `Theme.swift`.
-- **Auth**: every DB query is scoped by `user_id`; iOS exchanges the Clerk JWT
-  (Google OAuth in Safari) for a long-lived PAT (JWT RS256); auth is disabled
-  when `CLERK_ISSUER_URL` is unset, which is local dev only.
 
 The offline-first invariants, the UI and tone rules, the per-screen quality bar
 and the silent-failure hazards load from `.claude/rules/` when you read a file
@@ -120,11 +114,9 @@ they cover, and bind whether or not you have seen them.
 
 ## Testing
 
-**Ship tests with new code.** New endpoints, DB functions and non-trivial pure
-logic include tests. The API suite (`crates/intrada-api/tests/`) uses real SQLite
-via `common::setup_test_app()`. Endpoints: the auth rejection paths at minimum,
-plus the happy path in auth-disabled mode. DB writes: rows affected, idempotency,
-cross-user isolation. Pure functions: edge cases, None and empty inputs. New iOS
+**Ship tests with new code.** DB functions and non-trivial pure logic include
+tests. DB writes: rows affected, idempotency, cross-user isolation. Pure
+functions: edge cases, None and empty inputs. New iOS
 test files use Swift Testing; migrate an XCTest file only when already touching
 it, never wholesale; XCUITest stays on XCTest.
 

@@ -3,10 +3,6 @@ paths:
   - "crates/intrada-core/src/domain/session.rs"
   - "crates/intrada-ffi/**"
   - "ios/generated/**"
-  - "crates/intrada-api/src/migrations.rs"
-  - "crates/intrada-api/src/auth.rs"
-  - "crates/intrada-api/src/clerk.rs"
-  - "crates/intrada-api/src/routes/auth_ios.rs"
   - "ios/Intrada/Core/LibraryStore.swift"
 ---
 
@@ -40,9 +36,5 @@ The hazards, by file:
   invalidates every crash-recovery blob on every device (#1345).
   `active_session_blob_wire_is_pinned` fails on purpose: bump
   `Store.sessionInProgressKey` first, then re-pin. Never only re-pin.
-- **`migrations.rs` and `LibraryStore.swift`.** Sequential, one SQL statement
-  each on the server; append-only on the device, per
+- **`LibraryStore.swift`.** Append-only on the device, per
   `.claude/rules/offline-first.md`.
-- **Auth files.** Every query is scoped by `user_id`; the flow is in
-  `docs/reference.md`. Never spell out an exploitable gap in a public PR body:
-  say a gap exists and route the detail to Jon.

@@ -14,7 +14,6 @@ just test                  # nextest, same as CI's `test` job
 just lint                  # clippy -D warnings, same targets as CI's `clippy` job
 just hygiene               # typos, cargo-shear, actionlint, links, release name, self-tests
 just pr-visuals            # before/after markdown for snapshot references this branch changed
-cargo test -p intrada-api  # API tests only
 just ios-fmt               # format Swift sources in place (swift format)
 just ios-fmt-check         # Swift formatting gate (CI runs this too)
 just ios                   # regen bindings (if core changed) + open Xcode
@@ -127,11 +126,6 @@ merges (specs/, docs/, CLAUDE.md); it is incremental and content-hash cached, so
 it costs a small fraction of a full build.
 
 ## Environment variables
-
-### API (intrada-api)
-
-`TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN` (required), `CLERK_ISSUER_URL` (required
-in prod), `ALLOWED_ORIGIN` (see SETUP.md §2), `PORT` (default 3001).
 
 ### Native iOS build (compile-time)
 
@@ -470,27 +464,6 @@ had been saturating the machine enough that a UI test which silently skipped
 its own field-clearing under load started reddening main. #1642 fixed that
 test and turned clones back on in the self-hosted gate.
 
-## The API image build stopped caching its layers (2026-09-04)
-
-**API Docker Build** exported a buildkit layer cache to GitHub Actions
-(`cache-to: type=gha,mode=max`). One run of it wrote 26 `buildkit-blob-*`
-entries and 1.96 GB, a fifth of the repo's 10 GB allowance, for a lane that
-only runs when the API changes and is on hold behind the iOS pivot. Neither
-mode was worth that:
-
-- `mode=max` caches every intermediate layer, which is what made it 1.96 GB.
-- `mode=min` caches only what the final image exports, and the `Dockerfile` is
-  a cargo-chef build whose expensive layer (`cargo chef cook --release`) lives
-  in the `builder` stage, so `mode=min` would export the runtime stage and
-  never the layer the file is designed around.
-
-So the lane builds with no layer cache at all. A cold build measured **139s**,
-which is cheaper than it looks because the allowance it frees is restored by
-every iOS pull request. If the API comes back into focus, `mode=max` plus a
-prune rule that treats the blobs and their index as one all-or-nothing set is
-the shape to add: deleting blobs while keeping the index that names them
-produces buildkit's `blob not found` import failure rather than a cold build.
-
 ## Mutate-response variants, in full
 
 Writes reconcile with the server response directly, with no full-list refetch.
@@ -664,20 +637,6 @@ in CI, add the `comments-justified` label to the PR instead. When invoking any
 code-review agent for a PR, include "comment-policy violations are Blockers,
 not Nits" so the review treats drift as a merge-blocker rather than a taste
 note. The policy itself is in CLAUDE.md under *Code Style*.
-
-## iOS authentication flow
-
-Google OAuth runs in Safari via `ASWebAuthenticationSession`, because Google
-blocks OAuth in an in-app browser. The Clerk JWT is exchanged for a long-lived
-PAT via `POST /api/auth/ios/exchange`, and every later call uses the PAT.
-
-JWTs are RS256, validated against JWKS; PATs are validated by SHA-256 hash
-lookup. All DB queries are scoped by `user_id`, taken from the JWT `sub` or the
-PAT owner. When `CLERK_ISSUER_URL` is unset, auth is disabled, which is local
-dev only.
-
-Key files: `intrada-api/src/auth.rs`, `intrada-api/src/routes/auth_ios.rs`,
-`intrada-api/src/clerk.rs`.
 
 ## How a rule leaves CLAUDE.md (2026-09-08)
 

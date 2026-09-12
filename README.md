@@ -14,21 +14,19 @@ The only platform is the **native SwiftUI iOS app**, offline-first: on-device SQ
 │  Store: Event in,    │ ←─────────────────── │  (Crux, no I/O)  │
 │  ViewModel out        │    Effects           └──────────────────┘
 └──────────────────────┘                               │
-        │  HTTPS/REST                                  │ GRDB (on-device)
-        ▼                                               ▼
-┌──────────────────┐    libsql    ┌──────────┐   ┌──────────────┐
-│  Fly.io (Axum)   │ ───────────→ │  Turso   │   │  SQLite      │
-│  intrada-api     │               │  (SQLite)│   │  (local-first)│
-└──────────────────┘               └──────────┘   └──────────────┘
+                                                         │ GRDB (on-device)
+                                                         ▼
+                                                  ┌──────────────┐
+                                                  │  SQLite      │
+                                                  │  (local-first)│
+                                                  └──────────────┘
 ```
 
-Intrada follows the **Crux pure-core pattern**: `intrada-core` contains all business logic with zero side effects. Events go in, effects come out. The native SwiftUI shell is a dumb pipe: it sends `Event`s, fulfils effects (HTTP via `URLSession`, persistence via GRDB), and renders the `ViewModel`. No domain logic lives in Swift.
+Intrada follows the **Crux pure-core pattern**: `intrada-core` contains all business logic with zero side effects. Events go in, effects come out. The native SwiftUI shell is a dumb pipe: it sends `Event`s, fulfils persistence effects via GRDB, and renders the `ViewModel`. No domain logic lives in Swift.
 
 - **Shell**: SwiftUI (iOS 17.0+), bindings generated via UniFFI + facet typegen
 - **Core**: Crux 0.19 (Rust), zero I/O
-- **API**: Axum 0.8 REST server on Fly.io
-- **Database**: Turso (managed libsql/SQLite) via HTTP; on-device GRDB/SQLite for local-first
-- **Auth**: Clerk (Google OAuth) in the browser flow, exchanged for a long-lived PAT on iOS; JWT RS256
+- **Database**: on-device GRDB/SQLite, local-first
 
 ## Prerequisites
 
@@ -51,23 +49,15 @@ bypass a specific push with `SKIP_PR_CHECK=1 git push`, opt out entirely with
 
 Forking this repo: update the development team in `ios/project.yml` to your
 own Apple Team ID (developer.apple.com → Membership, or Xcode → Settings →
-Accounts). `just ios`/`just ios-run` read `INTRADA_API_URL` and
-`CLERK_PUBLISHABLE_KEY` from your shell or `.env` (`set dotenv-load` in the
-justfile) — without them the build uses defaults and Clerk auth won't work.
+Accounts).
 
 ## Quick start
 
-The app is offline-first — you don't need the API running to use it.
+The app is offline-first — everything works with no network and no account.
 
 ```bash
-# 1. Open the iOS app
 just ios
 # → regenerates Swift bindings if the core changed, then opens Xcode; Cmd+R
-
-# 2. (Optional) run the API — only needed for auth/sync work
-cp .env.example .env   # edit with your Turso credentials
-just dev
-# → API on :3001
 ```
 
 ## Available commands
@@ -75,9 +65,6 @@ just dev
 Run `just` to see all commands. Key ones:
 
 ```bash
-# Development
-just dev          # Start the API dev server
-
 # Quality
 just test         # Run all tests
 just lint         # Run clippy
@@ -90,9 +77,6 @@ just ios-run          # Build + launch on a simulator + screenshot (seeds demo d
 SEED=0 just ios-run   # …launch against your real on-device data instead of demo data
 just ios-test         # Build + run the snapshot/unit test suite (fast tier)
 just ios-test-full    # …+ XCUITests (full gate; what ship/CI run before merge)
-
-# Data
-just seed         # Seed development data (API must be running)
 ```
 
 ## Project structure
@@ -101,18 +85,16 @@ just seed         # Seed development data (API must be running)
 crates/
   intrada-core/       # Pure Crux core (no I/O, no side effects)
   intrada-ffi/        # UniFFI bridge — generates the Swift bindings
-  intrada-api/         # REST API (Axum + Turso)
 ios/                  # Native SwiftUI app (Intrada.xcodeproj via xcodegen)
 design/               # Claude Design system (intrada-design-system.dc.html)
 docs/                 # Roadmap, status, and documentation
-scripts/              # Development utilities (seed data, simulator helpers)
+scripts/              # Development utilities (simulator helpers)
 specs/                # Design specs for major features
 ```
 
 ## Data storage
 
 - **On-device (GRDB/SQLite)**: local-first source of truth for items and sessions — the app works fully offline. `updated_at` + soft-delete tombstones on every table.
-- **API server (Turso)**: sync target and MCP server backing store; migrations run automatically on server startup.
 - **iOS UserDefaults**: crash-recovery of an in-progress session, and the persisted library sort order.
 - **IDs**: client-minted ULIDs.
 
@@ -127,7 +109,7 @@ specs/                # Design specs for major features
 | [`VISION.md`](VISION.md) | Product vision |
 | [`docs/research-foundation.md`](docs/research-foundation.md) | Research basis for design decisions |
 | [`docs/rebuild-review.md`](docs/rebuild-review.md) | Historical record: the 2026-07 pivot assessment and the retired coach design ([`specs/intrada-practice-coach-design.md`](specs/intrada-practice-coach-design.md)) |
-| [`SETUP.md`](SETUP.md) | Deployment & configuration (Fly.io, Turso, TestFlight) |
+| [`SETUP.md`](SETUP.md) | Configuration (Sentry, TestFlight) |
 | [`docs/working-with-agents.md`](docs/working-with-agents.md) | Driving this repo from Claude Code: what loads, the layers, model and effort, delegation, isolation, guardrails, worked examples |
 | [`docs/agentic-primer.md`](docs/agentic-primer.md) | General essay on agentic coding, with the criticisms left in. No intrada specifics; written to be read outside this repo |
 
@@ -135,8 +117,8 @@ specs/                # Design specs for major features
 
 GitHub Actions runs on every push:
 
-- **PR checks**: test, clippy, fmt, security & hygiene, native iOS build + snapshot tests, API Docker build
-- **Push to main**: all checks + deploy the API (Fly.io) + native iOS release build (TestFlight lane runs separately on tag/dispatch)
+- **PR checks**: test, clippy, fmt, security & hygiene, native iOS build + snapshot tests
+- **Push to main**: all checks + native iOS release build (TestFlight lane runs separately on tag/dispatch)
 
 ## License
 
