@@ -269,20 +269,38 @@ struct SessionSummaryScreen: View {
   private func metaLine(_ entry: SetlistEntryView, unfinished: Bool) -> String {
     if unfinished { return "Saved for next time" }
     var parts = [entry.itemType.label]
-    if let tempo = entry.plays.last?.achievedTempo { parts.append("\(tempo) bpm") }
+    // With several variations the tempo belongs to the row that measured it.
+    if entry.plays.count == 1, let tempo = entry.plays[0].achievedTempo {
+      parts.append("\(tempo) bpm")
+    }
     return parts.joined(separator: " · ")
   }
 
-  // One selector for the last play, reading and writing the same play so the
-  // dial cannot show a mean it would then overwrite. #1739 Phase B gives each
-  // variation a row of its own.
+  // A selector per variation, each reading and writing its own play, so the
+  // dial never shows a mean it would then overwrite (#1739 decision 10).
   private func scoreRow(_ entry: SetlistEntryView) -> some View {
-    ScoreSelector(
-      score: entry.plays.last?.score.map(Int.init) ?? 0,
-      accessibilityLabel: "Mark for \(entry.itemTitle)"
-    ) { next in
-      guard let playId = entry.plays.last?.id else { return }
-      store.send(.session(.updateEntryScore(entryId: entry.id, playId: playId, score: next)))
+    VStack(alignment: .leading, spacing: IntradaSpacing.controlGap) {
+      ForEach(entry.plays, id: \.id) { play in
+        if entry.plays.count > 1 {
+          HStack(alignment: .firstTextBaseline, spacing: IntradaSpacing.controlGap) {
+            Text(play.displayLabel)
+              .font(IntradaFont.micro)
+              .foregroundStyle(IntradaColor.inkSecondary)
+              .frame(maxWidth: .infinity, alignment: .leading)
+            Text(play.metaParts.joined(separator: " · "))
+              .font(IntradaFont.micro)
+              .foregroundStyle(IntradaColor.inkFaint)
+          }
+        }
+        ScoreSelector(
+          score: play.score.map(Int.init) ?? 0,
+          accessibilityLabel: entry.plays.count > 1
+            ? "Mark for \(entry.itemTitle), \(play.displayLabel)"
+            : "Mark for \(entry.itemTitle)"
+        ) { next in
+          store.send(.session(.updateEntryScore(entryId: entry.id, playId: play.id, score: next)))
+        }
+      }
     }
     .padding(.leading, 19)
   }

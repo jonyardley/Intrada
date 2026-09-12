@@ -108,8 +108,8 @@ struct UpNextHero: View {
 
   private func titleLine(_ item: SuggestedItem) -> AttributedString {
     var line = AttributedString(item.itemTitle)
-    guard let step = item.variantLabel else { return line }
-    var suffix = AttributedString(" · step \(step)")
+    guard let variation = item.variantLabel else { return line }
+    var suffix = AttributedString(" · \(variation)")
     suffix.foregroundColor = item.itemType.onHeroAccent
     line.append(suffix)
     return line
@@ -161,7 +161,7 @@ struct UpNextHero: View {
 
   private func rowLabel(_ item: SuggestedItem) -> String {
     var parts = [item.itemTitle]
-    if let step = item.variantLabel { parts.append("step \(step)") }
+    if let variation = item.variantLabel { parts.append("variation \(variation)") }
     parts.append(item.itemType.label)
     parts.append(spoken(item.reason))
     return parts.joined(separator: ", ")

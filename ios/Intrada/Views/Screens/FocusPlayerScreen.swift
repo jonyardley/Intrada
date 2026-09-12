@@ -19,6 +19,7 @@ struct FocusPlayerScreen: View {
   @State private var reflecting: ReflectionTarget?
   @State private var click = ClickController()
   @State private var configuringClick = false
+  @State private var switchingVariation = false
 
   private var active: ActiveSessionView? { store.viewModel?.activeSession }
 
@@ -33,7 +34,7 @@ struct FocusPlayerScreen: View {
       ReflectionSheet(
         itemTitle: target.title, elapsedDisplay: target.elapsedDisplay,
         tempoTarget: target.tempoTargetBpm, startingTempoBpm: target.startingTempoBpm,
-        tempoUnit: target.tempoUnit,
+        tempoUnit: target.tempoUnit, plays: target.plays,
         onSave: { result in handleReflection(target, result) },
         onSkip: { handleSkipRating() }
       )
@@ -41,6 +42,15 @@ struct FocusPlayerScreen: View {
     }
     .sheet(isPresented: $configuringClick) {
       ClickSheet(click: click, bpm: click.bpm)
+    }
+    .sheet(isPresented: $switchingVariation) {
+      if let active {
+        VariationPickerSheet(
+          itemTitle: active.currentItemTitle,
+          variations: currentVariations(active),
+          currentVariationId: active.currentVariationId,
+          onPick: { switchVariation(active, to: $0) })
+      }
     }
     .task { click.reseed(target: active?.currentItemTempoBpm, metre: active?.currentItemMetre) }
     .onChange(of: active?.currentPosition) { _, _ in
@@ -157,9 +167,68 @@ struct FocusPlayerScreen: View {
             .foregroundStyle(IntradaColor.inkSecondary)
             .multilineTextAlignment(.center)
         }
+        variationChip(active)
       }
     }
     .padding(.horizontal, IntradaSpacing.card)
+  }
+
+  // ── The variation being practised right now (#1739 decision 6) ──
+
+  @ViewBuilder private func variationChip(_ active: ActiveSessionView) -> some View {
+    if !currentVariations(active).isEmpty {
+      Button {
+        switchingVariation = true
+      } label: {
+        HStack(spacing: 7) {
+          Text(active.currentVariationLabel ?? "Pick a variation")
+            .font(IntradaFont.segment)
+            .foregroundStyle(
+              active.currentVariationLabel == nil
+                ? IntradaColor.inkSecondary : IntradaColor.ink
+            )
+            // A variation named "2nd inversion" shrinks rather than
+            // ellipsising, as the click's readout does (T19).
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+          Image(systemName: "chevron.down")
+            .font(IntradaFont.micro.weight(.semibold))
+            .foregroundStyle(IntradaColor.inkSecondary)
+        }
+        .padding(.horizontal, 14)
+        .frame(minHeight: 44)
+        .background(IntradaColor.cardFill, in: Capsule())
+        .overlay(Capsule().stroke(IntradaColor.hairline, lineWidth: 1))
+        .cardShadow()
+      }
+      .buttonStyle(PressRebound())
+      .accessibilityLabel("Variation")
+      .accessibilityValue(active.currentVariationLabel ?? "none picked")
+      .accessibilityHint("Switches to another variation of this exercise")
+    }
+  }
+
+  /// The current item's live variations, read unfiltered so the Library's own
+  /// search cannot empty the picker (#1484).
+  private func currentVariations(_ active: ActiveSessionView) -> [VariantView] {
+    let pos = Int(active.currentPosition)
+    guard active.entries.indices.contains(pos) else { return [] }
+    let itemId = active.entries[pos].itemId
+    return store.viewModel?.allItems.first(where: { $0.id == itemId })?.variants ?? []
+  }
+
+  /// False when the core refused the switch (the per-entry cap, or a variation
+  /// that has since been deleted), so the picker stays up beside the banner.
+  private func switchVariation(_ active: ActiveSessionView, to variationId: String) -> Bool {
+    let pos = Int(active.currentPosition)
+    guard active.entries.indices.contains(pos) else { return false }
+    let before = store.viewModel?.errorSeq
+    store.send(
+      .session(
+        .switchVariation(
+          entryId: active.entries[pos].id, variationId: variationId,
+          now: SessionClock.nowRFC3339())))
+    return store.viewModel?.errorSeq == before
   }
 
   @ViewBuilder private func timer(_ active: ActiveSessionView) -> some View {
@@ -215,7 +284,7 @@ struct FocusPlayerScreen: View {
       onTap: { configuringClick = true })
   }
 
-  // ── Passes (resident; the core records nothing until the first tap) ──
+  // ── Repetitions (resident; the core records nothing until the first tap) ──
 
   private func repCounter(_ active: ActiveSessionView) -> some View {
     RepCounter(
@@ -284,9 +353,10 @@ struct FocusPlayerScreen: View {
     /// The unit the stepper counts in, which is the click's when the player
     /// chose one and crotchets when they did not.
     var tempoUnit: UInt8 { clickState?.metre.unit ?? 4 }
-    /// The play the sheet's mark and tempo land on (#1739). The open play at
-    /// the moment the item ended, which `NextItem` then closes.
-    let playId: String?
+    /// What was played, oldest first, one row per variation (#1739). The last
+    /// is the play still open at the moment the item ended, which `NextItem`
+    /// then closes.
+    let plays: [ReflectionPlay]
   }
 
   private func presentReflection(_ active: ActiveSessionView) {
@@ -310,7 +380,7 @@ struct FocusPlayerScreen: View {
       elapsedDisplay: SessionClock.clockDisplay(elapsed),
       tempoTargetBpm: active.currentItemTempoBpm, startingTempoBpm: startingTempoBpm,
       clickSounding: clickSounding, clickState: clickState,
-      playId: entry.plays.last?.id)
+      plays: ReflectionPlay.rows(entry.plays, elapsed: elapsed))
   }
 
   // Notes first (no status guard — surfaces a validation error before advancing);
@@ -324,24 +394,45 @@ struct FocusPlayerScreen: View {
       if store.viewModel?.errorSeq != before { return }
     }
     store.send(.session(.nextItem(now: SessionClock.nowRFC3339())))
-    guard let playId = target.playId else {
-      reflecting = nil
-      return
+    // NextItem is the terminal transition that drops a stretch nobody
+    // practised, so a mark is only sent for a play the core still holds:
+    // marking a row and then watching an error banner say that row is gone
+    // is worse than losing a mark on a stray tap of the picker (#1739).
+    let surviving = survivingPlayIds(target.id)
+    for play in target.plays {
+      guard let score = result.marks[play.id], surviving?.contains(play.id) ?? true else {
+        continue
+      }
+      store.send(.session(.updateEntryScore(entryId: target.id, playId: play.id, score: score)))
     }
-    if let score = result.score {
-      store.send(.session(.updateEntryScore(entryId: target.id, playId: playId, score: score)))
+    // The two facts go over as observed and the core rules on whether they
+    // amount to evidence (#1420); deciding here would be domain logic in the
+    // shell. It lands on the last stretch the core kept, not simply the last:
+    // a switch seconds before the item ended leaves a play the core discards,
+    // and skipping the write there would lose a reading the click evidenced
+    // over the whole item. Which variation a mid-item tempo change belongs to
+    // is #1761.
+    let tempoPlayId = target.plays.last(where: { surviving?.contains($0.id) ?? true })?.id
+    if let openPlayId = tempoPlayId {
+      store.send(
+        .session(
+          .updateEntryTempo(
+            entryId: target.id, playId: openPlayId, tempo: result.achievedTempo,
+            observed: TempoObservation(
+              userSet: result.tempoUserSet, clickSounding: target.clickSounding),
+            click: target.clickState)))
     }
-    // Always sent: the two facts go over as observed and the core rules on
-    // whether they amount to evidence (#1420). Deciding here would be domain
-    // logic in the shell.
-    store.send(
-      .session(
-        .updateEntryTempo(
-          entryId: target.id, playId: playId, tempo: result.achievedTempo,
-          observed: TempoObservation(
-            userSet: result.tempoUserSet, clickSounding: target.clickSounding),
-          click: target.clickState)))
     reflecting = nil
+  }
+
+  /// The entry after `NextItem` closed it: still in the setlist mid-session,
+  /// and in the summary once that was the last item. `nil` when the shell
+  /// cannot find it, which sends every mark rather than swallowing them all.
+  private func survivingPlayIds(_ entryId: String) -> Swift.Set<String>? {
+    let model = store.viewModel
+    let entries = (model?.activeSession?.entries ?? []) + (model?.summary?.entries ?? [])
+    guard let entry = entries.first(where: { $0.id == entryId }) else { return nil }
+    return Swift.Set(entry.plays.map(\.id))
   }
 
   private func handleSkipRating() {
@@ -410,5 +501,9 @@ private struct TimerRing: View {
 
   #Preview("Reps") {
     FocusPlayerScreen().environment(Store.previewActiveReps)
+  }
+
+  #Preview("Variations") {
+    FocusPlayerScreen().environment(Store.previewActiveVariations)
   }
 #endif

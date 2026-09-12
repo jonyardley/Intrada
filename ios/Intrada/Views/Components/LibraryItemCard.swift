@@ -112,9 +112,9 @@ struct LibraryItemCard: View {
     }
   }
 
-  // Keys or steps is the core's judgement (#1467); the shell picks the word.
+  // Keys or variations is the core's judgement (#1467); the shell picks the word.
   private var ladderLabel: String {
-    "\(item.variants.count) \(item.ladderIsKeys ? "keys" : "steps")"
+    "\(item.variants.count) \(item.ladderIsKeys ? "keys" : "variations")"
   }
 
   private var metaLine: String? {
@@ -151,7 +151,7 @@ struct LibraryItemCard: View {
       VStack(spacing: IntradaSpacing.row) {
         LibraryItemCard(item: .previewPiece)
         LibraryItemCard(item: .previewExercise)
-        LibraryItemCard(item: .previewExerciseWithFullLadder)
+        LibraryItemCard(item: .previewExerciseWithTwelveVariations)
       }
       .padding(IntradaSpacing.card)
     }

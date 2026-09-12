@@ -1,8 +1,9 @@
 import SwiftUI
 
-/// Resident and ignorable (T19): untouched it draws no dots because the core
-/// has recorded nothing yet. Not quite stays tappable at zero because the core
-/// records a miss there.
+/// Resident and ignorable (T19). The full set of slots is drawn from the start,
+/// empty ones outlined, so the row says what is left rather than growing as it
+/// fills (#1735). Not quite stays tappable at zero because the core records a
+/// miss there.
 struct RepCounter: View {
   let count: Int
   let slots: Int
@@ -19,16 +20,14 @@ struct RepCounter: View {
   var body: some View {
     VStack(alignment: .leading, spacing: IntradaSpacing.cardCompact) {
       header
-      if touched {
-        dots
-      }
+      dots
       buttons
     }
   }
 
   private var header: some View {
     HStack {
-      Text("Passes")
+      Text("Repetitions")
         .font(IntradaFont.metaMedium)
         .foregroundStyle(IntradaColor.inkSecondary)
       Spacer()
@@ -43,7 +42,7 @@ struct RepCounter: View {
       .monospacedDigit()
     }
     .accessibilityElement(children: .ignore)
-    .accessibilityLabel("Passes")
+    .accessibilityLabel("Repetitions")
     .accessibilityValue(spokenCount)
   }
 
@@ -86,7 +85,7 @@ struct RepCounter: View {
       disabled: reached, action: onGotIt
     )
     .accessibilityLabel("Got it")
-    .accessibilityHint("Counts one pass")
+    .accessibilityHint("Counts one repetition")
   }
 
   private func notQuite(title: String) -> some View {
@@ -96,7 +95,7 @@ struct RepCounter: View {
       disabled: reached, action: onNotQuite
     )
     .accessibilityLabel(title)
-    .accessibilityHint("Takes one pass off")
+    .accessibilityHint("Takes one repetition off")
   }
 
   private func repButton(

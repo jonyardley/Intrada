@@ -2,7 +2,7 @@ import XCTest
 
 /// The real-bridge unit test covers the wire; this covers the buttons.
 @MainActor
-final class PassCounterUITests: XCTestCase {
+final class RepetitionCounterUITests: XCTestCase {
   override func setUp() {
     super.setUp()
     continueAfterFailure = false
@@ -28,20 +28,25 @@ final class PassCounterUITests: XCTestCase {
     XCTAssertTrue(startSession.waitForExistence(timeout: 5), "Start session bar")
     startSession.tap()
 
-    let passes = app.otherElements["Passes"]
-    XCTAssertTrue(passes.waitForExistence(timeout: 10), "the counter is resident from the start")
-    XCTAssertEqual(passes.value as? String, "0 of 10", "untouched reads 0 of 10 with no distance")
+    let repetitions = app.otherElements["Repetitions"]
+    XCTAssertTrue(
+      repetitions.waitForExistence(timeout: 10), "the counter is resident from the start")
+    XCTAssertEqual(
+      repetitions.value as? String, "0 of 10", "untouched reads 0 of 10 with no distance")
 
     app.buttons["Got it"].tap()
     XCTAssertEqual(
-      passes.value as? String, "1 of 10, 9 to go", "a pass banks and the distance appears")
+      repetitions.value as? String, "1 of 10, 9 to go",
+      "a repetition banks and the distance appears")
 
     app.buttons["Not quite"].tap()
-    XCTAssertEqual(passes.value as? String, "0 of 10, 10 to go", "a miss steps back, floor zero")
+    XCTAssertEqual(
+      repetitions.value as? String, "0 of 10, 10 to go", "a miss steps back, floor zero")
 
     XCTAssertTrue(app.buttons["Not quite"].isEnabled, "a miss at zero is still tappable")
     app.buttons["Not quite"].tap()
-    XCTAssertEqual(passes.value as? String, "0 of 10, 10 to go", "and the count stays on the floor")
+    XCTAssertEqual(
+      repetitions.value as? String, "0 of 10, 10 to go", "and the count stays on the floor")
 
     // Leave the container clean for the next test: abandon via Session options.
     app.buttons["Session options"].tap()

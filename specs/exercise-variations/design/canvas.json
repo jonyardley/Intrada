@@ -1,0 +1,16 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 390, "h": 900, "title": "Item complete · three variations" },
+    { "file": "SheetOnePlay.dc.html", "x": 500, "y": 0, "w": 390, "h": 720, "title": "Item complete · one play" },
+    { "file": "PlayerChip.dc.html", "x": 1000, "y": 0, "w": 390, "h": 844, "title": "Player A · variation chip" },
+    { "file": "SwitchSheet.dc.html", "x": 1500, "y": 0, "w": 390, "h": 560, "title": "Switch variation sheet" },
+    { "file": "PlayerPills.dc.html", "x": 2000, "y": 0, "w": 390, "h": 844, "title": "Player B · inline pills" },
+    { "file": "ProgressVariations.dc.html", "x": 2500, "y": 0, "w": 390, "h": 844, "title": "Progress · variations" }
+  ],
+  "annotations": [
+    { "id": "sheet-note", "x": 0, "y": -150, "w": 390, "text": "The mark is the only tap per row. Time and repetitions are prefilled from what was measured. Tempo stays one control, labelled with the variation that was open when the item ended." },
+    { "id": "player-note", "x": 1000, "y": -150, "w": 390, "text": "A recommends: the chip states what is being practised right now even if you never switch, and the sheet gives twelve keys a full-width target each. B costs no sheet but runs off the edge past five variations." },
+    { "id": "progress-note", "x": 2500, "y": -150, "w": 390, "text": "Coverage, not twenty rings: how many variations of each exercise are solid. Reads the same at three or twenty." }
+  ],
+  "launch": { "view": "canvas" }
+}

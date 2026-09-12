@@ -126,6 +126,8 @@
         visible = items
       }
       viewModel.items = visible
+      // The unfiltered set the pickers read, as the core projects it (#1484).
+      viewModel.allItems = items
       // Type-filters items; callers pre-filter the list for text/tag queries.
       viewModel.visiblePieces = UInt64(visible.filter { $0.itemType == .piece }.count)
       viewModel.visibleExercises = UInt64(visible.filter { $0.itemType == .exercise }.count)
@@ -394,8 +396,22 @@
       Store(bridge: PreviewBridge(activeSession: .previewActiveReps))
     }
 
+    /// Player Focus: an exercise with variations, so the picker chip shows
+    /// what is being practised right now (#1739).
+    static var previewActiveVariations: Store {
+      Store(
+        bridge: PreviewBridge(
+          items: [.previewExerciseWithVariations], activeSession: .previewActiveVariations))
+    }
+
     static var previewSummary: Store {
       Store(bridge: PreviewBridge(summary: .previewSummary, analytics: .previewAnalytics))
+    }
+
+    /// Player Summary: one exercise practised across three keys, so each gets
+    /// its own mark (#1739 decision 10).
+    static var previewSummaryVariations: Store {
+      Store(bridge: PreviewBridge(summary: .previewSummaryVariations))
     }
 
     /// Player Summary — intention echo + all three reflection prompts filled.
@@ -408,9 +424,17 @@
       Store(bridge: PreviewBridge(summary: .previewSummaryEndedEarly))
     }
 
-    /// Progress — a populated analytics view (dial, consistency, recent mastery).
+    /// Progress: a populated analytics view (dial, consistency, recent
+    /// mastery) plus two practised exercises with variations, so the coverage
+    /// section renders (#1739).
     static var previewProgress: Store {
-      Store(bridge: PreviewBridge(analytics: .previewAnalytics))
+      Store(
+        bridge: PreviewBridge(
+          items: [
+            scored(.previewExerciseWithVariations, 7),
+            scored(.previewExerciseWithTwelveVariations, 6),
+          ],
+          analytics: .previewAnalytics))
     }
 
     /// Library where rows carry a mastery score, so the trailing meters fill.
@@ -711,9 +735,9 @@
         photoId: nil)
     }
 
-    /// A step-ladder exercise: one solid, one marked but not yet solid, one
-    /// unrated.
-    static var previewExerciseWithSteps: LibraryItemView {
+    /// An exercise with variations: one solid, one marked but not yet solid,
+    /// one unrated.
+    static var previewExerciseWithVariations: LibraryItemView {
       LibraryItemView(
         id: "exercise-2", itemType: .exercise, title: "ii–V–i Enclosures",
         subtitle: "Bebop vocabulary, 12 keys",
@@ -723,20 +747,20 @@
         usedIn: [], scaffoldPreview: nil, chordChart: nil, metre: nil,
         variants: [
           VariantView(
-            id: "step-c", label: "C", position: 0, latestScore: 9, scoreHistory: [],
+            id: "variation-c", label: "C", position: 0, latestScore: 9, scoreHistory: [],
             isSolid: true),
           VariantView(
-            id: "step-f", label: "F", position: 1, latestScore: 5, scoreHistory: [],
+            id: "variation-f", label: "F", position: 1, latestScore: 5, scoreHistory: [],
             isSolid: false),
           VariantView(
-            id: "step-bb", label: "B♭", position: 2, latestScore: nil, scoreHistory: [],
+            id: "variation-bb", label: "B♭", position: 2, latestScore: nil, scoreHistory: [],
             isSolid: false),
         ], ladderIsKeys: true, photoId: nil)
     }
 
-    /// A 12-step chromatic ladder — stress-tests the Steps horizontal scroller
+    /// Twelve chromatic variations, stress-testing the horizontal scroller
     /// at max realistic length (#1083 C2).
-    static var previewExerciseWithFullLadder: LibraryItemView {
+    static var previewExerciseWithTwelveVariations: LibraryItemView {
       let keys = [
         "C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B",
       ]
@@ -751,15 +775,15 @@
           let solid = index < 4
           let current = index == 4
           return VariantView(
-            id: "step-\(index)", label: label, position: UInt64(index),
+            id: "variation-\(index)", label: label, position: UInt64(index),
             latestScore: solid ? 9 : (current ? 6 : nil), scoreHistory: [],
             isSolid: solid)
         }, ladderIsKeys: true, photoId: nil)
     }
 
-    /// A ladder of inversions, not keys — pins the "steps" word and the stairs
+    /// Variations that are inversions, not keys: pins the "variations" word and the stairs
     /// glyph, the one judgement the shell still makes for itself (#1467).
-    static var previewExerciseWithStepLadder: LibraryItemView {
+    static var previewExerciseWithNamedVariations: LibraryItemView {
       let rungs = ["Root position", "1st inversion", "2nd inversion"]
       return LibraryItemView(
         id: "exercise-4", itemType: .exercise, title: "Triad inversions", subtitle: "",
@@ -850,7 +874,7 @@
   // Reason strings below are copies of the core's, per the table in
   // specs/up-next-card.md decision 6 — reword there and these go stale silently.
   extension SuggestedSession {
-    /// The mock's case: starred and cold, one drill unmarked, one on a step.
+    /// The mock's case: starred and cold, one drill unmarked, one on a variation.
     static var previewStarred: SuggestedSession {
       SuggestedSession(
         pieceId: "piece-1", pieceTitle: "Like Someone in Love",
@@ -863,7 +887,7 @@
             reason: "Not marked with this piece"),
           SuggestedItem(
             itemId: "ex-2", itemTitle: "Shell voicings", itemType: .exercise,
-            variantId: "step-f", variantLabel: "F", latestScore: 4,
+            variantId: "variation-f", variantLabel: "F", latestScore: 4,
             reason: "Marked 4 of 10 last time"),
           SuggestedItem(
             itemId: "piece-1", itemTitle: "Like Someone in Love", itemType: .piece,
@@ -924,6 +948,18 @@
         ],
         sessionIntention: "Keep the pulse steady without the click",
         sessionScore: 7,
+        reflectionImproved: nil, reflectionStillRough: nil, reflectionNextTarget: nil)
+    }
+
+    /// One exercise practised across three keys, so the detail screen lists a
+    /// line per variation rather than only the last (#1739).
+    static var previewWithVariations: PracticeSessionView {
+      PracticeSessionView(
+        id: "session-3", startedAt: "2026-05-29T10:00:00Z", finishedAt: "2026-05-29T10:20:00Z",
+        totalDurationDisplay: "20m 30s", totalDurationSummary: "20m",
+        completionStatus: .completed, notes: nil,
+        entries: [SetlistEntryView.previewThreeVariations],
+        sessionIntention: "One key at a time, no rushing", sessionScore: 8,
         reflectionImproved: nil, reflectionStillRough: nil, reflectionNextTarget: nil)
     }
 
@@ -1039,6 +1075,49 @@
         currentItemTempoBpm: base.currentItemTempoBpm, currentItemMetre: nil)
     }
 
+    /// The current item is an exercise practised in C, now on G: the chip reads
+    /// the open play and the picker switches it (#1739).
+    static var previewActiveVariations: ActiveSessionView {
+      ActiveSessionView(
+        currentItemTitle: LibraryItemView.previewExerciseWithVariations.title,
+        currentItemType: .exercise,
+        currentPosition: 0, totalItems: 3,
+        startedAt: previewSessionStartedAt, currentItemStartedAt: previewStartedAt,
+        entries: [
+          variationEntry(), previewEntry(1, "Clair de Lune", .piece),
+          previewEntry(2, "Czerny Op. 299", .exercise),
+        ], sessionIntention: "One key at a time, no rushing",
+        currentRepTarget: 10, currentRepCount: 4, currentRepTargetReached: false,
+        currentRepHistory: nil, currentRepSlots: 10,
+        currentVariationId: "variation-f", currentVariationLabel: "F",
+        currentPlannedDurationSecs: 480,
+        nextItemTitle: "Clair de Lune",
+        currentItemIntention: "Even tone through the turn",
+        currentRelatedPieceTitle: nil,
+        currentItemTempoMarking: nil, currentItemTempoBpm: 104, currentItemMetre: nil)
+    }
+
+    /// The current entry of `previewActiveVariations`: one closed play in C and
+    /// an open one in F, whose seconds the core has not stamped yet.
+    private static func variationEntry() -> SetlistEntryView {
+      SetlistEntryView(
+        id: "entry-0", itemId: "exercise-2",
+        itemTitle: LibraryItemView.previewExerciseWithVariations.title,
+        itemType: .exercise, position: 0, durationDisplay: "10 min", status: .notAttempted,
+        notes: nil, intention: nil, plannedDurationSecs: nil, plannedDurationDisplay: nil,
+        groupId: nil, plannedVariationId: "variation-c", plannedRepTarget: 10,
+        plays: [
+          VariationPlayView(
+            id: "entry-0-p1", variationId: "variation-c", variationLabel: "C", seconds: 190,
+            durationDisplay: "3m 10s", repTarget: 10, repCount: 10, repTargetReached: true,
+            repHistory: nil, achievedTempo: nil, clickPattern: nil, score: nil),
+          VariationPlayView(
+            id: "entry-0-p2", variationId: "variation-f", variationLabel: "F", seconds: 0,
+            durationDisplay: "0s", repTarget: 10, repCount: 4, repTargetReached: false,
+            repHistory: nil, achievedTempo: nil, clickPattern: nil, score: nil),
+        ], scoreSummary: nil)
+    }
+
     static var previewActiveReps: ActiveSessionView {
       ActiveSessionView(
         currentItemTitle: "Hanon No. 1", currentItemType: .exercise,
@@ -1063,6 +1142,19 @@
   }
 
   extension SummaryView {
+    /// One exercise across three keys beside a piece with a single play, so
+    /// the screen shows both shapes at once (#1739).
+    static var previewSummaryVariations: SummaryView {
+      SummaryView(
+        totalDurationDisplay: "20m 30s", completionStatus: .completed, notes: nil,
+        entries: [
+          SetlistEntryView.previewThreeVariations,
+          summaryEntry("e2", "Clair de Lune", .piece, "7m 50s", 470, .completed, score: 6),
+        ],
+        sessionIntention: "One key at a time, no rushing", sessionScore: nil,
+        reflectionImproved: nil, reflectionStillRough: nil, reflectionNextTarget: nil)
+    }
+
     static var previewSummary: SummaryView {
       SummaryView(
         totalDurationDisplay: "37m 50s", completionStatus: .completed, notes: nil,
@@ -1125,6 +1217,54 @@
         plannedDurationSecs: nil, plannedDurationDisplay: nil, groupId: nil,
         plannedVariationId: nil, plannedRepTarget: nil, plays: plays,
         scoreSummary: plays.isEmpty ? nil : score)
+    }
+  }
+
+  extension ReflectionPlay {
+    static func preview(
+      _ id: String, _ label: String?, _ duration: String, _ repCount: UInt8? = nil,
+      _ repTarget: UInt8? = nil
+    ) -> ReflectionPlay {
+      ReflectionPlay(
+        id: id, variationLabel: label, durationDisplay: duration, repCount: repCount,
+        repTarget: repTarget)
+    }
+  }
+
+  extension VariationPlayView {
+    /// Three variations of one item, as the item-complete sheet and the session
+    /// detail read them (#1739).
+    static func preview(
+      _ id: String, _ variationLabel: String?, seconds: UInt64, duration: String,
+      score: UInt8? = nil, tempo: UInt16? = nil, repCount: UInt8? = nil,
+      repTarget: UInt8? = nil
+    ) -> VariationPlayView {
+      VariationPlayView(
+        id: id, variationId: variationLabel.map { "v-\($0)" }, variationLabel: variationLabel,
+        seconds: seconds, durationDisplay: duration, repTarget: repTarget, repCount: repCount,
+        repTargetReached: repTarget.map { (repCount ?? 0) >= $0 }, repHistory: nil,
+        achievedTempo: tempo, clickPattern: nil, score: score)
+    }
+  }
+
+  extension SetlistEntryView {
+    /// One exercise practised across three keys: the case #1739 exists for.
+    static var previewThreeVariations: SetlistEntryView {
+      let plays = [
+        VariationPlayView.preview(
+          "p1", "C major", seconds: 250, duration: "4m 10s", score: 7, repCount: 8, repTarget: 10),
+        VariationPlayView.preview(
+          "p2", "G major", seconds: 200, duration: "3m 20s", score: 9, tempo: 104, repCount: 10,
+          repTarget: 10),
+        VariationPlayView.preview(
+          "p3", "D major", seconds: 310, duration: "5m 10s", repCount: 4, repTarget: 10),
+      ]
+      return SetlistEntryView(
+        id: "entry-variations", itemId: "exercise-2", itemTitle: "Major Scales",
+        itemType: .exercise, position: 0, durationDisplay: "12m 40s", status: .completed,
+        notes: nil, intention: "Even tone through the turn", plannedDurationSecs: nil,
+        plannedDurationDisplay: nil, groupId: nil, plannedVariationId: "v-C major",
+        plannedRepTarget: 10, plays: plays, scoreSummary: 8)
     }
   }
 #endif

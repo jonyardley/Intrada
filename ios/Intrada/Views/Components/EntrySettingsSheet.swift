@@ -81,18 +81,18 @@ struct EntrySettingsSheet: View {
 
   private var stepSection: some View {
     VStack(alignment: .leading, spacing: IntradaSpacing.controlGap) {
-      Eyebrow("Step")
+      Eyebrow("Variation")
       Menu {
-        ForEach(variants, id: \.id) { step in
-          Button(step.label) {
-            guard step.id != variantId else { return }
-            variantId = step.id
-            store.send(.session(.setEntryVariant(entryId: entry.id, variantId: step.id)))
+        ForEach(variants, id: \.id) { variation in
+          Button(variation.label) {
+            guard variation.id != variantId else { return }
+            variantId = variation.id
+            store.send(.session(.setEntryVariant(entryId: entry.id, variantId: variation.id)))
           }
         }
       } label: {
         HStack {
-          Text(selectedStepLabel)
+          Text(selectedVariationLabel)
             .font(IntradaFont.body)
             .foregroundStyle(IntradaColor.ink)
           Spacer()
@@ -103,14 +103,14 @@ struct EntrySettingsSheet: View {
         .padding(IntradaSpacing.cardCompact)
         .cardSurface(cornerRadius: IntradaRadius.control)
       }
-      .accessibilityLabel("Step: \(selectedStepLabel)")
-      .accessibilityHint("Choose a different step")
+      .accessibilityLabel("Variation: \(selectedVariationLabel)")
+      .accessibilityHint("Choose a different variation")
       .buttonStyle(.plain)
     }
   }
 
-  private var selectedStepLabel: String {
-    variants.first(where: { $0.id == variantId })?.label ?? "Not tagged to a step"
+  private var selectedVariationLabel: String {
+    variants.first(where: { $0.id == variantId })?.label ?? "Not tagged to a variation"
   }
 
   private var repsSection: some View {

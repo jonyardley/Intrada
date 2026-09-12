@@ -227,5 +227,9 @@ PracticeSession
 - Whether a play should carry its own note. Not in v1: the entry's note covers
   the item, and per-play notes turn the sheet into the form decision 10 exists
   to avoid.
-- What the Progress screen shows for an exercise with twenty variations. The
-  data supports every answer; the design does not exist yet.
+- ~~What the Progress screen shows for an exercise with twenty variations.~~
+  Settled in Phase B: coverage, not rings. A row per practised exercise saying
+  how many of its variations are solid, over a segment bar, which reads the
+  same at three variations or twenty; the per-variation detail stays on the
+  exercise's own screen. Five rows, most recently practised first. Mockups:
+  [`exercise-variations/design/`](exercise-variations/design/).

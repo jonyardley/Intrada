@@ -72,20 +72,20 @@ final class TrackedTempoTests: XCTestCase {
 }
 
 @MainActor
-final class AddStepsSheetTests: XCTestCase {
+final class AddVariationsSheetTests: XCTestCase {
   func testEmptyArrayTrimsToEmpty() {
-    XCTAssertEqual(AddStepsSheet.trimmedLabels([]), [])
+    XCTAssertEqual(AddVariationsSheet.trimmedLabels([]), [])
   }
 
   func testAllWhitespaceRowsAreDropped() {
-    XCTAssertEqual(AddStepsSheet.trimmedLabels(["", "  ", "\n"]), [])
+    XCTAssertEqual(AddVariationsSheet.trimmedLabels(["", "  ", "\n"]), [])
   }
 
   func testMixedBlankAndPopulatedRowsKeepsOnlyPopulated() {
-    XCTAssertEqual(AddStepsSheet.trimmedLabels(["C", "", "G", "  "]), ["C", "G"])
+    XCTAssertEqual(AddVariationsSheet.trimmedLabels(["C", "", "G", "  "]), ["C", "G"])
   }
 
   func testLeadingAndTrailingWhitespaceIsTrimmed() {
-    XCTAssertEqual(AddStepsSheet.trimmedLabels(["  C  ", " G"]), ["C", "G"])
+    XCTAssertEqual(AddVariationsSheet.trimmedLabels(["  C  ", " G"]), ["C", "G"])
   }
 }
