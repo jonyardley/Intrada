@@ -269,16 +269,19 @@ struct PracticeScreen: View {
     .heroShadow()
   }
 
-  // The day now lives here, not in a separate line under the play button
-  // (#1725): said once, not zero times.
+  // The day lives here now, not in a separate line under the play button
+  // (#1725) — this, plus `subtitle` above, is the only place it appears.
   private var heroEyebrow: String {
     guard let lastPractised else { return "First session" }
     return "Last practised · \(lastPractised.relativeDay)"
   }
 
+  // Uses the core's own sentence (`label`, e.g. "Last practised Tuesday")
+  // rather than rebuilding one from the eyebrow, so VoiceOver doesn't lean on
+  // how it happens to read the "·" separator.
   private var heroLabel: String {
     guard let lastPractised else { return heroEyebrow }
-    return "\(heroEyebrow), \(lastPractised.itemTitle)"
+    return "\(lastPractised.label), \(lastPractised.itemTitle)"
   }
 
   // MARK: - (1) This week
@@ -414,9 +417,12 @@ struct PracticeScreen: View {
 
   // Greeting only (T25): the hero eyebrow now carries the last-practised
   // fact, so repeating it here said the same thing three times (#1725).
-  private var subtitle: String {
+  // nil, not the fact, when there is no greeting and something has been
+  // practised: the hero eyebrow already says it, and a nameless profile is
+  // the default, not an edge case (#1725).
+  private var subtitle: String? {
     guard let greeting = store.viewModel?.profile.greeting, !greeting.isEmpty else {
-      return lastPractised?.label ?? "No sessions yet"
+      return lastPractised == nil ? "No sessions yet" : nil
     }
     return greeting
   }

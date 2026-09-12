@@ -97,9 +97,8 @@ struct UsedInRow: View {
     VStack(alignment: .leading, spacing: IntradaSpacing.controlGap) {
       // controlGap, not row, around the trailing controls: a row carrying both a
       // Link button and a chevron has little width left for the meta line.
-      // Top-aligned: at accessibility sizes `content` stacks the ring above
-      // the title, taller than the chevron, which would otherwise centre
-      // partway down the stack (#1731).
+      // Top-aligned: `content` stacks taller than the chevron at accessibility
+      // sizes, which would otherwise centre it partway down the stack (#1731).
       HStack(alignment: .top, spacing: IntradaSpacing.controlGap) {
         if navigable, let piece = usage.piece {
           NavigationLink(value: piece.id) { content }

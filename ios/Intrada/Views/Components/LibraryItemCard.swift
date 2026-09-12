@@ -32,7 +32,7 @@ struct LibraryItemCard: View {
           // ragged line (#1734); tapping the row already opens the item.
           Text(missingDetailsPrompt)
             .font(IntradaFont.meta)
-            .foregroundStyle(IntradaColor.inkFaint)
+            .foregroundStyle(IntradaColor.inkSecondary)
         }
         if item.priority || hasLinkedExercises || hasStepLadder || !item.tags.isEmpty {
           HStack(spacing: 6) {

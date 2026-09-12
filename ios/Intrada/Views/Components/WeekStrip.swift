@@ -51,9 +51,12 @@ private struct WeekDayCell: View {
   let calendar: Calendar
   let onTap: () -> Void
   @Environment(\.locale) private var locale
-  // Scales with Dynamic Type: a fixed 32 clipped the two-digit day number to
-  // an ellipsis once the numeral itself grew past it (#1730).
+  // Scales with Dynamic Type so the numeral isn't clipped to an ellipsis, but
+  // capped: uncapped growth pushed four of seven days off a 390pt screen at
+  // the largest accessibility size (#1730). The number itself still shrinks
+  // to fit via minimumScaleFactor if it would overrun the capped circle.
   @ScaledMetric(relativeTo: .caption) private var dayCircleDiameter: CGFloat = 32
+  private var cappedDayCircleDiameter: CGFloat { min(dayCircleDiameter, 40) }
 
   var body: some View {
     Button(action: onTap) {
@@ -65,7 +68,9 @@ private struct WeekDayCell: View {
         Text(dayNumber)
           .font(IntradaFont.metaMedium)
           .foregroundStyle(dayNumberColor)
-          .frame(width: dayCircleDiameter, height: dayCircleDiameter)
+          .lineLimit(1)
+          .minimumScaleFactor(0.6)
+          .frame(width: cappedDayCircleDiameter, height: cappedDayCircleDiameter)
           .background(isSelected ? IntradaColor.accent : .clear, in: Circle())
           .overlay(
             Circle().strokeBorder(

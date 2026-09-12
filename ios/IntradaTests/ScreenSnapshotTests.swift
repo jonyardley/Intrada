@@ -79,9 +79,10 @@ final class ScreenSnapshotTests: XCTestCase {
       })
   }
 
-  /// Cropped to the hero + week strip, not the whole device: proves the real
-  /// `PracticeScreen`/`TabView` path (not a bare component) reflows at large
-  /// text without needing a full-screen (and much larger) reference (#1730).
+  /// Renders the real `PracticeScreen`/`TabView` path (not a bare component)
+  /// at large text, so the whole screen down to the session card is in
+  /// frame; scale 1, not 2, is what keeps the reference under the snapshot
+  /// size ceiling (#1730).
   private var practiceHeaderAxConfig: Snapshotting<UIViewController, UIImage> {
     .image(
       on: ViewImageConfig(
@@ -273,10 +274,8 @@ final class ScreenSnapshotTests: XCTestCase {
   }
 
   /// Proves the real `PracticeScreen` week strip — the paging `TabView`, not
-  /// the animations-disabled static branch — sizes itself to its content
-  /// rather than clipping the day numbers, since nothing pinned that height
-  /// at large text before (#1730). Cropped to the header, not the full
-  /// device, to stay well under the snapshot size ceiling.
+  /// the animations-disabled static branch — sizes itself to its content and
+  /// every day stays reachable, at the largest accessibility text (#1730).
   func testPracticeScreenWeekStripAccessibilitySize() {
     assertSnapshot(
       of: host(
