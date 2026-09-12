@@ -14,7 +14,6 @@ ios/AppIcon-exports/
 # Retired / archived docs: reference only, they drown the live doc graph
 specs/_archive/
 .specify/
-docs/superpowers/
 
 # Images (snapshot test references, icons): no semantic value in the graph,
 # and each image costs its own vision-extraction agent

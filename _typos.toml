@@ -26,7 +26,6 @@ extend-exclude = [
     # Retired docs, reference only (mirrors .graphifyignore)
     "specs/_archive/",
     ".specify/",
-    "docs/superpowers/",
     # Generated scan artefacts (e.g. gitleaks/clippy SARIF left in the workspace)
     "*.sarif",
 ]
