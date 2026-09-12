@@ -12,17 +12,17 @@ struct LibraryDetailScreen: View {
   @State private var confirmingDelete = false
   @State private var editing = false
   @State private var editingLinks: Bool
-  @State private var editingSteps: Bool
+  @State private var editingVariations: Bool
   @State private var showingPicker = false
   @State private var showingPiecePicker = false
   @State private var editingChart = false
   @State private var showingScaffold = false
-  @State private var showingAddSteps = false
+  @State private var showingAddVariations = false
 
   init(item: LibraryItemView, startEditingLinks: Bool = false, startEditingSteps: Bool = false) {
     self.item = item
     _editingLinks = State(initialValue: startEditingLinks)
-    _editingSteps = State(initialValue: startEditingSteps)
+    _editingVariations = State(initialValue: startEditingSteps)
   }
 
   var body: some View {
@@ -36,7 +36,7 @@ struct LibraryDetailScreen: View {
           }
 
           if item.itemType == .exercise {
-            stepsSection
+            variationsSection
           }
 
           if !detailRows.isEmpty {
@@ -150,8 +150,8 @@ struct LibraryDetailScreen: View {
         ScaffoldPreviewSheet(preview: preview, onCommit: commitScaffold)
       }
     }
-    .sheet(isPresented: $showingAddSteps) {
-      AddStepsSheet(itemId: item.id)
+    .sheet(isPresented: $showingAddVariations) {
+      AddVariationsSheet(itemId: item.id)
         .environment(store)
     }
     // Alert (not confirmationDialog): always renders the Cancel button, incl.
@@ -471,34 +471,34 @@ struct LibraryDetailScreen: View {
     .padding(.vertical, IntradaSpacing.controlGap)
   }
 
-  // ── Steps (exercise step ladder) ──
+  // ── Variations (#1733) ──
 
-  private var stepsSection: some View {
+  private var variationsSection: some View {
     VStack(alignment: .leading, spacing: IntradaSpacing.cardCompact) {
-      stepsHeader
+      variationsHeader
       if item.variants.isEmpty {
-        stepsEmptyState
-      } else if editingSteps {
+        variationsEmptyState
+      } else if editingVariations {
         VStack(spacing: 0) {
-          ForEach(Array(item.variants.enumerated()), id: \.element.id) { index, step in
+          ForEach(Array(item.variants.enumerated()), id: \.element.id) { index, variation in
             if index > 0 {
               HairlineDivider()
             }
-            StepEditRow(
-              step: step,
-              onRename: { renameStep(id: step.id, to: $0) },
-              onMoveUp: { moveStep(id: step.id, by: -1) },
-              onMoveDown: { moveStep(id: step.id, by: 1) },
-              onRemove: { removeStep(id: step.id) },
-              onDrop: { droppedId in moveStep(id: droppedId, before: step.id) })
+            VariationEditRow(
+              variation: variation,
+              onRename: { renameVariation(id: variation.id, to: $0) },
+              onMoveUp: { moveVariation(id: variation.id, by: -1) },
+              onMoveDown: { moveVariation(id: variation.id, by: 1) },
+              onRemove: { removeVariation(id: variation.id) },
+              onDrop: { droppedId in moveVariation(id: droppedId, before: variation.id) })
           }
         }
         .cardSurface()
       } else {
         ScrollView(.horizontal, showsIndicators: false) {
           HStack(spacing: IntradaSpacing.card) {
-            ForEach(item.variants, id: \.id) { step in
-              StepRingItem(step: step)
+            ForEach(item.variants, id: \.id) { variation in
+              VariationRingItem(variation: variation)
             }
           }
           .padding(IntradaSpacing.cardCompact)
@@ -507,44 +507,44 @@ struct LibraryDetailScreen: View {
       }
     }
     .onChange(of: item.variants.isEmpty) { _, isEmpty in
-      if isEmpty { editingSteps = false }
+      if isEmpty { editingVariations = false }
     }
   }
 
-  private var stepsHeader: some View {
+  private var variationsHeader: some View {
     HStack(alignment: .firstTextBaseline) {
-      Eyebrow("Steps")
+      Eyebrow("Variations")
       if !item.variants.isEmpty {
-        Text("\(solidStepCount) of \(item.variants.count) solid")
+        Text("\(solidVariationCount) of \(item.variants.count) solid")
           .font(IntradaFont.meta)
           .foregroundStyle(IntradaColor.inkSecondary)
       }
       Spacer()
       if !item.variants.isEmpty {
-        Button(editingSteps ? "Done" : "Edit") {
-          editingSteps.toggle()
+        Button(editingVariations ? "Done" : "Edit") {
+          editingVariations.toggle()
         }
         .font(IntradaFont.bodyMedium)
         .foregroundStyle(IntradaColor.accent)
-        .accessibilityLabel(editingSteps ? "Done editing steps" : "Edit steps")
+        .accessibilityLabel(editingVariations ? "Done editing variations" : "Edit variations")
       }
     }
   }
 
-  private var solidStepCount: Int {
+  private var solidVariationCount: Int {
     item.variants.filter(\.isSolid).count
   }
 
-  private var stepsEmptyState: some View {
+  private var variationsEmptyState: some View {
     VStack(spacing: IntradaSpacing.controlGap) {
       AddRowButton(title: "Add 12 major keys") { addKeyPreset(KeyHelper.circleMajor) }
-        .accessibilityLabel("Add 12 major keys as this exercise's step ladder")
+        .accessibilityLabel("Add 12 major keys as this exercise's variations")
       AddRowButton(title: "Add 12 minor keys") { addKeyPreset(KeyHelper.circleMinor) }
-        .accessibilityLabel("Add 12 minor keys as this exercise's step ladder")
-      AddRowButton(title: "Add custom steps", style: .plain) {
-        showingAddSteps = true
+        .accessibilityLabel("Add 12 minor keys as this exercise's variations")
+      AddRowButton(title: "Add custom variations", style: .plain) {
+        showingAddVariations = true
       }
-      .accessibilityLabel("Add custom steps to this exercise")
+      .accessibilityLabel("Add custom variations to this exercise")
     }
     .padding(IntradaSpacing.card)
     .cardSurface()
@@ -558,11 +558,11 @@ struct LibraryDetailScreen: View {
     }
   }
 
-  private func renameStep(id: String, to newLabel: String) {
+  private func renameVariation(id: String, to newLabel: String) {
     store.send(.item(.renameVariant(itemId: item.id, variantId: id, newLabel: newLabel)))
   }
 
-  private func moveStep(id: String, by delta: Int) {
+  private func moveVariation(id: String, by delta: Int) {
     var ids = item.variants.map(\.id)
     guard let index = ids.firstIndex(of: id) else { return }
     let dest = index + delta
@@ -571,8 +571,8 @@ struct LibraryDetailScreen: View {
     reorderSteps(ids)
   }
 
-  // Drop-onto-a-row reorder: move the dragged step to just before the target.
-  private func moveStep(id: String, before targetId: String) {
+  // Drop-onto-a-row reorder: move the dragged variation to just before the target.
+  private func moveVariation(id: String, before targetId: String) {
     guard id != targetId else { return }
     var ids = item.variants.map(\.id)
     guard ids.contains(id), let sourceIndex = ids.firstIndex(of: id) else { return }
@@ -595,7 +595,7 @@ struct LibraryDetailScreen: View {
     }
   }
 
-  private func removeStep(id: String) {
+  private func removeVariation(id: String) {
     let labels = item.variants.filter { $0.id != id }.map(\.label)
     let before = store.viewModel?.errorSeq
     store.send(.item(.setVariants(id: item.id, labels: labels)))
@@ -777,7 +777,7 @@ struct LibraryDetailScreen: View {
     item.subtitle.isEmpty ? nil : item.subtitle
   }
 
-  // A laddered exercise drops the item-level Key/Tempo rows: each step carries
+  // An exercise with variations drops the item-level Key/Tempo rows: each one carries
   // its own target, so a single value here would be misleading (#1083 C2).
   private var detailRows: [(label: String, value: String)] {
     guard item.itemType != .exercise || item.variants.isEmpty else { return [] }
@@ -870,18 +870,18 @@ private struct LinkedExerciseRow: View {
   }
 }
 
-/// One column in the Steps horizontal scroller: a ring (letter + progress arc)
+/// One column in the Variations horizontal scroller: a ring (letter + arc)
 /// and a state caption below: Solid, calm and static, no pulse (`breathe` and
 /// `metro` are retired per `design/CLAUDE.md` "Motion"), or a dash for not yet
 /// reached.
-private struct StepRingItem: View {
-  let step: VariantView
+private struct VariationRingItem: View {
+  let variation: VariantView
 
   var body: some View {
     VStack(spacing: 6) {
       ScoreRing(
-        score: step.latestScore.map(Int.init), size: 44, solid: step.isSolid,
-        labelOverride: step.label)
+        score: variation.latestScore.map(Int.init), size: 44, solid: variation.isSolid,
+        labelOverride: variation.label)
       Text(captionText)
         .font(IntradaFont.meta)
         .foregroundStyle(captionColor)
@@ -891,26 +891,26 @@ private struct StepRingItem: View {
   }
 
   private var captionText: String {
-    if step.isSolid { return "Solid" }
+    if variation.isSolid { return "Solid" }
     return "—"
   }
 
   private var captionColor: Color {
-    step.isSolid ? IntradaColor.accent : IntradaColor.inkFaint
+    variation.isSolid ? IntradaColor.accent : IntradaColor.inkFaint
   }
 
   private var accessibilityLabel: String {
-    guard let score = step.latestScore else { return "\(step.label), not yet attempted" }
-    return step.isSolid
-      ? "\(step.label), solid, \(score) of 10" : "\(step.label), \(score) of 10"
+    guard let score = variation.latestScore else { return "\(variation.label), not yet attempted" }
+    return variation.isSolid
+      ? "\(variation.label), solid, \(score) of 10" : "\(variation.label), \(score) of 10"
   }
 }
 
 /// Edit-mode row: drag handle (native drag reorder) + inline rename field +
 /// remove button. VoiceOver gets move-up/move-down actions since a drag
 /// gesture alone isn't screen-reader-operable.
-private struct StepEditRow: View {
-  let step: VariantView
+private struct VariationEditRow: View {
+  let variation: VariantView
   let onRename: (String) -> Void
   let onMoveUp: () -> Void
   let onMoveDown: () -> Void
@@ -920,17 +920,17 @@ private struct StepEditRow: View {
   @State private var label: String
 
   init(
-    step: VariantView, onRename: @escaping (String) -> Void, onMoveUp: @escaping () -> Void,
+    variation: VariantView, onRename: @escaping (String) -> Void, onMoveUp: @escaping () -> Void,
     onMoveDown: @escaping () -> Void, onRemove: @escaping () -> Void,
     onDrop: @escaping (String) -> Void
   ) {
-    self.step = step
+    self.variation = variation
     self.onRename = onRename
     self.onMoveUp = onMoveUp
     self.onMoveDown = onMoveDown
     self.onRemove = onRemove
     self.onDrop = onDrop
-    _label = State(initialValue: step.label)
+    _label = State(initialValue: variation.label)
   }
 
   var body: some View {
@@ -938,17 +938,17 @@ private struct StepEditRow: View {
       Image(systemName: "line.3.horizontal")
         .imageScale(.small)
         .foregroundStyle(IntradaColor.inkFaint)
-        .accessibilityLabel("Reorder \(step.label)")
-        .accessibilityHint("Drag to change this step's position")
+        .accessibilityLabel("Reorder \(variation.label)")
+        .accessibilityHint("Drag to change this variation's position")
         .accessibilityAction(named: "Move up", onMoveUp)
         .accessibilityAction(named: "Move down", onMoveDown)
-        .draggable(step.id)
-      TextField("Step label", text: $label)
+        .draggable(variation.id)
+      TextField("Variation label", text: $label)
         .font(IntradaFont.cardTitle())
         .foregroundStyle(IntradaColor.ink)
         .onChange(of: label) { _, value in
           let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-          guard !trimmed.isEmpty, trimmed != step.label else { return }
+          guard !trimmed.isEmpty, trimmed != variation.label else { return }
           onRename(trimmed)
         }
       Button(action: onRemove) {
@@ -957,7 +957,7 @@ private struct StepEditRow: View {
           .foregroundStyle(IntradaColor.danger)
       }
       .buttonStyle(.plain)
-      .accessibilityLabel("Remove \(step.label) from steps")
+      .accessibilityLabel("Remove \(variation.label) from variations")
     }
     .padding(.vertical, IntradaSpacing.cardCompact)
     .padding(.horizontal, IntradaSpacing.card)
@@ -1081,8 +1081,8 @@ private struct LinkedExerciseEditRow: View {
     }
   }
 
-  /// Snapshot seed: renders the detail screen with editingSteps already on,
-  /// so the test can capture the Steps edit-mode row layout without UI
+  /// Snapshot seed: renders the detail screen with editingVariations already on,
+  /// so the test can capture the variations edit-mode row layout without UI
   /// interaction.
   struct EditingStepsWrapper: View {
     let item: LibraryItemView

@@ -306,6 +306,16 @@ final class ScreenSnapshotTests: XCTestCase {
         }, store: .previewPractice), as: config)
   }
 
+  /// A line per variation below the entry line, rather than only the last
+  /// play's numbers (#1739).
+  func testPracticeSessionDetailWithVariations() {
+    assertSnapshot(
+      of: host(
+        NavigationStack {
+          PracticeSessionDetailScreen(session: .previewWithVariations)
+        }, store: .previewPractice), as: config)
+  }
+
   /// Pins the accessibility-size branch: the ring drops below the text so the
   /// meta line cannot break mid-word (#1471's shape, one screen over).
   func testPracticeSessionDetailAccessibilitySize() {
@@ -451,6 +461,21 @@ final class ScreenSnapshotTests: XCTestCase {
         store: .previewActiveReps), as: config)
   }
 
+  /// The variation chip, on the one screen where space is tightest (#1739).
+  func testFocusPlayerWithVariations() {
+    assertSnapshot(
+      of: host(
+        FocusPlayerScreen(referenceDate: ActiveSessionView.previewReferenceDate),
+        store: .previewActiveVariations), as: config)
+  }
+
+  func testFocusPlayerWithVariationsAccessibilitySize() {
+    assertSnapshot(
+      of: host(
+        FocusPlayerScreen(referenceDate: ActiveSessionView.previewReferenceDate),
+        store: .previewActiveVariations), as: axConfig)
+  }
+
   func testSessionSummaryCompleted() {
     assertSnapshot(of: host(SessionSummaryScreen(), store: .previewSummary), as: config)
   }
@@ -458,6 +483,12 @@ final class ScreenSnapshotTests: XCTestCase {
   func testSessionSummaryWithReflection() {
     assertSnapshot(
       of: host(SessionSummaryScreen(), store: .previewSummaryWithReflection), as: config)
+  }
+
+  /// A mark per variation, beside a piece with one play (#1739 decision 10).
+  func testSessionSummaryWithVariations() {
+    assertSnapshot(
+      of: host(SessionSummaryScreen(), store: .previewSummaryVariations), as: config)
   }
 
   func testSessionSummaryEndedEarly() {
@@ -475,6 +506,13 @@ final class ScreenSnapshotTests: XCTestCase {
 
   func testProgressScreenPopulated() {
     assertSnapshot(of: host(AnalyticsScreen(), store: .previewProgress), as: config)
+  }
+
+  /// The variation coverage rows at the largest text size: the exercise title
+  /// and its solid count share a row, so they have to reflow rather than
+  /// squash (#1739).
+  func testProgressScreenPopulatedAccessibilitySize() {
+    assertSnapshot(of: host(AnalyticsScreen(), store: .previewProgress), as: axConfig)
   }
 
   func testLibraryScreenMastery() {
@@ -564,6 +602,7 @@ final class ScreenSnapshotTests: XCTestCase {
       PaperBackground()
       ReflectionSheet(
         itemTitle: "Scales · D♭", elapsedDisplay: "7:00", tempoTarget: nil,
+        plays: [.preview("p1", nil, "7:00")],
         onSave: { _ in }, onSkip: {})
     }
     assertSnapshot(of: host(sheet), as: config)
@@ -574,9 +613,60 @@ final class ScreenSnapshotTests: XCTestCase {
       PaperBackground()
       ReflectionSheet(
         itemTitle: "Scales · D♭", elapsedDisplay: "7:00", tempoTarget: 96,
+        plays: [.preview("p1", nil, "7:00")],
         onSave: { _ in }, onSkip: {})
     }
     assertSnapshot(of: host(sheet), as: config)
+  }
+
+  func testReflectionSheetWithThreeVariations() {
+    let sheet = ZStack(alignment: .bottom) {
+      PaperBackground()
+      ReflectionSheet(
+        itemTitle: "Major Scales", elapsedDisplay: "12:40", tempoTarget: nil,
+        plays: [
+          .preview("p1", "C major", "4:10", 8, 10),
+          .preview("p2", "G major", "3:20", 10, 10),
+          .preview("p3", "D major", "5:10", 4, 10),
+        ],
+        onSave: { _ in }, onSkip: {})
+    }
+    assertSnapshot(of: host(sheet), as: config)
+  }
+
+  func testReflectionSheetWithThreeVariationsAccessibilitySize() {
+    let sheet = ZStack(alignment: .bottom) {
+      PaperBackground()
+      ReflectionSheet(
+        itemTitle: "Major Scales", elapsedDisplay: "12:40", tempoTarget: nil,
+        plays: [
+          .preview("p1", "C major", "4:10", 8, 10),
+          .preview("p2", "G major", "3:20", 10, 10),
+        ],
+        onSave: { _ in }, onSkip: {})
+    }
+    .dynamicTypeSize(.accessibility1)
+    assertSnapshot(of: host(sheet), as: config)
+  }
+
+  func testVariationPickerSheet() {
+    let sheet = VariationPickerSheet(
+      itemTitle: LibraryItemView.previewExerciseWithVariations.title,
+      variations: LibraryItemView.previewExerciseWithVariations.variants,
+      currentVariationId: "variation-f",
+      onPick: { _ in true })
+    assertSnapshot(of: host(sheet), as: config)
+  }
+
+  /// Variations named in words rather than key letters, at the largest text
+  /// size: the rows wrap rather than truncating what the musician called them.
+  func testVariationPickerSheetLongLabels() {
+    let sheet = VariationPickerSheet(
+      itemTitle: "Triad inversions",
+      variations: LibraryItemView.previewExerciseWithNamedVariations.variants,
+      currentVariationId: LibraryItemView.previewExerciseWithNamedVariations.variants.first?.id,
+      onPick: { _ in true })
+    assertSnapshot(of: host(sheet), as: axConfig)
   }
 
   func testMasteryDial() {
@@ -743,7 +833,7 @@ final class ScreenSnapshotTests: XCTestCase {
   }
 
   // #1083 C2/C3: Steps section empty state — key-preset buttons + custom-steps link.
-  func testExerciseDetailStepsEmptyState() {
+  func testExerciseDetailVariationsEmptyState() {
     let store = Store(bridge: PreviewBridge(items: [.previewExercise]))
     let pushed = NavigationStack(
       path: .constant([LibraryItemView.previewExercise.id])
@@ -752,44 +842,44 @@ final class ScreenSnapshotTests: XCTestCase {
   }
 
   // #1083 C4: Steps edit mode — drag handle, inline rename field, remove button.
-  func testExerciseDetailStepsEditing() {
-    let store = Store(bridge: PreviewBridge(items: [.previewExerciseWithSteps]))
-    let editing = EditingStepsWrapper(item: .previewExerciseWithSteps)
+  func testExerciseDetailVariationsEditing() {
+    let store = Store(bridge: PreviewBridge(items: [.previewExerciseWithVariations]))
+    let editing = EditingStepsWrapper(item: .previewExerciseWithVariations)
     assertSnapshot(of: host(editing, store: store), as: config)
   }
 
   // #1083 C2: Steps section — solid / current / unrated ring states, horizontal
   // scroller, "N of M solid" header; Key/Tempo rows hidden for laddered exercises.
-  func testExerciseDetailWithSteps() {
-    let store = Store(bridge: PreviewBridge(items: [.previewExerciseWithSteps]))
+  func testExerciseDetailWithVariations() {
+    let store = Store(bridge: PreviewBridge(items: [.previewExerciseWithVariations]))
     let pushed = NavigationStack(
-      path: .constant([LibraryItemView.previewExerciseWithSteps.id])
+      path: .constant([LibraryItemView.previewExerciseWithVariations.id])
     ) { LibraryScreen() }
     assertSnapshot(of: host(pushed, store: store), as: config)
   }
 
   /// Largest accessibility text size — proves the Steps scroller reflows
   /// rather than clipping or wrapping (#1083 C2).
-  func testExerciseDetailWithStepsAccessibilitySize() {
-    let store = Store(bridge: PreviewBridge(items: [.previewExerciseWithSteps]))
+  func testExerciseDetailWithVariationsAccessibilitySize() {
+    let store = Store(bridge: PreviewBridge(items: [.previewExerciseWithVariations]))
     let pushed = NavigationStack(
-      path: .constant([LibraryItemView.previewExerciseWithSteps.id])
+      path: .constant([LibraryItemView.previewExerciseWithVariations.id])
     ) { LibraryScreen() }
     assertSnapshot(of: host(pushed, store: store), as: axConfig)
   }
 
   // #1083 C2: 12-step ladder — survives max realistic length without wrapping.
-  func testExerciseDetailWith12Steps() {
-    let store = Store(bridge: PreviewBridge(items: [.previewExerciseWithFullLadder]))
+  func testExerciseDetailWith12Variations() {
+    let store = Store(bridge: PreviewBridge(items: [.previewExerciseWithTwelveVariations]))
     let pushed = NavigationStack(
-      path: .constant([LibraryItemView.previewExerciseWithFullLadder.id])
+      path: .constant([LibraryItemView.previewExerciseWithTwelveVariations.id])
     ) { LibraryScreen() }
     assertSnapshot(of: host(pushed, store: store), as: config)
   }
 
   // #1083 C2: minimal step-list creation sheet, opened from the "+ Add steps" link.
-  func testAddStepsSheet() {
-    assertSnapshot(of: host(AddStepsSheet(itemId: "exercise-1")), as: config)
+  func testAddVariationsSheet() {
+    assertSnapshot(of: host(AddVariationsSheet(itemId: "exercise-1")), as: config)
   }
 
   func testLibraryAddScreen() {
@@ -1223,8 +1313,8 @@ final class ScreenSnapshotTests: XCTestCase {
         LibraryItemCard(item: .previewDetail)
         LibraryItemCard(item: manyTags)  // 5 tags → +2 overflow pill
         LibraryItemCard(item: starred, showsMastery: true)
-        LibraryItemCard(item: .previewExerciseWithFullLadder)
-        LibraryItemCard(item: .previewExerciseWithStepLadder)
+        LibraryItemCard(item: .previewExerciseWithTwelveVariations)
+        LibraryItemCard(item: .previewExerciseWithNamedVariations)
         LibraryItemCard(item: .previewMinimal, showsMastery: true, showsMissingDetailsPrompt: true)
       }
       .padding(16)

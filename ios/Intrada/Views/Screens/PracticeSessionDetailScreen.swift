@@ -150,6 +150,16 @@ struct PracticeSessionDetailScreen: View {
       Text(entryMeta(entry))
         .font(IntradaFont.micro)
         .foregroundStyle(IntradaColor.inkFaint)
+      if entry.plays.count > 1 {
+        VStack(alignment: .leading, spacing: 2) {
+          ForEach(entry.plays, id: \.id) { play in
+            Text(playLine(play))
+              .font(IntradaFont.micro)
+              .foregroundStyle(IntradaColor.inkFaint)
+          }
+        }
+        .padding(.top, 2)
+      }
       if let notes = entry.notes, !notes.isEmpty {
         Text(notes)
           .font(IntradaFont.meta)
@@ -166,19 +176,28 @@ struct PracticeSessionDetailScreen: View {
     case .notAttempted: return "Not played"
     case .skipped: return "Skipped"
     case .completed:
-      // One line for the last play. #1739 Phase B gives each variation a row.
+      // With several variations each gets its own line below, so the entry
+      // line stays what the item was and how long it took (#1739).
       var parts = [entry.itemType.label, entry.durationDisplay]
-      let play = entry.plays.last
-      if let tempo = play?.achievedTempo { parts.append("\(tempo) bpm") }
-      if let target = play?.repTarget {
-        parts.append("\(play?.repCount ?? 0) of \(target) reps")
+      if entry.plays.count == 1 {
+        parts.append(contentsOf: entry.plays[0].metaParts.dropFirst())
       }
       return parts.joined(separator: " · ")
     }
   }
 
+  private func playLine(_ play: VariationPlayView) -> String {
+    var parts = [play.displayLabel]
+    parts.append(contentsOf: play.metaParts)
+    if let score = play.score { parts.append("marked \(score)") }
+    return parts.joined(separator: " · ")
+  }
+
   private func entryAccessibilityLabel(_ entry: SetlistEntryView) -> String {
     var parts = [entry.itemTitle, entryMeta(entry)]
+    if entry.plays.count > 1 {
+      parts.append(contentsOf: entry.plays.map(playLine))
+    }
     if entry.status == .completed, let score = entry.scoreSummary {
       parts.append("marked \(score) out of 10")
     }
@@ -199,6 +218,14 @@ struct PracticeSessionDetailScreen: View {
   #Preview("Ended early") {
     NavigationStack {
       PracticeSessionDetailScreen(session: .previewEndedEarly)
+        .environment(Store.previewPractice)
+        .environment(\.calendar, PreviewCalendar.utc)
+    }
+  }
+
+  #Preview("Three variations") {
+    NavigationStack {
+      PracticeSessionDetailScreen(session: .previewWithVariations)
         .environment(Store.previewPractice)
         .environment(\.calendar, PreviewCalendar.utc)
     }

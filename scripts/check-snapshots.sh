@@ -33,8 +33,10 @@ is_large() {
       testPracticeScreenSuggestionDismissedPriorities | testPracticeScreenGreeting | \
       testUpNextHeroNeverMarked | \
       testFocusPlayerWithReps | testFocusPlayerWithTarget | testFocusPlayerLongSession | \
+      testFocusPlayerWithVariations | testFocusPlayerWithVariationsAccessibilitySize | \
       testPracticeSessionDetailAccessibilitySize | \
-      testSessionSummaryCompleted | testSessionSummaryWithReflection) return 0 ;;
+      testSessionSummaryCompleted | testSessionSummaryWithReflection | \
+      testSessionSummaryWithVariations) return 0 ;;
     *) return 1 ;;
   esac
 }

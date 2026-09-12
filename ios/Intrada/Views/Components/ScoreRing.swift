@@ -7,7 +7,7 @@ struct ScoreRing: View {
   var showsScale: Bool = false
   /// Mastered variant: fills with `accent` instead of the usual `masteryFill`.
   var solid: Bool = false
-  /// Step-ladder variant: renders this text (e.g. a key letter) instead of the
+  /// Variation variant: renders this text (e.g. a key letter) instead of the
   /// numeral/rest glyph. Scales down and truncates for labels too long to fit.
   var labelOverride: String? = nil
 

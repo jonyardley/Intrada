@@ -1,11 +1,11 @@
 import SharedTypes
 import SwiftUI
 
-/// Minimal step-ladder creation sheet: ordered labels in, `setVariants` out.
-/// Only ever opened from an exercise with no ladder yet, so there are no
-/// existing steps to rename/reorder/archive here — that's C4, once a ladder
-/// already exists.
-struct AddStepsSheet: View {
+/// Minimal variation-creation sheet: ordered labels in, `setVariants` out.
+/// Only ever opened from an exercise with none yet, so there are no existing
+/// variations to rename/reorder/archive here: that is the detail screen's
+/// edit mode, once some exist.
+struct AddVariationsSheet: View {
   let itemId: String
 
   @Environment(Store.self) private var store
@@ -14,19 +14,19 @@ struct AddStepsSheet: View {
 
   var body: some View {
     BottomSheet(
-      title: "Steps", confirmationLabel: "Save",
+      title: "Variations", confirmationLabel: "Save",
       confirmationDisabled: trimmedLabels.isEmpty,
       onDone: save
     ) {
       ScrollView {
         VStack(alignment: .leading, spacing: IntradaSpacing.controlGap) {
-          Eyebrow("Steps, in order")
+          Eyebrow("Variations, in order")
           VStack(spacing: IntradaSpacing.controlGap) {
             ForEach(Array(labels.indices), id: \.self) { index in
-              stepRow(index)
+              variationRow(index)
             }
           }
-          AddRowButton(title: "Add a step", style: .plain) {
+          AddRowButton(title: "Add a variation", style: .plain) {
             labels.append("")
           }
         }
@@ -35,7 +35,7 @@ struct AddStepsSheet: View {
     }
   }
 
-  private func stepRow(_ index: Int) -> some View {
+  private func variationRow(_ index: Int) -> some View {
     HStack(spacing: IntradaSpacing.controlGap) {
       TextField("e.g. C", text: Binding(get: { labels[index] }, set: { labels[index] = $0 }))
         .font(IntradaFont.field)
@@ -51,7 +51,7 @@ struct AddStepsSheet: View {
             .foregroundStyle(IntradaColor.danger)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Remove step \(index + 1)")
+        .accessibilityLabel("Remove variation \(index + 1)")
       }
     }
   }
@@ -60,8 +60,8 @@ struct AddStepsSheet: View {
     Self.trimmedLabels(labels)
   }
 
-  /// Trims and drops blank rows — pulled out as a static func so it's directly
-  /// testable, same as `ReflectionSheet.initialVariantId`.
+  /// Trims and drops blank rows, pulled out as a static func so it is directly
+  /// testable without driving the sheet.
   static func trimmedLabels(_ labels: [String]) -> [String] {
     labels.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
   }
@@ -74,10 +74,10 @@ struct AddStepsSheet: View {
 }
 
 #if DEBUG
-  #Preview("Add steps") {
+  #Preview("Add variations") {
     Color.black.opacity(0.2).ignoresSafeArea()
       .sheet(isPresented: .constant(true)) {
-        AddStepsSheet(itemId: "preview-item").environment(Store.preview)
+        AddVariationsSheet(itemId: "preview-item").environment(Store.preview)
       }
   }
 #endif
