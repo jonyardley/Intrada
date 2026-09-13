@@ -623,14 +623,10 @@ fn freeze_rep_state(entry: &mut SetlistEntry) {
     }
 }
 
-/// An entry that has just become current opens its first play, seeded from the
-/// builder's plan (#1739 decisions 3 and 5), or from the item's first live
-/// variation when the builder set no plan (#1758): starting on nothing left
-/// the picker reading "Pick a variation" while the clock already ran, and the
-/// unattributed seconds became a row the musician never asked for. An item
-/// with no live variants, a piece included, still opens unattributed, exactly
-/// as decision 3 intends. Idempotent: a recovered session already carries its
-/// plays.
+/// An entry that has just become current opens its first play, seeded from
+/// the builder's plan (#1739 decisions 3 and 5), else the item's first live
+/// variation, lowest position first (#1758). No live variants means
+/// unattributed. Idempotent: a recovered session already carries its plays.
 fn open_first_play(entry: &mut SetlistEntry, items: &[Item], now: DateTime<Utc>) {
     if entry.plays.is_empty() {
         let variation_id = entry.planned_variation_id.clone().or_else(|| {
@@ -2835,7 +2831,7 @@ mod tests {
             .items
             .iter_mut()
             .find(|i| i.id == "exercise-1")
-            .unwrap()
+            .expect("the library fixture has exercise-1")
             .variants
             .iter_mut()
             .for_each(|v| v.deleted_at = Some(Utc::now()));
@@ -2851,6 +2847,75 @@ mod tests {
             .find(|e| e.id == entry_id)
             .expect("the entry is in the session");
         assert_eq!(play_of(entry).variation_id, None);
+    }
+
+    #[test]
+    fn test_start_session_seeds_by_position_not_by_vec_order() {
+        let mut model = model_with_library();
+        let now = Utc::now();
+        let ex = model
+            .items
+            .iter_mut()
+            .find(|i| i.id == "exercise-1")
+            .expect("the library fixture has exercise-1");
+        // v-d sits first in the vec but v-c has the lower position: the seed
+        // must read position, not vec order.
+        ex.variants = vec![
+            crate::domain::variant::Variant {
+                id: "v-d".to_string(),
+                label: "D".to_string(),
+                position: 1,
+                updated_at: now,
+                deleted_at: None,
+            },
+            crate::domain::variant::Variant {
+                id: "v-c".to_string(),
+                label: "C".to_string(),
+                position: 0,
+                updated_at: now,
+                deleted_at: None,
+            },
+        ];
+        update(&mut model, Event::Session(SessionEvent::StartBuilding));
+        update(
+            &mut model,
+            Event::Session(SessionEvent::AddToSetlist {
+                item_id: "exercise-1".to_string(),
+            }),
+        );
+
+        update(
+            &mut model,
+            Event::Session(SessionEvent::StartSession { now }),
+        );
+
+        let entry = &session_entries(&model)[0];
+        assert_eq!(play_of(entry).variation_id, Some("v-c".to_string()));
+    }
+
+    #[test]
+    fn test_switching_to_the_seeded_default_writes_nothing() {
+        let (mut model, entry_id) = model_with_exercise_building();
+        let now = Utc::now();
+        update(
+            &mut model,
+            Event::Session(SessionEvent::StartSession { now }),
+        );
+
+        update(
+            &mut model,
+            Event::Session(SessionEvent::SwitchVariation {
+                entry_id: entry_id.clone(),
+                variation_id: Some("v-c".to_string()),
+                now: now + chrono::Duration::seconds(10),
+            }),
+        );
+
+        let entry = session_entries(&model)
+            .iter()
+            .find(|e| e.id == entry_id)
+            .expect("the entry is in the session");
+        assert_eq!(entry.plays.len(), 1, "the seeded default was already open");
     }
 
     #[test]
