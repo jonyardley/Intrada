@@ -2,6 +2,10 @@
 
 > Spec for [intrada#309](https://github.com/jonyardley/intrada/issues/309) — P0 / parity-blocker for TestFlight + App Store.
 > Tier 3 per CLAUDE.md (new Tauri plugin → IPC contract sensitivity override).
+>
+> Superseded 2026-09-13: the metronome keeps going in the background natively
+> under #1399 (`UIBackgroundModes: audio`, no silent loop, no Now Playing),
+> and the practice timer reads the wall clock, so nothing here is built.
 
 ## Problem
 

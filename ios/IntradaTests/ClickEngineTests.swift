@@ -80,32 +80,34 @@ struct ClickEngineTests {
     }
   }
 
-  // ── The stranded clock (#1223 review) ──
+  // ── The stranded clock (#1223 review, wall clock since #1399) ──
 
   @Test func aPulseSuspendedForFiveMinutesIsStranded() {
-    let secondsPerBeat = 0.5
     let head = HostClock.ticks(fromSeconds: 100)
     let fiveMinutesLater = head &+ HostClock.ticks(fromSeconds: 300)
 
-    #expect(
-      ClickEngine.hasLostTheClock(
-        head: head, now: fiveMinutesLater, secondsPerBeat: secondsPerBeat))
+    #expect(ClickEngine.hasLostTheClock(head: head, now: fiveMinutesLater))
   }
 
-  /// A coalesced wakeup a beat or so late is what the 10ms poll exists to absorb.
-  @Test func aWakeupUpToOneBeatLateIsNotStranded() {
-    let secondsPerBeat = 0.5
+  @Test func aWakeupUpToTheToleranceIsNotStranded() {
     let head = HostClock.ticks(fromSeconds: 100)
 
     let onTime = head
     let slightlyLate = head &+ HostClock.ticks(fromSeconds: 0.2)
-    let oneBeatLate = head &+ HostClock.ticks(fromSeconds: 0.5)
+    let threeSecondsLate = head &+ HostClock.ticks(fromSeconds: 3)
+    let justInside = head &+ HostClock.ticks(fromSeconds: ClickEngine.maxLagSeconds - 0.01)
 
-    #expect(!ClickEngine.hasLostTheClock(head: head, now: onTime, secondsPerBeat: secondsPerBeat))
-    #expect(
-      !ClickEngine.hasLostTheClock(head: head, now: slightlyLate, secondsPerBeat: secondsPerBeat))
-    #expect(
-      !ClickEngine.hasLostTheClock(head: head, now: oneBeatLate, secondsPerBeat: secondsPerBeat))
+    #expect(!ClickEngine.hasLostTheClock(head: head, now: onTime))
+    #expect(!ClickEngine.hasLostTheClock(head: head, now: slightlyLate))
+    #expect(!ClickEngine.hasLostTheClock(head: head, now: threeSecondsLate))
+    #expect(!ClickEngine.hasLostTheClock(head: head, now: justInside))
+  }
+
+  @Test func aWakeupPastTheToleranceIsStranded() {
+    let head = HostClock.ticks(fromSeconds: 100)
+    let justPast = head &+ HostClock.ticks(fromSeconds: ClickEngine.maxLagSeconds + 0.01)
+
+    #expect(ClickEngine.hasLostTheClock(head: head, now: justPast))
   }
 
   /// The case an unsigned subtraction would get catastrophically wrong.
@@ -113,19 +115,7 @@ struct ClickEngineTests {
     let now = HostClock.ticks(fromSeconds: 100)
     let head = now &+ HostClock.ticks(fromSeconds: 30)
 
-    #expect(!ClickEngine.hasLostTheClock(head: head, now: now, secondsPerBeat: 0.5))
-  }
-
-  @Test func theStrandedThresholdScalesWithTempoNotWallClock() {
-    let head = HostClock.ticks(fromSeconds: 100)
-    let threeSecondsLate = head &+ HostClock.ticks(fromSeconds: 3)
-
-    // 240bpm: two beats is half a second, so three seconds is long gone.
-    #expect(
-      ClickEngine.hasLostTheClock(head: head, now: threeSecondsLate, secondsPerBeat: 0.25))
-    // 40bpm: two beats is three seconds, so the same lag is still in tolerance.
-    #expect(
-      !ClickEngine.hasLostTheClock(head: head, now: threeSecondsLate, secondsPerBeat: 1.5))
+    #expect(!ClickEngine.hasLostTheClock(head: head, now: now))
   }
 
   @Test func aTempoTheGridCannotUseIsRefused() {
