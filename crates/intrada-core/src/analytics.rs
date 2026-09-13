@@ -9,8 +9,12 @@ use serde::{Deserialize, Serialize};
 
 use crate::domain::item::{Item, ItemKind};
 use crate::domain::session::PracticeSession;
-use crate::model::ItemPracticeSummary;
+use crate::model::{ItemPracticeSummary, LibraryItemView};
 use crate::staleness;
+
+/// Rows on the Progress screen's Variations section; past this a large
+/// library takes the screen over (#1762).
+const VARIATION_COVERAGE_LIMIT: usize = 5;
 
 // ── Analytics View Model Types ───────────────────────────────────────
 
@@ -47,6 +51,17 @@ pub struct ScoreChange {
     pub is_new: bool,
 }
 
+/// One practised exercise's variations and how many are solid: coverage, not
+/// a ring per variation, so twenty variations read like three (#1739, #1762).
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "facet_typegen", derive(facet::Facet))]
+pub struct VariationCoverageView {
+    pub item_id: String,
+    pub title: String,
+    pub solid: usize,
+    pub total: usize,
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Default)]
 #[cfg_attr(feature = "facet_typegen", derive(facet::Facet))]
 pub struct AnalyticsView {
@@ -57,6 +72,7 @@ pub struct AnalyticsView {
     pub score_trends: Vec<ItemScoreTrend>,
     pub neglected_items: Vec<NeglectedItem>,
     pub score_changes: Vec<ScoreChange>,
+    pub variation_coverage: Vec<VariationCoverageView>,
 }
 
 /// Aggregated stats for the current and previous ISO weeks (Monday–Sunday).
@@ -171,6 +187,7 @@ pub fn compute_analytics(
     sessions: &[PracticeSession],
     items: &[Item],
     summaries: &HashMap<String, ItemPracticeSummary>,
+    item_views: &[LibraryItemView],
     clock: LocalClock,
 ) -> AnalyticsView {
     AnalyticsView {
@@ -181,7 +198,38 @@ pub fn compute_analytics(
         score_trends: compute_score_trends(sessions, clock),
         neglected_items: compute_neglected_items(summaries, items, clock),
         score_changes: compute_score_changes(sessions, clock),
+        variation_coverage: compute_variation_coverage(item_views, VARIATION_COVERAGE_LIMIT),
     }
+}
+
+/// One variation is not a set worth a bar, and an exercise never practised
+/// has nothing to report (#1762).
+pub fn compute_variation_coverage(
+    item_views: &[LibraryItemView],
+    limit: usize,
+) -> Vec<VariationCoverageView> {
+    let mut practised: Vec<&LibraryItemView> = item_views
+        .iter()
+        .filter(|i| {
+            i.variants.len() > 1 && i.practice.as_ref().is_some_and(|p| p.session_count > 0)
+        })
+        .collect();
+    fn last(i: &LibraryItemView) -> Option<&str> {
+        i.practice
+            .as_ref()
+            .and_then(|p| p.last_practiced_at.as_deref())
+    }
+    practised.sort_by(|a, b| last(b).cmp(&last(a)));
+    practised
+        .into_iter()
+        .take(limit)
+        .map(|i| VariationCoverageView {
+            item_id: i.id.clone(),
+            title: i.title.clone(),
+            solid: i.variants.iter().filter(|v| v.is_solid).count(),
+            total: i.variants.len(),
+        })
+        .collect()
 }
 
 /// Uses ISO week numbering (Monday = start of week).
@@ -1702,6 +1750,7 @@ mod tests {
             &sessions,
             &[],
             &crate::app::build_practice_summaries(&sessions),
+            &[],
             clock(today),
         );
         assert_eq!(analytics.weekly_summary.session_count, 1);
@@ -1709,6 +1758,178 @@ mod tests {
         assert_eq!(analytics.daily_totals.len(), 28);
         assert_eq!(analytics.top_items.len(), 1);
         assert_eq!(analytics.score_trends.len(), 1);
+    }
+
+    // ── Variation coverage (#1762) ───────────────────────────────────
+
+    fn exercise_with_variations(
+        id: &str,
+        variations: &[(&str, bool)],
+        sessions: usize,
+        last_practised: Option<&str>,
+    ) -> LibraryItemView {
+        use crate::model::VariantView;
+        let mut view = LibraryItemView::fixture(id, id, ItemKind::Exercise);
+        view.practice = (sessions > 0).then(|| ItemPracticeSummary {
+            session_count: sessions,
+            last_practiced_at: last_practised.map(str::to_string),
+            ..ItemPracticeSummary::fixture()
+        });
+        view.variants = variations
+            .iter()
+            .enumerate()
+            .map(|(index, (label, solid))| VariantView {
+                id: format!("{id}-{index}"),
+                label: label.to_string(),
+                position: index,
+                latest_score: solid.then_some(9),
+                score_history: Vec::new(),
+                is_solid: *solid,
+            })
+            .collect();
+        view
+    }
+
+    #[test]
+    fn coverage_counts_the_solid_variations_of_each_practised_exercise() {
+        let rows = compute_variation_coverage(
+            &[exercise_with_variations(
+                "Scales",
+                &[("C", true), ("G", true), ("D", false)],
+                4,
+                Some("2026-09-01T10:00:00Z"),
+            )],
+            VARIATION_COVERAGE_LIMIT,
+        );
+        assert_eq!(rows.iter().map(|r| r.solid).collect::<Vec<_>>(), [2]);
+        assert_eq!(rows.iter().map(|r| r.total).collect::<Vec<_>>(), [3]);
+        assert_eq!(rows[0].item_id, "Scales");
+    }
+
+    #[test]
+    fn coverage_skips_an_exercise_nobody_has_practised() {
+        let rows = compute_variation_coverage(
+            &[exercise_with_variations(
+                "Cold",
+                &[("C", false), ("G", false)],
+                0,
+                None,
+            )],
+            VARIATION_COVERAGE_LIMIT,
+        );
+        assert!(rows.is_empty());
+    }
+
+    #[test]
+    fn coverage_skips_a_summary_with_no_sessions_behind_it() {
+        let mut view = exercise_with_variations("Idle", &[("C", true), ("G", false)], 1, None);
+        view.practice = Some(ItemPracticeSummary {
+            session_count: 0,
+            ..ItemPracticeSummary::fixture()
+        });
+        assert!(compute_variation_coverage(&[view], VARIATION_COVERAGE_LIMIT).is_empty());
+    }
+
+    #[test]
+    fn coverage_skips_a_single_variation() {
+        let rows = compute_variation_coverage(
+            &[exercise_with_variations(
+                "One",
+                &[("C", true)],
+                4,
+                Some("2026-09-01T10:00:00Z"),
+            )],
+            VARIATION_COVERAGE_LIMIT,
+        );
+        assert!(rows.is_empty());
+    }
+
+    #[test]
+    fn coverage_leads_with_the_most_recently_practised() {
+        let rows = compute_variation_coverage(
+            &[
+                exercise_with_variations(
+                    "Older",
+                    &[("C", true), ("G", false)],
+                    4,
+                    Some("2026-08-01T10:00:00Z"),
+                ),
+                exercise_with_variations(
+                    "Newer",
+                    &[("C", true), ("G", false)],
+                    4,
+                    Some("2026-09-01T10:00:00Z"),
+                ),
+            ],
+            VARIATION_COVERAGE_LIMIT,
+        );
+        assert_eq!(
+            rows.iter().map(|r| r.title.as_str()).collect::<Vec<_>>(),
+            ["Newer", "Older"]
+        );
+    }
+
+    #[test]
+    fn coverage_stops_at_the_limit() {
+        let items: Vec<LibraryItemView> = (0..8)
+            .map(|index| {
+                exercise_with_variations(
+                    &format!("Ex{index}"),
+                    &[("C", true), ("G", false)],
+                    4,
+                    Some(&format!("2026-09-0{}T10:00:00Z", index + 1)),
+                )
+            })
+            .collect();
+        assert_eq!(
+            compute_variation_coverage(&items, VARIATION_COVERAGE_LIMIT).len(),
+            5
+        );
+        assert_eq!(
+            compute_variation_coverage(&items, 2)
+                .iter()
+                .map(|r| r.title.as_str())
+                .collect::<Vec<_>>(),
+            ["Ex7", "Ex6"]
+        );
+    }
+
+    #[test]
+    fn compute_analytics_carries_the_coverage_rows() {
+        let today = NaiveDate::from_ymd_opt(2026, 2, 18).unwrap();
+        let sessions = vec![make_session(
+            "s1",
+            today,
+            1800,
+            vec![make_entry("p1", "Sonata", ItemKind::Piece, 1800, Some(4))],
+        )];
+        let views = [exercise_with_variations(
+            "Scales",
+            &[("C", true), ("G", false)],
+            1,
+            Some("2026-02-18T10:00:00Z"),
+        )];
+        let analytics = compute_analytics(
+            &sessions,
+            &[],
+            &crate::app::build_practice_summaries(&sessions),
+            &views,
+            clock(today),
+        );
+        assert_eq!(analytics.variation_coverage.len(), 1);
+        assert_eq!(analytics.variation_coverage[0].solid, 1);
+    }
+
+    /// `VariationCoverageView` crosses the bincode wire inside
+    /// `AnalyticsView`; guard it against the #846 drop class.
+    #[test]
+    fn variation_coverage_view_round_trips_on_ffi_bincode_wire() {
+        crate::domain::types::assert_round_trips(VariationCoverageView {
+            item_id: "ex-1".to_string(),
+            title: "Scales".to_string(),
+            solid: 2,
+            total: 3,
+        });
     }
 
     // ── Edge case: ended-early sessions included ──────────────────────
@@ -1737,6 +1958,7 @@ mod tests {
             &sessions,
             &[],
             &crate::app::build_practice_summaries(&sessions),
+            &[],
             clock(today),
         );
         assert_eq!(analytics.weekly_summary.session_count, 1);

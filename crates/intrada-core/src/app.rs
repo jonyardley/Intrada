@@ -422,6 +422,7 @@ impl Intrada {
                     &model.sessions,
                     &model.items,
                     &model.practice_summaries,
+                    &all_items,
                     clock,
                 )),
                 crate::analytics::compute_last_practised(&model.sessions, clock),
@@ -3323,6 +3324,48 @@ mod tests {
         assert!(
             vm.all_items.iter().any(|i| i.id == "p1"),
             "all_items is the unfiltered picker source and must still offer it"
+        );
+    }
+
+    #[test]
+    fn a_library_filter_cannot_hide_a_variation_coverage_row() {
+        let app = Intrada;
+        let mut model = Model::default();
+        let now = chrono::Utc::now();
+        let mut scales = make_item("ex1", "Scales", ItemKind::Exercise, now);
+        scales.variants = ["C", "G"]
+            .iter()
+            .enumerate()
+            .map(|(position, label)| crate::domain::variant::Variant {
+                id: format!("ex1-{position}"),
+                label: label.to_string(),
+                position,
+                updated_at: now,
+                deleted_at: None,
+            })
+            .collect();
+        model.items = vec![make_item("p1", "Sonata", ItemKind::Piece, now), scales];
+        model.sessions = vec![make_session("s1", "ex1", Some(8), None)];
+        model.practice_summaries = build_practice_summaries(&model.sessions);
+        model.active_query = Some(ListQuery {
+            item_type: Some(ItemKind::Piece),
+            ..Default::default()
+        });
+
+        let vm = app.view(&model);
+        assert!(
+            !vm.items.iter().any(|i| i.id == "ex1"),
+            "the filter really does hide the exercise from the list"
+        );
+        let analytics = vm.analytics.expect("a session makes the analytics view");
+        assert_eq!(
+            analytics
+                .variation_coverage
+                .iter()
+                .map(|r| r.item_id.as_str())
+                .collect::<Vec<_>>(),
+            ["ex1"],
+            "coverage is derived before the filter"
         );
     }
 

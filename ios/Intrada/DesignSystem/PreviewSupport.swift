@@ -509,6 +509,10 @@
           ScoreChange(
             itemId: "piece-2", itemTitle: "Gymnopédie No. 1", previousScore: nil,
             currentScore: 3, delta: 0, isNew: true),
+        ],
+        variationCoverage: [
+          VariationCoverageView(itemId: "exercise-2", title: "Major Scales", solid: 7, total: 12),
+          VariationCoverageView(itemId: "exercise-1", title: "Hanon No. 1", solid: 1, total: 3),
         ])
     }
 
