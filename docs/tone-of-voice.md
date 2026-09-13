@@ -72,7 +72,7 @@ disagree, the screen wins and the core keeps its own name.
 
 | Core / spec says | Screen says |
 |---|---|
-| `variant` | Step |
+| `variant` | Variation |
 | `entry`, `block` | the piece, the exercise, the group |
 | `item type` | Piece / Exercise |
 | `score`, `rating` (the 0 to 10) | Mark ([V4](#v4--the-screen-says-mark-the-core-keeps-score)) |

@@ -492,7 +492,7 @@ fn build_library_item_views(
 ) -> Vec<LibraryItemView> {
     let usage_by_exercise = build_exercise_usage(model, item_index);
 
-    // Per-step score history, keyed by (item id, variant id); one pass
+    // Per-variation score history, keyed by (item id, variant id); one pass
     // over sessions, attached to laddered exercises below (#1083).
     let variant_scores = build_variant_score_index(&model.sessions);
 
@@ -1228,8 +1228,8 @@ fn sample_items() -> Vec<Item> {
         ),
     ];
 
-    // Demo step ladder (#1083): Major Scales climbs a starter run of keys, so
-    // seed mode shows per-step progress (sample_sessions scores the first two).
+    // Demo variation ladder (#1083): Major Scales climbs a starter run of keys, so
+    // seed mode shows per-variation progress (sample_sessions scores the first two).
     if let Some(scales) = items.iter_mut().find(|i| i.id == "sample-scales") {
         scales.variants = ["C", "G", "D", "A", "E"]
             .iter()
@@ -4654,7 +4654,7 @@ mod tests {
         }
     }
 
-    // ── Step (variant) derivation (#1083 C1) ──
+    // ── Variation derivation (#1083 C1) ──
 
     fn variant_entry(item_id: &str, variant_id: &str, score: Option<u8>) -> SetlistEntry {
         let mut e = ctx_entry(item_id, "Scales", ItemKind::Exercise, score, None);
@@ -4704,22 +4704,22 @@ mod tests {
             ),
         ];
 
-        let steps = derived_variants(&ex, &sessions);
+        let variations = derived_variants(&ex, &sessions);
 
-        assert_eq!(steps.len(), 3);
+        assert_eq!(variations.len(), 3);
         assert_eq!(
-            steps[0].latest_score,
+            variations[0].latest_score,
             Some(9),
             "latest session wins over older"
         );
-        assert!(steps[0].is_solid, "score >= threshold is solid");
-        assert_eq!(steps[1].latest_score, Some(5));
-        assert!(!steps[1].is_solid);
+        assert!(variations[0].is_solid, "score >= threshold is solid");
+        assert_eq!(variations[1].latest_score, Some(5));
+        assert!(!variations[1].is_solid);
         assert_eq!(
-            steps[2].latest_score, None,
+            variations[2].latest_score, None,
             "unpractised variation has no score"
         );
-        assert!(!steps[2].is_solid);
+        assert!(!variations[2].is_solid);
     }
 
     #[test]
@@ -4732,9 +4732,9 @@ mod tests {
             now,
             vec![variant_entry("other", "ex-1-v0", Some(10))],
         )];
-        let steps = derived_variants(&ex, &sessions);
+        let variations = derived_variants(&ex, &sessions);
         assert_eq!(
-            steps[0].latest_score, None,
+            variations[0].latest_score, None,
             "scores are scoped to this item"
         );
     }
@@ -5079,7 +5079,7 @@ mod tests {
         // `used_in_derivation_seeds_nothing_for_a_link_to_a_missing_or_wrong_kind_item`
         // — a view-level assert here passes whether or not the filter exists.
     }
-    // ── Step ladder view derivation (#1083 C1) ─────────────────────────
+    // ── Variation ladder view derivation (#1083 C1) ─────────────────────────
 
     fn laddered_exercise(id: &str) -> Item {
         use crate::domain::variant::Variant;
@@ -5193,7 +5193,7 @@ mod tests {
                 Some(7),
                 t0 + chrono::Duration::days(1),
             ),
-            // A flat (unattributed) score never counts towards a step.
+            // A flat (unattributed) score never counts towards a variation.
             step_session("s3", "ex-1", None, Some(9), t0 + chrono::Duration::days(2)),
             step_session(
                 "s4",

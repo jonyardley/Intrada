@@ -139,7 +139,7 @@ exactly as it does today.
    | Card headline | `A priority · going cold after 3 weeks` |
    | Card headline, unstarred | `Cold for 3 months` / `Practised 6 days ago` / `Practised yesterday` / `Practised today` / `Not practised yet` |
    | Exercise row | `Marked 4 of 10 last time` / `Not marked with this piece` |
-   | Step row | `Marked 4 of 10 last time` / `Step not marked yet` |
+   | Step row | `Marked 4 of 10 last time` / `Variation not marked yet` |
    | Piece row | `Marked 6 of 10 last time` / `Not marked yet` |
 
    The piece row says its mark rather than repeating the headline's staleness:

@@ -119,8 +119,8 @@ pub fn compute_up_next(items: &[LibraryItemView], clock: LocalClock) -> Option<S
             item_id: ex.id.to_string(),
             item_title: ex.title.to_string(),
             item_type: ItemKind::Exercise,
-            variant_id: ex.variation.map(|s| s.id.clone()),
-            variant_label: ex.variation.map(|s| s.label.clone()),
+            variant_id: ex.variation.map(|v| v.id.clone()),
+            variant_label: ex.variation.map(|v| v.label.clone()),
             latest_score: ex.mark,
             reason: mark_clause(ex.mark, ex.variation.is_some()),
         })
@@ -171,7 +171,7 @@ struct Suggestable<'a> {
     id: &'a str,
     title: &'a str,
     variation: Option<&'a VariantView>,
-    /// The variation's mark where a variation was chosen, otherwise the exercise's mark
+    /// The variation's mark where one was chosen, otherwise the exercise's mark
     /// in this piece's context. Per-piece, not flat: a drill solid under one
     /// tune can be rough under another (#1081).
     mark: Option<u8>,
@@ -807,5 +807,11 @@ mod tests {
     fn suggested_session_round_trips_on_ffi_bincode_wire() {
         let library = piece_with_exercises("p1", "Prelude", 2);
         crate::domain::types::assert_round_trips(suggest(&library));
+    }
+
+    #[test]
+    fn unmarked_reason_names_the_variation_or_the_piece() {
+        assert_eq!(mark_clause(None, true), "Variation not marked yet");
+        assert_eq!(mark_clause(None, false), "Not marked with this piece");
     }
 }

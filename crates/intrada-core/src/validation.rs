@@ -1616,4 +1616,46 @@ mod tests {
             _ => panic!("Expected Validation error"),
         }
     }
+
+    #[test]
+    fn too_many_variant_labels_names_variations() {
+        let labels: Vec<String> = (0..=MAX_VARIANTS).map(|i| format!("Key {i}")).collect();
+        let err = validate_variant_labels(&labels).unwrap_err();
+        match err {
+            LibraryError::Validation { field, message } => {
+                assert_eq!(field, "labels");
+                assert_eq!(message, "An exercise can have at most 24 variations");
+            }
+            _ => panic!("Expected Validation error"),
+        }
+    }
+
+    #[test]
+    fn empty_variant_label_names_variation() {
+        let labels = vec![String::new()];
+        let err = validate_variant_labels(&labels).unwrap_err();
+        match err {
+            LibraryError::Validation { field, message } => {
+                assert_eq!(field, "labels");
+                assert_eq!(
+                    message,
+                    "Each variation label must be between 1 and 100 characters"
+                );
+            }
+            _ => panic!("Expected Validation error"),
+        }
+    }
+
+    #[test]
+    fn duplicate_variant_label_names_variation() {
+        let labels = vec!["C".to_string(), "c".to_string()];
+        let err = validate_variant_labels(&labels).unwrap_err();
+        match err {
+            LibraryError::Validation { field, message } => {
+                assert_eq!(field, "labels");
+                assert_eq!(message, "Duplicate variation \u{201c}c\u{201d}");
+            }
+            _ => panic!("Expected Validation error"),
+        }
+    }
 }
