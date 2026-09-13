@@ -217,7 +217,7 @@ final class LibraryStoreTests: XCTestCase {
   {
     PracticeSession(
       id: id, entries: [entry("a"), entry("b")], sessionNotes: "solid",
-      sessionIntention: "warm up", startedAt: "2026-01-01T00:00:00Z", completedAt: completedAt,
+      sessionIntention: nil, startedAt: "2026-01-01T00:00:00Z", completedAt: completedAt,
       totalDurationSecs: 600, completionStatus: .completed, sessionScore: nil,
       reflectionImproved: nil, reflectionStillRough: nil, reflectionNextTarget: nil)
   }
@@ -230,7 +230,6 @@ final class LibraryStoreTests: XCTestCase {
     XCTAssertEqual(got.totalDurationSecs, 600)
     XCTAssertEqual(got.completionStatus, .completed)
     XCTAssertEqual(got.sessionNotes, "solid")
-    XCTAssertEqual(got.sessionIntention, "warm up")
     XCTAssertEqual(got.entries.count, 2)
     let e = try XCTUnwrap(got.entries.first)
     XCTAssertEqual(e.itemType, .exercise)

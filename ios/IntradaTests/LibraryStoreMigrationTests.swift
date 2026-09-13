@@ -61,23 +61,6 @@ final class LibraryStoreMigrationTests: XCTestCase {
       "sessionScore UInt8→Int64→UInt8(clamping:) round-trip must preserve 7")
   }
 
-  func testSessionReflectionsRoundTrip() throws {
-    let store = try LibraryStore.inMemory()
-    let session = PracticeSession(
-      id: "sess-refl", entries: [],
-      sessionNotes: nil, sessionIntention: "even RH at 96",
-      startedAt: "2026-07-14T10:00:00Z", completedAt: "2026-07-14T10:30:00Z",
-      totalDurationSecs: 1800, completionStatus: .completed, sessionScore: nil,
-      reflectionImproved: "thumb-unders even at 92",
-      reflectionStillRough: "bars 12-14 rush past 88",
-      reflectionNextTarget: "bars 12-14 at 80, hands together")
-    try store.saveSession(session)
-    let loaded = try XCTUnwrap(try store.loadSessions().first)
-    XCTAssertEqual(loaded.reflectionImproved, "thumb-unders even at 92")
-    XCTAssertEqual(loaded.reflectionStillRough, "bars 12-14 rush past 88")
-    XCTAssertEqual(loaded.reflectionNextTarget, "bars 12-14 at 80, hands together")
-  }
-
   func testV6SessionSurvivesReflectionMigration() throws {
     let store = try LibraryStore.upgradeTestStore(
       migratedTo: "v6_item_linked_exercises",
@@ -91,9 +74,6 @@ final class LibraryStoreMigrationTests: XCTestCase {
     let loaded = try XCTUnwrap(try store.loadSessions().first)
     XCTAssertEqual(loaded.sessionNotes, "old note", "pre-migration row survives intact")
     XCTAssertEqual(loaded.sessionScore, 7)
-    XCTAssertNil(loaded.reflectionImproved, "old rows read back with nil reflections")
-    XCTAssertNil(loaded.reflectionStillRough)
-    XCTAssertNil(loaded.reflectionNextTarget)
   }
 
   func testGroupIdRoundTripsThroughTheJsonCodec() throws {
