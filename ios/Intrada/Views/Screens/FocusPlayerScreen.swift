@@ -60,7 +60,7 @@ struct FocusPlayerScreen: View {
     // foreground, where the phase never changes (#1513).
     .onChange(of: scenePhase, initial: true) { _, phase in
       wakeLock.update(sessionActive: active != nil, phase: phase)
-      if phase == .background { click.enteredBackground() } else { click.enteredForeground() }
+      if phase == .active { click.enteredForeground() } else { click.enteredBackground() }
     }
     .onDisappear {
       click.dispose()

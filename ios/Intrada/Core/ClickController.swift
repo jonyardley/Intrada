@@ -13,8 +13,7 @@ final class ClickController {
   /// Set only when the engine refused to start: an interruption or route change
   /// stops the pulse without breaking it, and a red row for headphones is a lie.
   private(set) var unavailable = false
-  /// Backgrounding was the only automatic stop; without one a phone in a pocket
-  /// clicks until the battery goes (#1399).
+  /// A phone left locked would otherwise click until the battery goes (#1399).
   var backgroundGrace: Duration = .seconds(600)
   private var backgroundStop: Task<Void, Never>?
   var backgroundStopArmed: Bool { backgroundStop != nil }
@@ -137,6 +136,8 @@ final class ClickController {
 
   /// The engine's observers outlive the screen unless it is torn down.
   func dispose() {
+    backgroundStop?.cancel()
+    backgroundStop = nil
     engine?.dispose()
     engine = nil
     isRunning = false

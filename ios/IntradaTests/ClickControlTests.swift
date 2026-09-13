@@ -141,14 +141,43 @@ struct ClickControllerTests {
     #expect(!click.backgroundStopArmed)
   }
 
-  @Test func theTimedStopFiresOnceTheGraceHasPassed() async throws {
+  @Test func theTimedStopWaitsForTheGraceAndThenFires() async throws {
+    let click = ClickController()
+    click.backgroundGrace = .milliseconds(200)
+
+    click.enteredBackground()
+    try await Task.sleep(for: .milliseconds(20))
+    #expect(click.backgroundStopArmed)
+
+    try await Task.sleep(for: .milliseconds(500))
+    #expect(!click.backgroundStopArmed)
+  }
+
+  /// An orphaned task would fire into the next arming and silence a restarted click.
+  @Test func returningToTheForegroundCancelsTheOldTaskNotJustItsHandle() async throws {
     let click = ClickController()
     click.backgroundGrace = .milliseconds(20)
+    click.enteredBackground()
+    click.enteredForeground()
 
+    click.backgroundGrace = .seconds(600)
     click.enteredBackground()
     try await Task.sleep(for: .milliseconds(300))
 
-    #expect(!click.backgroundStopArmed)
+    #expect(click.backgroundStopArmed)
+  }
+
+  @Test func aTapToStopCancelsTheOldTaskNotJustItsHandle() async throws {
+    let click = ClickController()
+    click.backgroundGrace = .milliseconds(20)
+    click.enteredBackground()
+    click.stop()
+
+    click.backgroundGrace = .seconds(600)
+    click.enteredBackground()
+    try await Task.sleep(for: .milliseconds(300))
+
+    #expect(click.backgroundStopArmed)
   }
 
   @Test func aTapToStopDisarmsTheTimedStop() {
