@@ -4715,7 +4715,10 @@ mod tests {
         assert!(steps[0].is_solid, "score >= threshold is solid");
         assert_eq!(steps[1].latest_score, Some(5));
         assert!(!steps[1].is_solid);
-        assert_eq!(steps[2].latest_score, None, "unpractised variation has no score");
+        assert_eq!(
+            steps[2].latest_score, None,
+            "unpractised variation has no score"
+        );
         assert!(!steps[2].is_solid);
     }
 
