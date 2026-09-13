@@ -345,20 +345,6 @@ ios-gen: ios-typegen (ios-package "debug")
     @just _ios-src-hash > ios/generated/.gen-stamp
     @echo "✓ bindings regenerated"
 
-# Prep an on-device PERFORMANCE build: regenerate the Crux core optimized for
-# release, then in Xcode select your device and Profile (⌘I). `ios`/`ios-gen`
-# build the core in debug (cargo-swift's default) — 10–100× slower in hot paths,
-# so misleading for perf work; this rebuilds it with `--release`. ⌘I builds the
-# Swift app Release, signs with project.yml's team, and opens Instruments.
-# Clears the gen-stamp so the next plain `just ios` rebuilds the debug core
-# (never link a release core into a routine debug run).
-[group('iOS')]
-ios-release: ios-typegen (ios-package "release")
-    cd ios && xcodegen generate --use-cache
-    rm -f ios/generated/.gen-stamp
-    @echo "✓ release core ready — opening Xcode. Select your device, then Product → Profile (⌘I). Next 'just ios' rebuilds the debug core."
-    xed ios/Intrada.xcodeproj
-
 # Build a signed Release .ipa and upload it to TestFlight (internal testing).
 # Mirrors the release-testflight.yml CI lane for local debugging. Needs Ruby >=3
 # (system Ruby 2.6 is too old — use rbenv) + the ASC_*/MATCH_* env set, and a

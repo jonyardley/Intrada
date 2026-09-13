@@ -121,8 +121,9 @@ final class Store {
     }
   }
 
-  /// Pre-recovery discard is pure KV cleanup: the model is Idle, and
-  /// AbandonSession (the core's clearing path) requires an Active session (#962).
+  /// Pre-recovery discard is pure KV cleanup: the model is Idle, and the
+  /// core's own clearing path (SaveSession or DiscardSession emitting
+  /// ClearSessionInProgress) needs a session to be running (#962).
   func discardSessionInProgress() {
     sortDefaults.removeObject(forKey: Self.sessionInProgressKey)
     recoverableSession = nil

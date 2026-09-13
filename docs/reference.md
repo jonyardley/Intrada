@@ -660,10 +660,13 @@ note saying it is obsolete.
 
 ## Known tech debt (moved from CLAUDE.md, 2026-09-08)
 
-- **`Set`** (`domain/set.rs`) is shell-dead and violates offline-first
-  invariant 1: no Swift screen sends a `SetEvent`, and its HTTP creates fire
-  unconditionally with no `local_first` branch or persistence op. #1348 decides
-  whether it is deleted or converted before `RoutinesScreen` is wired to it.
+- **The routines domain** (`domain/set.rs`) was removed in #1747 with no screen
+  reading it, so #1348 now means rebuilding routines from a new spec.
+- **The session intention and time target** (`session_intention`,
+  `target_duration_mins`) survive on the builder, four view types and the
+  sessions table, but lost their only writers in #1747. Filling either in again
+  needs a screen and an event; removing them is a bridge plus schema change.
+  Tracked in #1766.
 - **Session reflection** (`reflection_improved`, `reflection_still_rough`,
   `reflection_next_target`, `ReflectionField`,
   `SessionEvent::UpdateSessionReflection`) is shell-dead the same way after

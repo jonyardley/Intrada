@@ -107,7 +107,7 @@ plan, handover openers. Plan on a stronger model than you implement on.
 
 **Design.** Technical design fails silently, visual design fails visibly.
 Contracts, data model and boundaries: Fable 5.1 high for the
-Event/Effect/ViewModel shape, anything crossing the bridge, schema and sync
+Event/Effect/ViewModel shape, anything crossing the bridge, and schema
 strategy; Opus 5 high within a settled contract; no Sonnet tier. Visual and UX:
 Fable or Opus at high for a new flow judged against `design-principles.md` or
 a T-numbered decision; Opus 5 high for mocking screens in Claude Design; Sonnet

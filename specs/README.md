@@ -34,6 +34,7 @@ Accurate about how the app works or is being built now.
 | [`up-next-card.md`](up-next-card.md) | The "Up next" suggestion on the Practice tab (`compute_up_next` in `suggestion.rs`) |
 | [`getting-cold-signal.md`](getting-cold-signal.md) | Weighting the "not practised in a while" signal by how well learned a piece is (`staleness.rs`) |
 | [`api-removal.md`](api-removal.md) | The 2026-09-12 decision to remove the API and the sync, account and MCP-token client code (#1746, #1749); what went, what stays, what Jon tears down by hand |
+| [`profile.md`](profile.md) | The musician's name, instrument, icon and highlighter colour, held on the device (`domain/profile.rs`, `AppEffect::SaveProfile`). Shipped across #1691 and #1692 |
 
 ## Planned, designed and not finished
 
@@ -42,6 +43,7 @@ Accurate about how the app works or is being built now.
 | [`piece-from-photo.md`](piece-from-photo.md) | Adding a piece from a photograph of the page. Phases A, B and C shipped (#1443, #1455, #1476); Phase D unstarted (#1355, #1387) |
 | [`one-pass-create.md`](one-pass-create.md) | Adding a piece with its chord chart and exercises in one save. Core landed 2026-09-07 (#1390, PR #1591) and `ItemEvent::AddPieceInFull` has no caller in `ios/Intrada` yet: this is the screens half of a two-PR split, still owed |
 | [`picker-core-sort.md`](picker-core-sort.md) | The linked-item picker sheet's sort and search calling into the core instead of a Swift copy. Core landed on main (`sort_and_filter_candidates` in `app.rs`, `sort_and_filter_picker_candidates` in `intrada-ffi`, #1653, #1662); the screens half wiring `LinkedItemPickerSheet` to it and deleting the Swift copies is #1664, open |
+| [`exercise-variations.md`](exercise-variations.md) | Variations defined on the exercise, and a session recording what was actually played (#1739). Phase A (core) and Phase B (the player's variation picker and the item-complete sheet) shipped; Phase C is open. Supersedes decisions 4 and 5 of `exercise-variants.md` |
 
 ## Shipped record, verify against the code before extending
 

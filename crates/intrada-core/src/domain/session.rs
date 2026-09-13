@@ -1,5 +1,7 @@
 use crate::app::{AppEffect, Effect, Event};
-use crate::domain::item::{Item, ItemKind};
+#[cfg(test)]
+use crate::domain::item::Item;
+use crate::domain::item::ItemKind;
 use crate::domain::metre::Metre;
 use crate::error::LibraryError;
 use crate::model::Model;
@@ -291,10 +293,6 @@ pub struct BuildingSession {
     /// Optional session-level time target (in minutes) set via presets.
     /// Purely a UI guide — not enforced.
     pub target_duration_mins: Option<u32>,
-    /// Which saved Set this builder was loaded from (if any).
-    pub source_set_id: Option<String>,
-    /// Ordered item_ids at load time — used to detect modifications.
-    pub source_set_entry_snapshot: Vec<String>,
 }
 
 /// State during active practice (Active phase).
@@ -345,14 +343,6 @@ pub enum SessionStatus {
 pub enum SessionEvent {
     // === Building Phase ===
     StartBuilding,
-    /// Start building with a session-level time target (in minutes).
-    /// The target is a UI guide, not enforced.
-    StartBuildingWithTarget {
-        target_duration_mins: u32,
-    },
-    SetSessionIntention {
-        intention: Option<String>,
-    },
     SetEntryIntention {
         entry_id: String,
         intention: Option<String>,
@@ -401,10 +391,6 @@ pub enum SessionEvent {
     StartBuildingWithPriorities {
         now: DateTime<Utc>,
     },
-    AddNewItemToSetlist {
-        title: String,
-        item_type: ItemKind,
-    },
     RemoveFromSetlist {
         entry_id: String,
     },
@@ -442,12 +428,6 @@ pub enum SessionEvent {
     StartSession {
         now: DateTime<Utc>,
     },
-    /// Set or clear the session-level time target during building phase.
-    /// `None` removes the target; `Some(mins)` sets it (validated against
-    /// MIN/MAX_SESSION_TARGET_MINS).
-    SetTargetDuration {
-        target_duration_mins: Option<u32>,
-    },
     CancelBuilding,
 
     // === Active Phase ===
@@ -457,23 +437,12 @@ pub enum SessionEvent {
     SkipItem {
         now: DateTime<Utc>,
     },
-    AddItemMidSession {
-        item_id: String,
-    },
-    AddNewItemMidSession {
-        title: String,
-        item_type: ItemKind,
-    },
     FinishSession {
         now: DateTime<Utc>,
     },
     EndSessionEarly {
         now: DateTime<Utc>,
     },
-    /// Abandon an active session without saving — goes directly to Idle.
-    /// Used when the user wants to discard an in-progress session from the
-    /// new-session page (e.g. after crash recovery leaves a stale session).
-    AbandonSession,
     /// Bank a pass on the current entry (capped at target). The first tap on
     /// an untouched entry writes the target too; see `record_rep`.
     RepGotIt {
@@ -533,9 +502,6 @@ pub enum SessionEvent {
     },
 
     // === History ===
-    DeleteSession {
-        id: String,
-    },
     UpdateSessionScore {
         score: Option<u8>,
     },
@@ -580,14 +546,6 @@ pub fn format_duration_summary(secs: u64) -> String {
     } else {
         format!("{minutes}m")
     }
-}
-
-fn find_item_in_model(model: &Model, item_id: &str) -> Option<(String, ItemKind)> {
-    model
-        .items
-        .iter()
-        .find(|i| i.id == item_id)
-        .map(|i| (i.title.clone(), i.kind.clone()))
 }
 
 fn create_entry(
@@ -688,29 +646,6 @@ fn dissolve_pieceless_groups(entries: &mut [SetlistEntry]) {
         {
             entry.group_id = None;
         }
-    }
-}
-
-fn create_item_from_title(title: &str, kind: ItemKind) -> Item {
-    let now = Utc::now();
-    Item {
-        id: ulid::Ulid::generate().to_string(),
-        title: title.to_string(),
-        kind,
-        composer: None,
-        key: None,
-        modality: None,
-        tempo: None,
-        notes: None,
-        tags: vec![],
-        linked_exercise_ids: vec![],
-        created_at: now,
-        updated_at: now,
-        priority: false,
-        chord_chart: None,
-        variants: vec![],
-        photo_id: None,
-        metre: None,
     }
 }
 
@@ -889,72 +824,6 @@ pub fn handle_session_event(event: SessionEvent, model: &mut Model) -> Command<E
                 return crux_core::render::render();
             }
             model.session_status = SessionStatus::Building(BuildingSession::default());
-            model.last_error = None;
-            crux_core::render::render()
-        }
-
-        SessionEvent::StartBuildingWithTarget {
-            target_duration_mins,
-        } => {
-            if !matches!(model.session_status, SessionStatus::Idle) {
-                model.last_error = Some("A practice is already in progress".to_string());
-                return crux_core::render::render();
-            }
-            if !(validation::MIN_SESSION_TARGET_MINS..=validation::MAX_SESSION_TARGET_MINS)
-                .contains(&target_duration_mins)
-            {
-                model.last_error = Some(format!(
-                    "Session target must be between {} and {} minutes",
-                    validation::MIN_SESSION_TARGET_MINS,
-                    validation::MAX_SESSION_TARGET_MINS
-                ));
-                return crux_core::render::render();
-            }
-            model.session_status = SessionStatus::Building(BuildingSession {
-                target_duration_mins: Some(target_duration_mins),
-                ..Default::default()
-            });
-            model.last_error = None;
-            crux_core::render::render()
-        }
-
-        SessionEvent::SetSessionIntention { intention } => {
-            let SessionStatus::Building(ref mut building) = model.session_status else {
-                // No-op when not in Building state
-                return crux_core::render::render();
-            };
-
-            if let Err(e) = validation::validate_intention(&intention) {
-                model.last_error = Some(e.to_string());
-                return crux_core::render::render();
-            }
-
-            building.session_intention = intention;
-            model.last_error = None;
-            crux_core::render::render()
-        }
-
-        SessionEvent::SetTargetDuration {
-            target_duration_mins,
-        } => {
-            let SessionStatus::Building(ref mut building) = model.session_status else {
-                return crux_core::render::render();
-            };
-
-            if let Some(mins) = target_duration_mins {
-                if !(validation::MIN_SESSION_TARGET_MINS..=validation::MAX_SESSION_TARGET_MINS)
-                    .contains(&mins)
-                {
-                    model.last_error = Some(format!(
-                        "Session target must be between {} and {} minutes",
-                        validation::MIN_SESSION_TARGET_MINS,
-                        validation::MAX_SESSION_TARGET_MINS
-                    ));
-                    return crux_core::render::render();
-                }
-            }
-
-            building.target_duration_mins = target_duration_mins;
             model.last_error = None;
             crux_core::render::render()
         }
@@ -1205,33 +1074,6 @@ pub fn handle_session_event(event: SessionEvent, model: &mut Model) -> Command<E
 
             model.last_error = None;
             crux_core::render::render()
-        }
-
-        SessionEvent::AddNewItemToSetlist { title, item_type } => {
-            let SessionStatus::Building(ref mut building) = model.session_status else {
-                model.last_error = Some("Not in building state".to_string());
-                return crux_core::render::render();
-            };
-
-            if let Err(e) = validation::validate_title(&title) {
-                model.last_error = Some(e.to_string());
-                return crux_core::render::render();
-            }
-
-            let item = create_item_from_title(&title, item_type.clone());
-            let new_item_id = item.id.clone();
-            model.items.push(item.clone());
-
-            let position = building.entries.len();
-            let entry = create_entry(&new_item_id, &title, item_type, position);
-            building.entries.push(entry);
-            model.last_error = None;
-            model.record_success();
-
-            Command::all([
-                crate::persistence::save_item(item),
-                crux_core::render::render(),
-            ])
         }
 
         SessionEvent::RemoveFromSetlist { entry_id } => {
@@ -1576,62 +1418,6 @@ pub fn handle_session_event(event: SessionEvent, model: &mut Model) -> Command<E
             ])
         }
 
-        SessionEvent::AddItemMidSession { item_id } => {
-            if !matches!(model.session_status, SessionStatus::Active(_)) {
-                model.last_error = Some("Not in active state".to_string());
-                return crux_core::render::render();
-            }
-
-            let Some((title, item_type)) = find_item_in_model(model, &item_id) else {
-                model.last_error = Some(LibraryError::NotFound { id: item_id }.to_string());
-                return crux_core::render::render();
-            };
-
-            let SessionStatus::Active(ref mut active) = model.session_status else {
-                model.last_error = Some("Internal error: expected Active state".to_string());
-                return crux_core::render::render();
-            };
-            let position = active.entries.len();
-            let entry = create_entry(&item_id, &title, item_type, position);
-            active.entries.push(entry);
-            model.last_error = None;
-
-            let save_effect = AppEffect::SaveSessionInProgress(active.clone());
-            Command::all([
-                Command::notify_shell(save_effect).into(),
-                crux_core::render::render(),
-            ])
-        }
-
-        SessionEvent::AddNewItemMidSession { title, item_type } => {
-            let SessionStatus::Active(ref mut active) = model.session_status else {
-                model.last_error = Some("Not in active state".to_string());
-                return crux_core::render::render();
-            };
-
-            if let Err(e) = validation::validate_title(&title) {
-                model.last_error = Some(e.to_string());
-                return crux_core::render::render();
-            }
-
-            let item = create_item_from_title(&title, item_type.clone());
-            let new_item_id = item.id.clone();
-            model.items.push(item.clone());
-
-            let position = active.entries.len();
-            let entry = create_entry(&new_item_id, &title, item_type, position);
-            active.entries.push(entry);
-            let save_effect_session = AppEffect::SaveSessionInProgress(active.clone());
-            model.last_error = None;
-            model.record_success();
-
-            Command::all([
-                crate::persistence::save_item(item),
-                Command::notify_shell(save_effect_session).into(),
-                crux_core::render::render(),
-            ])
-        }
-
         SessionEvent::FinishSession { now } => {
             let SessionStatus::Active(ref mut active) = model.session_status else {
                 model.last_error = Some("Not in active state".to_string());
@@ -1654,21 +1440,6 @@ pub fn handle_session_event(event: SessionEvent, model: &mut Model) -> Command<E
             model.session_status = SessionStatus::Summary(summary);
             model.last_error = None;
             crux_core::render::render()
-        }
-
-        SessionEvent::AbandonSession => {
-            if !matches!(model.session_status, SessionStatus::Active(_)) {
-                model.last_error = Some("No active practice to abandon".to_string());
-                return crux_core::render::render();
-            }
-
-            model.session_status = SessionStatus::Idle;
-            model.last_error = None;
-
-            Command::all([
-                Command::notify_shell(AppEffect::ClearSessionInProgress).into(),
-                crux_core::render::render(),
-            ])
         }
 
         SessionEvent::RepGotIt { now } => record_rep(model, RepAction::Success, now),
@@ -1956,22 +1727,6 @@ pub fn handle_session_event(event: SessionEvent, model: &mut Model) -> Command<E
             model.last_error = None;
             crux_core::render::render()
         }
-
-        // ── History ────────────────────────────────────────────────
-        SessionEvent::DeleteSession { id } => {
-            let len_before = model.sessions.len();
-            model.sessions.retain(|s| s.id != id);
-
-            if model.sessions.len() == len_before {
-                model.last_error = Some(LibraryError::NotFound { id: id.clone() }.to_string());
-                return crux_core::render::render();
-            }
-
-            model.practice_summaries = crate::app::build_practice_summaries(&model.sessions);
-            model.last_error = None;
-
-            crux_core::render::render()
-        }
     }
 }
 
@@ -2052,20 +1807,6 @@ mod tests {
     fn update(model: &mut Model, event: Event) {
         let app = Intrada;
         let _cmd = app.update(event, model);
-    }
-
-    fn saved_item_ids(cmd: &mut Command<Effect, Event>) -> Vec<String> {
-        cmd.effects()
-            .filter_map(|e| match e {
-                Effect::Persistence(req) => match &req.operation {
-                    crate::persistence::PersistenceOperation::SaveItem(item) => {
-                        Some(item.id.clone())
-                    }
-                    _ => None,
-                },
-                _ => None,
-            })
-            .collect()
     }
 
     // --- Block grouping (related exercises travel with a piece) ---
@@ -2907,62 +2648,6 @@ mod tests {
     }
 
     #[test]
-    fn test_start_building_with_target() {
-        let mut model = model_with_library();
-        update(
-            &mut model,
-            Event::Session(SessionEvent::StartBuildingWithTarget {
-                target_duration_mins: 20,
-            }),
-        );
-
-        assert!(model.last_error.is_none());
-        if let SessionStatus::Building(ref b) = model.session_status {
-            assert_eq!(b.target_duration_mins, Some(20));
-        } else {
-            panic!("Expected Building state");
-        }
-    }
-
-    #[test]
-    fn test_start_building_with_target_when_already_building() {
-        let mut model = model_with_library();
-        update(&mut model, Event::Session(SessionEvent::StartBuilding));
-        update(
-            &mut model,
-            Event::Session(SessionEvent::StartBuildingWithTarget {
-                target_duration_mins: 15,
-            }),
-        );
-
-        assert!(model.last_error.is_some());
-    }
-
-    #[test]
-    fn test_start_building_with_target_out_of_range() {
-        let mut model = model_with_library();
-        update(
-            &mut model,
-            Event::Session(SessionEvent::StartBuildingWithTarget {
-                target_duration_mins: 0,
-            }),
-        );
-
-        assert!(model.last_error.is_some());
-        assert!(matches!(model.session_status, SessionStatus::Idle));
-
-        update(
-            &mut model,
-            Event::Session(SessionEvent::StartBuildingWithTarget {
-                target_duration_mins: 999,
-            }),
-        );
-
-        assert!(model.last_error.is_some());
-        assert!(matches!(model.session_status, SessionStatus::Idle));
-    }
-
-    #[test]
     fn test_start_building_without_target_has_none() {
         let mut model = model_with_library();
         update(&mut model, Event::Session(SessionEvent::StartBuilding));
@@ -2972,81 +2657,6 @@ mod tests {
         } else {
             panic!("Expected Building state");
         }
-    }
-
-    #[test]
-    fn test_set_target_duration_during_building() {
-        let mut model = model_with_library();
-        update(&mut model, Event::Session(SessionEvent::StartBuilding));
-        update(
-            &mut model,
-            Event::Session(SessionEvent::SetTargetDuration {
-                target_duration_mins: Some(20),
-            }),
-        );
-
-        assert!(model.last_error.is_none());
-        if let SessionStatus::Building(ref b) = model.session_status {
-            assert_eq!(b.target_duration_mins, Some(20));
-        } else {
-            panic!("Expected Building state");
-        }
-    }
-
-    #[test]
-    fn test_set_target_duration_clear() {
-        let mut model = model_with_library();
-        update(
-            &mut model,
-            Event::Session(SessionEvent::StartBuildingWithTarget {
-                target_duration_mins: 15,
-            }),
-        );
-        update(
-            &mut model,
-            Event::Session(SessionEvent::SetTargetDuration {
-                target_duration_mins: None,
-            }),
-        );
-
-        assert!(model.last_error.is_none());
-        if let SessionStatus::Building(ref b) = model.session_status {
-            assert_eq!(b.target_duration_mins, None);
-        } else {
-            panic!("Expected Building state");
-        }
-    }
-
-    #[test]
-    fn test_set_target_duration_out_of_range() {
-        let mut model = model_with_library();
-        update(&mut model, Event::Session(SessionEvent::StartBuilding));
-        update(
-            &mut model,
-            Event::Session(SessionEvent::SetTargetDuration {
-                target_duration_mins: Some(999),
-            }),
-        );
-
-        assert!(model.last_error.is_some());
-        if let SessionStatus::Building(ref b) = model.session_status {
-            assert_eq!(b.target_duration_mins, None);
-        } else {
-            panic!("Expected Building state");
-        }
-    }
-
-    #[test]
-    fn test_set_target_duration_when_not_building() {
-        let mut model = model_with_library();
-        update(
-            &mut model,
-            Event::Session(SessionEvent::SetTargetDuration {
-                target_duration_mins: Some(20),
-            }),
-        );
-        assert!(matches!(model.session_status, SessionStatus::Idle));
-        assert!(model.last_error.is_none());
     }
 
     #[test]
@@ -3393,69 +3003,6 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_add_item_mid_session() {
-        let (mut model, _start) = model_with_active_session(2);
-
-        update(
-            &mut model,
-            Event::Session(SessionEvent::AddItemMidSession {
-                item_id: "exercise-1".to_string(),
-            }),
-        );
-
-        assert!(model.last_error.is_none());
-        if let SessionStatus::Active(ref active) = model.session_status {
-            assert_eq!(active.entries.len(), 3);
-            assert_eq!(active.entries[2].item_title, "C Major Scale");
-            assert_eq!(active.current_index, 0); // Timer not interrupted
-        } else {
-            panic!("Expected Active state");
-        }
-    }
-
-    #[test]
-    fn test_add_new_item_mid_session() {
-        let (mut model, _start) = model_with_active_session(2);
-
-        update(
-            &mut model,
-            Event::Session(SessionEvent::AddNewItemMidSession {
-                title: "New Scale".to_string(),
-                item_type: ItemKind::Exercise,
-            }),
-        );
-
-        assert!(model.last_error.is_none());
-        if let SessionStatus::Active(ref active) = model.session_status {
-            assert_eq!(active.entries.len(), 3);
-            assert_eq!(active.entries[2].item_title, "New Scale");
-        } else {
-            panic!("Expected Active state");
-        }
-        // Verify item was added to library (3 original + 1 new)
-        assert_eq!(model.items.len(), 4);
-    }
-
-    /// A piece invented mid-practice is a library item like any other, so it
-    /// must reach the store: the recovered session names its id, and an id with
-    /// no row behind it is a setlist entry pointing at nothing.
-    #[test]
-    fn add_new_item_mid_session_persists_the_new_item() {
-        let (mut model, _start) = model_with_active_session(2);
-
-        let mut cmd = Intrada.update(
-            Event::Session(SessionEvent::AddNewItemMidSession {
-                title: "New Scale".to_string(),
-                item_type: ItemKind::Exercise,
-            }),
-            &mut model,
-        );
-
-        let new_id = model.items.last().expect("the item was created").id.clone();
-        assert_eq!(saved_item_ids(&mut cmd), vec![new_id]);
-    }
-
     // --- Summary Phase Tests ---
 
     fn model_with_summary() -> Model {
@@ -3780,28 +3327,6 @@ mod tests {
         assert!(model.sessions.is_empty());
     }
 
-    #[test]
-    fn test_abandon_session_from_active() {
-        let (mut model, _) = model_with_active_session(2);
-
-        update(&mut model, Event::Session(SessionEvent::AbandonSession));
-
-        assert!(model.last_error.is_none());
-        assert!(matches!(model.session_status, SessionStatus::Idle));
-    }
-
-    #[test]
-    fn test_abandon_session_not_active() {
-        let mut model = model_with_library();
-
-        update(&mut model, Event::Session(SessionEvent::AbandonSession));
-
-        assert_eq!(
-            model.last_error.as_deref(),
-            Some("No active practice to abandon")
-        );
-    }
-
     // --- Recovery Tests ---
 
     #[test]
@@ -3900,42 +3425,6 @@ mod tests {
             Event::Session(SessionEvent::RecoverSession {
                 session: active,
                 now,
-            }),
-        );
-
-        assert!(model.last_error.is_some());
-    }
-
-    // --- Delete Session Test ---
-
-    #[test]
-    fn test_delete_session() {
-        let mut model = model_with_summary();
-        let now = Utc::now();
-
-        update(
-            &mut model,
-            Event::Session(SessionEvent::SaveSession { now }),
-        );
-
-        let session_id = model.sessions[0].id.clone();
-        update(
-            &mut model,
-            Event::Session(SessionEvent::DeleteSession { id: session_id }),
-        );
-
-        assert!(model.last_error.is_none());
-        assert!(model.sessions.is_empty());
-    }
-
-    #[test]
-    fn test_delete_session_not_found() {
-        let mut model = model_with_library();
-
-        update(
-            &mut model,
-            Event::Session(SessionEvent::DeleteSession {
-                id: "nonexistent".to_string(),
             }),
         );
 
@@ -5447,93 +4936,7 @@ mod tests {
         assert!(parsed.sessions.is_empty());
     }
 
-    // --- AddNewItemToSetlist Tests ---
-
-    #[test]
-    fn test_add_new_item_to_setlist_piece() {
-        let mut model = model_with_library();
-        update(&mut model, Event::Session(SessionEvent::StartBuilding));
-        update(
-            &mut model,
-            Event::Session(SessionEvent::AddNewItemToSetlist {
-                title: "New Piece".to_string(),
-                item_type: ItemKind::Piece,
-            }),
-        );
-
-        assert!(model.last_error.is_none());
-        // Verify new item in library (3 original + 1 new)
-        assert_eq!(model.items.len(), 4);
-        assert_eq!(model.items[3].title, "New Piece");
-        // Verify in setlist
-        if let SessionStatus::Building(ref b) = model.session_status {
-            assert_eq!(b.entries.len(), 1);
-            assert_eq!(b.entries[0].item_title, "New Piece");
-            assert_eq!(b.entries[0].item_type, ItemKind::Piece);
-        } else {
-            panic!("Expected Building state");
-        }
-    }
-
-    /// Same reason as the mid-session create: the builder mints a real library
-    /// item, so it has to land in the store rather than only in memory.
-    #[test]
-    fn add_new_item_to_setlist_persists_the_new_item() {
-        let mut model = model_with_library();
-        update(&mut model, Event::Session(SessionEvent::StartBuilding));
-
-        let mut cmd = Intrada.update(
-            Event::Session(SessionEvent::AddNewItemToSetlist {
-                title: "New Piece".to_string(),
-                item_type: ItemKind::Piece,
-            }),
-            &mut model,
-        );
-
-        let new_id = model.items.last().expect("the item was created").id.clone();
-        assert_eq!(saved_item_ids(&mut cmd), vec![new_id]);
-    }
-
-    #[test]
-    fn test_add_new_item_to_setlist_exercise() {
-        let mut model = model_with_library();
-        update(&mut model, Event::Session(SessionEvent::StartBuilding));
-        update(
-            &mut model,
-            Event::Session(SessionEvent::AddNewItemToSetlist {
-                title: "New Exercise".to_string(),
-                item_type: ItemKind::Exercise,
-            }),
-        );
-
-        assert!(model.last_error.is_none());
-        // 3 original + 1 new
-        assert_eq!(model.items.len(), 4);
-    }
-
-    // test_add_new_item_invalid_type removed — item_type is now ItemKind enum,
-    // invalid values are prevented at compile time.
-
     // --- Intention Tests ---
-
-    #[test]
-    fn test_set_session_intention() {
-        let mut model = model_with_library();
-        update(&mut model, Event::Session(SessionEvent::StartBuilding));
-        update(
-            &mut model,
-            Event::Session(SessionEvent::SetSessionIntention {
-                intention: Some("Focus on dynamics".to_string()),
-            }),
-        );
-
-        assert!(model.last_error.is_none());
-        if let SessionStatus::Building(ref b) = model.session_status {
-            assert_eq!(b.session_intention, Some("Focus on dynamics".to_string()));
-        } else {
-            panic!("Expected Building state");
-        }
-    }
 
     #[test]
     fn test_set_entry_intention() {
@@ -5636,208 +5039,6 @@ mod tests {
             }),
         );
         assert!(model.last_error.is_some());
-    }
-
-    #[test]
-    fn test_intention_too_long() {
-        let mut model = model_with_library();
-        update(&mut model, Event::Session(SessionEvent::StartBuilding));
-
-        let long_text = "a".repeat(501);
-        update(
-            &mut model,
-            Event::Session(SessionEvent::SetSessionIntention {
-                intention: Some(long_text),
-            }),
-        );
-
-        assert!(model.last_error.is_some());
-        if let SessionStatus::Building(ref b) = model.session_status {
-            assert_eq!(b.session_intention, None);
-        } else {
-            panic!("Expected Building state");
-        }
-    }
-
-    #[test]
-    fn test_intention_threaded_to_active() {
-        let mut model = model_with_library();
-        let now = Utc::now();
-        update(&mut model, Event::Session(SessionEvent::StartBuilding));
-        update(
-            &mut model,
-            Event::Session(SessionEvent::AddToSetlist {
-                item_id: "piece-1".to_string(),
-            }),
-        );
-
-        // Set session intention
-        update(
-            &mut model,
-            Event::Session(SessionEvent::SetSessionIntention {
-                intention: Some("Session intention".to_string()),
-            }),
-        );
-
-        // Set entry intention
-        let entry_id = if let SessionStatus::Building(ref b) = model.session_status {
-            b.entries[0].id.clone()
-        } else {
-            panic!("Expected Building state");
-        };
-        update(
-            &mut model,
-            Event::Session(SessionEvent::SetEntryIntention {
-                entry_id,
-                intention: Some("Entry intention".to_string()),
-            }),
-        );
-
-        // Start session
-        update(
-            &mut model,
-            Event::Session(SessionEvent::StartSession { now }),
-        );
-
-        if let SessionStatus::Active(ref a) = model.session_status {
-            assert_eq!(a.session_intention, Some("Session intention".to_string()));
-            assert_eq!(a.entries[0].intention, Some("Entry intention".to_string()));
-        } else {
-            panic!("Expected Active state");
-        }
-    }
-
-    #[test]
-    fn test_intention_threaded_to_summary() {
-        let mut model = model_with_library();
-        let now = Utc::now();
-        update(&mut model, Event::Session(SessionEvent::StartBuilding));
-        update(
-            &mut model,
-            Event::Session(SessionEvent::AddToSetlist {
-                item_id: "piece-1".to_string(),
-            }),
-        );
-
-        update(
-            &mut model,
-            Event::Session(SessionEvent::SetSessionIntention {
-                intention: Some("Summary test".to_string()),
-            }),
-        );
-
-        let entry_id = if let SessionStatus::Building(ref b) = model.session_status {
-            b.entries[0].id.clone()
-        } else {
-            panic!("Expected Building state");
-        };
-        update(
-            &mut model,
-            Event::Session(SessionEvent::SetEntryIntention {
-                entry_id,
-                intention: Some("Entry summary test".to_string()),
-            }),
-        );
-
-        update(
-            &mut model,
-            Event::Session(SessionEvent::StartSession { now }),
-        );
-
-        let t1 = now + chrono::Duration::seconds(30);
-        update(
-            &mut model,
-            Event::Session(SessionEvent::FinishSession { now: t1 }),
-        );
-
-        if let SessionStatus::Summary(ref s) = model.session_status {
-            assert_eq!(s.session_intention, Some("Summary test".to_string()));
-            assert_eq!(
-                s.entries[0].intention,
-                Some("Entry summary test".to_string())
-            );
-        } else {
-            panic!("Expected Summary state");
-        }
-    }
-
-    #[test]
-    fn test_intention_persisted_in_save() {
-        let mut model = model_with_library();
-        let now = Utc::now();
-        update(&mut model, Event::Session(SessionEvent::StartBuilding));
-        update(
-            &mut model,
-            Event::Session(SessionEvent::AddToSetlist {
-                item_id: "piece-1".to_string(),
-            }),
-        );
-
-        update(
-            &mut model,
-            Event::Session(SessionEvent::SetSessionIntention {
-                intention: Some("Save test".to_string()),
-            }),
-        );
-
-        let entry_id = if let SessionStatus::Building(ref b) = model.session_status {
-            b.entries[0].id.clone()
-        } else {
-            panic!("Expected Building state");
-        };
-        update(
-            &mut model,
-            Event::Session(SessionEvent::SetEntryIntention {
-                entry_id,
-                intention: Some("Entry save test".to_string()),
-            }),
-        );
-
-        update(
-            &mut model,
-            Event::Session(SessionEvent::StartSession { now }),
-        );
-
-        let t1 = now + chrono::Duration::seconds(30);
-        update(
-            &mut model,
-            Event::Session(SessionEvent::FinishSession { now: t1 }),
-        );
-
-        let t2 = t1 + chrono::Duration::seconds(5);
-        update(
-            &mut model,
-            Event::Session(SessionEvent::SaveSession { now: t2 }),
-        );
-
-        assert_eq!(model.sessions.len(), 1);
-        assert_eq!(
-            model.sessions[0].session_intention,
-            Some("Save test".to_string())
-        );
-        assert_eq!(
-            model.sessions[0].entries[0].intention,
-            Some("Entry save test".to_string())
-        );
-    }
-
-    #[test]
-    fn test_set_intention_outside_building() {
-        let (mut model, _start) = model_with_active_session(2);
-
-        // In Active state, try to set session intention — should be no-op
-        update(
-            &mut model,
-            Event::Session(SessionEvent::SetSessionIntention {
-                intention: Some("Should not stick".to_string()),
-            }),
-        );
-
-        if let SessionStatus::Active(ref a) = model.session_status {
-            assert_eq!(a.session_intention, None);
-        } else {
-            panic!("Expected Active state");
-        }
     }
 
     // --- Rep Counter Tests ---

@@ -93,14 +93,6 @@ pub enum ItemEvent {
     Delete {
         id: String,
     },
-    AddTags {
-        id: String,
-        tags: Vec<String>,
-    },
-    RemoveTags {
-        id: String,
-        tags: Vec<String>,
-    },
     LinkExercise {
         piece_id: String,
         exercise_id: String,
@@ -108,9 +100,9 @@ pub enum ItemEvent {
     /// Create one hand-written exercise already linked to `piece_id`. Single
     /// event so the shell never has to learn the minted ulid: `Add` alone
     /// leaves the exercise unlinked and the shell with no id to link it by
-    /// (#1431). Local-first only, like `AddVariant` — the online create path
-    /// reassigns ids server-side, which is the dangling-link trap #1108 marks
-    /// inside `CommitScaffold`.
+    /// (#1431). Local-first only: the online create path reassigns ids
+    /// server-side, which is the dangling-link trap #1108 marks inside
+    /// `CommitScaffold`.
     AddLinkedExercise {
         piece_id: String,
         input: CreateItem,
@@ -128,9 +120,6 @@ pub enum ItemEvent {
     SetChordChart {
         piece_id: String,
         raw_chart: String,
-    },
-    ClearChordChart {
-        piece_id: String,
     },
     /// Materialise the selected scaffold `kinds` into real exercises linked to
     /// the piece. The core re-derives from the stored chart (deterministic), so
@@ -150,12 +139,6 @@ pub enum ItemEvent {
         id: String,
         labels: Vec<String>,
     },
-    /// Append one step; sugar over the same reconciliation as `SetVariants`
-    /// (shared validation; a tombstoned label resurrects, never duplicates).
-    AddVariant {
-        item_id: String,
-        label: String,
-    },
     /// Rename a step in place, matched by `variant_id` rather than label —
     /// `SetVariants`'s label-keyed reconciliation can't express a rename
     /// (a changed label is indistinguishable from remove+add, which would
@@ -169,7 +152,7 @@ pub enum ItemEvent {
     /// Point the item at the photo the shell has already written to disk,
     /// replacing any it already had. Kept out of `Update` because
     /// `UpdateItem`'s three-state `Option<Option<T>>` is the fiddliest encoding
-    /// on the bridge; `AddTags`/`RemoveTags` set the same precedent.
+    /// on the bridge.
     SetPhoto {
         id: String,
         photo_id: String,
@@ -213,7 +196,6 @@ pub enum ScaffoldEntry {
     Existing { id: String },
 }
 
-/// Shared by Update / AddTags / RemoveTags.
 /// The reconciliation key shared by `CommitScaffold` and the preview's
 /// `already_linked` flag: kinds (from the reserved tag, rename-robust) + titles
 /// (guarding hand-made exercises) already linked to the piece.
@@ -671,44 +653,6 @@ pub fn handle_item_event(event: ItemEvent, model: &mut Model) -> Command<Effect,
         ItemEvent::ClearPhoto { id } => set_photo(model, id, None),
         ItemEvent::ReadPhoto { photo_id } => read_photo(model, photo_id),
         ItemEvent::SetMetre { id, metre } => set_metre(model, id, metre),
-        ItemEvent::AddTags { id, tags } => {
-            if let Err(e) = validation::validate_tags(&tags) {
-                model.last_error = Some(e.to_string());
-                return crux_core::render::render();
-            }
-
-            let Some(item) = model.items.iter_mut().find(|i| i.id == id) else {
-                model.last_error = Some(LibraryError::NotFound { id }.to_string());
-                return crux_core::render::render();
-            };
-
-            for tag in tags {
-                let tag_lower = tag.to_lowercase();
-                if !item.tags.iter().any(|t| t.to_lowercase() == tag_lower) {
-                    item.tags.push(tag);
-                }
-            }
-            item.updated_at = chrono::Utc::now();
-            model.last_error = None;
-
-            let item = item.clone();
-            persist_item(model, item)
-        }
-        ItemEvent::RemoveTags { id, tags } => {
-            let Some(item) = model.items.iter_mut().find(|i| i.id == id) else {
-                model.last_error = Some(LibraryError::NotFound { id }.to_string());
-                return crux_core::render::render();
-            };
-
-            let tags_lower: Vec<String> = tags.iter().map(|t| t.to_lowercase()).collect();
-            item.tags
-                .retain(|t| !tags_lower.contains(&t.to_lowercase()));
-            item.updated_at = chrono::Utc::now();
-            model.last_error = None;
-
-            let item = item.clone();
-            persist_item(model, item)
-        }
         ItemEvent::LinkExercise {
             piece_id,
             exercise_id,
@@ -816,18 +760,6 @@ pub fn handle_item_event(event: ItemEvent, model: &mut Model) -> Command<Effect,
                 return crux_core::render::render();
             };
             piece.chord_chart = Some(chart);
-            piece.updated_at = chrono::Utc::now();
-            model.last_error = None;
-
-            let piece = piece.clone();
-            persist_item(model, piece)
-        }
-        ItemEvent::ClearChordChart { piece_id } => {
-            let Some(piece) = model.items.iter_mut().find(|i| i.id == piece_id) else {
-                model.last_error = Some(LibraryError::NotFound { id: piece_id }.to_string());
-                return crux_core::render::render();
-            };
-            piece.chord_chart = None;
             piece.updated_at = chrono::Utc::now();
             model.last_error = None;
 
@@ -958,46 +890,6 @@ pub fn handle_item_event(event: ItemEvent, model: &mut Model) -> Command<Effect,
                 crux_core::render::render(),
             ])
         }
-        ItemEvent::AddVariant { item_id, label } => {
-            if let Err(e) = validation::validate_variant_host(&item_id, model) {
-                model.last_error = Some(e.to_string());
-                return crux_core::render::render();
-            }
-
-            let Some(item) = model.items.iter_mut().find(|i| i.id == item_id) else {
-                model.last_error = Some(LibraryError::NotFound { id: item_id }.to_string());
-                return crux_core::render::render();
-            };
-
-            // Sugar over SetVariants: the live ladder plus the new label runs
-            // through the same validation and reconciliation, so a duplicate
-            // is rejected and a tombstoned label resurrects, never duplicates.
-            let mut live: Vec<&Variant> = item
-                .variants
-                .iter()
-                .filter(|v| v.deleted_at.is_none())
-                .collect();
-            live.sort_by_key(|v| v.position);
-            let mut labels: Vec<String> = live.iter().map(|v| v.label.clone()).collect();
-            labels.push(label.trim().to_string());
-
-            if let Err(e) = validation::validate_variant_labels(&labels) {
-                model.last_error = Some(e.to_string());
-                return crux_core::render::render();
-            }
-
-            let now = chrono::Utc::now();
-            item.variants = super::variant::reconcile_variants(
-                std::mem::take(&mut item.variants),
-                &labels,
-                now,
-            );
-            item.updated_at = now;
-            model.last_error = None;
-
-            let item = item.clone();
-            persist_item(model, item)
-        }
         ItemEvent::RenameVariant {
             item_id,
             variant_id,
@@ -1030,8 +922,8 @@ pub fn handle_item_event(event: ItemEvent, model: &mut Model) -> Command<Effect,
             }
 
             // Validate the substituted label against the item's other live
-            // steps — same duplicate/length/count checks AddVariant gets,
-            // applied to the renamed value rather than an appended one.
+            // steps: the same duplicate/length/count checks `SetVariants`
+            // runs, applied to the renamed value rather than a whole ladder.
             let mut live: Vec<&Variant> = item
                 .variants
                 .iter()
@@ -1285,7 +1177,7 @@ mod tests {
         crate::domain::types::assert_round_trips(piece.clone());
     }
 
-    // ── SetChordChart / ClearChordChart ──
+    // ── SetChordChart ──
 
     #[test]
     fn set_chord_chart_parses_stores_and_persists_without_http() {
@@ -1358,163 +1250,6 @@ mod tests {
 
         let ex = model.items.iter().find(|i| i.id == "ex-1").unwrap();
         assert!(ex.chord_chart.is_none());
-        assert!(model.last_error.is_some());
-    }
-
-    // ── Variants (steps) ──
-
-    #[test]
-    fn add_variant_appends_a_variant_and_persists_without_http() {
-        let mut model = model_with_piece_and_exercise();
-        let before = model
-            .items
-            .iter()
-            .find(|i| i.id == "ex-1")
-            .unwrap()
-            .updated_at;
-
-        let mut cmd = send_cmd(
-            &mut model,
-            ItemEvent::AddVariant {
-                item_id: "ex-1".to_string(),
-                label: "F major".to_string(),
-            },
-        );
-
-        let ex = model.items.iter().find(|i| i.id == "ex-1").unwrap();
-        assert_eq!(ex.variants.len(), 1, "variant appended");
-        let v = &ex.variants[0];
-        assert_eq!(v.label, "F major");
-        assert_eq!(v.position, 0, "first variant is position 0");
-        assert!(!v.id.is_empty(), "variant gets a client-minted id");
-        assert!(v.deleted_at.is_none());
-        assert!(ex.updated_at >= before, "touches the item's updated_at");
-        assert!(model.last_error.is_none());
-        assert!(
-            emits_save(&mut cmd, "ex-1"),
-            "local-first persists the item"
-        );
-    }
-
-    #[test]
-    fn add_variant_assigns_incrementing_positions() {
-        let mut model = model_with_piece_and_exercise();
-        for label in ["F", "Bb", "Eb"] {
-            send(
-                &mut model,
-                ItemEvent::AddVariant {
-                    item_id: "ex-1".to_string(),
-                    label: label.to_string(),
-                },
-            );
-        }
-        let ex = model.items.iter().find(|i| i.id == "ex-1").unwrap();
-        let ladder: Vec<(usize, &str)> = ex
-            .variants
-            .iter()
-            .map(|v| (v.position, v.label.as_str()))
-            .collect();
-        assert_eq!(ladder, vec![(0, "F"), (1, "Bb"), (2, "Eb")]);
-    }
-
-    #[test]
-    fn add_variant_duplicate_label_is_rejected_and_tombstoned_label_resurrects() {
-        let mut model = model_with_piece_and_exercise();
-        send(
-            &mut model,
-            ItemEvent::SetVariants {
-                id: "ex-1".to_string(),
-                labels: vec!["C".to_string(), "F".to_string()],
-            },
-        );
-        let f_id = exercise_variants(&model)
-            .iter()
-            .find(|v| v.label == "F")
-            .unwrap()
-            .id
-            .clone();
-
-        send(
-            &mut model,
-            ItemEvent::AddVariant {
-                item_id: "ex-1".to_string(),
-                label: "c".to_string(),
-            },
-        );
-        assert!(
-            model.last_error.is_some(),
-            "duplicate (case-insensitive) rejected"
-        );
-        assert_eq!(exercise_variants(&model).len(), 2);
-
-        send(
-            &mut model,
-            ItemEvent::SetVariants {
-                id: "ex-1".to_string(),
-                labels: vec!["C".to_string()],
-            },
-        );
-        send(
-            &mut model,
-            ItemEvent::AddVariant {
-                item_id: "ex-1".to_string(),
-                label: "F".to_string(),
-            },
-        );
-
-        let variants = exercise_variants(&model);
-        let f = variants.iter().find(|v| v.label == "F").unwrap();
-        assert_eq!(
-            f.id, f_id,
-            "re-adding a removed label resurrects, never duplicates"
-        );
-        assert!(f.deleted_at.is_none());
-        assert_eq!(variants.len(), 2, "no duplicate row");
-    }
-
-    #[test]
-    fn add_variant_to_missing_item_surfaces_not_found() {
-        let mut model = model_with_piece_and_exercise();
-        send(
-            &mut model,
-            ItemEvent::AddVariant {
-                item_id: "nope".to_string(),
-                label: "F".to_string(),
-            },
-        );
-        assert!(model.last_error.is_some(), "missing item surfaces an error");
-    }
-
-    #[test]
-    fn add_variant_rejects_a_piece_host() {
-        // Steps are an exercise concept (Item.variants doc: "exercises only");
-        // a variant on a piece would be stored-but-invisible (the derivation
-        // only runs for exercises). Reject it rather than store a dead row.
-        let mut model = model_with_piece_and_exercise();
-        send(
-            &mut model,
-            ItemEvent::AddVariant {
-                item_id: "piece-1".to_string(),
-                label: "F major".to_string(),
-            },
-        );
-        let piece = model.items.iter().find(|i| i.id == "piece-1").unwrap();
-        assert!(piece.variants.is_empty(), "pieces don't own steps");
-        assert!(model.last_error.is_some());
-    }
-
-    #[test]
-    fn add_variant_rejects_a_blank_label() {
-        let mut model = model_with_piece_and_exercise();
-        send(
-            &mut model,
-            ItemEvent::AddVariant {
-                item_id: "ex-1".to_string(),
-                label: "   ".to_string(),
-            },
-        );
-        let ex = model.items.iter().find(|i| i.id == "ex-1").unwrap();
-        assert!(ex.variants.is_empty(), "blank label adds nothing");
         assert!(model.last_error.is_some());
     }
 
@@ -1759,30 +1494,6 @@ mod tests {
             .unwrap();
         assert_eq!(chart.key, "G");
         assert_eq!(chart.modality, Modality::Minor);
-    }
-
-    #[test]
-    fn clear_chord_chart_removes_it() {
-        let mut model = model_with_piece_and_exercise();
-        send(
-            &mut model,
-            ItemEvent::SetChordChart {
-                piece_id: "piece-1".to_string(),
-                raw_chart: "| Cm7 |".to_string(),
-            },
-        );
-        assert!(model.items[0].chord_chart.is_some());
-
-        send(
-            &mut model,
-            ItemEvent::ClearChordChart {
-                piece_id: "piece-1".to_string(),
-            },
-        );
-
-        let piece = model.items.iter().find(|i| i.id == "piece-1").unwrap();
-        assert!(piece.chord_chart.is_none());
-        assert!(model.last_error.is_none());
     }
 
     // ── CommitScaffold ──
@@ -2477,11 +2188,6 @@ mod tests {
             },
         ));
         crate::domain::types::assert_round_trips(crate::app::Event::Item(
-            ItemEvent::ClearChordChart {
-                piece_id: "P".to_string(),
-            },
-        ));
-        crate::domain::types::assert_round_trips(crate::app::Event::Item(
             ItemEvent::CommitScaffold {
                 piece_id: "P".to_string(),
                 kinds: vec![ScaffoldKind::Shells, ScaffoldKind::ScalesToChordTones],
@@ -2491,12 +2197,6 @@ mod tests {
 
     #[test]
     fn variant_payloads_round_trip_on_the_ffi_bincode_wire() {
-        // The event that crosses the bridge.
-        crate::domain::types::assert_round_trips(crate::app::Event::Item(ItemEvent::AddVariant {
-            item_id: "ex-1".to_string(),
-            label: "F major".to_string(),
-        }));
-
         // Bare Variant, with the tombstone set (deleted_at is a later bincode
         // field — guard both levels).
         let now = chrono::Utc::now();

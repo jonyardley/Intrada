@@ -303,8 +303,7 @@
             ],
             blockCount: 2,
             totalDurationDisplay: nil, totalDurationSummary: nil,
-            sessionIntention: nil, targetDurationMins: nil,
-            sourceStatus: .noSource)))
+            sessionIntention: nil, targetDurationMins: nil)))
     }
 
     /// Session builder's add-items sheet with a "Recently practised" quick-add
@@ -316,8 +315,7 @@
           buildingSetlist: BuildingSetlistView(
             entries: [], itemCount: 0, blocks: [], blockCount: 0,
             totalDurationDisplay: nil, totalDurationSummary: nil,
-            sessionIntention: nil, targetDurationMins: nil,
-            sourceStatus: .noSource),
+            sessionIntention: nil, targetDurationMins: nil),
           recentlyPractised: [.previewPiece, .previewExercise]))
     }
 
@@ -331,8 +329,7 @@
           buildingSetlist: BuildingSetlistView(
             entries: [], itemCount: 0, blocks: [], blockCount: 0,
             totalDurationDisplay: nil, totalDurationSummary: nil,
-            sessionIntention: nil, targetDurationMins: nil,
-            sourceStatus: .noSource),
+            sessionIntention: nil, targetDurationMins: nil),
           recentlyPractised: [.previewPiece, .previewExercise]))
     }
 
@@ -358,7 +355,7 @@
             ],
             blockCount: 2,
             totalDurationDisplay: "12m 0s", totalDurationSummary: "12 min",
-            sessionIntention: nil, targetDurationMins: nil, sourceStatus: .noSource)))
+            sessionIntention: nil, targetDurationMins: nil)))
     }
 
     /// Session builder where one of the block's related exercises is also in
@@ -378,7 +375,7 @@
             ],
             blockCount: 1,
             totalDurationDisplay: "12m 0s", totalDurationSummary: "12 min",
-            sessionIntention: nil, targetDurationMins: nil, sourceStatus: .noSource)))
+            sessionIntention: nil, targetDurationMins: nil)))
     }
 
     /// Player Focus — a piece mid-session with a session intention and a time

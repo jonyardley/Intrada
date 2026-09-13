@@ -527,14 +527,6 @@ mod tests {
         );
     }
 
-    #[test]
-    fn sign_out_keeps_the_profile() {
-        let mut model = Model::default();
-        let _ = save(&mut model, fixture());
-        let _ = Intrada.update(Event::SignedOut, &mut model);
-        assert_eq!(model.profile, fixture(), "device data, not account data");
-    }
-
     // ── Wire ──
 
     const PINNED_PROFILE_HEX: &str =
