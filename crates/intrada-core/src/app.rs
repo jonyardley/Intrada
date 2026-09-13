@@ -396,8 +396,6 @@ impl Intrada {
                         block_count,
                         total_duration_display,
                         total_duration_summary,
-                        session_intention: building.session_intention.clone(),
-                        target_duration_mins: building.target_duration_mins,
                     }),
                     None,
                 )
@@ -1322,15 +1320,11 @@ fn sample_sessions() -> Vec<PracticeSession> {
             id: id.to_string(),
             entries,
             session_notes: None,
-            session_intention: None,
             started_at,
             completed_at: started_at + chrono::Duration::seconds(total_duration_secs as i64),
             total_duration_secs,
             completion_status,
             session_score: None,
-            reflection_improved: None,
-            reflection_still_rough: None,
-            reflection_next_target: None,
         }
     };
 
@@ -2342,12 +2336,8 @@ mod tests {
                 total_duration_secs: 1500,
                 completion_status: CompletionStatus::Completed,
                 session_notes: None,
-                session_intention: None,
                 entries,
                 session_score: None,
-                reflection_improved: None,
-                reflection_still_rough: None,
-                reflection_next_target: None,
             });
         }
         model.practice_summaries = build_practice_summaries(&model.sessions);
@@ -2474,7 +2464,6 @@ mod tests {
             total_duration_secs: 2700,
             completion_status: CompletionStatus::Completed,
             session_notes: None,
-            session_intention: None,
             session_score: None,
             entries: vec![
                 SetlistEntry {
@@ -2520,9 +2509,6 @@ mod tests {
                     }],
                 },
             ],
-            reflection_improved: None,
-            reflection_still_rough: None,
-            reflection_next_target: None,
         });
         model.practice_summaries = build_practice_summaries(&model.sessions);
 
@@ -2584,7 +2570,6 @@ mod tests {
             total_duration_secs: 3600,
             completion_status: CompletionStatus::Completed,
             session_notes: None,
-            session_intention: None,
             session_score: None,
             entries: vec![SetlistEntry {
                 id: "e1".to_string(),
@@ -2607,9 +2592,6 @@ mod tests {
                     ..VariationPlay::fixture()
                 }],
             }],
-            reflection_improved: None,
-            reflection_still_rough: None,
-            reflection_next_target: None,
         });
 
         // Session 2: newer, score 5
@@ -2620,7 +2602,6 @@ mod tests {
             total_duration_secs: 1800,
             completion_status: CompletionStatus::Completed,
             session_notes: None,
-            session_intention: None,
             session_score: None,
             entries: vec![SetlistEntry {
                 id: "e2".to_string(),
@@ -2643,9 +2624,6 @@ mod tests {
                     ..VariationPlay::fixture()
                 }],
             }],
-            reflection_improved: None,
-            reflection_still_rough: None,
-            reflection_next_target: None,
         });
 
         model.practice_summaries = build_practice_summaries(&model.sessions);
@@ -2702,7 +2680,6 @@ mod tests {
             total_duration_secs: 1800,
             completion_status: CompletionStatus::Completed,
             session_notes: None,
-            session_intention: None,
             session_score: None,
             entries: vec![SetlistEntry {
                 id: "e1".to_string(),
@@ -2725,9 +2702,6 @@ mod tests {
                     ..VariationPlay::fixture()
                 }],
             }],
-            reflection_improved: None,
-            reflection_still_rough: None,
-            reflection_next_target: None,
         });
 
         model.practice_summaries = build_practice_summaries(&model.sessions);
@@ -2777,7 +2751,6 @@ mod tests {
             total_duration_secs: 3600,
             completion_status: CompletionStatus::Completed,
             session_notes: None,
-            session_intention: None,
             session_score: None,
             entries: vec![
                 SetlistEntry {
@@ -2823,9 +2796,6 @@ mod tests {
                     }],
                 },
             ],
-            reflection_improved: None,
-            reflection_still_rough: None,
-            reflection_next_target: None,
         });
 
         model.practice_summaries = build_practice_summaries(&model.sessions);
@@ -2880,7 +2850,6 @@ mod tests {
             total_duration_secs: 600,
             completion_status: CompletionStatus::EndedEarly,
             session_notes: None,
-            session_intention: None,
             session_score: None,
             entries: vec![SetlistEntry {
                 id: "e1".to_string(),
@@ -2899,9 +2868,6 @@ mod tests {
                 // A skipped entry records no play, so it never carries a mark.
                 plays: Vec::new(),
             }],
-            reflection_improved: None,
-            reflection_still_rough: None,
-            reflection_next_target: None,
         });
 
         model.practice_summaries = build_practice_summaries(&model.sessions);
@@ -2954,7 +2920,6 @@ mod tests {
             total_duration_secs: 300,
             completion_status: CompletionStatus::Completed,
             session_notes: None,
-            session_intention: None,
             session_score: None,
             entries: vec![SetlistEntry {
                 id: format!("{id}-e1"),
@@ -2977,9 +2942,6 @@ mod tests {
                     ..VariationPlay::fixture()
                 }],
             }],
-            reflection_improved: None,
-            reflection_still_rough: None,
-            reflection_next_target: None,
         }
     }
 
@@ -3074,7 +3036,6 @@ mod tests {
             total_duration_secs: 60,
             completion_status: CompletionStatus::Completed,
             session_notes: None,
-            session_intention: None,
             session_score: None,
             entries: vec![SetlistEntry {
                 id: format!("{id}-e"),
@@ -3097,9 +3058,6 @@ mod tests {
                     ..VariationPlay::fixture()
                 }],
             }],
-            reflection_improved: None,
-            reflection_still_rough: None,
-            reflection_next_target: None,
         };
 
         let summaries = build_practice_summaries(&[mk("s1", earlier), mk("s2", later)]);
@@ -3131,10 +3089,7 @@ mod tests {
 
         let app = Intrada;
         let model = Model {
-            session_status: SessionStatus::Building(BuildingSession {
-                session_intention: Some("Focus on dynamics".to_string()),
-                ..Default::default()
-            }),
+            session_status: SessionStatus::Building(BuildingSession::default()),
             ..Model::default()
         };
 
@@ -3142,11 +3097,6 @@ mod tests {
         assert!(vm.building_setlist.is_some());
         assert!(vm.active_session.is_none());
         assert!(vm.summary.is_none());
-        let setlist = vm.building_setlist.unwrap();
-        assert_eq!(
-            setlist.session_intention,
-            Some("Focus on dynamics".to_string())
-        );
     }
 
     // --- Practice summaries edge cases ---
@@ -3771,11 +3721,7 @@ mod tests {
                 completion_status: CompletionStatus::Completed,
                 entries: vec![],
                 session_notes: None,
-                session_intention: None,
                 session_score: None,
-                reflection_improved: None,
-                reflection_still_rough: None,
-                reflection_next_target: None,
             },
             PracticeSession {
                 id: "s2".to_string(),
@@ -3785,11 +3731,7 @@ mod tests {
                 completion_status: CompletionStatus::Completed,
                 entries: vec![],
                 session_notes: None,
-                session_intention: None,
                 session_score: None,
-                reflection_improved: None,
-                reflection_still_rough: None,
-                reflection_next_target: None,
             },
         ];
         let vm = app.view(&model);
@@ -3885,7 +3827,6 @@ mod tests {
                     building_entry("e2", Some(630)),
                     building_entry("e3", None),
                 ],
-                ..Default::default()
             }),
             ..Default::default()
         };
@@ -3904,7 +3845,6 @@ mod tests {
                     building_entry("e1", Some(900)),
                     building_entry("e2", Some(300)),
                 ],
-                ..Default::default()
             }),
             ..Default::default()
         };
@@ -3919,7 +3859,6 @@ mod tests {
         let model = Model {
             session_status: SessionStatus::Building(crate::domain::session::BuildingSession {
                 entries: vec![building_entry("e1", None), building_entry("e2", None)],
-                ..Default::default()
             }),
             ..Default::default()
         };
@@ -4622,12 +4561,8 @@ mod tests {
             total_duration_secs: 300,
             completion_status: CompletionStatus::Completed,
             session_notes: None,
-            session_intention: None,
             session_score: None,
             entries,
-            reflection_improved: None,
-            reflection_still_rough: None,
-            reflection_next_target: None,
         }
     }
 
@@ -5122,7 +5057,6 @@ mod tests {
             total_duration_secs: 300,
             completion_status: CompletionStatus::Completed,
             session_notes: None,
-            session_intention: None,
             session_score: None,
             entries: vec![SetlistEntry {
                 id: format!("{id}-e1"),
@@ -5146,9 +5080,6 @@ mod tests {
                     ..VariationPlay::fixture()
                 }],
             }],
-            reflection_improved: None,
-            reflection_still_rough: None,
-            reflection_next_target: None,
         }
     }
 

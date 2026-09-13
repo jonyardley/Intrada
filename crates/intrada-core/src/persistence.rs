@@ -14,6 +14,9 @@ use crate::domain::session::PracticeSession;
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "facet_typegen", derive(facet::Facet))]
 #[cfg_attr(feature = "facet_typegen", repr(C))]
+// Boxing a variant would change the generated Swift type and the bridge wire,
+// which is the same reason `app.rs` carries this allow.
+#[allow(clippy::large_enum_variant)]
 pub enum PersistenceOperation {
     LoadItems,
     SaveItem(Item),
@@ -458,15 +461,11 @@ mod tests {
             id: id.to_string(),
             entries: vec![],
             session_notes: None,
-            session_intention: None,
             started_at: now,
             completed_at: now,
             total_duration_secs: 0,
             completion_status: crate::domain::session::CompletionStatus::Completed,
             session_score: None,
-            reflection_improved: None,
-            reflection_still_rough: None,
-            reflection_next_target: None,
         }
     }
 

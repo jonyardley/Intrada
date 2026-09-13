@@ -591,12 +591,8 @@ mod tests {
             total_duration_secs: total_secs,
             completion_status: CompletionStatus::Completed,
             session_notes: None,
-            session_intention: None,
             entries,
             session_score: None,
-            reflection_improved: None,
-            reflection_still_rough: None,
-            reflection_next_target: None,
         }
     }
 
@@ -857,12 +853,8 @@ mod tests {
                 total_duration_secs: 600,
                 completion_status: crate::domain::session::CompletionStatus::Completed,
                 session_notes: None,
-                session_intention: None,
                 entries: vec![make_entry("p1", "Sonata", ItemKind::Piece, 600, None)],
                 session_score: None,
-                reflection_improved: None,
-                reflection_still_rough: None,
-                reflection_next_target: None,
             }
         };
 
@@ -1725,12 +1717,8 @@ mod tests {
             total_duration_secs: 600,
             completion_status: CompletionStatus::EndedEarly,
             session_notes: None,
-            session_intention: None,
             entries: vec![make_entry("p1", "Sonata", ItemKind::Piece, 600, Some(3))],
             session_score: None,
-            reflection_improved: None,
-            reflection_still_rough: None,
-            reflection_next_target: None,
         }];
 
         let analytics = compute_analytics(

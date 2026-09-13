@@ -453,11 +453,7 @@ pub struct PracticeSessionView {
     pub completion_status: CompletionStatus,
     pub notes: Option<String>,
     pub entries: Vec<SetlistEntryView>,
-    pub session_intention: Option<String>,
     pub session_score: Option<u8>,
-    pub reflection_improved: Option<String>,
-    pub reflection_still_rough: Option<String>,
-    pub reflection_next_target: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -503,7 +499,6 @@ pub struct ActiveSessionView {
     /// tab backgrounding without drift.
     pub current_item_started_at: String,
     pub entries: Vec<SetlistEntryView>,
-    pub session_intention: Option<String>,
     pub current_rep_target: Option<u8>,
     pub current_rep_count: Option<u8>,
     pub current_rep_target_reached: Option<bool>,
@@ -557,8 +552,6 @@ pub struct BuildingSetlistView {
     /// so shells can fall back to counts-only copy.
     pub total_duration_display: Option<String>,
     pub total_duration_summary: Option<String>,
-    pub session_intention: Option<String>,
-    pub target_duration_mins: Option<u32>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -568,11 +561,7 @@ pub struct SummaryView {
     pub completion_status: CompletionStatus,
     pub notes: Option<String>,
     pub entries: Vec<SetlistEntryView>,
-    pub session_intention: Option<String>,
     pub session_score: Option<u8>,
-    pub reflection_improved: Option<String>,
-    pub reflection_still_rough: Option<String>,
-    pub reflection_next_target: Option<String>,
 }
 
 // ── Test fixtures ─────────────────────────────────────────────────────
@@ -803,7 +792,6 @@ pub fn build_active_session_view(
             .iter()
             .map(|e| entry_to_view(e, labels))
             .collect(),
-        session_intention: active.session_intention.clone(),
         // Repetitions belong to the open play, so they reset when a switch
         // opens the next one (#1739 decision 6).
         current_rep_target: open.and_then(|p| p.rep_target),
@@ -843,11 +831,7 @@ pub fn build_summary_view(summary: &SummarySession, labels: &VariationLabels) ->
             .iter()
             .map(|e| entry_to_view(e, labels))
             .collect(),
-        session_intention: summary.session_intention.clone(),
         session_score: summary.session_score,
-        reflection_improved: summary.reflection_improved.clone(),
-        reflection_still_rough: summary.reflection_still_rough.clone(),
-        reflection_next_target: summary.reflection_next_target.clone(),
     }
 }
 
@@ -869,11 +853,7 @@ pub fn session_to_view(session: &PracticeSession, labels: &VariationLabels) -> P
             .iter()
             .map(|e| entry_to_view(e, labels))
             .collect(),
-        session_intention: session.session_intention.clone(),
         session_score: session.session_score,
-        reflection_improved: session.reflection_improved.clone(),
-        reflection_still_rough: session.reflection_still_rough.clone(),
-        reflection_next_target: session.reflection_next_target.clone(),
     }
 }
 
@@ -1112,7 +1092,6 @@ mod tests {
             current_index: 0,
             session_started_at: Utc::now(),
             current_item_started_at: Utc::now(),
-            session_intention: None,
         };
         assert_eq!(
             build_active_session_view(&active, &items, &VariationLabels::new()).current_item_metre,
@@ -1144,7 +1123,6 @@ mod tests {
             current_index: 0,
             session_started_at: Utc::now(),
             current_item_started_at: Utc::now(),
-            session_intention: None,
         };
         assert_eq!(
             build_active_session_view(&active, &HashMap::new(), &VariationLabels::new())
@@ -1175,7 +1153,6 @@ mod tests {
             current_index: 0,
             session_started_at: Utc::now(),
             current_item_started_at: Utc::now(),
-            session_intention: None,
         };
         let view = build_active_session_view(&active, &HashMap::new(), &VariationLabels::new());
         assert_eq!(view.next_item_title.as_deref(), Some("Etude"));
@@ -1192,7 +1169,6 @@ mod tests {
             current_index: 1,
             session_started_at: Utc::now(),
             current_item_started_at: Utc::now(),
-            session_intention: None,
         };
         let view = build_active_session_view(&active, &HashMap::new(), &VariationLabels::new());
         assert!(view.next_item_title.is_none());
@@ -1208,7 +1184,6 @@ mod tests {
             current_index: 0,
             session_started_at: Utc::now(),
             current_item_started_at: Utc::now(),
-            session_intention: None,
         };
         let view = build_active_session_view(&active, &HashMap::new(), &VariationLabels::new());
         assert_eq!(view.current_item_intention.as_deref(), Some("evenness"));
@@ -1228,7 +1203,6 @@ mod tests {
             current_index: 0,
             session_started_at: Utc::now(),
             current_item_started_at: Utc::now(),
-            session_intention: None,
         };
         let view = build_active_session_view(&active, &HashMap::new(), &VariationLabels::new());
         assert_eq!(
@@ -1252,7 +1226,6 @@ mod tests {
             current_index: 0,
             session_started_at: Utc::now(),
             current_item_started_at: Utc::now(),
-            session_intention: None,
         };
         let view = build_active_session_view(&active, &HashMap::new(), &VariationLabels::new());
         assert!(view.current_related_piece_title.is_none());
@@ -1272,7 +1245,6 @@ mod tests {
             current_index: 0,
             session_started_at: Utc::now(),
             current_item_started_at: Utc::now(),
-            session_intention: None,
         };
         let view = build_active_session_view(&active, &HashMap::new(), &VariationLabels::new());
         assert!(
@@ -1289,7 +1261,6 @@ mod tests {
             current_index: 0,
             session_started_at: Utc::now(),
             current_item_started_at: Utc::now(),
-            session_intention: None,
         };
         let item = Item {
             id: "i1".to_string(),
@@ -1327,7 +1298,6 @@ mod tests {
             current_index: 0,
             session_started_at: Utc::now(),
             current_item_started_at: Utc::now(),
-            session_intention: None,
         };
         let view = build_active_session_view(&active, &HashMap::new(), &VariationLabels::new());
         assert!(view.current_item_tempo_marking.is_none());
@@ -1349,15 +1319,10 @@ mod tests {
             session_ended_at: Utc::now(),
             completion_status: CompletionStatus::Completed,
             session_notes: None,
-            session_intention: Some("focus".to_string()),
             session_score: None,
-            reflection_improved: None,
-            reflection_still_rough: None,
-            reflection_next_target: None,
         };
         let view = build_summary_view(&summary, &VariationLabels::new());
         assert_eq!(view.total_duration_display, "2m 30s");
-        assert_eq!(view.session_intention.as_deref(), Some("focus"));
     }
 
     #[test]
@@ -1368,15 +1333,11 @@ mod tests {
             id: "s1".to_string(),
             entries: vec![entry],
             session_notes: None,
-            session_intention: None,
             started_at: Utc::now(),
             completed_at: Utc::now(),
             total_duration_secs: 2700,
             completion_status: CompletionStatus::Completed,
             session_score: None,
-            reflection_improved: None,
-            reflection_still_rough: None,
-            reflection_next_target: None,
         };
         let view = session_to_view(&session, &VariationLabels::new());
         // Precise (live-timer) form keeps seconds; the summary line drops them.
@@ -1393,11 +1354,7 @@ mod tests {
             session_ended_at: Utc::now(),
             completion_status: CompletionStatus::Completed,
             session_notes: None,
-            session_intention: None,
             session_score: Some(7),
-            reflection_improved: None,
-            reflection_still_rough: None,
-            reflection_next_target: None,
         };
         let view = build_summary_view(&summary, &VariationLabels::new());
         assert_eq!(view.session_score, Some(7));
@@ -1409,70 +1366,14 @@ mod tests {
             id: "s2".to_string(),
             entries: vec![],
             session_notes: None,
-            session_intention: None,
             started_at: Utc::now(),
             completed_at: Utc::now(),
             total_duration_secs: 60,
             completion_status: CompletionStatus::Completed,
             session_score: Some(5),
-            reflection_improved: None,
-            reflection_still_rough: None,
-            reflection_next_target: None,
         };
         let view = session_to_view(&session, &VariationLabels::new());
         assert_eq!(view.session_score, Some(5));
-    }
-
-    #[test]
-    fn session_to_view_exposes_reflections() {
-        let session = crate::domain::session::PracticeSession {
-            id: "s3".to_string(),
-            entries: vec![],
-            session_notes: None,
-            session_intention: None,
-            started_at: Utc::now(),
-            completed_at: Utc::now(),
-            total_duration_secs: 60,
-            completion_status: CompletionStatus::Completed,
-            session_score: None,
-            reflection_improved: Some("bars 1-8 clean".to_string()),
-            reflection_still_rough: Some("bridge rushes".to_string()),
-            reflection_next_target: Some("bridge at 80".to_string()),
-        };
-        let view = session_to_view(&session, &VariationLabels::new());
-        assert_eq!(view.reflection_improved, Some("bars 1-8 clean".to_string()));
-        assert_eq!(
-            view.reflection_still_rough,
-            Some("bridge rushes".to_string())
-        );
-        assert_eq!(
-            view.reflection_next_target,
-            Some("bridge at 80".to_string())
-        );
-    }
-
-    #[test]
-    fn summary_view_exposes_reflections() {
-        let summary = crate::domain::session::SummarySession {
-            id: "s4".to_string(),
-            entries: vec![],
-            session_started_at: Utc::now(),
-            session_ended_at: Utc::now(),
-            session_notes: None,
-            session_intention: Some("even RH at 96".to_string()),
-            completion_status: CompletionStatus::Completed,
-            session_score: None,
-            reflection_improved: None,
-            reflection_still_rough: Some("bridge rushes".to_string()),
-            reflection_next_target: None,
-        };
-        let view = build_summary_view(&summary, &VariationLabels::new());
-        assert_eq!(view.reflection_improved, None);
-        assert_eq!(
-            view.reflection_still_rough,
-            Some("bridge rushes".to_string())
-        );
-        assert_eq!(view.reflection_next_target, None);
     }
 
     // ── Integration: Event → model → ViewModel ────────────────────────

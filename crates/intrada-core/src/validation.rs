@@ -9,7 +9,6 @@ use crate::model::Model;
 pub const MAX_TITLE: usize = 500;
 pub const MAX_COMPOSER: usize = 200;
 pub const MAX_NOTES: usize = 5000;
-pub const MAX_REFLECTION: usize = 500;
 pub const MAX_INTENTION: usize = 500;
 pub const MAX_TAG: usize = 100;
 pub const MAX_TEMPO_MARKING: usize = 100;
@@ -161,18 +160,6 @@ pub fn validate_session_notes(notes: &Option<String>) -> Result<(), LibraryError
             return Err(LibraryError::Validation {
                 field: "session_notes".to_string(),
                 message: format!("Practice notes must not exceed {MAX_NOTES} characters"),
-            });
-        }
-    }
-    Ok(())
-}
-
-pub fn validate_reflection(text: &Option<String>) -> Result<(), LibraryError> {
-    if let Some(ref t) = text {
-        if t.len() > MAX_REFLECTION {
-            return Err(LibraryError::Validation {
-                field: "reflection".to_string(),
-                message: format!("A reflection must not exceed {MAX_REFLECTION} characters"),
             });
         }
     }

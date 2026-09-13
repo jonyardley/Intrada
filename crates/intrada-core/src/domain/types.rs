@@ -450,15 +450,11 @@ mod tests {
             id: "s1".to_string(),
             entries: vec![entry],
             session_notes: Some("solid".to_string()),
-            session_intention: Some("warm up".to_string()),
             started_at: now,
             completed_at: now,
             total_duration_secs: 300,
             completion_status: CompletionStatus::Completed,
             session_score: Some(8),
-            reflection_improved: None,
-            reflection_still_rough: None,
-            reflection_next_target: None,
         }));
     }
 
@@ -593,22 +589,6 @@ mod tests {
     }
 
     #[test]
-    fn session_reflection_event_round_trips_on_ffi_bincode_wire() {
-        use crate::domain::session::{ReflectionField, SessionEvent};
-        for field in [
-            ReflectionField::Improved,
-            ReflectionField::StillRough,
-            ReflectionField::NextTarget,
-        ] {
-            assert_round_trips(SessionEvent::UpdateSessionReflection {
-                field,
-                text: Some("bars 12-14 at 80 first".to_string()),
-            });
-            assert_round_trips(SessionEvent::UpdateSessionReflection { field, text: None });
-        }
-    }
-
-    #[test]
     fn recover_session_event_round_trips_on_ffi_bincode_wire() {
         use crate::domain::session::{ActiveSession, SessionEvent};
         use chrono::TimeZone;
@@ -620,29 +600,24 @@ mod tests {
                 current_index: 0,
                 current_item_started_at: anchor,
                 session_started_at: anchor,
-                session_intention: Some("even RH at 96".to_string()),
             },
             now: anchor,
         });
     }
 
     #[test]
-    fn practice_session_with_reflections_round_trips_on_ffi_bincode_wire() {
+    fn practice_session_round_trips_on_ffi_bincode_wire() {
         use crate::domain::session::{CompletionStatus, PracticeSession};
         use chrono::TimeZone;
         assert_round_trips(PracticeSession {
             id: "s1".to_string(),
             entries: vec![],
             session_notes: Some("note".to_string()),
-            session_intention: Some("even RH at 96".to_string()),
             started_at: chrono::Utc.timestamp_opt(1_700_000_000, 0).unwrap(),
             completed_at: chrono::Utc.timestamp_opt(1_700_003_600, 0).unwrap(),
             total_duration_secs: 3600,
             completion_status: CompletionStatus::Completed,
             session_score: Some(7),
-            reflection_improved: Some("thumb-unders even".to_string()),
-            reflection_still_rough: None,
-            reflection_next_target: Some("bridge at 80".to_string()),
         });
     }
 }
