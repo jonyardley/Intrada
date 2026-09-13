@@ -535,9 +535,9 @@ that were genuinely arguable when it was written.
 |Bump a dependency with no API change|1|Dep bump|
 |New "Recently practiced" view following existing list patterns|2|Established patterns|
 |Refactor `intrada-core/src/domain/session.rs` (no FFI change)|2|Single file, non-trivial|
-|Tweak retry backoff in `auth.rs`|2|Sensitivity override from Tier 1|
+|Tweak a column default in a `LibraryStore.swift` migration|2|Sensitivity override from Tier 1|
 |Add `notes` field to a piece (touches FFI + DB)|3|Override: FFI + schema|
-|New auth provider|3|Auth + multi-crate|
+|Change what the crash-recovery blob stores|3|Blob graph + FFI, core first|
 |Migrate persistence layer|3|Architectural|
 
 ## Why nothing unread stays in the tree (#1176)

@@ -13,8 +13,9 @@ Hard stops. Encounter any of these and stop, reporting what you found:
 
 - The FFI bridge contract (`Event`, `Effect`, `ViewModel`), or generated Swift
   under `ios/generated/`, which is regenerated from Rust and never hand-edited.
-- DB schema, `migrations.rs`, or a GRDB migration.
-- `auth.rs`, `clerk.rs`, or `routes/auth_ios.rs`.
+- Anything under `crates/intrada-ffi/`, `ios/Intrada/Core/LibraryStore.swift`
+  (the GRDB schema and its migrations), or
+  `crates/intrada-core/src/domain/session.rs`.
 - Anything inside the `ActiveSession` graph.
 - A test that would have to change to keep the build green.
 

@@ -177,8 +177,10 @@ driving the app on the simulator**; if you cannot, say what needs a hand check.
    command with `cd <worktree> && `, and reads the rules for the files it touches by hand,
    since cd-ing does not load them (#1720). Who may read, build and edit where, and what the
    worktree lease claims: [`docs/worktrees.md`](docs/worktrees.md). Agents touch the main
-   checkout only for `git pull --ff-only` (#1686). Branch protection refuses a push to main
-   and `gh pr merge` is denied in settings. CI green is the session's job: after every push
+   checkout only to `git fetch origin`; a pull in main is denied by the guard, and
+   `just worktree-new` branches from fresh `origin/main`, so nothing needs the local ref
+   moved (#1686, #1740). Branch protection refuses a push to main and `gh pr merge` is
+   denied in settings. CI green is the session's job: after every push
    watch the run to a conclusion, react, push again, and surface the PR only when green or
    stuck. Read the PR's mergeability, not just the job list: a renamed job leaves its old
    context "expected" for ever (#1542).

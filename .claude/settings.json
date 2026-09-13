@@ -62,7 +62,6 @@
       "WebFetch(domain:github.com)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:crates.io)",
-      "WebFetch(domain:clerk.com)",
       "mcp__context7__resolve-library-id",
       "mcp__context7__query-docs"
     ],
