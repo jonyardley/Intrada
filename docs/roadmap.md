@@ -143,6 +143,10 @@ recoverable from git history.
 See [`specs/native-ios.md`](../specs/native-ios.md) for the shell spec. Work
 tracks under [`ios`](https://github.com/jonyardley/intrada/labels/ios).
 
+Android is a later-horizon second native shell on the same core, specced in
+[`specs/android-shell.md`](../specs/android-shell.md) (#1774); no build phase
+has started.
+
 Historical note: the sentences that used to live here ("the web app stays on
 Leptos, untouched", "the Tauri shell stays shipping until parity") were true in
 May and false by July. Statements about what is *currently* shipping belong in
