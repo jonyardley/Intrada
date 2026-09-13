@@ -35,8 +35,8 @@ struct ClickControlTests {
     #expect(control(bpm: 76, atSeed: false).spokenValue == "76 beats per minute")
   }
 
-  @Test func anItemWithNoDeclaredTempoNamesTheClickInstead() {
-    #expect(withoutTarget().readout == "Click")
+  @Test func anItemWithNoDeclaredTempoNamesTheMetronomeInstead() {
+    #expect(withoutTarget().readout == "Metronome")
     #expect(withoutTarget(bpm: 96, running: true, atSeed: true).readout == "♩ = 96")
   }
 
@@ -44,12 +44,12 @@ struct ClickControlTests {
   /// hands it `nil` rather than a row that reads "Andante" and sounds 96.
   @Test func aMarkingWithNoBpmIsNotATargetTheClickCanSpeakFor() {
     #expect(TempoFormatting.display(marking: "Andante", bpm: nil) == "Andante")
-    #expect(withoutTarget().readout == "Click")
+    #expect(withoutTarget().readout == "Metronome")
     #expect(withoutTarget().spokenValue == "no tempo set")
   }
 
   @Test func aClickThatCouldNotStartSaysSoInPlace() {
-    #expect(control(unavailable: true).readout == "Click unavailable")
+    #expect(control(unavailable: true).readout == "Metronome unavailable")
   }
 
   @Test func spokenTempoSpellsTheBpmOut() {
@@ -194,11 +194,11 @@ struct ClickPatternTests {
 
   @Test func theBarLineSpeaksTheBeatsThatSound() {
     let all = ClickBarLine(metre: common, sounding: 0b1111, currentBeat: nil, onTap: {})
-    #expect(all.spokenValue == "4 crotchet beats, click on every beat")
+    #expect(all.spokenValue == "4 crotchet beats, metronome on every beat")
     let four = ClickBarLine(metre: common, sounding: 0b1000, currentBeat: nil, onTap: {})
-    #expect(four.spokenValue == "4 crotchet beats, click on beat 4")
+    #expect(four.spokenValue == "4 crotchet beats, metronome on beat 4")
     let groups = ClickBarLine(metre: sevenEight, sounding: 0b0101001, currentBeat: nil, onTap: {})
-    #expect(groups.spokenValue == "7 quaver beats, click on beats 1, 4, 6")
+    #expect(groups.spokenValue == "7 quaver beats, metronome on beats 1, 4, 6")
   }
 
   @Test func theBeatValuePicksTheBandTheClickCanReach() {

@@ -113,8 +113,12 @@ struct ReflectionSheet: View {
           Text("Item complete · \(elapsedDisplay)")
             .font(IntradaFont.badge).textCase(.uppercase).kerning(1.5)
             .foregroundStyle(IntradaColor.exerciseBadgeFg)
-          Text("How did \(itemTitle) go?")
+          Text("How did it go?")
             .font(IntradaFont.pageTitle(24)).foregroundStyle(IntradaColor.ink)
+            .multilineTextAlignment(.center)
+          Text(itemTitle)
+            .font(IntradaFont.subtitle).foregroundStyle(IntradaColor.inkSecondary)
+            .lineLimit(1).truncationMode(.tail)
             .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)

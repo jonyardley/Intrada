@@ -67,7 +67,7 @@ struct ClickBarLine: View {
     let sounded =
       beats.count == Int(metre.beats)
       ? "every beat" : "beat\(beats.count == 1 ? "" : "s") \(beats.joined(separator: ", "))"
-    return "\(metre.beats) \(TempoUnit.spokenName(metre.unit)) beats, click on \(sounded)"
+    return "\(metre.beats) \(TempoUnit.spokenName(metre.unit)) beats, metronome on \(sounded)"
   }
 }
 
