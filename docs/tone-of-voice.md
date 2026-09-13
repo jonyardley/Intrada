@@ -76,6 +76,7 @@ disagree, the screen wins and the core keeps its own name.
 | `entry`, `block` | the piece, the exercise, the group |
 | `item type` | Piece / Exercise |
 | `score`, `rating` (the 0 to 10) | Mark ([V4](#v4--the-screen-says-mark-the-core-keeps-score)) |
+| `click` (the `Click*` types) | Metronome ([V7](#v7-metronome-never-click)) |
 | BPM, quarter note | `♩ = 132`, crotchet |
 | measure | bar |
 | `session in progress` | Pick up where you left off? |
@@ -135,8 +136,9 @@ and `Ended early.` off the summary.
 A question mark is a promise that the user is about to decide something. Keep
 the promise.
 
-- **Fine**: `Discard this session?` on an alert; `How did Clair de Lune go?` on
-  the reflection sheet. Both sit at a real decision.
+- **Fine**: `Discard this session?` on an alert; `How did it go?` on the
+  reflection sheet, with the piece name underneath it as a subtitle. Both sit
+  at a real decision.
 - **Not fine**: a question as a screen title where there is no question, only a
   task. `Where do you want to focus?` above a list you build by tapping Add is
   the app pretending to interview the user. That is coach voice, and it is the
@@ -390,3 +392,15 @@ morning`, never an exclamation mark, never anything about practice itself.
 With no name set there is no greeting, and the subtitle reads as the worked
 example above: `Last practised Tuesday`, or `No sessions yet`. Only Practice
 greets; every other header stays facts.
+
+### V7: `metronome`, never `click`
+
+**Decided 2026-09-13 (#1708).** `click` is studio shorthand, and it is the only
+control in the app that goes by a nickname rather than its name. Rule 3 says
+name the thing: a learner or a singer picking up the app may never have heard
+a recording engineer call a metronome a click, and the app should not assume
+they have.
+
+The code keeps `Click` in its identifiers, file names and the audio engine.
+The language leads and the type follows, so nothing there needed to move for
+this change; only what the musician reads and hears did.
