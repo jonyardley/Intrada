@@ -21,7 +21,7 @@ most of it again. Everything in the first column below is in that bill.
 | Path-scoped rules | `.claude/rules/*.md` | When a file matching the rule's `paths:` globs is read with the Read tool. A `cat` through Bash does not count. They reload the same way after compaction |
 | Skills | `.claude/skills/*/SKILL.md` | The description every session; the body when invoked by name (`/ship`, `/intrada-parallel-streams`) |
 | Agents | `.claude/agents/*.md` | The description every session; the body becomes the subagent's system prompt |
-| Repo settings | `.claude/settings.json` | Permissions, the format-on-edit and git-hook-install hooks, and the plugins switched off for this repo |
+| Repo settings | `.claude/settings.json` | The model and effort a session opens on (Sonnet 5 medium, 1M window), permissions, the format-on-edit and git-hook-install hooks, and the plugins switched off for this repo |
 | User rules | `~/.claude/CLAUDE.md`, `~/.claude/rules/` | Every session, before the project rules; project wins on conflict |
 | Auto memory | `~/.claude/projects/<project>/memory/MEMORY.md` | Every session, first 200 lines. Not loaded into subagents. The one input that can carry a stale fact |
 | User hooks | `~/.claude/settings.json`, `~/.claude/hooks/` | Text injected on every prompt (the turn reminder, and the context watch past 250k), after a push (the CI-watch note) and in the day's first session (one usage line); the bash guard runs before every command, the spawn guard before every subagent |
@@ -78,9 +78,11 @@ fails in CI.
 | Sonnet 5 | 2 / 10 | Conventional coding on non-sensitive surfaces; near-Opus on coding |
 | Haiku 4.5 | 1 / 5 | Search, explore and report subagents |
 
-Effort has five levels: `low`, `medium`, `high`, `xhigh`, `max`. `xhigh` is the
-default and the documented sweet spot for lead-session coding on judgement-dense
-work; `high` for patterned coding, planning, docs and review synthesis; `max` only when correctness beats cost
+Effort has five levels: `low`, `medium`, `high`, `xhigh`, `max`. This repo
+opens at `medium`, and effort does not follow a model switch, so a session
+that climbs the ladder sets `/effort` as well as `/model`. `xhigh` is the
+documented sweet spot for lead-session coding on judgement-dense work; `high`
+for patterned coding, planning, docs and review synthesis; `max` only when correctness beats cost
 outright (a migration touching shipped data, a blob-graph change), since it can
 overthink routine work; `low` and `medium` for mechanical work and gate
 runners. `/model` and `/effort` change the running session, and both persist
@@ -133,17 +135,19 @@ mark observed against inferred, and verify before acting.
 
 **What it costs in practice.** Measured over the fortnight to 2026-09-13 from
 the session transcripts on Jon's machine, all projects, weighted at API prices;
-`just usage 14` prints the same table.
+`just usage 14` prints the same table. Bullets naming a week come from
+`just usage`, whose default window is seven days.
 
 - **Context length drives usage more than the rung.** 52 of 154 main sessions
   passed 200k tokens, and the eight biggest sessions were 36% of the fortnight.
-  Finish a unit and `/clear` in the same sitting; `/compact` when mid-task. The
-  status line shows the context in thousands, amber from 200k and red from 250k.
+  `/compact` when mid-task. The status line shows the context in thousands,
+  amber from 200k and red from 250k.
 - **A parked session pays again.** The prompt cache lasts an hour; the first
-  turn after a longer gap re-sends the whole context at write price. In the
+  turn after a longer gap re-sends a context past 50k at write price. In the
   week to 2026-09-13 that was 194 turns and $233, and cache writes were 29% of
-  all spend. The context watch names such a turn as it happens: finish the
-  unit and `/clear` rather than leave a session to come back to.
+  that week's spend. The context watch names such a turn as it happens: finish
+  the unit and `/clear` in the same sitting rather than leave a session to come
+  back to.
 - **Tool output is what fills the context.** 36 MB in the week to 2026-09-13,
   Read 31%, then git, sed, grep, just and cat at 5 to 10% each; `just usage`
   prints the table. Read once, keep ranges tight, and run gates in
@@ -153,8 +157,8 @@ the session transcripts on Jon's machine, all projects, weighted at API prices;
   MTok against Opus's $0.50, which keeps the gap to Opus small at long context;
   dropping to Sonnet is what saves. This repo's `.claude/settings.json` opens
   sessions on Sonnet 5 medium with the 1M window, so name the rung the ladders
-  above give the task and switch with `/model` before the work starts, saying
-  so, not after.
+  above give the task and switch with `/model` and `/effort` before the work
+  starts, saying so, not after.
 - **Subagents were 26% of the fortnight's usage.** Their largest line was
   `task` spawned with `model: opus` over its Sonnet pin: keep the judgement in the lead and hand
   down settled work instead of lifting the agent. `task` runs grow as long as
