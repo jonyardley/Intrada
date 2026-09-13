@@ -35,8 +35,7 @@ final class StoreEffectLoopTests: XCTestCase {
     let defaults = try XCTUnwrap(UserDefaults(suiteName: "sip-\(UUID().uuidString)"))
     let active = ActiveSession(
       id: "s-crash", entries: [], currentIndex: 0,
-      currentItemStartedAt: "2026-07-14T10:00:00Z", sessionStartedAt: "2026-07-14T10:00:00Z",
-      sessionIntention: "even RH at 96")
+      currentItemStartedAt: "2026-07-14T10:00:00Z", sessionStartedAt: "2026-07-14T10:00:00Z")
     let bridge = FakeBridge()
     bridge.updateHandler = { _ in
       [Request(id: 1, effect: .app(.saveSessionInProgress(active)))]
@@ -48,7 +47,6 @@ final class StoreEffectLoopTests: XCTestCase {
     let pending = try XCTUnwrap(
       store.pendingSessionInProgress(), "the save effect must persist a recoverable blob")
     XCTAssertEqual(pending.id, "s-crash")
-    XCTAssertEqual(pending.sessionIntention, "even RH at 96")
 
     bridge.updateHandler = { _ in [Request(id: 2, effect: .app(.clearSessionInProgress))] }
     store.send(.setQuery(nil))
@@ -60,8 +58,7 @@ final class StoreEffectLoopTests: XCTestCase {
     let defaults = try XCTUnwrap(UserDefaults(suiteName: "sip-\(UUID().uuidString)"))
     let active = ActiveSession(
       id: "s-stale", entries: [], currentIndex: 0,
-      currentItemStartedAt: "2026-07-14T10:00:00Z", sessionStartedAt: "2026-07-14T10:00:00Z",
-      sessionIntention: nil)
+      currentItemStartedAt: "2026-07-14T10:00:00Z", sessionStartedAt: "2026-07-14T10:00:00Z")
     let bridge = FakeBridge()
     bridge.updateHandler = { _ in
       [Request(id: 1, effect: .app(.saveSessionInProgress(active)))]
@@ -1104,22 +1101,6 @@ final class StoreEffectLoopTests: XCTestCase {
     XCTAssertEqual(try bridge.view().summary?.notes, "Felt good", "notes should round-trip")
     _ = try bridge.update(.session(.updateSessionNotes(notes: nil)))
     XCTAssertNil(try bridge.view().summary?.notes, "clearing notes round-trips")
-    // Structured reflection — a brand-new wire surface (ReflectionField's
-    // variant indices) never sent from Swift before (#846). Set + clear each.
-    _ = try bridge.update(
-      .session(.updateSessionReflection(field: .improved, text: "thumb-unders even")))
-    XCTAssertEqual(
-      try bridge.view().summary?.reflectionImproved, "thumb-unders even",
-      "reflection 'improved' should round-trip the live bridge")
-    _ = try bridge.update(
-      .session(.updateSessionReflection(field: .stillRough, text: "bridge rushes")))
-    XCTAssertEqual(try bridge.view().summary?.reflectionStillRough, "bridge rushes")
-    _ = try bridge.update(
-      .session(.updateSessionReflection(field: .nextTarget, text: "bridge at 80")))
-    XCTAssertEqual(try bridge.view().summary?.reflectionNextTarget, "bridge at 80")
-    _ = try bridge.update(.session(.updateSessionReflection(field: .improved, text: nil)))
-    XCTAssertNil(
-      try bridge.view().summary?.reflectionImproved, "clearing a reflection round-trips")
 
     _ = try bridge.update(.session(.saveSession(now: "2026-06-16T10:20:30Z")))
     let saved = try bridge.view()
@@ -1137,8 +1118,7 @@ final class StoreEffectLoopTests: XCTestCase {
       groupId: nil, plannedVariationId: nil, plannedRepTarget: nil, plays: [])
     let blob = ActiveSession(
       id: "recovered", entries: [blobEntry], currentIndex: 0,
-      currentItemStartedAt: "2026-06-16T08:00:00Z", sessionStartedAt: "2026-06-16T08:00:00Z",
-      sessionIntention: nil)
+      currentItemStartedAt: "2026-06-16T08:00:00Z", sessionStartedAt: "2026-06-16T08:00:00Z")
     _ = try bridge.update(.session(.recoverSession(session: blob, now: "2026-06-16T11:00:00Z")))
     let recovered = try bridge.view()
     XCTAssertEqual(recovered.activeSession?.currentItemTitle, "Recovered Scales")

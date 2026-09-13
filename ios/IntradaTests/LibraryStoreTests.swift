@@ -217,9 +217,8 @@ final class LibraryStoreTests: XCTestCase {
   {
     PracticeSession(
       id: id, entries: [entry("a"), entry("b")], sessionNotes: "solid",
-      sessionIntention: nil, startedAt: "2026-01-01T00:00:00Z", completedAt: completedAt,
-      totalDurationSecs: 600, completionStatus: .completed, sessionScore: nil,
-      reflectionImproved: nil, reflectionStillRough: nil, reflectionNextTarget: nil)
+      startedAt: "2026-01-01T00:00:00Z", completedAt: completedAt,
+      totalDurationSecs: 600, completionStatus: .completed, sessionScore: nil)
   }
 
   func testSaveThenLoadSessionRoundTrips() throws {

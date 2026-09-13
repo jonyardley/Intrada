@@ -662,16 +662,12 @@ note saying it is obsolete.
 
 - **The routines domain** (`domain/set.rs`) was removed in #1747 with no screen
   reading it, so #1348 now means rebuilding routines from a new spec.
-- **The session intention and time target** (`session_intention`,
-  `target_duration_mins`) survive on the builder, four view types and the
-  sessions table, but lost their only writers in #1747. Filling either in again
-  needs a screen and an event; removing them is a bridge plus schema change.
-  Tracked in #1766.
-- **Session reflection** (`reflection_improved`, `reflection_still_rough`,
-  `reflection_next_target`, `ReflectionField`,
-  `SessionEvent::UpdateSessionReflection`) is shell-dead the same way after
-  #1368 removed the UI. Removing it is a domain-sensitivity change (bridge plus
-  schema), so it stayed. Tracked in #1374.
+- **The session intention, the time target and the reflection trio** left the
+  core, the bridge and the crash-recovery blob in #1766 and #1374; the intention's
+  and the trio's four columns stay in the on-device `session` table, written by
+  nothing and read by nothing, because dropping a column needs a copy-table migration on the only
+  copy of the user's data. `specs/retire-shell-dead-session-fields.md` holds the
+  decision and the recovery point.
 
 ## Why OMP was retired (2026-09-08)
 

@@ -168,10 +168,9 @@ struct LegacyEntryPlaysTests {
       plays: [play("p1", "v-c", 8), play("p2", "v-d", 6)])
     try store.saveSession(
       PracticeSession(
-        id: "s1", entries: [entry], sessionNotes: nil, sessionIntention: nil,
+        id: "s1", entries: [entry], sessionNotes: nil,
         startedAt: "2026-09-01T10:00:00Z", completedAt: "2026-09-01T10:10:00Z",
-        totalDurationSecs: 600, completionStatus: .completed, sessionScore: nil,
-        reflectionImproved: nil, reflectionStillRough: nil, reflectionNextTarget: nil))
+        totalDurationSecs: 600, completionStatus: .completed, sessionScore: nil))
 
     let loaded = try onlyEntry(store)
 

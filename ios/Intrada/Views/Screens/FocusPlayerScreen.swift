@@ -138,35 +138,27 @@ struct FocusPlayerScreen: View {
     .accessibilityLabel("Session options")
   }
 
-  // ── Centre: intention echo, item identity, the live timer ──
+  // ── Centre: item identity, the live timer ──
 
   private func centerInfo(_ active: ActiveSessionView) -> some View {
-    VStack(spacing: 28) {
-      if let intention = active.sessionIntention, !intention.isEmpty {
-        Text("“\(intention)”")
-          .font(IntradaFont.body).italic()
+    VStack(spacing: 8) {
+      TypeBadge(kind: active.currentItemType)
+      Text(active.currentItemTitle)
+        .font(IntradaFont.pageTitle(34))
+        .foregroundStyle(IntradaColor.ink)
+        .multilineTextAlignment(.center)
+      if let pieceTitle = active.currentRelatedPieceTitle {
+        Label("Related to \(pieceTitle)", systemImage: "arrow.turn.down.right")
+          .font(IntradaFont.meta)
+          .foregroundStyle(IntradaColor.accent)
+      }
+      if let aim = active.currentItemIntention, !aim.isEmpty {
+        Text("Aim: \(aim)")
+          .font(IntradaFont.meta)
           .foregroundStyle(IntradaColor.inkSecondary)
           .multilineTextAlignment(.center)
       }
-      VStack(spacing: 8) {
-        TypeBadge(kind: active.currentItemType)
-        Text(active.currentItemTitle)
-          .font(IntradaFont.pageTitle(34))
-          .foregroundStyle(IntradaColor.ink)
-          .multilineTextAlignment(.center)
-        if let pieceTitle = active.currentRelatedPieceTitle {
-          Label("Related to \(pieceTitle)", systemImage: "arrow.turn.down.right")
-            .font(IntradaFont.meta)
-            .foregroundStyle(IntradaColor.accent)
-        }
-        if let aim = active.currentItemIntention, !aim.isEmpty {
-          Text("Aim: \(aim)")
-            .font(IntradaFont.meta)
-            .foregroundStyle(IntradaColor.inkSecondary)
-            .multilineTextAlignment(.center)
-        }
-        variationChip(active)
-      }
+      variationChip(active)
     }
     .padding(.horizontal, IntradaSpacing.card)
   }
