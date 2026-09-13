@@ -663,9 +663,9 @@ note saying it is obsolete.
 - **The routines domain** (`domain/set.rs`) was removed in #1747 with no screen
   reading it, so #1348 now means rebuilding routines from a new spec.
 - **The session intention, the time target and the reflection trio** left the
-  core, the bridge and the crash-recovery blob in #1766 and #1374; their four
-  columns stay in the on-device `session` table, written by nothing and read by
-  nothing, because dropping a column needs a copy-table migration on the only
+  core, the bridge and the crash-recovery blob in #1766 and #1374; the intention's
+  and the trio's four columns stay in the on-device `session` table, written by
+  nothing and read by nothing, because dropping a column needs a copy-table migration on the only
   copy of the user's data. `specs/retire-shell-dead-session-fields.md` holds the
   decision and the recovery point.
 

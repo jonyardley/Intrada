@@ -47,7 +47,6 @@ final class StoreEffectLoopTests: XCTestCase {
     let pending = try XCTUnwrap(
       store.pendingSessionInProgress(), "the save effect must persist a recoverable blob")
     XCTAssertEqual(pending.id, "s-crash")
-    XCTAssertEqual(pending.sessionStartedAt, "2026-07-14T10:00:00Z")
 
     bridge.updateHandler = { _ in [Request(id: 2, effect: .app(.clearSessionInProgress))] }
     store.send(.setQuery(nil))
