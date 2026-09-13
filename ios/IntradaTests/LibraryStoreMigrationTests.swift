@@ -76,6 +76,53 @@ final class LibraryStoreMigrationTests: XCTestCase {
     XCTAssertEqual(loaded.sessionScore, 7)
   }
 
+  /// #1766 retired the intention and the reflection trio from the store but
+  /// kept their columns, so text typed before the retirement is still the only
+  /// copy there is. Nothing else reads those columns any more, so this is what
+  /// stands between them and a tidy-up.
+  func testRetiredSessionColumnsAndTheirTextSurviveASave() throws {
+    let queue = try DatabaseQueue()
+    let store = try LibraryStore(queue)
+    try queue.write { db in
+      try db.execute(
+        sql: """
+          INSERT INTO session
+            (id, started_at, completed_at, total_duration_secs, completion_status,
+             session_notes, session_intention, entries, updated_at, deleted_at,
+             reflection_improved, reflection_still_rough, reflection_next_target)
+          VALUES ('s-old', '2026-05-01T10:00:00Z', '2026-05-01T10:30:00Z', 1800, 'completed',
+                  'old note', 'even RH at 96', '[]', '2026-05-01T10:30:00Z', NULL,
+                  'thumb-unders even', 'bars 12-14 rush', 'bars 12-14 at 80')
+          """)
+    }
+
+    let columns = try store.columnNames(ofTable: "session")
+    for retired in [
+      "session_intention", "reflection_improved", "reflection_still_rough",
+      "reflection_next_target",
+    ] {
+      XCTAssertTrue(columns.contains(retired), "\(retired) must stay in the table; got \(columns)")
+    }
+
+    var reloaded = try XCTUnwrap(try store.loadSessions().first)
+    reloaded.sessionNotes = "edited"
+    try store.saveSession(reloaded)
+
+    try queue.read { db in
+      let row = try XCTUnwrap(try Row.fetchOne(db, sql: "SELECT * FROM session WHERE id = 's-old'"))
+      let notes: String? = row["session_notes"]
+      XCTAssertEqual(notes, "edited", "the save still writes the columns the app holds")
+      let intention: String? = row["session_intention"]
+      XCTAssertEqual(intention, "even RH at 96", "a re-save must not wipe the retired columns")
+      let improved: String? = row["reflection_improved"]
+      XCTAssertEqual(improved, "thumb-unders even")
+      let stillRough: String? = row["reflection_still_rough"]
+      XCTAssertEqual(stillRough, "bars 12-14 rush")
+      let nextTarget: String? = row["reflection_next_target"]
+      XCTAssertEqual(nextTarget, "bars 12-14 at 80")
+    }
+  }
+
   func testGroupIdRoundTripsThroughTheJsonCodec() throws {
     let store = try LibraryStore.inMemory()
     let entry = SetlistEntry(

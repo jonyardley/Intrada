@@ -716,7 +716,8 @@ final class LibraryStore: ItemStore {
 
   private static func session(from row: Row) -> PracticeSession {
     let score: Int64? = row["session_score"]
-    // No screen can set these, so the columns stay in the table unread (#1766).
+    // The intention and the three reflection columns stay in the table unread:
+    // no screen can set them (#1766).
     return PracticeSession(
       id: row["id"], entries: decodeEntries(row["entries"], sessionStartedAt: row["started_at"]),
       sessionNotes: row["session_notes"], sessionIntention: nil,

@@ -212,7 +212,7 @@ final class LibraryStoreTests: XCTestCase {
       ])
   }
 
-  private func session(_ id: String, completedAt: String = "2026-01-01T00:00:00Z")
+  private func session(_ id: String, completedAt: String = "2026-01-01T00:10:00Z")
     -> PracticeSession
   {
     PracticeSession(
@@ -227,6 +227,8 @@ final class LibraryStoreTests: XCTestCase {
     try store.saveSession(session("s1"))
     let got = try XCTUnwrap(try store.loadSessions().first)
     XCTAssertEqual(got.id, "s1")
+    XCTAssertEqual(got.startedAt, "2026-01-01T00:00:00Z")
+    XCTAssertEqual(got.completedAt, "2026-01-01T00:10:00Z")
     XCTAssertEqual(got.totalDurationSecs, 600)
     XCTAssertEqual(got.completionStatus, .completed)
     XCTAssertEqual(got.sessionNotes, "solid")

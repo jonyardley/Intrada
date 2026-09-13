@@ -45,7 +45,10 @@ payload: removing them from the core first would break the Swift build.
   v7 database still opens stays. `PreviewSupport.swift` and any fixture stop
   naming the fields only once PR 2 removes them; in PR 1 they keep passing
   `nil`.
-- Behaviour on screen: none. Snapshot references do not change.
+- Behaviour on screen: a past session saved back when an intention could be
+  typed stops echoing it in its Practice history detail, one PR before the
+  screen code goes. Nothing else changes and snapshot references do not, since
+  the previews build their views directly.
 
 ### PR 2, the core and the bridge (same branch family, after PR 1 merges)
 
