@@ -79,8 +79,8 @@ fails in CI.
 | Haiku 4.5 | 1 / 5 | Search, explore and report subagents |
 
 Effort has five levels: `low`, `medium`, `high`, `xhigh`, `max`. `xhigh` is the
-default and the documented sweet spot for coding and agentic work; `high` for
-planning, docs and review synthesis; `max` only when correctness beats cost
+default and the documented sweet spot for lead-session coding on judgement-dense
+work; `high` for patterned coding, planning, docs and review synthesis; `max` only when correctness beats cost
 outright (a migration touching shipped data, a blob-graph change), since it can
 overthink routine work; `low` and `medium` for mechanical work and gate
 runners. `/model` and `/effort` change the running session, and both persist
@@ -95,7 +95,7 @@ economy measure, and for sensitive work Fable at normal speed is better value.
    but wrong" tests). This bug class got past Opus-era sessions three times.
 2. **Opus 5, xhigh**: Tier 2 core work with real judgement (new events and
    handlers in `intrada-core`, TDD-first) and judgement-dense screens.
-3. **Sonnet 5, xhigh**: conventional Tier 2 on non-sensitive surfaces: a screen
+3. **Sonnet 5, high**: conventional Tier 2 on non-sensitive surfaces: a screen
    from existing primitives, an endpoint on established conventions, iOS
    polish, docs and PR bodies.
 4. **Sonnet 5 low, or Haiku 4.5**: Tier 1 trivia and fan-out subagents that
@@ -154,7 +154,7 @@ the session transcripts on Jon's machine, all projects, weighted at API prices;
 Every plan (slice plan, spec phase breakdown, handover) names, per task:
 
 1. **Model and effort**, from the ladders above. "Then build the screen" without
-   "Sonnet 5, xhigh" forces the next session to re-derive the routing, or
+   "Sonnet 5, high" forces the next session to re-derive the routing, or
    default upward.
 2. **Where it runs**: this session, a new session, or a subagent; one fresh
    session per task unless stated.
@@ -176,14 +176,18 @@ a phase without a test plan is.
 | Mechanical, fully specified edits | `smol` | Haiku 4.5, low | The decision is already made; the cheapest rung that types accurately |
 | Run a gate and filter its log | `test-runner` | Sonnet 5, low | No judgement; the gate itself is the check |
 | Review a diff or a plan | `reviewer` | Opus 5, high | Judgement-dense; never weaker than the writer |
-| Conventional Tier 2 slice | `task` | Sonnet 5, high | Non-sensitive surface, patterns already in the repo; one slice per brief |
+| Conventional Tier 2 slice | `task` | Sonnet 5, high | Non-sensitive surface, patterns already in the repo |
 
 All four definitions live in `.claude/agents/`, so they are reviewed like code
 and travel with the checkout. Pin model and effort in the definition rather than
 at the spawn; the two exceptions are `Explore`, which has no definition, and
-lifting `reviewer` to Fable for Fable-written work. `task` sits at high, not
-xhigh: in the week to 2026-09-13 six in ten of its turns ran past 200k, so its
-cost lives in the size of the brief, not the effort. Four rules on top:
+lifting `reviewer` to Fable for Fable-written work.
+
+`task` sits at high, not xhigh: the effort premium buys little on work that
+follows a pattern already in the repo, and over the fortnight to 2026-09-13
+context length dominated its cost either way (59% of its turns past 200k).
+
+Four rules on top:
 
 - **One agent per vertical slice.** Core and iOS are one job. Fan out only on
   genuinely independent pieces, and the lead integrates
