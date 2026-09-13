@@ -35,12 +35,9 @@ struct SessionSummaryScreen: View {
               .fadeUp(1)
             }
             recap(summary).fadeUp(2)
-            if let intention = summary.sessionIntention, !intention.isEmpty {
-              intentionEcho(intention).fadeUp(3)
-            }
-            noteSection.fadeUp(4)
-            sessionScoreRow(summary).fadeUp(5)
-            controls.fadeUp(6)
+            noteSection.fadeUp(3)
+            sessionScoreRow(summary).fadeUp(4)
+            controls.fadeUp(5)
           }
           .padding(.horizontal, IntradaSpacing.card)
           .padding(.top, IntradaSpacing.card)
@@ -76,27 +73,6 @@ struct SessionSummaryScreen: View {
       Rectangle().fill(IntradaColor.divider).frame(height: 1)
     }
     .background(IntradaColor.paperTop)
-  }
-
-  // ── Intention echo ──
-
-  private func intentionEcho(_ intention: String) -> some View {
-    HStack(alignment: .top, spacing: IntradaSpacing.controlGap) {
-      Image(systemName: "quote.opening")
-        .font(.system(size: 15))
-        .foregroundStyle(marker)
-      VStack(alignment: .leading, spacing: 4) {
-        Eyebrow("Your intention", tint: IntradaColor.celebrationInk)
-        Text("“\(intention)”")
-          .font(IntradaFont.cardTitle(15.5)).italic()
-          .foregroundStyle(IntradaColor.celebrationInk)
-      }
-    }
-    .padding(IntradaSpacing.cardCompact)
-    .frame(maxWidth: .infinity, alignment: .leading)
-    .background(LinearGradient.celebration)
-    .clipShape(RoundedRectangle(cornerRadius: IntradaRadius.card))
-    .accessibilityElement(children: .combine)
   }
 
   // ── Headline ──
@@ -370,10 +346,6 @@ struct SessionSummaryScreen: View {
 #if DEBUG
   #Preview("Completed") {
     SessionSummaryScreen().environment(Store.previewSummary)
-  }
-
-  #Preview("With intention") {
-    SessionSummaryScreen().environment(Store.previewSummaryWithReflection)
   }
 
   #Preview("Ended early") {

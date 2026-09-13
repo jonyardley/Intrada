@@ -20,9 +20,6 @@ struct PracticeSessionDetailScreen: View {
           if session.sessionScore != nil {
             sessionScoreCard
           }
-          if let intention = session.sessionIntention, !intention.isEmpty {
-            intentionEcho(intention)
-          }
           if let notes = session.notes, !notes.isEmpty {
             noteCard(notes)
           }
@@ -76,18 +73,7 @@ struct PracticeSessionDetailScreen: View {
     }
   }
 
-  // ── Intention and note ──
-
-  private func intentionEcho(_ intention: String) -> some View {
-    VStack(alignment: .leading, spacing: 4) {
-      Eyebrow("Your intention")
-      Text("“\(intention)”")
-        .font(IntradaFont.cardTitle(15.5)).italic()
-        .foregroundStyle(IntradaColor.ink)
-    }
-    .frame(maxWidth: .infinity, alignment: .leading)
-    .accessibilityElement(children: .combine)
-  }
+  // ── Note ──
 
   private func noteCard(_ notes: String) -> some View {
     VStack(alignment: .leading, spacing: 4) {

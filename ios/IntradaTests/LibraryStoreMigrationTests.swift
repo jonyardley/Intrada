@@ -49,10 +49,9 @@ final class LibraryStoreMigrationTests: XCTestCase {
       ])
     let session = PracticeSession(
       id: "sess-rt", entries: [entry],
-      sessionNotes: nil, sessionIntention: nil,
+      sessionNotes: nil,
       startedAt: "2026-01-01T10:00:00Z", completedAt: "2026-01-01T10:30:00Z",
-      totalDurationSecs: 1800, completionStatus: .completed, sessionScore: 7,
-      reflectionImproved: nil, reflectionStillRough: nil, reflectionNextTarget: nil)
+      totalDurationSecs: 1800, completionStatus: .completed, sessionScore: 7)
     try store.saveSession(session)
     let loaded = try store.loadSessions()
     XCTAssertEqual(loaded.count, 1)
@@ -138,10 +137,9 @@ final class LibraryStoreMigrationTests: XCTestCase {
       ])
     let session = PracticeSession(
       id: "sess-g", entries: [entry],
-      sessionNotes: nil, sessionIntention: nil,
+      sessionNotes: nil,
       startedAt: "2026-01-01T10:00:00Z", completedAt: "2026-01-01T10:30:00Z",
-      totalDurationSecs: 60, completionStatus: .completed, sessionScore: nil,
-      reflectionImproved: nil, reflectionStillRough: nil, reflectionNextTarget: nil)
+      totalDurationSecs: 60, completionStatus: .completed, sessionScore: nil)
     try store.saveSession(session)
     let loaded = try store.loadSessions()
     XCTAssertEqual(

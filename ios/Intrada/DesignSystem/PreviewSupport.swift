@@ -278,8 +278,7 @@
             groupId: nil, plannedVariationId: nil, plannedRepTarget: nil, plays: []),
         ],
         currentIndex: 1,
-        currentItemStartedAt: "2026-06-16T09:02:00Z", sessionStartedAt: "2026-06-16T09:02:00Z",
-        sessionIntention: nil)
+        currentItemStartedAt: "2026-06-16T09:02:00Z", sessionStartedAt: "2026-06-16T09:02:00Z")
       return store
     }
 
@@ -302,8 +301,7 @@
                 entries: [.previewExercise]),
             ],
             blockCount: 2,
-            totalDurationDisplay: nil, totalDurationSummary: nil,
-            sessionIntention: nil, targetDurationMins: nil)))
+            totalDurationDisplay: nil, totalDurationSummary: nil)))
     }
 
     /// Session builder's add-items sheet with a "Recently practised" quick-add
@@ -314,8 +312,7 @@
           items: [.previewPiece, .previewExercise, .previewMinimal],
           buildingSetlist: BuildingSetlistView(
             entries: [], itemCount: 0, blocks: [], blockCount: 0,
-            totalDurationDisplay: nil, totalDurationSummary: nil,
-            sessionIntention: nil, targetDurationMins: nil),
+            totalDurationDisplay: nil, totalDurationSummary: nil),
           recentlyPractised: [.previewPiece, .previewExercise]))
     }
 
@@ -328,8 +325,7 @@
           activeQuery: ListQuery(text: nil, itemType: .exercise, key: nil, tags: []),
           buildingSetlist: BuildingSetlistView(
             entries: [], itemCount: 0, blocks: [], blockCount: 0,
-            totalDurationDisplay: nil, totalDurationSummary: nil,
-            sessionIntention: nil, targetDurationMins: nil),
+            totalDurationDisplay: nil, totalDurationSummary: nil),
           recentlyPractised: [.previewPiece, .previewExercise]))
     }
 
@@ -354,8 +350,7 @@
                 entries: [.previewStandaloneExercise]),
             ],
             blockCount: 2,
-            totalDurationDisplay: "12m 0s", totalDurationSummary: "12 min",
-            sessionIntention: nil, targetDurationMins: nil)))
+            totalDurationDisplay: "12m 0s", totalDurationSummary: "12 min")))
     }
 
     /// Session builder where one of the block's related exercises is also in
@@ -374,12 +369,10 @@
                 durationDisplay: "12 min", entries: block)
             ],
             blockCount: 1,
-            totalDurationDisplay: "12m 0s", totalDurationSummary: "12 min",
-            sessionIntention: nil, targetDurationMins: nil)))
+            totalDurationDisplay: "12m 0s", totalDurationSummary: "12 min")))
     }
 
-    /// Player Focus — a piece mid-session with a session intention and a time
-    /// target (the target bar), no reps.
+    /// Player Focus: a piece mid-session, no reps.
     static var previewActive: Store {
       Store(bridge: PreviewBridge(activeSession: .previewActive))
     }
@@ -409,11 +402,6 @@
     /// its own mark (#1739 decision 10).
     static var previewSummaryVariations: Store {
       Store(bridge: PreviewBridge(summary: .previewSummaryVariations))
-    }
-
-    /// Player Summary — intention echo + all three reflection prompts filled.
-    static var previewSummaryWithReflection: Store {
-      Store(bridge: PreviewBridge(summary: .previewSummaryWithReflection))
     }
 
     /// Player Summary — ended early, so the unreached item shows not-attempted.
@@ -943,9 +931,7 @@
           previewEntry(
             2, "Nocturne Op. 9 No. 2", .piece, score: 6, tempo: 54, repTarget: 5, repCount: 5),
         ],
-        sessionIntention: "Keep the pulse steady without the click",
-        sessionScore: 7,
-        reflectionImproved: nil, reflectionStillRough: nil, reflectionNextTarget: nil)
+        sessionScore: 7)
     }
 
     /// One exercise practised across three keys, so the detail screen lists a
@@ -955,9 +941,7 @@
         id: "session-3", startedAt: "2026-05-29T10:00:00Z", finishedAt: "2026-05-29T10:20:00Z",
         totalDurationDisplay: "20m 30s", totalDurationSummary: "20m",
         completionStatus: .completed, notes: nil,
-        entries: [SetlistEntryView.previewThreeVariations],
-        sessionIntention: "One key at a time, no rushing", sessionScore: 8,
-        reflectionImproved: nil, reflectionStillRough: nil, reflectionNextTarget: nil)
+        entries: [SetlistEntryView.previewThreeVariations], sessionScore: 8)
     }
 
     /// No session mark, and the two statuses a detail view must state plainly
@@ -970,9 +954,7 @@
         entries: [
           previewEntry(0, "Hanon No. 1", .exercise, score: 5, repTarget: 10, repCount: 4),
           previewEntry(1, "Major Scales", .exercise, status: .notAttempted),
-        ],
-        sessionIntention: nil, sessionScore: nil,
-        reflectionImproved: nil, reflectionStillRough: nil, reflectionNextTarget: nil)
+        ], sessionScore: nil)
     }
 
     private static func previewEntry(
@@ -1042,7 +1024,7 @@
           previewEntry(2, "Major Scales", .exercise),
           previewEntry(3, "Gymnopédie No. 1", .piece),
           previewEntry(4, "Czerny Op. 299", .exercise),
-        ], sessionIntention: "Even tempo — don't rush the runs",
+        ],
         currentRepTarget: nil, currentRepCount: nil, currentRepTargetReached: nil,
         currentRepHistory: nil, currentRepSlots: 10,
         currentVariationId: nil, currentVariationLabel: nil,
@@ -1059,7 +1041,7 @@
         currentItemTitle: base.currentItemTitle, currentItemType: base.currentItemType,
         currentPosition: base.currentPosition, totalItems: base.totalItems,
         startedAt: previewLongSessionStartedAt, currentItemStartedAt: base.currentItemStartedAt,
-        entries: base.entries, sessionIntention: base.sessionIntention,
+        entries: base.entries,
         currentRepTarget: base.currentRepTarget, currentRepCount: base.currentRepCount,
         currentRepTargetReached: base.currentRepTargetReached,
         currentRepHistory: base.currentRepHistory, currentRepSlots: 10,
@@ -1083,7 +1065,7 @@
         entries: [
           variationEntry(), previewEntry(1, "Clair de Lune", .piece),
           previewEntry(2, "Czerny Op. 299", .exercise),
-        ], sessionIntention: "One key at a time, no rushing",
+        ],
         currentRepTarget: 10, currentRepCount: 4, currentRepTargetReached: false,
         currentRepHistory: nil, currentRepSlots: 10,
         currentVariationId: "variation-f", currentVariationLabel: "F",
@@ -1126,7 +1108,7 @@
           previewEntry(2, "Hanon No. 1", .exercise, groupId: "g1"),
           previewEntry(3, "Moonlight Sonata", .piece, groupId: "g1"),
           previewEntry(4, "Czerny Op. 299", .exercise),
-        ], sessionIntention: "Keep the wrist relaxed",
+        ],
         currentRepTarget: 10, currentRepCount: 7, currentRepTargetReached: false,
         currentRepHistory: nil, currentRepSlots: 10,
         currentVariationId: nil, currentVariationLabel: nil,
@@ -1147,9 +1129,7 @@
         entries: [
           SetlistEntryView.previewThreeVariations,
           summaryEntry("e2", "Clair de Lune", .piece, "7m 50s", 470, .completed, score: 6),
-        ],
-        sessionIntention: "One key at a time, no rushing", sessionScore: nil,
-        reflectionImproved: nil, reflectionStillRough: nil, reflectionNextTarget: nil)
+        ], sessionScore: nil)
     }
 
     static var previewSummary: SummaryView {
@@ -1164,24 +1144,7 @@
             "e3", "Gymnopédie No. 1", .piece, "11m 30s", 690, .completed, score: 5,
             notes: "Pedal changes cleaner than last week."),
           summaryEntry("e4", "Czerny Op. 299", .exercise, "5m 30s", 330, .completed, score: 3),
-        ], sessionIntention: nil, sessionScore: 8,
-        reflectionImproved: nil, reflectionStillRough: nil, reflectionNextTarget: nil)
-    }
-
-    /// Intention echo + all three reflection prompts filled — locks the
-    /// surface-3 reflection block (design/briefs/2026-07-reflection-and-narrative.md).
-    static var previewSummaryWithReflection: SummaryView {
-      SummaryView(
-        totalDurationDisplay: "37m 50s", completionStatus: .completed, notes: nil,
-        entries: [
-          summaryEntry("e1", "Clair de Lune", .piece, "12m 40s", 760, .completed, score: 3),
-          summaryEntry(
-            "e2", "Hanon No. 1", .exercise, "8m 10s", 490, .completed, score: 4, tempo: 96,
-            intention: "Land each finger evenly"),
-        ], sessionIntention: "Even RH through bars 12–14", sessionScore: 8,
-        reflectionImproved: "Thumb-unders even at 92 — bars 1–8 clean twice in a row.",
-        reflectionStillRough: "Bars 12–14 rush every run past 88.",
-        reflectionNextTarget: "Bars 12–14 at 80, hands together, before pushing tempo.")
+        ], sessionScore: 8)
     }
 
     static var previewSummaryEndedEarly: SummaryView {
@@ -1191,8 +1154,7 @@
           summaryEntry("e1", "Clair de Lune", .piece, "12m 40s", 760, .completed, score: 3),
           summaryEntry("e2", "Hanon No. 1", .exercise, "8m 10s", 490, .completed, score: 4),
           summaryEntry("e3", "Étude Op. 10", .piece, "0s", 0, .notAttempted, score: nil),
-        ], sessionIntention: nil, sessionScore: 8,
-        reflectionImproved: nil, reflectionStillRough: nil, reflectionNextTarget: nil)
+        ], sessionScore: 8)
     }
 
     private static func summaryEntry(

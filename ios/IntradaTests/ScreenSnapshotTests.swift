@@ -480,11 +480,6 @@ final class ScreenSnapshotTests: XCTestCase {
     assertSnapshot(of: host(SessionSummaryScreen(), store: .previewSummary), as: config)
   }
 
-  func testSessionSummaryWithReflection() {
-    assertSnapshot(
-      of: host(SessionSummaryScreen(), store: .previewSummaryWithReflection), as: config)
-  }
-
   /// A mark per variation, beside a piece with one play (#1739 decision 10).
   func testSessionSummaryWithVariations() {
     assertSnapshot(
