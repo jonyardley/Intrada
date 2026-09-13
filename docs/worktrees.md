@@ -67,10 +67,11 @@ the file path for a file tool, the working directory for a shell command.
 | Build, test, `just check` | yes        | yes           | no             |
 | Edit, commit, push     | no            | yes           | no             |
 
-A pull in the main checkout is denied with the rest of the mutating git
-subcommands, which contradicts CLAUDE.md and is tracked in #1740. `git fetch`
-is allowed, and `just worktree-new` branches from fresh `origin/main` regardless,
-so nothing is blocked by it today.
+A pull in the main checkout is denied along with the rest of the mutating git
+subcommands, by design: agents fetch instead (#1740). `git fetch` is allowed,
+and `just worktree-new` branches from fresh `origin/main` regardless. Jon
+refreshes main's working copy; the only cost of it going stale is that a new
+worktree seeds colder caches, and the bindings seed stops matching first.
 
 Read-only is judged on the whole command, not its first word. Every segment of a
 compound command has to be read-only, so `cat x && rm -rf y` is a write; a
