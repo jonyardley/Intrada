@@ -220,8 +220,8 @@ sync-agnostic now; defer the engine; lean roll-our-own LWW when we build sync.**
   gated), so we write zero throwaway import code.
 - **Free-tier auth shape** — fully account-free vs. an anonymous local account
   (eases later linking to a sync subscription). Decided before B5.
-- **Android timing** — onto the same local core soon, or stays deferred? Affects
-  how much Phase B generalises now vs. later.
+- **Android timing**: resolved. A second native shell on the same core is
+  specced in `specs/android-shell.md` (#1774); the build starts after v0.13.
 - **Web data model** — deferred; web shell stays online-only for now.
 - **Sync transport detail** (full-table vs delta, batching) — designed in Phase D.
 
@@ -254,4 +254,5 @@ sync-agnostic now; defer the engine; lean roll-our-own LWW when we build sync.**
 
 ## YAGNI (explicitly out of scope for now)
 
-Android shell, Xcode Cloud, fastlane match, localization.
+Xcode Cloud, fastlane match, localization. The Android shell has its own spec,
+`specs/android-shell.md`.
