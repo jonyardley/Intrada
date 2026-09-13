@@ -503,11 +503,27 @@ final class ScreenSnapshotTests: XCTestCase {
     assertSnapshot(of: host(AnalyticsScreen(), store: .previewProgress), as: config)
   }
 
-  /// The variation coverage rows at the largest text size: the exercise title
-  /// and its solid count share a row, so they have to reflow rather than
-  /// squash (#1739).
+  /// The top of the Progress screen at the largest text size: the mover toast
+  /// and the hero card stack rather than squash. The coverage rows sit below
+  /// this frame; they get their own snapshot.
   func testProgressScreenPopulatedAccessibilitySize() {
     assertSnapshot(of: host(AnalyticsScreen(), store: .previewProgress), as: axConfig)
+  }
+
+  /// The variation coverage rows at the largest text size: the exercise title
+  /// and its solid count share a row, so they have to reflow rather than
+  /// squash (#1739, #1762).
+  func testProgressVariationRowsAccessibilitySize() {
+    let rows = ZStack {
+      PaperBackground()
+      VStack {
+        VariationCoverageSection(rows: AnalyticsView.previewAnalytics.variationCoverage)
+        Spacer()
+      }
+      .padding(IntradaSpacing.card)
+    }
+    .dynamicTypeSize(.accessibility5)
+    assertSnapshot(of: host(rows), as: config)
   }
 
   func testLibraryScreenMastery() {

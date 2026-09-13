@@ -3,8 +3,8 @@ import Testing
 
 @testable import Intrada
 
-/// The shell-side derivations #1739 Phase B added: what the item-complete
-/// sheet's rows say, and what the Progress screen counts.
+/// The shell-side derivation #1739 Phase B left: what the item-complete
+/// sheet's rows say.
 struct VariationScreenTests {
 
   private func play(
@@ -96,84 +96,5 @@ struct VariationScreenTests {
   func unattributedPlaysAreNamed() {
     #expect(play("p", nil, seconds: 0).displayLabel == "No variation")
     #expect(play("p", "B♭ major", seconds: 0).displayLabel == "B♭ major")
-  }
-
-  // ── The Progress screen's coverage ──
-
-  private func exercise(
-    _ id: String, variations: [(String, Bool)], sessions: UInt64, lastPractised: String?
-  ) -> LibraryItemView {
-    LibraryItemView(
-      id: id, itemType: .exercise, title: id, subtitle: "", key: nil, modality: nil,
-      tempo: nil, tempoMarking: nil, tempoBpm: nil, notes: nil, tags: [], createdAt: "",
-      updatedAt: "",
-      practice: sessions == 0
-        ? nil
-        : ItemPracticeSummary.fixture(sessionCount: sessions, lastPracticedAt: lastPractised),
-      latestAchievedTempo: nil, priority: false, linkedExercises: [], usedIn: [],
-      scaffoldPreview: nil, chordChart: nil, metre: nil,
-      variants: variations.enumerated().map { index, variation in
-        VariantView(
-          id: "\(id)-\(index)", label: variation.0, position: UInt64(index),
-          latestScore: variation.1 ? 9 : nil, scoreHistory: [], isSolid: variation.1)
-      }, ladderIsKeys: true, photoId: nil)
-  }
-
-  @Test("coverage counts the solid variations of each practised exercise")
-  func coverageCountsSolidVariations() {
-    let rows = VariationCoverage.rows([
-      exercise(
-        "Scales", variations: [("C", true), ("G", true), ("D", false)], sessions: 4,
-        lastPractised: "2026-09-01T10:00:00Z")
-    ])
-
-    #expect(rows.map(\.solid) == [2])
-    #expect(rows.map(\.total) == [3])
-  }
-
-  @Test("an exercise nobody has practised has nothing to report")
-  func coverageSkipsTheUnpractised() {
-    let rows = VariationCoverage.rows([
-      exercise("Cold", variations: [("C", false), ("G", false)], sessions: 0, lastPractised: nil)
-    ])
-
-    #expect(rows.isEmpty)
-  }
-
-  /// One variation is not a set worth a bar: the exercise's own screen says it
-  /// better than a single full-width segment would.
-  @Test("a single variation is not a coverage row")
-  func coverageSkipsASingleVariation() {
-    let rows = VariationCoverage.rows([
-      exercise("One", variations: [("C", true)], sessions: 4, lastPractised: "2026-09-01T10:00:00Z")
-    ])
-
-    #expect(rows.isEmpty)
-  }
-
-  @Test("coverage leads with the most recently practised")
-  func coverageOrdersByLastPractised() {
-    let rows = VariationCoverage.rows([
-      exercise(
-        "Older", variations: [("C", true), ("G", false)], sessions: 4,
-        lastPractised: "2026-08-01T10:00:00Z"),
-      exercise(
-        "Newer", variations: [("C", true), ("G", false)], sessions: 4,
-        lastPractised: "2026-09-01T10:00:00Z"),
-    ])
-
-    #expect(rows.map(\.title) == ["Newer", "Older"])
-  }
-
-  @Test("coverage stops at the limit rather than taking the screen over")
-  func coverageCapsTheRows() {
-    let items = (0..<8).map { index in
-      exercise(
-        "Ex\(index)", variations: [("C", true), ("G", false)], sessions: 4,
-        lastPractised: "2026-09-0\(index + 1)T10:00:00Z")
-    }
-
-    #expect(VariationCoverage.rows(items).count == 5)
-    #expect(VariationCoverage.rows(items, limit: 2).map(\.title) == ["Ex7", "Ex6"])
   }
 }

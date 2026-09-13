@@ -27,7 +27,7 @@ struct AnalyticsScreen: View {
           heroCard(analytics)
             .fadeUp(1)
           if !variationCoverage.isEmpty {
-            variationSection
+            VariationCoverageSection(rows: variationCoverage)
               .fadeUp(2)
           }
           consistencySection(analytics)
@@ -69,39 +69,8 @@ struct AnalyticsScreen: View {
 
   // ── Variations ──
 
-  private var variationSection: some View {
-    let rows = variationCoverage
-    let solid = rows.reduce(0) { $0 + $1.solid }
-    let total = rows.reduce(0) { $0 + $1.total }
-    return VStack(alignment: .leading, spacing: IntradaSpacing.cardCompact) {
-      SectionHeader(title: "Variations", trailing: "\(solid) of \(total) solid")
-      VStack(spacing: IntradaSpacing.cardCompact) {
-        ForEach(rows) { row in
-          VStack(alignment: .leading, spacing: IntradaSpacing.controlGap) {
-            HStack(alignment: .firstTextBaseline, spacing: IntradaSpacing.cardCompact) {
-              Text(row.title)
-                .font(IntradaFont.bodyMedium)
-                .foregroundStyle(IntradaColor.ink)
-                .frame(maxWidth: .infinity, alignment: .leading)
-              Text("\(row.solid) of \(row.total) solid")
-                .font(IntradaFont.meta)
-                .foregroundStyle(IntradaColor.inkSecondary)
-            }
-            SegmentedProgress(
-              count: row.total, filled: row.solid,
-              label: "\(row.solid) of \(row.total) solid")
-          }
-          .padding(IntradaSpacing.cardCompact)
-          .cardSurface(cornerRadius: IntradaRadius.card)
-          .accessibilityElement(children: .combine)
-          .accessibilityLabel("\(row.title), \(row.solid) of \(row.total) variations solid")
-        }
-      }
-    }
-  }
-
-  private var variationCoverage: [VariationCoverage] {
-    VariationCoverage.rows(store.viewModel?.allItems ?? [])
+  private var variationCoverage: [VariationCoverageView] {
+    analytics?.variationCoverage ?? []
   }
 
   // ── Recent mastery ──
@@ -181,31 +150,6 @@ struct AnalyticsScreen: View {
         minutes: entry.value,
         isCurrent: isCurrent)
     }
-  }
-}
-
-/// One exercise's variations and how many of them are solid.
-struct VariationCoverage: Identifiable {
-  let id: String
-  let title: String
-  let solid: Int
-  let total: Int
-
-  /// Coverage, not twenty rings: an exercise with twenty variations reads the
-  /// same as one with three, and the per-variation detail stays on the
-  /// exercise's own screen (#1739). Most recently practised first, capped so a
-  /// large library does not take the screen over. One variation is not a set
-  /// worth a bar, and an exercise never practised has nothing to report.
-  static func rows(_ items: [LibraryItemView], limit: Int = 5) -> [VariationCoverage] {
-    items
-      .filter { $0.variants.count > 1 && ($0.practice?.sessionCount ?? 0) > 0 }
-      .sorted { ($0.practice?.lastPracticedAt ?? "") > ($1.practice?.lastPracticedAt ?? "") }
-      .prefix(limit)
-      .map {
-        VariationCoverage(
-          id: $0.id, title: $0.title,
-          solid: $0.variants.filter(\.isSolid).count, total: $0.variants.count)
-      }
   }
 }
 

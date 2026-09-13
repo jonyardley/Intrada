@@ -499,8 +499,10 @@
             currentScore: 3, delta: 0, isNew: true),
         ],
         variationCoverage: [
-          VariationCoverageView(itemId: "exercise-2", title: "Major Scales", solid: 7, total: 12),
-          VariationCoverageView(itemId: "exercise-1", title: "Hanon No. 1", solid: 1, total: 3),
+          VariationCoverageView(
+            itemId: "exercise-2", title: LibraryItemView.previewExerciseWithVariations.title,
+            solid: 1, total: 3),
+          VariationCoverageView(itemId: "exercise-3", title: "Chromatic run", solid: 4, total: 12),
         ])
     }
 
