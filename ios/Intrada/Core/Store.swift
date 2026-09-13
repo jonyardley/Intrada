@@ -18,7 +18,7 @@ final class Store {
   static let sortDefaultsKey = "intrada.library-sort"
   /// Positional bincode: any change to `ActiveSession`'s graph takes a new key
   /// (#1345; pinned by the core's `active_session_blob_wire_is_pinned`).
-  static let sessionInProgressKey = "intrada.session-in-progress.v3"
+  static let sessionInProgressKey = "intrada.session-in-progress.v4"
   /// Positional bincode too: a field added to `Profile` takes a new key
   /// (`specs/profile.md`; pinned by the core's `profile_blob_wire_is_pinned`).
   static let profileDefaultsKey = "intrada.profile.v1"
