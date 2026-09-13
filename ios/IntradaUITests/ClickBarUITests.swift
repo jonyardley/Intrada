@@ -20,14 +20,14 @@ final class ClickBarUITests: XCTestCase {
     app.launch()
     app.startOneItemSession()
 
-    let start = app.buttons["Start the click"]
+    let start = app.buttons["Start the metronome"]
     XCTAssertTrue(start.waitForExistence(timeout: 10), "the click row is up")
     XCTAssertFalse(app.buttons["Bar"].exists, "no bar line while silent")
     start.tap()
 
     let bar = app.buttons["Bar"]
     XCTAssertTrue(bar.waitForExistence(timeout: 5), "the bar line appears while sounding")
-    XCTAssertEqual(bar.value as? String, "4 crotchet beats, click on every beat")
+    XCTAssertEqual(bar.value as? String, "4 crotchet beats, metronome on every beat")
 
     // A pattern changes which beats sound, and nothing else.
     bar.tap()
@@ -36,7 +36,7 @@ final class ClickBarUITests: XCTestCase {
     downbeat.tap()
     app.buttons["Done"].tap()
     XCTAssertTrue(bar.waitForExistence(timeout: 5))
-    XCTAssertEqual(bar.value as? String, "4 crotchet beats, click on beat 1")
+    XCTAssertEqual(bar.value as? String, "4 crotchet beats, metronome on beat 1")
 
     // A new metre reads in its own unit and starts sounding every beat again.
     bar.tap()
@@ -45,9 +45,9 @@ final class ClickBarUITests: XCTestCase {
     compound.tap()
     app.buttons["Done"].tap()
     XCTAssertTrue(bar.waitForExistence(timeout: 5))
-    XCTAssertEqual(bar.value as? String, "6 quaver beats, click on every beat")
+    XCTAssertEqual(bar.value as? String, "6 quaver beats, metronome on every beat")
 
-    app.buttons["Stop the click"].tap()
+    app.buttons["Stop the metronome"].tap()
     XCTAssertFalse(
       app.buttons["Bar"].waitForExistence(timeout: 2), "the bar line leaves with the click")
 

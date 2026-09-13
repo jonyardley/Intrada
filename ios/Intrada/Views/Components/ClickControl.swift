@@ -53,14 +53,14 @@ struct ClickControl: View {
         .background(isRunning ? marker : .clear, in: Capsule())
     }
     .buttonStyle(PressRebound())
-    .accessibilityLabel(isRunning ? "Stop the click" : "Start the click")
+    .accessibilityLabel(isRunning ? "Stop the metronome" : "Start the metronome")
     .accessibilityValue(spokenValue)
   }
 
   var readout: String {
-    if unavailable { return "Click unavailable" }
+    if unavailable { return "Metronome unavailable" }
     if isRunning || !atSeededTempo { return TempoUnit.readout(bpm, unit: unit) }
-    return targetDisplay ?? "Click"
+    return targetDisplay ?? "Metronome"
   }
 
   private var tint: Color {

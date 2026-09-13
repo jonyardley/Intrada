@@ -35,7 +35,7 @@ struct ClickSheet: View {
   }
 
   var body: some View {
-    BottomSheet(title: "Click", detents: [.medium, .large]) {
+    BottomSheet(title: "Metronome", detents: [.medium, .large]) {
       ScrollView {
         VStack(alignment: .leading, spacing: IntradaSpacing.section) {
           tempoNote
