@@ -181,7 +181,7 @@ jobs:
           cache-on-failure: true
       # nextest runs the same assertions as `cargo test` but with a smarter
       # scheduler: typically 40 to 50% faster.
-      - uses: taiki-e/install-action@v2.87.9
+      - uses: taiki-e/install-action@v2.87.10
         with:
           tool: cargo-llvm-cov,cargo-nextest
       # One instrumented run emits both the junit XML dorny/test-reporter
@@ -253,7 +253,7 @@ jobs:
         with:
           prefix-key: "clippy"
           save-if: ${{ github.ref == 'refs/heads/main' }}
-      - uses: taiki-e/install-action@v2.87.9
+      - uses: taiki-e/install-action@v2.87.10
         with:
           tool: clippy-sarif,sarif-fmt
       # Run clippy with JSON output piped through clippy-sarif for GitHub
@@ -448,7 +448,7 @@ jobs:
       - uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: "26.6"
-      - uses: taiki-e/install-action@v2.87.9
+      - uses: taiki-e/install-action@v2.87.10
         with:
           tool: just
       # Swift formatting gate (mirror of cargo fmt --check). Needs only the
@@ -635,7 +635,7 @@ jobs:
       - uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: "26.6"
-      - uses: taiki-e/install-action@v2.87.9
+      - uses: taiki-e/install-action@v2.87.10
         with:
           tool: just
       # The `.xctestrun` in the downloaded products names its own test
@@ -702,7 +702,7 @@ jobs:
       - uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: "26.6"
-      - uses: taiki-e/install-action@v2.87.9
+      - uses: taiki-e/install-action@v2.87.10
         with:
           tool: just
       # See the identical comment in native-ios-test-unit: the artifact's
@@ -828,7 +828,7 @@ jobs:
           fetch-depth: 0
       # Pinned: typos dictionary updates can start flagging previously-clean
       # words, failing unrelated PRs. Bump deliberately, with mise.toml.
-      - uses: taiki-e/install-action@v2.87.9
+      - uses: taiki-e/install-action@v2.87.10
         with:
           tool: typos@1.48,cargo-shear@1.13
       # actionlint is a Go binary, not a crate: install-action carries no entry
