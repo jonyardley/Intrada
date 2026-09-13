@@ -176,12 +176,14 @@ a phase without a test plan is.
 | Mechanical, fully specified edits | `smol` | Haiku 4.5, low | The decision is already made; the cheapest rung that types accurately |
 | Run a gate and filter its log | `test-runner` | Sonnet 5, low | No judgement; the gate itself is the check |
 | Review a diff or a plan | `reviewer` | Opus 5, high | Judgement-dense; never weaker than the writer |
-| Conventional Tier 2 slice | `task` | Sonnet 5, xhigh | Non-sensitive surface, patterns already in the repo |
+| Conventional Tier 2 slice | `task` | Sonnet 5, high | Non-sensitive surface, patterns already in the repo; one slice per brief |
 
 All four definitions live in `.claude/agents/`, so they are reviewed like code
 and travel with the checkout. Pin model and effort in the definition rather than
 at the spawn; the two exceptions are `Explore`, which has no definition, and
-lifting `reviewer` to Fable for Fable-written work. Four rules on top:
+lifting `reviewer` to Fable for Fable-written work. `task` sits at high, not
+xhigh: in the week to 2026-09-13 six in ten of its turns ran past 200k, so its
+cost lives in the size of the brief, not the effort. Four rules on top:
 
 - **One agent per vertical slice.** Core and iOS are one job. Fan out only on
   genuinely independent pieces, and the lead integrates
