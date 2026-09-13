@@ -130,6 +130,35 @@ struct ClickControllerTests {
     #expect(click.bpm == 120)
     #expect(click.isAtSeededTempo)
   }
+
+  @Test func enteringTheBackgroundArmsATimedStopAndReturningDisarmsIt() {
+    let click = ClickController()
+
+    click.enteredBackground()
+    #expect(click.backgroundStopArmed)
+
+    click.enteredForeground()
+    #expect(!click.backgroundStopArmed)
+  }
+
+  @Test func theTimedStopFiresOnceTheGraceHasPassed() async throws {
+    let click = ClickController()
+    click.backgroundGrace = .milliseconds(20)
+
+    click.enteredBackground()
+    try await Task.sleep(for: .milliseconds(300))
+
+    #expect(!click.backgroundStopArmed)
+  }
+
+  @Test func aTapToStopDisarmsTheTimedStop() {
+    let click = ClickController()
+
+    click.enteredBackground()
+    click.stop()
+
+    #expect(!click.backgroundStopArmed)
+  }
 }
 
 @MainActor

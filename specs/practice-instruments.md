@@ -329,6 +329,7 @@ but dead); `Solid / Scrappy`; `Clean / Rough`.
   different question from which beats sound at all, and mixing them makes this
   round untestable by ear.
 - **The click keeps running when backgrounded** shipped under #1399: the audio
-  background mode keeps the engine rendering, and the stranded-clock guard
-  reads wall-clock lag rather than beats. The indicator cannot animate in the
-  background; it reads the grid on return, so it comes back in step.
+  background mode keeps the engine rendering for up to ten minutes away, and
+  the stranded-clock guard reads wall-clock lag rather than beats. The
+  indicator cannot animate in the background; it reads the grid on return, so
+  it comes back in step.

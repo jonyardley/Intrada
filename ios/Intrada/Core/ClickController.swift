@@ -13,6 +13,11 @@ final class ClickController {
   /// Set only when the engine refused to start: an interruption or route change
   /// stops the pulse without breaking it, and a red row for headphones is a lie.
   private(set) var unavailable = false
+  /// Backgrounding was the only automatic stop; without one a phone in a pocket
+  /// clicks until the battery goes (#1399).
+  var backgroundGrace: Duration = .seconds(600)
+  private var backgroundStop: Task<Void, Never>?
+  var backgroundStopArmed: Bool { backgroundStop != nil }
 
   private var engine: ClickEngine?
   private var seeded = TempoScale.defaultBpm
@@ -111,8 +116,23 @@ final class ClickController {
   }
 
   func stop() {
+    backgroundStop?.cancel()
+    backgroundStop = nil
     engine?.stop()
     isRunning = false
+  }
+
+  func enteredBackground() {
+    backgroundStop?.cancel()
+    backgroundStop = Task { [weak self, grace = backgroundGrace] in
+      guard (try? await Task.sleep(for: grace)) != nil, let self else { return }
+      self.stop()
+    }
+  }
+
+  func enteredForeground() {
+    backgroundStop?.cancel()
+    backgroundStop = nil
   }
 
   /// The engine's observers outlive the screen unless it is torn down.
