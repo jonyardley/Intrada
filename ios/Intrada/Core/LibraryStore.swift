@@ -147,28 +147,22 @@ final class LibraryStore: ItemStore {
         sql: """
           INSERT INTO session
             (id, started_at, completed_at, total_duration_secs, completion_status,
-             session_notes, session_intention, entries, updated_at, deleted_at, session_score,
-             reflection_improved, reflection_still_rough, reflection_next_target)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?)
+             session_notes, entries, updated_at, deleted_at, session_score)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)
           ON CONFLICT(id) DO UPDATE SET
             started_at = excluded.started_at, completed_at = excluded.completed_at,
             total_duration_secs = excluded.total_duration_secs,
             completion_status = excluded.completion_status,
-            session_notes = excluded.session_notes, session_intention = excluded.session_intention,
+            session_notes = excluded.session_notes,
             entries = excluded.entries, updated_at = excluded.updated_at, deleted_at = NULL,
-            session_score = excluded.session_score,
-            reflection_improved = excluded.reflection_improved,
-            reflection_still_rough = excluded.reflection_still_rough,
-            reflection_next_target = excluded.reflection_next_target
+            session_score = excluded.session_score
           """,
         arguments: [
           session.id, session.startedAt, session.completedAt,
           Int(session.totalDurationSecs), Self.completionString(session.completionStatus),
-          session.sessionNotes, session.sessionIntention,
+          session.sessionNotes,
           Self.encodeEntries(session.entries), session.completedAt,
           session.sessionScore.map { Int($0) },
-          session.reflectionImproved, session.reflectionStillRough,
-          session.reflectionNextTarget,
         ])
     }
   }
@@ -722,16 +716,16 @@ final class LibraryStore: ItemStore {
 
   private static func session(from row: Row) -> PracticeSession {
     let score: Int64? = row["session_score"]
+    // The intention and the three reflection columns stay in the table unread:
+    // no screen can set them (#1766).
     return PracticeSession(
       id: row["id"], entries: decodeEntries(row["entries"], sessionStartedAt: row["started_at"]),
-      sessionNotes: row["session_notes"], sessionIntention: row["session_intention"],
+      sessionNotes: row["session_notes"], sessionIntention: nil,
       startedAt: row["started_at"], completedAt: row["completed_at"],
       totalDurationSecs: UInt64(row["total_duration_secs"] as Int64),
       completionStatus: completionStatus(from: row["completion_status"]),
       sessionScore: score.map { UInt8(clamping: $0) },
-      reflectionImproved: row["reflection_improved"],
-      reflectionStillRough: row["reflection_still_rough"],
-      reflectionNextTarget: row["reflection_next_target"])
+      reflectionImproved: nil, reflectionStillRough: nil, reflectionNextTarget: nil)
   }
 
   // Entries (a nested, optional-heavy aggregate) go to JSON via a Codable DTO,
