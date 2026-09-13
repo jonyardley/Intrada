@@ -453,7 +453,7 @@ pub fn validate_variant_host(id: &str, model: &Model) -> Result<(), LibraryError
     if item.kind != ItemKind::Exercise {
         return Err(LibraryError::Validation {
             field: "id".to_string(),
-            message: "Only an exercise can have steps".to_string(),
+            message: "Only an exercise can have variations".to_string(),
         });
     }
 
@@ -468,7 +468,7 @@ pub fn validate_variant_labels(labels: &[String]) -> Result<(), LibraryError> {
     if labels.len() > MAX_VARIANTS {
         return Err(LibraryError::Validation {
             field: "labels".to_string(),
-            message: format!("An exercise can have at most {MAX_VARIANTS} steps"),
+            message: format!("An exercise can have at most {MAX_VARIANTS} variations"),
         });
     }
 
@@ -478,14 +478,14 @@ pub fn validate_variant_labels(labels: &[String]) -> Result<(), LibraryError> {
             return Err(LibraryError::Validation {
                 field: "labels".to_string(),
                 message: format!(
-                    "Each step label must be between 1 and {MAX_VARIANT_LABEL} characters"
+                    "Each variation label must be between 1 and {MAX_VARIANT_LABEL} characters"
                 ),
             });
         }
         if !seen.insert(label.to_lowercase()) {
             return Err(LibraryError::Validation {
                 field: "labels".to_string(),
-                message: format!("Duplicate step \u{201c}{label}\u{201d}"),
+                message: format!("Duplicate variation \u{201c}{label}\u{201d}"),
             });
         }
     }

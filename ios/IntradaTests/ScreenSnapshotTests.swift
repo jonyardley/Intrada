@@ -233,7 +233,7 @@ final class ScreenSnapshotTests: XCTestCase {
         store: .previewPracticeSuggestionPriorities), as: config)
   }
 
-  /// No star, no ladder step, never-marked wording: conditionals that can
+  /// No star, no ladder variation, never-marked wording: conditionals that can
   /// regress without the full screen moving.
   func testUpNextHeroNeverMarked() {
     assertSnapshot(
@@ -832,7 +832,7 @@ final class ScreenSnapshotTests: XCTestCase {
     assertSnapshot(of: host(pushed, store: store), as: config)
   }
 
-  // #1083 C2/C3: Steps section empty state — key-preset buttons + custom-steps link.
+  // #1083 C2/C3: Variations section empty state: key-preset buttons + custom-variations link.
   func testExerciseDetailVariationsEmptyState() {
     let store = Store(bridge: PreviewBridge(items: [.previewExercise]))
     let pushed = NavigationStack(
@@ -841,14 +841,14 @@ final class ScreenSnapshotTests: XCTestCase {
     assertSnapshot(of: host(pushed, store: store), as: config)
   }
 
-  // #1083 C4: Steps edit mode — drag handle, inline rename field, remove button.
+  // #1083 C4: Variations edit mode: drag handle, inline rename field, remove button.
   func testExerciseDetailVariationsEditing() {
     let store = Store(bridge: PreviewBridge(items: [.previewExerciseWithVariations]))
     let editing = EditingStepsWrapper(item: .previewExerciseWithVariations)
     assertSnapshot(of: host(editing, store: store), as: config)
   }
 
-  // #1083 C2: Steps section — solid / current / unrated ring states, horizontal
+  // #1083 C2: Variations section: solid / current / unrated ring states, horizontal
   // scroller, "N of M solid" header; Key/Tempo rows hidden for laddered exercises.
   func testExerciseDetailWithVariations() {
     let store = Store(bridge: PreviewBridge(items: [.previewExerciseWithVariations]))
@@ -858,7 +858,7 @@ final class ScreenSnapshotTests: XCTestCase {
     assertSnapshot(of: host(pushed, store: store), as: config)
   }
 
-  /// Largest accessibility text size — proves the Steps scroller reflows
+  /// Largest accessibility text size: proves the Variations scroller reflows
   /// rather than clipping or wrapping (#1083 C2).
   func testExerciseDetailWithVariationsAccessibilitySize() {
     let store = Store(bridge: PreviewBridge(items: [.previewExerciseWithVariations]))
@@ -868,7 +868,7 @@ final class ScreenSnapshotTests: XCTestCase {
     assertSnapshot(of: host(pushed, store: store), as: axConfig)
   }
 
-  // #1083 C2: 12-step ladder — survives max realistic length without wrapping.
+  // #1083 C2: 12-variation ladder: survives max realistic length without wrapping.
   func testExerciseDetailWith12Variations() {
     let store = Store(bridge: PreviewBridge(items: [.previewExerciseWithTwelveVariations]))
     let pushed = NavigationStack(
@@ -885,7 +885,7 @@ final class ScreenSnapshotTests: XCTestCase {
     assertSnapshot(of: host(pushed, store: store), as: config)
   }
 
-  // #1083 C2: minimal step-list creation sheet, opened from the "+ Add steps" link.
+  // #1083 C2: minimal variation-list creation sheet, opened from the "+ Add variations" link.
   func testAddVariationsSheet() {
     assertSnapshot(of: host(AddVariationsSheet(itemId: "exercise-1")), as: config)
   }

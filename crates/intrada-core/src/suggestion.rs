@@ -46,10 +46,10 @@ pub struct SuggestedItem {
     pub item_id: String,
     pub item_title: String,
     pub item_type: ItemKind,
-    /// The ladder step to practise, where the exercise has one that isn't solid.
+    /// The ladder variation to practise, where the exercise has one that isn't solid.
     pub variant_id: Option<String>,
     pub variant_label: Option<String>,
-    /// The mark this row's reason is drawn from: the step's where a step was
+    /// The mark this row's reason is drawn from: the variation's where a variation was
     /// chosen, otherwise the exercise's mark in this piece's context, or the
     /// piece's own latest mark.
     pub latest_score: Option<u8>,
@@ -89,17 +89,17 @@ pub fn compute_up_next(items: &[LibraryItemView], clock: LocalClock) -> Option<S
             // The first variation that is not yet solid. The ladder's "current
             // rung" went with #1739 decision 1; the same rule stays here as
             // this card's own recommendation until #1501 replaces it.
-            let step = by_id
+            let variation = by_id
                 .get(ex.id.as_str())
                 .and_then(|full| full.variants.iter().find(|v| !v.is_solid));
-            let mark = match step {
-                Some(step) => step.latest_score,
+            let mark = match variation {
+                Some(variation) => variation.latest_score,
                 None => ex.piece_context_score,
             };
             Suggestable {
                 id: ex.id.as_str(),
                 title: ex.title.as_str(),
-                step,
+                variation,
                 mark,
                 staleness: staleness::assess(ex.practice.as_ref(), mark, clock),
                 practice: ex.practice.as_ref(),
@@ -119,10 +119,10 @@ pub fn compute_up_next(items: &[LibraryItemView], clock: LocalClock) -> Option<S
             item_id: ex.id.to_string(),
             item_title: ex.title.to_string(),
             item_type: ItemKind::Exercise,
-            variant_id: ex.step.map(|s| s.id.clone()),
-            variant_label: ex.step.map(|s| s.label.clone()),
+            variant_id: ex.variation.map(|s| s.id.clone()),
+            variant_label: ex.variation.map(|s| s.label.clone()),
             latest_score: ex.mark,
-            reason: mark_clause(ex.mark, ex.step.is_some()),
+            reason: mark_clause(ex.mark, ex.variation.is_some()),
         })
         .collect();
 
@@ -170,8 +170,8 @@ pub fn compute_up_next(items: &[LibraryItemView], clock: LocalClock) -> Option<S
 struct Suggestable<'a> {
     id: &'a str,
     title: &'a str,
-    step: Option<&'a VariantView>,
-    /// The step's mark where a step was chosen, otherwise the exercise's mark
+    variation: Option<&'a VariantView>,
+    /// The variation's mark where a variation was chosen, otherwise the exercise's mark
     /// in this piece's context. Per-piece, not flat: a drill solid under one
     /// tune can be rough under another (#1081).
     mark: Option<u8>,
@@ -189,10 +189,10 @@ fn latest_mark(item: &LibraryItemView) -> Option<u8> {
     item.practice.as_ref().and_then(|p| p.latest_score)
 }
 
-fn mark_clause(mark: Option<u8>, has_step: bool) -> String {
-    match (mark, has_step) {
+fn mark_clause(mark: Option<u8>, has_variation: bool) -> String {
+    match (mark, has_variation) {
         (Some(m), _) => marked_clause(m),
-        (None, true) => "Step not marked yet".to_string(),
+        (None, true) => "Variation not marked yet".to_string(),
         (None, false) => "Not marked with this piece".to_string(),
     }
 }
@@ -474,10 +474,10 @@ mod tests {
         assert_eq!(suggest(&library).items[0].item_id, "p1-ex1");
     }
 
-    // ── Steps ────────────────────────────────────────────────────────
+    // ── Variations ────────────────────────────────────────────────────
 
     #[test]
-    fn a_laddered_exercise_carries_its_current_step() {
+    fn a_laddered_exercise_carries_its_current_variation() {
         let mut library = piece_with_exercises("p1", "Prelude", 1);
         let ex = library
             .iter_mut()
@@ -502,7 +502,7 @@ mod tests {
     }
 
     #[test]
-    fn a_fully_solid_ladder_carries_no_step() {
+    fn a_fully_solid_ladder_carries_no_variation() {
         let mut library = piece_with_exercises("p1", "Prelude", 1);
         library[0].linked_exercises[0].piece_context_score = Some(8);
         let ex = library
@@ -521,7 +521,7 @@ mod tests {
     }
 
     #[test]
-    fn a_steps_mark_orders_the_exercise_not_its_flat_one() {
+    fn a_variations_mark_orders_the_exercise_not_its_flat_one() {
         let mut library = piece_with_exercises("p1", "Prelude", 2);
         library[0].linked_exercises[0].piece_context_score = Some(4);
         library[0].linked_exercises[1].piece_context_score = Some(7);

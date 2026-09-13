@@ -4351,7 +4351,7 @@ mod tests {
         assert_eq!(
             saved.planned_variation_id.as_deref(),
             Some("v-c"),
-            "the chosen step rides the persisted session"
+            "the chosen variation rides the persisted session"
         );
         assert_eq!(
             play_of(saved).variation_id.as_deref(),

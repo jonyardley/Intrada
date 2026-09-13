@@ -257,8 +257,8 @@ final class LibraryStore: ItemStore {
       try db.execute(sql: "ALTER TABLE item ADD COLUMN chord_chart TEXT")
     }
     migrator.registerMigration("v9_variant") { db in
-      // Exercise step ladders (#1083). First normalized child table: per-row
-      // `updated_at`/`deleted_at` give the future sync engine per-step LWW +
+      // Exercise variation ladders (#1083). First normalized child table: per-row
+      // `updated_at`/`deleted_at` give the future sync engine per-variation LWW +
       // tombstones (invariant 2) that a JSON blob on `item` couldn't. Additive —
       // existing exercises simply have no rows here (an empty ladder).
       try db.execute(
@@ -516,7 +516,7 @@ final class LibraryStore: ItemStore {
       updatedAt: row["updated_at"], deletedAt: row["deleted_at"])
   }
 
-  /// All variants (steps) grouped by owning item, in ladder order — tombstones
+  /// All variants (variations) grouped by owning item, in ladder order, tombstones
   /// included, per the core's reconciliation contract (#1083). One query for
   /// the whole library, keyed by `item_id`, so `loadItems` stays O(1) reads.
   private static func variantsByItem(_ db: Database) throws -> [String: [Variant]] {

@@ -1554,7 +1554,7 @@ mod tests {
             "the demo exercise carries a keys ladder"
         );
         let first = &scales.variants[0];
-        assert!(first.is_solid, "the first demo step reads as Solid");
+        assert!(first.is_solid, "the first demo variation reads as Solid");
         assert!(first.latest_score.is_some());
     }
 
@@ -4715,7 +4715,7 @@ mod tests {
         assert!(steps[0].is_solid, "score >= threshold is solid");
         assert_eq!(steps[1].latest_score, Some(5));
         assert!(!steps[1].is_solid);
-        assert_eq!(steps[2].latest_score, None, "unpractised step has no score");
+        assert_eq!(steps[2].latest_score, None, "unpractised variation has no score");
         assert!(!steps[2].is_solid);
     }
 
@@ -5174,7 +5174,7 @@ mod tests {
                 .map(|v| (v.id.as_str(), v.label.as_str(), v.position))
                 .collect::<Vec<_>>(),
             vec![("v-c", "C", 0), ("v-f", "F", 1)],
-            "live steps only, in ladder order"
+            "live variations only, in ladder order"
         );
     }
 
@@ -5317,7 +5317,7 @@ mod tests {
         assert_eq!(
             vm.sessions[0].entries[0].plays[0].variation_id.as_deref(),
             Some("v-c"),
-            "history entries carry their step through the view"
+            "history entries carry their variation through the view"
         );
     }
 

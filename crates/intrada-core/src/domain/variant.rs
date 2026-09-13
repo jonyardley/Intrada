@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-/// One rung of an exercise's step ladder: "C", "Root position", "Land on
+/// One rung of an exercise's variation ladder: "C", "Root position", "Land on
 /// the 3rd". The core's name; on screen a ladder is "Variations", or "Keys"
 /// when every live rung names one. Which of the two is the core's call, via
 /// `ladder_is_all_keys` (#1083, moved off the shell in #1467) — the shell
@@ -13,7 +13,7 @@ pub struct Variant {
     pub id: String,
     pub label: String,
     pub position: usize,
-    /// Per-row LWW timestamp so a step can sync independently of its
+    /// Per-row LWW timestamp so a variation can sync independently of its
     /// exercise (invariant 2). Same format as `Item::updated_at`.
     pub updated_at: DateTime<Utc>,
     /// Soft-delete tombstone. Tombstoned variants stay in `Item::variants`
@@ -23,8 +23,8 @@ pub struct Variant {
     pub deleted_at: Option<DateTime<Utc>>,
 }
 
-/// A step is "Solid" (UI copy) once its latest score reaches this, of 10.
-/// The current step is the first that isn't; progress means advancing the
+/// A variation is "Solid" (UI copy) once its latest score reaches this, of 10.
+/// The current variation is the first that isn't; progress means advancing the
 /// rung, not polishing one rating (#1083; threshold decision in
 /// specs/exercise-variants.md).
 pub const SOLID_SCORE_MIN: u8 = 8;
@@ -86,10 +86,10 @@ pub fn reconcile_variants(
     next
 }
 
-// ── Keys or steps ─────────────────────────────────────────────────────
+// ── Keys or variations ────────────────────────────────────────────────
 
 /// True when the ladder has rungs and every one of them names a key, so the
-/// Library row can say "12 keys" rather than "12 steps" (#1467). All or
+/// Library row can say "12 keys" rather than "12 variations" (#1467). All or
 /// nothing: one rung that isn't a key and "keys" would be a lie about it.
 /// A ladder with no rungs has nothing to be all of, so it is not keys.
 pub(crate) fn ladder_is_all_keys<'a>(labels: impl IntoIterator<Item = &'a str>) -> bool {
@@ -196,7 +196,7 @@ mod tests {
             "1st inversion",
             "Land on the 3rd",
             "Hands together",
-            "Step 1",
+            "Variation 1",
             "Am",
             "Dm",
             "C dorian",
@@ -223,7 +223,7 @@ mod tests {
     }
 
     #[test]
-    fn one_rung_that_is_not_a_key_makes_the_whole_ladder_steps() {
+    fn one_rung_that_is_not_a_key_makes_the_whole_ladder_variations() {
         assert!(!ladder_is_all_keys(["C", "G", "Hands together"]));
         assert!(!ladder_is_all_keys(["Root position", "1st inversion"]));
     }
