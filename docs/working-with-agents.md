@@ -7,7 +7,7 @@
 > file replaced the OMP-era guides and `model-guide.md` on 2026-09-08; why OMP
 > was retired is in [`reference.md`](reference.md).
 >
-> Last reviewed: 2026-09-08, against the Claude 5 family (Fable 5.1, Opus 5,
+> Last reviewed: 2026-09-13, against the Claude 5 family (Fable 5.1, Opus 5,
 > Sonnet 5, Haiku 4.5). Re-review at the next model generation.
 
 ## What loads, and what it costs
@@ -24,7 +24,7 @@ most of it again. Everything in the first column below is in that bill.
 | Repo settings | `.claude/settings.json` | Permissions, the format-on-edit and git-hook-install hooks, and the plugins switched off for this repo |
 | User rules | `~/.claude/CLAUDE.md`, `~/.claude/rules/` | Every session, before the project rules; project wins on conflict |
 | Auto memory | `~/.claude/projects/<project>/memory/MEMORY.md` | Every session, first 200 lines. Not loaded into subagents. The one input that can carry a stale fact |
-| User hooks | `~/.claude/settings.json`, `~/.claude/hooks/` | Text injected on every prompt (the turn reminder) and after a push (the CI-watch note); the bash guard runs before every command |
+| User hooks | `~/.claude/settings.json`, `~/.claude/hooks/` | Text injected on every prompt (the turn reminder, and the context watch past 250k), after a push (the CI-watch note) and in the day's first session (one usage line); the bash guard runs before every command, the spawn guard before every subagent |
 | Plugins | `enabledPlugins` in user settings | Each plugin skill's description, every session. `.claude/settings.json` switches slack, atlassian, visual-explainer and frontend-design off here |
 | Xcode tools | `.mcp.json` | xcodebuildmcp and the simulator workflow |
 
@@ -48,7 +48,8 @@ A rule lives in exactly one of these, chosen by who reads it and when.
 5. **Agents.** `reviewer`, `test-runner`, `smol`, `task`, plus the built-in
    `Explore`. Model and effort pinned in the definition.
 6. **Hooks.** Repo: format on edit, install the git hooks. User: the bash
-   guard, the per-prompt reminder, the post-push CI note.
+   guard, the spawn guard, the per-prompt reminder and context watch, the
+   post-push CI note, the daily usage line.
 7. **Auto memory.** What neither CLAUDE.md records: preferences, corrections,
    project state the code cannot show.
 8. **Docs on demand.** `reference.md` for the why behind every rule, the specs,
@@ -129,6 +130,24 @@ ladder, execution goes down it. A subagent's finding is a lead, not a fact: one
 on 2026-09-04 blamed the wrong commit, cited a line that pointed at a comment,
 and said it could not run `git show` when it could. Brief research agents to
 mark observed against inferred, and verify before acting.
+
+**What it costs in practice.** Measured over the fortnight to 2026-09-13 from
+the session transcripts on Jon's machine, all projects, weighted at API prices;
+`just usage 14` prints the same table.
+
+- **Context length drives usage more than the rung.** 52 of 154 main sessions
+  passed 200k tokens, and the eight biggest sessions were 36% of the fortnight.
+  Finish a unit and `/clear`; `/compact` when mid-task.
+- **Per main-session turn**: Fable 5.1 high $0.20 (xhigh $0.32), Opus 5 high
+  or medium $0.15, Sonnet 5 medium $0.05. Fable's cache reads cost $0.25 per
+  MTok against Opus's $0.50, which keeps the gap to Opus small at long context;
+  dropping to Sonnet is what saves. Jon's machine opens sessions on Sonnet 5
+  medium, so name the rung the ladders above give the task and switch before
+  the work starts, not after.
+- **Subagents were 26% of the fortnight's usage.** Their largest line was
+  `task` spawned with `model: opus` over its Sonnet pin: keep the judgement in the lead and hand
+  down settled work instead of lifting the agent. `task` runs grow as long as
+  main sessions (59% of their turns past 200k), so brief one slice per spawn.
 
 ## Plans ship their own resourcing
 
@@ -259,7 +278,11 @@ These run whether or not an agent read the rules.
 - **On Jon's machine, not in the repo**: `~/.claude/hooks/guard-bash.sh`
   matches the same denials inside compound commands, the turn reminder
   re-attaches the style rules on every prompt, and the post-push hook restates
-  the CI-watch rule after every push.
+  the CI-watch rule after every push. `guard-spawn.sh` refuses a spawn that
+  lifts a subagent above the model in its definition (`reviewer` excepted, per
+  Reviewing above), `context-watch.sh` says to `/clear` or `/compact` once a
+  session passes 250k and again at 400k, and `usage-daily.sh` opens the first
+  session of each day with one line from `usage-report.py`.
 
 ## Session controls
 
@@ -269,6 +292,7 @@ These run whether or not an agent read the rules.
 | Review the current diff | `/code-review` (the code-review plugin skill), at a chosen depth. Say "comment-policy violations are Blockers" or they survive as nits |
 | Change rung mid-session | `/model`, `/effort`. Both persist unless chosen as session-only |
 | See what loaded | `/context` lists the memory files and rules in this session |
+| See what sessions cost | `just usage` (last 7 days by agent, model and effort, plus the biggest sessions); `just usage 14` for a fortnight |
 | Edit the rules files | `/memory` |
 | Tidy up permission prompts | `/fewer-permission-prompts` |
 

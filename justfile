@@ -269,6 +269,17 @@ worktrees:
 # Diagnostics & cleanup
 # ─────────────────────────────────────────────
 
+# Claude Code usage from this machine's transcripts, at API prices
+usage days="7":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    report="$HOME/.claude/hooks/usage-report.py"
+    if [ -f "$report" ]; then
+        python3 "$report" --days "{{days}}"
+    else
+        echo "no usage-report.py in ~/.claude/hooks on this machine, so nothing to read"
+    fi
+
 # Neither language server resolved before this existed: `rust-analyzer` on PATH
 # is a rustup shim that fails unless the component is installed for the pinned
 # toolchain, and `sourcekit-lsp` never activated because its root markers live
