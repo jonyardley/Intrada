@@ -137,13 +137,24 @@ the session transcripts on Jon's machine, all projects, weighted at API prices;
 
 - **Context length drives usage more than the rung.** 52 of 154 main sessions
   passed 200k tokens, and the eight biggest sessions were 36% of the fortnight.
-  Finish a unit and `/clear`; `/compact` when mid-task.
+  Finish a unit and `/clear` in the same sitting; `/compact` when mid-task. The
+  status line shows the context in thousands, amber from 200k and red from 250k.
+- **A parked session pays again.** The prompt cache lasts an hour; the first
+  turn after a longer gap re-sends the whole context at write price. In the
+  week to 2026-09-13 that was 194 turns and $233, and cache writes were 29% of
+  all spend. The context watch names such a turn as it happens: finish the
+  unit and `/clear` rather than leave a session to come back to.
+- **Tool output is what fills the context.** 36 MB in the week to 2026-09-13,
+  Read 31%, then git, sed, grep, just and cat at 5 to 10% each; `just usage`
+  prints the table. Read once, keep ranges tight, and run gates in
+  `test-runner`.
 - **Per main-session turn**: Fable 5.1 high $0.20 (xhigh $0.32), Opus 5 high
   or medium $0.15, Sonnet 5 medium $0.05. Fable's cache reads cost $0.25 per
   MTok against Opus's $0.50, which keeps the gap to Opus small at long context;
-  dropping to Sonnet is what saves. Jon's machine opens sessions on Sonnet 5
-  medium, so name the rung the ladders above give the task and switch before
-  the work starts, not after.
+  dropping to Sonnet is what saves. This repo's `.claude/settings.json` opens
+  sessions on Sonnet 5 medium with the 1M window, so name the rung the ladders
+  above give the task and switch with `/model` before the work starts, saying
+  so, not after.
 - **Subagents were 26% of the fortnight's usage.** Their largest line was
   `task` spawned with `model: opus` over its Sonnet pin: keep the judgement in the lead and hand
   down settled work instead of lifting the agent. `task` runs grow as long as
