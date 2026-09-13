@@ -58,11 +58,9 @@ struct FocusPlayerScreen: View {
     }
     // `initial: true` is what takes the hold for a session started in the
     // foreground, where the phase never changes (#1513).
-    // No `UIBackgroundModes: audio`, so the pulse cannot survive backgrounding
-    // — stop it rather than leave the row claiming a click nobody can hear.
     .onChange(of: scenePhase, initial: true) { _, phase in
       wakeLock.update(sessionActive: active != nil, phase: phase)
-      if phase == .background { click.stop() }
+      if phase == .active { click.enteredForeground() } else { click.enteredBackground() }
     }
     .onDisappear {
       click.dispose()

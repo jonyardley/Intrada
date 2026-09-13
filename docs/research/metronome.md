@@ -82,6 +82,8 @@ threaded through the core end to end:
   keep-alive so iOS does not suspend timers in the background, interruption
   re-arm, and `MPNowPlayingInfoCenter` seeding. Spec:
   `specs/background-audio-plugin.md`.
+  Shipped natively under #1399 without the silent loop: the running
+  `AVAudioEngine` under `UIBackgroundModes: audio` is the keep-alive.
 
 **Genuinely new:** the click wired into the builder's Focus Player rather
 than the deleted coach loop; a rendered tempo trend (item detail and/or

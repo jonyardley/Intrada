@@ -328,5 +328,8 @@ but dead); `Solid / Scrappy`; `Clean / Rough`.
 - **An accent timbre.** Deliberately out of scope: a second click sound is a
   different question from which beats sound at all, and mixing them makes this
   round untestable by ear.
-- **The click keeps running when backgrounded** (#1399) is untouched and
-  interacts with the indicator, which cannot animate in the background.
+- **The click keeps running when backgrounded** shipped under #1399: the audio
+  background mode keeps the engine rendering for up to ten minutes away, and
+  the stranded-clock guard reads wall-clock lag rather than beats. The
+  indicator cannot animate in the background; it reads the grid on return, so
+  it comes back in step.

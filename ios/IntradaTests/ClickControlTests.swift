@@ -130,6 +130,64 @@ struct ClickControllerTests {
     #expect(click.bpm == 120)
     #expect(click.isAtSeededTempo)
   }
+
+  @Test func enteringTheBackgroundArmsATimedStopAndReturningDisarmsIt() {
+    let click = ClickController()
+
+    click.enteredBackground()
+    #expect(click.backgroundStopArmed)
+
+    click.enteredForeground()
+    #expect(!click.backgroundStopArmed)
+  }
+
+  @Test func theTimedStopWaitsForTheGraceAndThenFires() async throws {
+    let click = ClickController()
+    click.backgroundGrace = .milliseconds(200)
+
+    click.enteredBackground()
+    try await Task.sleep(for: .milliseconds(20))
+    #expect(click.backgroundStopArmed)
+
+    try await Task.sleep(for: .milliseconds(500))
+    #expect(!click.backgroundStopArmed)
+  }
+
+  /// An orphaned task would fire into the next arming and silence a restarted click.
+  @Test func returningToTheForegroundCancelsTheOldTaskNotJustItsHandle() async throws {
+    let click = ClickController()
+    click.backgroundGrace = .milliseconds(20)
+    click.enteredBackground()
+    click.enteredForeground()
+
+    click.backgroundGrace = .seconds(600)
+    click.enteredBackground()
+    try await Task.sleep(for: .milliseconds(300))
+
+    #expect(click.backgroundStopArmed)
+  }
+
+  @Test func aTapToStopCancelsTheOldTaskNotJustItsHandle() async throws {
+    let click = ClickController()
+    click.backgroundGrace = .milliseconds(20)
+    click.enteredBackground()
+    click.stop()
+
+    click.backgroundGrace = .seconds(600)
+    click.enteredBackground()
+    try await Task.sleep(for: .milliseconds(300))
+
+    #expect(click.backgroundStopArmed)
+  }
+
+  @Test func aTapToStopDisarmsTheTimedStop() {
+    let click = ClickController()
+
+    click.enteredBackground()
+    click.stop()
+
+    #expect(!click.backgroundStopArmed)
+  }
 }
 
 @MainActor

@@ -18,7 +18,8 @@ final class ClickEngine {
   // while `AVAudioTime(hostTime:)` audio is immune to that.
   private let windowBeats = 64
   private let topUpBelow = 24
-  static let maxLagBeats: Double = 2
+  // Wall clock, not beats: background timer leeway is not a suspended app (#1399).
+  static let maxLagSeconds: Double = 5
 
   /// The pulse stopped without the shell asking (interruption, route change).
   /// Not a failure: the click is still available, it just isn't sounding.
@@ -208,15 +209,14 @@ final class ClickEngine {
   }
 
   private func clockRanAway(now: UInt64) -> Bool {
-    guard let pulse, let head = pendingBeats.first else { return false }
-    return Self.hasLostTheClock(
-      head: head.audibleHostTime, now: now, secondsPerBeat: pulse.secondsPerBeat)
+    guard pulse != nil, let head = pendingBeats.first else { return false }
+    return Self.hasLostTheClock(head: head.audibleHostTime, now: now)
   }
 
   /// A backlog this deep is a suspended app, not a late wakeup: draining it
   /// would fire the whole window at once, so the schedule is abandoned.
-  static func hasLostTheClock(head: UInt64, now: UInt64, secondsPerBeat: Double) -> Bool {
-    HostClock.secondsBetween(now, head) > maxLagBeats * secondsPerBeat
+  static func hasLostTheClock(head: UInt64, now: UInt64) -> Bool {
+    HostClock.secondsBetween(now, head) > maxLagSeconds
   }
 
   // ── Interruptions ──
