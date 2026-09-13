@@ -1,5 +1,4 @@
 use crate::app::{AppEffect, Effect, Event};
-#[cfg(test)]
 use crate::domain::item::Item;
 use crate::domain::item::ItemKind;
 use crate::domain::metre::Metre;
@@ -625,12 +624,29 @@ fn freeze_rep_state(entry: &mut SetlistEntry) {
 }
 
 /// An entry that has just become current opens its first play, seeded from the
-/// builder's plan (#1739 decisions 3 and 5). Idempotent: a recovered session
-/// already carries its plays.
-fn open_first_play(entry: &mut SetlistEntry, now: DateTime<Utc>) {
+/// builder's plan (#1739 decisions 3 and 5), or from the item's first live
+/// variation when the builder set no plan (#1758): starting on nothing left
+/// the picker reading "Pick a variation" while the clock already ran, and the
+/// unattributed seconds became a row the musician never asked for. An item
+/// with no live variants, a piece included, still opens unattributed, exactly
+/// as decision 3 intends. Idempotent: a recovered session already carries its
+/// plays.
+fn open_first_play(entry: &mut SetlistEntry, items: &[Item], now: DateTime<Utc>) {
     if entry.plays.is_empty() {
+        let variation_id = entry.planned_variation_id.clone().or_else(|| {
+            items
+                .iter()
+                .find(|item| item.id == entry.item_id)
+                .and_then(|item| {
+                    item.variants
+                        .iter()
+                        .filter(|v| v.deleted_at.is_none())
+                        .min_by_key(|v| v.position)
+                        .map(|v| v.id.clone())
+                })
+        });
         entry.plays.push(VariationPlay::opened(
-            entry.planned_variation_id.clone(),
+            variation_id,
             entry.planned_rep_target,
             now,
         ));
@@ -679,7 +695,7 @@ fn record_rep(model: &mut Model, action: RepAction, now: DateTime<Utc>) -> Comma
     };
     // Repetitions belong to the variation being played, so they retarget the
     // open play and reset when a switch opens the next one (#1739 decision 6).
-    open_first_play(entry, now);
+    open_first_play(entry, &model.items, now);
     let Some(play) = entry.open_play_mut() else {
         return crux_core::render::render();
     };
@@ -743,6 +759,7 @@ fn entry_for_variant_mut<'a>(model: &'a mut Model, entry_id: &str) -> Option<&'a
 
 fn transition_to_summary(
     active: &mut ActiveSession,
+    items: &[Item],
     now: DateTime<Utc>,
     completion_status: CompletionStatus,
 ) -> SummarySession {
@@ -750,7 +767,7 @@ fn transition_to_summary(
     if let Some(entry) = active.entries.get_mut(active.current_index) {
         entry.duration_secs = elapsed;
         entry.status = EntryStatus::Completed;
-        open_first_play(entry, active.current_item_started_at);
+        open_first_play(entry, items, active.current_item_started_at);
         close_open_play(entry, now);
         freeze_rep_state(entry);
     }
@@ -1261,7 +1278,7 @@ pub fn handle_session_event(event: SessionEvent, model: &mut Model) -> Command<E
             };
 
             if let Some(entry) = active.entries.first_mut() {
-                open_first_play(entry, now);
+                open_first_play(entry, &model.items, now);
             }
 
             let save_effect = AppEffect::SaveSessionInProgress(active.clone());
@@ -1296,7 +1313,8 @@ pub fn handle_session_event(event: SessionEvent, model: &mut Model) -> Command<E
             };
 
             if active.current_index >= active.entries.len() - 1 {
-                let summary = transition_to_summary(active, now, CompletionStatus::Completed);
+                let summary =
+                    transition_to_summary(active, &model.items, now, CompletionStatus::Completed);
                 model.session_status = SessionStatus::Summary(summary);
                 model.last_error = None;
                 return crux_core::render::render();
@@ -1307,7 +1325,7 @@ pub fn handle_session_event(event: SessionEvent, model: &mut Model) -> Command<E
             if let Some(entry) = active.entries.get_mut(active.current_index) {
                 entry.duration_secs = elapsed;
                 entry.status = EntryStatus::Completed;
-                open_first_play(entry, active.current_item_started_at);
+                open_first_play(entry, &model.items, active.current_item_started_at);
                 close_open_play(entry, now);
                 freeze_rep_state(entry);
                 drop_incidental_play(entry);
@@ -1316,7 +1334,7 @@ pub fn handle_session_event(event: SessionEvent, model: &mut Model) -> Command<E
             active.current_index += 1;
             active.current_item_started_at = now;
             if let Some(entry) = active.entries.get_mut(active.current_index) {
-                open_first_play(entry, now);
+                open_first_play(entry, &model.items, now);
             }
             model.last_error = None;
 
@@ -1365,7 +1383,7 @@ pub fn handle_session_event(event: SessionEvent, model: &mut Model) -> Command<E
             active.current_index += 1;
             active.current_item_started_at = now;
             if let Some(entry) = active.entries.get_mut(active.current_index) {
-                open_first_play(entry, now);
+                open_first_play(entry, &model.items, now);
             }
             model.last_error = None;
 
@@ -1382,7 +1400,8 @@ pub fn handle_session_event(event: SessionEvent, model: &mut Model) -> Command<E
                 return crux_core::render::render();
             };
 
-            let summary = transition_to_summary(active, now, CompletionStatus::Completed);
+            let summary =
+                transition_to_summary(active, &model.items, now, CompletionStatus::Completed);
             model.session_status = SessionStatus::Summary(summary);
             model.last_error = None;
             crux_core::render::render()
@@ -1394,7 +1413,8 @@ pub fn handle_session_event(event: SessionEvent, model: &mut Model) -> Command<E
                 return crux_core::render::render();
             };
 
-            let summary = transition_to_summary(active, now, CompletionStatus::EndedEarly);
+            let summary =
+                transition_to_summary(active, &model.items, now, CompletionStatus::EndedEarly);
             model.session_status = SessionStatus::Summary(summary);
             model.last_error = None;
             crux_core::render::render()
@@ -2742,6 +2762,128 @@ mod tests {
         } else {
             panic!("Expected Active state");
         }
+    }
+
+    // --- StartSession variation seeding tests (#1758) ---
+
+    #[test]
+    fn test_start_session_seeds_the_first_live_variation_when_no_plan_is_set() {
+        let (mut model, entry_id) = model_with_exercise_building();
+        let now = Utc::now();
+
+        update(
+            &mut model,
+            Event::Session(SessionEvent::StartSession { now }),
+        );
+
+        let entry = session_entries(&model)
+            .iter()
+            .find(|e| e.id == entry_id)
+            .expect("the entry is in the session");
+        assert_eq!(play_of(entry).variation_id, Some("v-c".to_string()));
+    }
+
+    #[test]
+    fn test_start_session_keeps_the_planned_variation_over_the_first_live_one() {
+        let (mut model, entry_id) = model_with_exercise_building();
+        update(
+            &mut model,
+            Event::Session(SessionEvent::SetEntryVariant {
+                entry_id: entry_id.clone(),
+                variant_id: Some("v-f".to_string()),
+            }),
+        );
+        let now = Utc::now();
+
+        update(
+            &mut model,
+            Event::Session(SessionEvent::StartSession { now }),
+        );
+
+        let entry = session_entries(&model)
+            .iter()
+            .find(|e| e.id == entry_id)
+            .expect("the entry is in the session");
+        assert_eq!(play_of(entry).variation_id, Some("v-f".to_string()));
+    }
+
+    #[test]
+    fn test_start_session_leaves_a_piece_unattributed() {
+        let mut model = model_with_library();
+        let now = Utc::now();
+        update(&mut model, Event::Session(SessionEvent::StartBuilding));
+        update(
+            &mut model,
+            Event::Session(SessionEvent::AddToSetlist {
+                item_id: "piece-1".to_string(),
+            }),
+        );
+
+        update(
+            &mut model,
+            Event::Session(SessionEvent::StartSession { now }),
+        );
+
+        let entry = &session_entries(&model)[0];
+        assert_eq!(play_of(entry).variation_id, None);
+    }
+
+    #[test]
+    fn test_start_session_leaves_an_all_tombstoned_ladder_unattributed() {
+        let (mut model, entry_id) = model_with_exercise_building();
+        model
+            .items
+            .iter_mut()
+            .find(|i| i.id == "exercise-1")
+            .unwrap()
+            .variants
+            .iter_mut()
+            .for_each(|v| v.deleted_at = Some(Utc::now()));
+        let now = Utc::now();
+
+        update(
+            &mut model,
+            Event::Session(SessionEvent::StartSession { now }),
+        );
+
+        let entry = session_entries(&model)
+            .iter()
+            .find(|e| e.id == entry_id)
+            .expect("the entry is in the session");
+        assert_eq!(play_of(entry).variation_id, None);
+    }
+
+    #[test]
+    fn test_next_item_seeds_the_first_live_variation_for_the_new_entry() {
+        let mut model = model_with_library();
+        give_exercise_a_ladder(&mut model);
+        update(&mut model, Event::Session(SessionEvent::StartBuilding));
+        update(
+            &mut model,
+            Event::Session(SessionEvent::AddToSetlist {
+                item_id: "piece-1".to_string(),
+            }),
+        );
+        update(
+            &mut model,
+            Event::Session(SessionEvent::AddToSetlist {
+                item_id: "exercise-1".to_string(),
+            }),
+        );
+        let now = Utc::now();
+        update(
+            &mut model,
+            Event::Session(SessionEvent::StartSession { now }),
+        );
+        update(
+            &mut model,
+            Event::Session(SessionEvent::NextItem {
+                now: now + chrono::Duration::seconds(30),
+            }),
+        );
+
+        let entries = session_entries(&model);
+        assert_eq!(play_of(&entries[1]).variation_id, Some("v-c".to_string()));
     }
 
     #[test]
@@ -5906,13 +6048,16 @@ mod tests {
 
     #[test]
     fn switching_to_the_variation_already_open_writes_nothing() {
+        // StartSession seeds the open play with v-c, the first live variation
+        // (#1758), so the genuine switch under test is to v-d; switching to
+        // v-c here would itself be a no-op rather than exercising one.
         let (mut model, start) = model_with_variations();
         let entry_id = only_entry(&model).id.clone();
         update(
             &mut model,
             Event::Session(SessionEvent::SwitchVariation {
                 entry_id: entry_id.clone(),
-                variation_id: Some("v-c".to_string()),
+                variation_id: Some("v-d".to_string()),
                 now: start + chrono::Duration::seconds(60),
             }),
         );
@@ -5927,7 +6072,7 @@ mod tests {
             &mut model,
             Event::Session(SessionEvent::SwitchVariation {
                 entry_id,
-                variation_id: Some("v-c".to_string()),
+                variation_id: Some("v-d".to_string()),
                 now: start + chrono::Duration::seconds(80),
             }),
         );
