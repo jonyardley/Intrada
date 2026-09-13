@@ -877,6 +877,14 @@ final class ScreenSnapshotTests: XCTestCase {
     assertSnapshot(of: host(pushed, store: store), as: config)
   }
 
+  func testExerciseDetailWithNamedVariations() {
+    let store = Store(bridge: PreviewBridge(items: [.previewExerciseWithNamedVariations]))
+    let pushed = NavigationStack(
+      path: .constant([LibraryItemView.previewExerciseWithNamedVariations.id])
+    ) { LibraryScreen() }
+    assertSnapshot(of: host(pushed, store: store), as: config)
+  }
+
   // #1083 C2: minimal step-list creation sheet, opened from the "+ Add steps" link.
   func testAddVariationsSheet() {
     assertSnapshot(of: host(AddVariationsSheet(itemId: "exercise-1")), as: config)

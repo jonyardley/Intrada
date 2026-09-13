@@ -2,8 +2,8 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 /// One rung of an exercise's step ladder: "C", "Root position", "Land on
-/// the 3rd". The core's name; on screen a ladder is "Steps", or "Keys" when
-/// every live rung names one. Which of the two is the core's call, via
+/// the 3rd". The core's name; on screen a ladder is "Variations", or "Keys"
+/// when every live rung names one. Which of the two is the core's call, via
 /// `ladder_is_all_keys` (#1083, moved off the shell in #1467) — the shell
 /// only prints the word. Score history is derived from session entries
 /// tagged with this `id`, never stored here.
@@ -134,19 +134,25 @@ fn strip_mode_word(value: &str) -> &str {
     }
 }
 
+/// A spelled-out accidental is a key too (#1478).
 fn is_tonic(raw: &str) -> bool {
-    let chars: Vec<char> = raw.trim().chars().collect();
-    let Some(first) = chars.first() else {
+    let trimmed = raw.trim();
+    let mut chars = trimmed.chars();
+    let Some(first) = chars.next() else {
         return false;
     };
     if !('A'..='G').contains(&first.to_ascii_uppercase()) {
         return false;
     }
-    match chars.len() {
-        1 => true,
-        2 => matches!(chars[1], '#' | 'b' | 'B'),
-        _ => false,
-    }
+    let sign = chars
+        .as_str()
+        .trim_start()
+        .trim_start_matches('-')
+        .trim_start();
+    matches!(
+        sign.to_lowercase().as_str(),
+        "" | "#" | "b" | "flat" | "sharp"
+    )
 }
 
 #[cfg(test)]
@@ -172,6 +178,12 @@ mod tests {
             "D\u{266F} major",
             "G# major",
             "Db minor",
+            "E flat major",
+            "F sharp minor",
+            "A flat",
+            "c sharp",
+            "E-flat major",
+            "F-sharp minor",
         ] {
             assert!(is_key_label(label), "{label:?} names a key");
         }
@@ -193,10 +205,8 @@ mod tests {
             "H",
             "",
             "major",
-            // Spelled-out accidentals are a deliberate gap, carried over from
-            // the Swift this replaces: the tonic is a letter and a sign.
-            "E flat major",
-            "F sharp minor",
+            "E flatten major",
+            "F sharpish minor",
         ] {
             assert!(!is_key_label(label), "{label:?} does not name a key");
         }
