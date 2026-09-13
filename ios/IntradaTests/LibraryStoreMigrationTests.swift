@@ -61,23 +61,6 @@ final class LibraryStoreMigrationTests: XCTestCase {
       "sessionScore UInt8→Int64→UInt8(clamping:) round-trip must preserve 7")
   }
 
-  func testSessionReflectionsRoundTrip() throws {
-    let store = try LibraryStore.inMemory()
-    let session = PracticeSession(
-      id: "sess-refl", entries: [],
-      sessionNotes: nil, sessionIntention: "even RH at 96",
-      startedAt: "2026-07-14T10:00:00Z", completedAt: "2026-07-14T10:30:00Z",
-      totalDurationSecs: 1800, completionStatus: .completed, sessionScore: nil,
-      reflectionImproved: "thumb-unders even at 92",
-      reflectionStillRough: "bars 12-14 rush past 88",
-      reflectionNextTarget: "bars 12-14 at 80, hands together")
-    try store.saveSession(session)
-    let loaded = try XCTUnwrap(try store.loadSessions().first)
-    XCTAssertEqual(loaded.reflectionImproved, "thumb-unders even at 92")
-    XCTAssertEqual(loaded.reflectionStillRough, "bars 12-14 rush past 88")
-    XCTAssertEqual(loaded.reflectionNextTarget, "bars 12-14 at 80, hands together")
-  }
-
   func testV6SessionSurvivesReflectionMigration() throws {
     let store = try LibraryStore.upgradeTestStore(
       migratedTo: "v6_item_linked_exercises",
@@ -91,9 +74,53 @@ final class LibraryStoreMigrationTests: XCTestCase {
     let loaded = try XCTUnwrap(try store.loadSessions().first)
     XCTAssertEqual(loaded.sessionNotes, "old note", "pre-migration row survives intact")
     XCTAssertEqual(loaded.sessionScore, 7)
-    XCTAssertNil(loaded.reflectionImproved, "old rows read back with nil reflections")
-    XCTAssertNil(loaded.reflectionStillRough)
-    XCTAssertNil(loaded.reflectionNextTarget)
+  }
+
+  /// #1766 retired the intention and the reflection trio from the store but
+  /// kept their columns, so text typed before the retirement is still the only
+  /// copy there is. Nothing else reads those columns any more, so this is what
+  /// stands between them and a tidy-up.
+  func testRetiredSessionColumnsAndTheirTextSurviveASave() throws {
+    let queue = try DatabaseQueue()
+    let store = try LibraryStore(queue)
+    try queue.write { db in
+      try db.execute(
+        sql: """
+          INSERT INTO session
+            (id, started_at, completed_at, total_duration_secs, completion_status,
+             session_notes, session_intention, entries, updated_at, deleted_at,
+             reflection_improved, reflection_still_rough, reflection_next_target)
+          VALUES ('s-old', '2026-05-01T10:00:00Z', '2026-05-01T10:30:00Z', 1800, 'completed',
+                  'old note', 'even RH at 96', '[]', '2026-05-01T10:30:00Z', NULL,
+                  'thumb-unders even', 'bars 12-14 rush', 'bars 12-14 at 80')
+          """)
+    }
+
+    let columns = try store.columnNames(ofTable: "session")
+    for retired in [
+      "session_intention", "reflection_improved", "reflection_still_rough",
+      "reflection_next_target",
+    ] {
+      XCTAssertTrue(columns.contains(retired), "\(retired) must stay in the table; got \(columns)")
+    }
+
+    var reloaded = try XCTUnwrap(try store.loadSessions().first)
+    reloaded.sessionNotes = "edited"
+    try store.saveSession(reloaded)
+
+    try queue.read { db in
+      let row = try XCTUnwrap(try Row.fetchOne(db, sql: "SELECT * FROM session WHERE id = 's-old'"))
+      let notes: String? = row["session_notes"]
+      XCTAssertEqual(notes, "edited", "the save still writes the columns the app holds")
+      let intention: String? = row["session_intention"]
+      XCTAssertEqual(intention, "even RH at 96", "a re-save must not wipe the retired columns")
+      let improved: String? = row["reflection_improved"]
+      XCTAssertEqual(improved, "thumb-unders even")
+      let stillRough: String? = row["reflection_still_rough"]
+      XCTAssertEqual(stillRough, "bars 12-14 rush")
+      let nextTarget: String? = row["reflection_next_target"]
+      XCTAssertEqual(nextTarget, "bars 12-14 at 80")
+    }
   }
 
   func testGroupIdRoundTripsThroughTheJsonCodec() throws {
