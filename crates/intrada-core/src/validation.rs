@@ -453,7 +453,7 @@ pub fn validate_variant_host(id: &str, model: &Model) -> Result<(), LibraryError
     if item.kind != ItemKind::Exercise {
         return Err(LibraryError::Validation {
             field: "id".to_string(),
-            message: "Only an exercise can have steps".to_string(),
+            message: "Only an exercise can have variations".to_string(),
         });
     }
 
@@ -468,7 +468,7 @@ pub fn validate_variant_labels(labels: &[String]) -> Result<(), LibraryError> {
     if labels.len() > MAX_VARIANTS {
         return Err(LibraryError::Validation {
             field: "labels".to_string(),
-            message: format!("An exercise can have at most {MAX_VARIANTS} steps"),
+            message: format!("An exercise can have at most {MAX_VARIANTS} variations"),
         });
     }
 
@@ -478,14 +478,14 @@ pub fn validate_variant_labels(labels: &[String]) -> Result<(), LibraryError> {
             return Err(LibraryError::Validation {
                 field: "labels".to_string(),
                 message: format!(
-                    "Each step label must be between 1 and {MAX_VARIANT_LABEL} characters"
+                    "Each variation label must be between 1 and {MAX_VARIANT_LABEL} characters"
                 ),
             });
         }
         if !seen.insert(label.to_lowercase()) {
             return Err(LibraryError::Validation {
                 field: "labels".to_string(),
-                message: format!("Duplicate step \u{201c}{label}\u{201d}"),
+                message: format!("Duplicate variation \u{201c}{label}\u{201d}"),
             });
         }
     }
@@ -1612,6 +1612,48 @@ mod tests {
             LibraryError::Validation { field, message } => {
                 assert_eq!(field, "entries");
                 assert_eq!(message, "Set must have at least one entry");
+            }
+            _ => panic!("Expected Validation error"),
+        }
+    }
+
+    #[test]
+    fn too_many_variant_labels_names_variations() {
+        let labels: Vec<String> = (0..=MAX_VARIANTS).map(|i| format!("Key {i}")).collect();
+        let err = validate_variant_labels(&labels).unwrap_err();
+        match err {
+            LibraryError::Validation { field, message } => {
+                assert_eq!(field, "labels");
+                assert_eq!(message, "An exercise can have at most 24 variations");
+            }
+            _ => panic!("Expected Validation error"),
+        }
+    }
+
+    #[test]
+    fn empty_variant_label_names_variation() {
+        let labels = vec![String::new()];
+        let err = validate_variant_labels(&labels).unwrap_err();
+        match err {
+            LibraryError::Validation { field, message } => {
+                assert_eq!(field, "labels");
+                assert_eq!(
+                    message,
+                    "Each variation label must be between 1 and 100 characters"
+                );
+            }
+            _ => panic!("Expected Validation error"),
+        }
+    }
+
+    #[test]
+    fn duplicate_variant_label_names_variation() {
+        let labels = vec!["C".to_string(), "c".to_string()];
+        let err = validate_variant_labels(&labels).unwrap_err();
+        match err {
+            LibraryError::Validation { field, message } => {
+                assert_eq!(field, "labels");
+                assert_eq!(message, "Duplicate variation \u{201c}c\u{201d}");
             }
             _ => panic!("Expected Validation error"),
         }

@@ -344,12 +344,12 @@ pub struct LibraryItemView {
     pub chord_chart: Option<ChordChart>,
     /// The piece's time signature, which seeds the click's bar (#1499).
     pub metre: Option<Metre>,
-    /// The exercise's step ladder with per-step practice state (#1083);
+    /// The exercise's variation ladder with per-variation practice state (#1083);
     /// empty for pieces and un-laddered exercises.
     #[serde(default)]
     pub variants: Vec<VariantView>,
     /// Every live rung of `variants` names a key, so the shell prints "keys"
-    /// rather than "steps" beside the count (#1467). False for pieces and for
+    /// rather than "variations" beside the count (#1467). False for pieces and for
     /// a ladder with no rungs. No `serde(default)`: the bridge is positional
     /// bincode, where serde never reaches a default, and the attribute would
     /// read as "optional on the wire" to the next person (#846).
@@ -358,9 +358,9 @@ pub struct LibraryItemView {
     pub photo_id: Option<String>,
 }
 
-/// One step of an exercise's ladder with its derived practice state (#1083).
-/// Only live (non-tombstoned) steps reach the view, in ladder order. Users
-/// see "Steps"; `variant` is the core's name and never appears on screen.
+/// One variation of an exercise's ladder with its derived practice state (#1083).
+/// Only live (non-tombstoned) variations reach the view, in ladder order. Users
+/// see "Variations"; `variant` is the core's name and never appears on screen.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "facet_typegen", derive(facet::Facet))]
 pub struct VariantView {

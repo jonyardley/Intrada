@@ -753,7 +753,7 @@ fn entry_for_update_mut<'a>(model: &'a mut Model, entry_id: &str) -> Option<&'a 
 }
 
 // Unlike score/notes (post-play reflection only, `entry_for_update_mut`), the
-// step tag is also a Building-phase plan ("which rung am I about to climb"),
+// variation tag is also a Building-phase plan ("which rung am I about to climb"),
 // so its lookup spans all three phases (#1083). The immutable twin exists for
 // checks that also read the library (a mutable borrow would lock the model).
 fn entry_for_variant<'a>(model: &'a Model, entry_id: &str) -> Option<&'a SetlistEntry> {
@@ -4124,7 +4124,7 @@ mod tests {
     }
 
     /// Building state whose single entry is the laddered exercise. Local-first,
-    /// as on iOS; steps are gated to that mode (#1083).
+    /// as on iOS; variations are gated to that mode (#1083).
     fn model_with_exercise_building() -> (Model, String) {
         let mut model = model_with_library();
         give_exercise_a_ladder(&mut model);
@@ -4351,7 +4351,7 @@ mod tests {
         assert_eq!(
             saved.planned_variation_id.as_deref(),
             Some("v-c"),
-            "the chosen step rides the persisted session"
+            "the chosen variation rides the persisted session"
         );
         assert_eq!(
             play_of(saved).variation_id.as_deref(),

@@ -66,7 +66,7 @@ pub struct Item {
     /// piece's `updated_at`. `None` for exercises and un-charted pieces.
     #[serde(default)]
     pub chord_chart: Option<ChordChart>,
-    /// Ordered step ladder (exercises only), tombstones included; appended
+    /// Ordered variation ladder (exercises only), tombstones included; appended
     /// last + `#[serde(default)]` so old rows / bincode snapshots decode to
     /// an empty ladder (#846). Persisted to the `variant` child table (#1083).
     #[serde(default)]
@@ -130,7 +130,7 @@ pub enum ItemEvent {
         piece_id: String,
         kinds: Vec<ScaffoldKind>,
     },
-    /// Define an exercise's whole step ladder from ordered `labels`,
+    /// Define an exercise's whole variation ladder from ordered `labels`,
     /// reconciled by case-insensitive label: matching variants keep their id
     /// (and score history), removed labels tombstone, re-added labels
     /// resurrect. Empty = clear the ladder. Local-first only until sync
@@ -139,11 +139,11 @@ pub enum ItemEvent {
         id: String,
         labels: Vec<String>,
     },
-    /// Rename a step in place, matched by `variant_id` rather than label —
+    /// Rename a variation in place, matched by `variant_id` rather than label:
     /// `SetVariants`'s label-keyed reconciliation can't express a rename
     /// (a changed label is indistinguishable from remove+add, which would
     /// drop score history). `new_label` is validated against the item's
-    /// other live steps for duplicates (#1083 C4).
+    /// other live variations for duplicates (#1083 C4).
     RenameVariant {
         item_id: String,
         variant_id: String,
@@ -922,7 +922,7 @@ pub fn handle_item_event(event: ItemEvent, model: &mut Model) -> Command<Effect,
             }
 
             // Validate the substituted label against the item's other live
-            // steps: the same duplicate/length/count checks `SetVariants`
+            // variations: the same duplicate/length/count checks `SetVariants`
             // runs, applied to the renamed value rather than a whole ladder.
             let mut live: Vec<&Variant> = item
                 .variants
@@ -1293,7 +1293,7 @@ mod tests {
         assert_eq!(variants.len(), 2, "no new row created");
         assert!(
             variants.iter().any(|v| v.label == "F"),
-            "other step untouched"
+            "other variation untouched"
         );
         let ex = model.items.iter().find(|i| i.id == "ex-1").unwrap();
         assert!(ex.updated_at >= before, "touches the item's updated_at");
@@ -1302,7 +1302,7 @@ mod tests {
     }
 
     #[test]
-    fn rename_variant_rejects_a_duplicate_against_another_live_step() {
+    fn rename_variant_rejects_a_duplicate_against_another_live_variation() {
         let mut model = model_with_piece_and_exercise();
         send(
             &mut model,
@@ -1419,7 +1419,7 @@ mod tests {
     }
 
     #[test]
-    fn rename_variant_on_a_tombstoned_step_surfaces_not_found() {
+    fn rename_variant_on_a_tombstoned_variation_surfaces_not_found() {
         let mut model = model_with_piece_and_exercise();
         send(
             &mut model,
@@ -1453,7 +1453,7 @@ mod tests {
 
         assert!(
             model.last_error.is_some(),
-            "a tombstoned step can't be renamed"
+            "a tombstoned variation can't be renamed"
         );
     }
 
@@ -1835,7 +1835,7 @@ mod tests {
             assert_eq!(
                 ids_by_label.get(&v.label),
                 Some(&v.id),
-                "reordering keeps each step's id (and so its history)"
+                "reordering keeps each variation's id (and so its history)"
             );
         }
         assert_eq!(
@@ -1879,7 +1879,11 @@ mod tests {
             .iter()
             .filter(|v| v.deleted_at.is_some())
             .collect();
-        assert_eq!(dead.len(), 1, "the removed step is kept as a tombstone");
+        assert_eq!(
+            dead.len(),
+            1,
+            "the removed variation is kept as a tombstone"
+        );
         assert_eq!(dead[0].label, "F");
     }
 
@@ -1929,7 +1933,7 @@ mod tests {
         let f = ex.variants.iter().find(|v| v.label == "F").unwrap();
         assert_eq!(
             f.id, f_id,
-            "the re-added step resurrects its old id (score history intact)"
+            "the re-added variation resurrects its old id (score history intact)"
         );
         assert!(f.deleted_at.is_none());
         assert_eq!(f.position, 1);
@@ -2064,14 +2068,14 @@ mod tests {
         );
 
         let variants = exercise_variants(&model);
-        assert_eq!(variants.len(), 2, "cleared steps remain as tombstones");
+        assert_eq!(variants.len(), 2, "cleared variations remain as tombstones");
         assert!(variants.iter().all(|v| v.deleted_at.is_some()));
         assert!(model.last_error.is_none());
         assert!(emits_save(&mut cmd, "ex-1"), "the clear persists");
     }
 
     #[test]
-    fn set_variants_untouched_step_keeps_its_updated_at() {
+    fn set_variants_untouched_variation_keeps_its_updated_at() {
         // Per-row LWW hygiene: only rows that changed get a new timestamp.
         let mut model = model_with_piece_and_exercise();
         send(
@@ -2095,12 +2099,12 @@ mod tests {
         let c = variants.iter().find(|v| v.label == "C").unwrap();
         assert_eq!(
             c.updated_at, c_updated_at,
-            "an untouched step keeps its LWW timestamp"
+            "an untouched variation keeps its LWW timestamp"
         );
         let f = variants.iter().find(|v| v.label == "F").unwrap();
         assert!(
             f.updated_at > c_updated_at,
-            "the tombstoned step is stamped"
+            "the tombstoned variation is stamped"
         );
     }
 
@@ -2130,7 +2134,7 @@ mod tests {
             variants[0].label, "Bb",
             "a relabel in casing only is adopted"
         );
-        assert_eq!(variants[0].id, id_before, "same step, history intact");
+        assert_eq!(variants[0].id, id_before, "same variation, history intact");
     }
 
     #[test]
@@ -2546,7 +2550,7 @@ mod tests {
         let piece = model.items.iter().find(|i| i.id == "piece-1").unwrap();
         assert!(
             piece.linked_exercise_ids.contains(&created.id),
-            "the point of the event: created already linked, with no second step"
+            "the point of the event: created already linked, with no second variation"
         );
         assert!(model.last_error.is_none());
 
